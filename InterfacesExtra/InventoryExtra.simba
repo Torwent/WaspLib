@@ -1,1 +1,65 @@
+(*
+InventoryExtra
+=========
+Methods to interact with the inventory.
+This file expands on SRL's inventory file.
+*)
 
+
+const
+  //Vertical 2 by 2 columns pattern. Normal and "reversed"
+  DROP_PATTERN_TWO_ROW: TIntegerArray = [0,4,1,5,2,6,3,7,8,12,9,13,10,14,11,15,16,20,17,21,18,22,19,23,20,24,25,26,27,28];
+  DROP_PATTERN_TWO_ROW_R: TIntegerArray = [0,4,1,5,2,6,3,7,11,15,10,14,9,13,8,12,16,20,17,21,18,22,19,23,20,24,28,27,26,25];
+
+function TRSInventory.SetSelectedSlot(Slot: Int32): Boolean; override;
+var
+  Selected: Int32;
+begin
+  Selected := Self.GetSelectedSlot();
+  if (Selected = Slot) then
+    Exit(True);
+
+  if (Selected > -1) then
+    Mouse.Click(Self.GetSlotBox(Selected), MOUSE_LEFT);
+  if (Slot > -1) then
+  begin
+    Mouse.Move(Self.GetSlotBox(Slot));
+    if MainScreen.IsUpText('Use') then
+      Mouse.Click(, MOUSE_LEFT)
+    else if ChooseOption.Open() then
+      if not ChooseOption.Select('Use') then
+        Exit(False);
+  end;
+  
+  Result := WaitUntil(Self.GetSelectedSlot() = Slot, 50, SRL.TruncatedGauss(1000, 2000));
+end;
+
+function TRSInventory.GetEmptySlots(): TIntArray;
+var
+  i: Int32;
+begin
+  for i := 0 to 27 do
+    if not Self.IsSlotUsed(i) then
+      Result += i;
+end;
+
+function TRSInventory.CountEmptySlots(): Int32;
+begin
+  Result := 28 - Self.Count();
+end;
+
+function TRSInventory.HasSpace(SlotsNeeded: Int32 = 1): Boolean;
+begin
+  Result := SlotsNeeded <= Self.CountEmptySlots();
+end;
+
+
+
+function TRSInventory.Drag(Slot1, Slot2: Int32): Boolean;
+begin
+  if not Self.IsSlotUsed(Slot1) then
+    Exit(False);
+  Self.MouseSlot(Slot1);
+  Mouse.DragTo(SRL.RandomPoint(Self.GetSlotBox(Slot2)));
+  Result := True;
+end;

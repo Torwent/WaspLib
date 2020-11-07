@@ -1,0 +1,255 @@
+{$DEFINE SRL_MAGIC_INCLUDED}
+{$IFNDEF SRL_OSR}
+  {$I SRL/osr.simba}
+{$ENDIF}
+
+type
+  ESpellCast = (
+    CAST_LUMBRIDGE_HOME_TELEPORT,
+    CAST_WIND_STRIKE,
+    CAST_CONFUSE,
+    CAST_ENCHANT_CROSSBOW_BOLT,
+    CAST_WATER_STRIKE,
+    CAST_LVL1_ENCHANT,
+    CAST_EARTH_STRIKE,
+
+    CAST_WEAKEN,
+    CAST_FIRE_STRIKE,
+    CAST_BONES_TO_BANANAS,
+    CAST_WIND_BOLT,
+    CAST_CURSE,
+    CAST_BIND,
+    CAST_LOW_LEVEL_ALCHEMY,
+
+    CAST_WATER_BOLT,
+    CAST_VARROCK_TELEPORT,
+    CAST_LVL2_ENCHANT,
+    CAST_EARTH_BOLT,
+    CAST_LUMBRIDGE_TELEPORT,
+    CAST_TELEKINETIC_GRAB,
+    CAST_FIRE_BOLT,
+
+    CAST_FALADOR_TELEPORT,
+    CAST_CRUMBLE_UNDEAD,
+    CAST_TELEPORT_TO_HOUSE,
+    CAST_WIND_BLAST,
+    CAST_SUPERHEAT_ITEM,
+    CAST_CAMELOT_TELEPORT,
+    CAST_WATER_BLAST,
+
+    CAST_LVL3_ENCHANT,
+    CAST_IBAN_BLAST,
+    CAST_SNARE,
+    CAST_MAGIC_DART,
+    CAST_ARDOUGNE_TELEPORT,
+    CAST_EARTH_BLAST,
+    CAST_HIGH_LEVEL_ALCHEMY,
+
+    CAST_CHARGE_WATER_ORB,
+    CAST_LVL4_ENCHANT,
+    CAST_WATCHTOWER_TELEPORT,
+    CAST_FIRE_BLAST,
+    CAST_CHARGE_EARTH_ORB,
+    CAST_BONES_TO_PEACHES,
+    CAST_SARADOMIN_STRIKE,
+
+    CAST_CLAWS_OF_GUTHIX,
+    CAST_FLAMES_OF_ZAMORAK,
+    CAST_TROLLHEIM_TELEPORT,
+    CAST_WIND_WAVE,
+    CAST_CHARGE_FIRE_ORB,
+    CAST_TELEPORT_TO_APE_ATOLL,
+    CAST_WATER_WAVE,
+
+    CAST_CHARGE_AIR_ORB,
+    CAST_VULNERABILITY,
+    CAST_LVL5_ENCHANT,
+    CAST_TELEPORT_TO_KOUREND,
+    CAST_EARTH_WAVE,
+    CAST_ENFEEBLE,
+    CAST_TELEOTHER_LUMBRIDGE,
+
+    CAST_FIRE_WAVE,
+    CAST_ENTANGLE,
+    CAST_STUN,
+    CAST_CHARGE,
+    CAST_WIND_SURGE,
+    CAST_TELEOTHER_FALADOR,
+    CAST_WATER_SURGE,
+
+    CAST_TELE_BLOCK,
+    CAST_TELEPORT_TO_TARGET,
+    CAST_LVL6_ENCHANT,
+    CAST_TELEOTHER_CAMELOT,
+    CAST_EARTH_SURGE,
+    CAST_LVL7_ENCHANT,
+    CAST_FIRE_SURGE
+  );
+
+  TRSMagic = record(TRSInterface)
+    LOW_SPELL: ESpellCast;
+    HIGH_SPELL: ESpellCast;
+  end;
+
+
+procedure TRSMagic.Setup; overload;
+begin
+  if Self <> [] then
+    Exit;
+  Self.Name := 'Magic';
+
+  Self.LOW_SPELL := Low(ESpellCast);
+  Self.HIGH_SPELL := High(ESpellCast);
+end;
+
+procedure TRSMagic.Setup(Mode: ERSClientMode); overload;
+begin
+  Self.Mode := Mode;
+
+  Self.Alignment.Left := [@GameTab.X1];
+  Self.Alignment.Right := [@GameTab.X2];
+  Self.Alignment.Top := [@GameTab.Y1];
+  Self.Alignment.Bottom := [@GameTab.Y2];
+end;
+
+function TRSMagic.GetSpellBoxes: TBoxArray;
+begin
+  Result := Grid(7, 10, 23, 23, [3, 1], [Self.X1 + 2, Self.Y1 + 1]);
+end;
+
+function TRSMagic.GetSpellBox(Spell: ESpellCast): TBox;
+begin
+  Result := Self.GetSpellBoxes()[Spell];
+end;
+
+function TRSMagic.PointToSpell(P: TPoint): Int32;
+var
+  I: Int32;
+  Spells: TBoxArray;
+begin
+  Spells := Self.GetSpellBoxes();
+  for I := 0 to High(Spells) do
+    if Spells[I].Contains(P) then
+      Exit(I);
+
+  Result := -1;
+end;
+
+function TRSMagic.MouseOver(Spell: ESpellCast): Boolean;
+begin
+  if not (Self.Open()) then Exit();
+
+  Result := True;
+  Mouse.Move(Self.GetSpellBox(Spell));
+end;
+
+
+function TRSMagic.IsOpen: Boolean;
+begin
+  Result := (GameTabs.GetCurrentTab() = TAB_MAGIC);
+end;
+
+function TRSMagic.Open: Boolean;
+begin
+  Result := Self.IsOpen() or GameTabs.Open(TAB_MAGIC);
+end;
+
+function TRSMagic.CanActivate(Spell: ESpellCast): Boolean;
+begin
+  if not Self.Open() then
+    Exit();
+
+  Result := srl.PeakBrightness(self.GetSpellBox(Spell)) > 35;
+end;
+
+function TRSMagic.IsSpellSelected(Spell: ESpellCast): Boolean;
+var
+  B: TBox;
+begin
+  if not Self.Open() then
+    Exit(False);
+
+  B := Self.GetSpellBox(Spell);
+  Result := SRL.CountColor(CTS0($FFFFFF), B) > 10;
+end;
+
+function TRSMagic.SpellSelected: Boolean;
+var
+  Spell: ESpellCast;
+begin
+  if not Self.Open() then
+    Exit(False);
+
+  for Spell := Low(ESpellCast) to High(ESpellCast) do
+    if Self.IsSpellSelected(Spell) then
+      Exit(True);
+
+  Exit(False);
+end;
+
+function TRSMagic.GetSelectedSpell: ESpellCast;
+var
+  I: ESpellCast;
+begin
+  if not Self.SpellSelected() then
+    Exit();
+
+  for I := Low(ESpellCast) to High(ESpellCast) do
+    if Self.IsSpellSelected(I) then
+      Exit(I);
+
+  Exit();
+end;
+
+function TRSMagic.CastSpell(Spell: ESpellCast): Boolean;
+var
+  Selected: ESpellCast;
+begin
+  if Self.SpellSelected then
+  begin
+    Selected := Self.GetSelectedSpell();
+    if (Selected = Spell) then
+      Exit(True);
+    Mouse.Click(Self.GetSpellBox(Selected), MOUSE_LEFT);
+  end;
+
+  Mouse.Click(Self.GetSpellBox(Spell), MOUSE_LEFT);
+
+  Result := WaitUntil(((Self.GetSelectedSpell() = Spell) or (Inventory.IsOpen())), 50, SRL.TruncatedGauss(1000, 2000));
+end;
+
+
+procedure TRSMagic.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited();
+
+  Bitmap.DrawBoxes(Self.GetSpellBoxes(), False, $00FFFF);
+end;
+
+
+var
+  Magic: TRSMagic;
+
+procedure TRSClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  Magic.Setup(Self.Mode);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  Magic.Setup();
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Magic.Debug(Bitmap);
+end;

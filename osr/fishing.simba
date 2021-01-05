@@ -1,0 +1,47 @@
+{$DEFINE WL_FISHING_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/wasplib.simba}
+{$ENDIF}
+
+type
+  TRSFishing = type TSRLBaseRecord;
+
+// Thanks to Slacky
+function TRSFishing.FindSpot(ScanTime: Int32 = 450): T2DPointArray;
+var
+  i: Int32;
+  SUM, TPA: TPointArray;
+  R: TRectangle;
+  t: TCountDown;
+begin
+  t.Init(ScanTime);
+  while not t.IsFinished do
+  begin
+    SRL.FindColors(TPA, CTS2(8875103,16,0.2,0.7), Mainscreen.Bounds);
+    SUM += TPA.Edges();
+  end;
+
+  SUM.ClearDuplicates();
+
+  SUM := ClearTPAFromTPA(Sum, Sum.Edges());
+  Result := SUM.Cluster(5);
+  Result.FilterSize(12, __GT__);
+end;
+
+// Thanks to Slacky.
+// Basically we find the fishingrod by checking the two tiles infront of
+// our character. It can fail if your character covers most of the rod
+function TRSFishing.IsFishing(): Boolean;
+var
+  rect1,rect2: TRectangle;
+  TPA1,TPA2: TPointArray;
+begin
+  Rect1 := Minimap.StaticToMsRect([646,84],1);
+  Rect2 := Minimap.StaticToMsRect([649,84],1);
+
+  if srl.FindColors(TPA1, CTS2(6694,10), Rect1.Bounds) > 12 then
+    Result := srl.FindColors(TPA2, CTS2(6694,10), Rect2.Bounds) > 5;
+end;
+
+var
+  Fishing: TRSFishing;

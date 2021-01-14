@@ -3,7 +3,131 @@
   {$I WaspLib/wasplib.simba}
 {$ENDIF}
 
-function TRSWalker.AtTile(Tile: TPoint; Distance: Int32): Boolean;
+function TRSWalker.AtTile(Tile: TPoint; Distance: Int32 = 15): Boolean;
 begin
   Result := Self.GetMyPos.DistanceTo(Tile) <= Distance;
 end;
+
+function TRSWalker.AtTile(TilesArray: TPointArray; Distance: Int32 = 15): Boolean; overload;
+var
+  i: Int32;
+begin
+  Result := False;
+
+  for i := 0 to High(TilesArray) do
+  begin
+    if (Self.GetMyPos.DistanceTo(TilesArray[i]) <= Distance) then
+      Exit(True);
+  end;
+end;
+
+function TRSWalker.AtTile(TilesArrayArray: T2DPointArray; Distance: Int32 = 15): Boolean; overload;
+var
+  Idx, i: Int32;
+begin
+  Result := False;
+
+  for Idx := 0 to High(TilesArrayArray) do
+    for i := 0 to High(TilesArrayArray[Idx]) do
+      if (Self.GetMyPos.DistanceTo(TilesArrayArray[Idx][i]) <= Distance) then
+        Exit(True);
+
+end;
+
+
+function TRSWalker.TileVisible(Tile: TPoint): Boolean; overload;
+begin
+  Result := InterfaceArea.Bounds.Contains(Self.GetTileMS(Tile));
+end;
+
+function TRSWalker.TileVisible(Tiles: TPointArray): Boolean; overload;
+var
+  i: Int32;
+begin
+  Result := False;
+
+  for i := 0 to High(Tiles) do
+    if Self.TileVisible(Tiles[i]) then
+      Exit(True);
+end;
+
+function TRSWalker.UntilTileVisible(Tile: TPoint; Interval, WaitTime: UInt32 = 0): Boolean;
+begin
+  Result := WaitUntil(Self.TileVisible(Tile), Interval, WaitTime);
+end;
+
+function TRSWalker.UntilTileVisible(Tiles: TPointArray; Interval, WaitTime: UInt32 = 0): Boolean; overload;
+begin
+  Result := WaitUntil(Self.TileVisible(Tiles), Interval, WaitTime);
+end;
+
+
+function TRSWalker.RotateUntilTileVisible(Tile: TPoint): Boolean;
+var
+  TPA: TPointArray;
+begin
+  if Self.TileVisible(Tile) then
+    Exit(True)
+  else if not Self.AtTile(Tile, 25) then
+    Exit(False);
+
+  TPA := Self.GetTileMS(Tile).ToTPA;
+  MainScreen.FacePoint(TPA.Mean, 0);
+
+  Result := Self.TileVisible(Tile);
+end;
+
+function TRSWalker.RotateUntilTileVisible(Tiles: TPointArray): Boolean; overload;
+var
+  TPA: TPointArray;
+begin
+  if Self.TileVisible(Tiles) then
+    Exit(True)
+  else if not Self.AtTile(Tiles, 25) then
+    Exit(False);
+
+  TPA := Self.GetTileMS(Tiles.Mean).ToTPA;
+  MainScreen.FacePoint(TPA.Mean, 0);
+
+  Result := Self.TileVisible(Tiles);
+end;
+
+
+// Compares Tiles with the Player position and returns the closest one.
+// If the Distance is the same for more than one, a random one will be returned.
+function TRSWalker.GetClosestTile(Tiles: TPointArray): TPoint;
+var
+  i: Int32;
+  ClosestDistances: TIntegerArray;
+  Distances: TExtendedArray;
+begin
+  for i := 0 to High(Tiles) do
+    Distances += Self.GetMyPos.DistanceTo(Tiles[i]);
+
+   ClosestDistances := Distances.FindAll(Distances.Min());
+
+  Result := Tiles[ClosestDistances[Random(0, High(ClosestDistances))]];
+end;
+
+// Same as above but with ATPAs. Finds the closes distance to the closest tile of each array
+// and returns the closest array. If the Distance is the same for more than one, will return a random one.
+function TRSWalker.GetClosestTile(TilesArray: T2DPointArray): TPointArray; overload;
+var
+  Idx, i: Int32;
+  ClosestDistPos: TIntegerArray;
+  Distances, ClosestDistances: TExtendedArray;
+begin
+
+  for Idx := 0 to High(TilesArray) do
+  begin
+    for i := 0 to High(TilesArray[Idx]) do
+      Distances += Self.GetMyPos.DistanceTo(TilesArray[Idx][i]);
+    ClosestDistances += Distances.Min();
+    Distances := [];
+  end;
+
+  ClosestDistPos := ClosestDistances.FindAll(ClosestDistances.Min());
+
+  Result := TilesArray[ClosestDistPos[Random(0, High(ClosestDistPos))]];
+end;
+

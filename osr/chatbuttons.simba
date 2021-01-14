@@ -1,0 +1,56 @@
+{$DEFINE WL_CHATBUTTONS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/wasplib.simba}
+{$ENDIF}
+
+type
+  ERSChatTab = (
+    CHAT_TAB_ALL,
+    CHAT_TAB_GAME,
+    CHAT_TAB_PUBLIC,
+    CHAT_TAB_PRIVATE,
+    CHAT_TAB_CLAN,
+    CHAT_TAB_TRADE,
+    CHAT_TAB_NONE
+  );
+
+function TRSChatButtons.GetActive: ERSChatTab;
+var
+  ButtonBox: TBox;
+  i: Int32;
+begin
+  for i := 0 to High(Self.Buttons) do
+  begin
+    if i = 5 then
+      Exit(ERSChatTab(i));
+    Self.FindButton(Self.Buttons[i], ButtonBox);
+    if SRL.CountColor(CTS2(2439238, 2, 0.22, 2.13), ButtonBox) > 0 then
+      Exit(ERSChatTab(i));
+  end;
+end;
+
+function TRSChatButtons.IsActive(Tab: ERSChatTab): Boolean;
+begin
+  Result := Tab = Self.GetActive;
+end;
+
+function TRSChatButtons.Open(Tab: ERSChatTab): Boolean;
+begin
+  if Self.IsActive(Tab) then
+    Exit(True);
+  Self.ClickButton([Self.Buttons[Tab]], MOUSE_LEFT);
+  Result := WaitUntil(Self.IsActive(Tab), 10, 2000);
+end;
+
+function TRSChatButtons.Close: Boolean;
+begin
+  if RSClient.Mode = RS_CLIENT_FIXED then
+    Exit(False);
+  if Self.GetActive = CHAT_TAB_NONE then
+    Exit(True);
+
+  Self.ClickButton([Self.Buttons[Self.GetActive]], MOUSE_LEFT);
+
+  Result := Self.GetActive = CHAT_TAB_NONE;
+end;
+

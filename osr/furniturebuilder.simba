@@ -1,0 +1,231 @@
+(*
+FurnitureBuilder
+==========
+Methods to interact with the FurnitureBuilder.
+*)
+
+{$DEFINE SRL_FURNITUREBUILDER_INCLUDED}
+{$IFNDEF SRL_OSR}
+  {$I SRL/osr.simba}
+{$ENDIF}
+
+type
+  TRSFurnitureBuilder = record(TRSInterface)
+    BUTTON_CLOSE: TRSInterfaceButton;
+    BUTTON_CLOSE_HOVER: TRSInterfaceButton;
+
+    BUTTON_SCROLLED_TOP: TRSInterfaceButton;
+  end;
+
+(*
+FurnitureBuilder.IsOpen
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSFurnitureBuilder.IsOpen(WaitForItems: Boolean = True): Boolean;
+
+Returns true if the FurnitureBuilder is visible.
+
+**WaitForItems** determines if the method waits 1-2 seconds items to load as there
+can be a small delay before items are visible.
+*)
+
+function TRSFurnitureBuilder.IsOpen(): Boolean;
+const
+  TEXT_COL = 2070783;
+var
+  X, Y: Int32;
+  p: TPoint;
+  CloseButton, TitleBox: TBox;
+begin
+  if Self.FindButton([Self.BUTTON_CLOSE, Self.BUTTON_CLOSE_HOVER], CloseButton) then
+  begin
+    TitleBox := CloseButton;
+    TitleBox.X1 := 0;
+    if FindColor(X, Y, TEXT_COL, TitleBox) then
+    begin
+      TitleBox.X1 := X;
+      TitleBox.Y1 := Y;
+
+      Result := FindTextColor('Furniture', 'UpChars07_s', TEXT_COL, 5, TitleBox, 1) ;
+      if not Result then
+        Result := FindTextColor('Creation', 'UpChars07_s', TEXT_COL, 5, TitleBox, 1)
+    end;
+  end;
+end;
+
+
+
+function TRSFurnitureBuilder.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
+begin
+  if (Interval = -1) then
+    Interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen(), Interval, WaitTime);
+end;
+
+procedure TRSFurnitureBuilder.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  inherited;
+  // Add stuff here
+end;
+
+(*
+FurnitureBuilder.Setup
+~~~~~~~~~~~~~~~~
+.. pascal:: procedure FurnitureBuilder.Setup;
+
+Initializes FurnitureBuilder variables.
+
+.. note:: This is automatically called on the **FurnitureBuilder** variable.
+*)
+procedure TRSFurnitureBuilder.Setup; overload;
+begin
+  if Self <> [] then
+    Exit;
+
+  Self.Name := 'FurnitureBuilder';
+
+  Self.BUTTON_CLOSE := Self.AddBitmapButton('bank_close.png');
+  Self.BUTTON_CLOSE_HOVER := Self.AddBitmapButton('bank_close_hover.png');
+
+  Self.BUTTON_SCROLLED_TOP := Self.AddBitmapButton('bank_scrolled_top.png');
+end;
+
+procedure TRSFurnitureBuilder.Setup(Mode: ERSClientMode); overload;
+begin
+  Self.Mode := Mode;
+
+  case Self.Mode of
+    RS_CLIENT_FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
+        Self.Alignment.Center.MaxWidth := 488;
+        Self.Alignment.Center.MaxHeight := 800;
+      end;
+
+    RS_CLIENT_RESIZABLE_CLASSIC, RS_CLIENT_RESIZABLE_BOTTOM:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
+        Self.Alignment.Center.MaxWidth := 488;
+        Self.Alignment.Center.MaxHeight := 800;
+      end;
+  end;
+end;
+
+(*
+FurnitureBuilder.GetTitle
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSFurnitureBuilder.GetTitle: String;
+
+Returns the title of the FurnitureBuilder. Useful when searching.
+
+Example
+-------
+
+  WriteLn FurnitureBuilder.GetTitle();
+*)
+function TRSFurnitureBuilder.GetTitle: String;
+var
+  B: TBox;
+  Filter: TCompareRules;
+begin
+  B := Self.Bounds;
+  B.X1 += 50;
+  B.Y1 += 10;
+  B.X2 -= 50;
+  B.Y2 := B.Y1 + 15;
+  B.LimitTo(Self.Bounds);
+
+  Filter.Threshold := True;
+  Filter.ThresholdAmount := 15;
+
+  Result := OCR.Recognize(B, Filter, RS_FONTSET_BOLD_12);
+end;
+
+function TRSFurnitureBuilder.IsTitle(Text: String): Boolean; overload;
+begin
+  Result := Text in Self.GetTitle();
+end;
+
+function TRSFurnitureBuilder.IsTitle(Text: String; WaitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsTitle(Text), 100, WaitTime);
+end;
+
+
+procedure TRSFurnitureBuilder.ScrollToTop;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  //while not Self.FindButton(Self.BUTTON_SCROLLED_TOP) do
+    //Mouse.Scroll(Self.GetSlotBoxes().Merge(), Random(1, 3), False);
+end;
+
+
+(*
+FurnitureBuilder.Close
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSFurnitureBuilder.Close(UseKeyboard: Boolean = False): Boolean;
+
+Closes the furniture builder, Depending on `UseKeyboard` the function will either click the button
+or press backspace.
+
+Example
+-------
+
+ WriteLn FurnitureBuilder.Close();
+*)
+function TRSFurnitureBuilder.Close(UseKeyboard: Boolean = False): Boolean;
+begin
+  if (not Self.IsOpen()) then
+    Exit(True);
+
+  if UseKeyboard then
+    Keyboard.PressKey(VK_ESCAPE)
+  else
+    Self.ClickButton([Self.BUTTON_CLOSE, Self.BUTTON_CLOSE_HOVER], MOUSE_LEFT);
+
+  Result := WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(0, 1500), Random(2500, 5000));
+end;
+
+
+(*
+var FurnitureBuilder
+~~~~~~~~~~~~~~
+  Global FurnitureBuilder variable.
+*)
+var
+  FurnitureBuilder: TRSFurnitureBuilder;
+
+
+
+procedure TRSClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  FurnitureBuilder.Setup(Self.Mode);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  FurnitureBuilder.Setup();
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  FurnitureBuilder.Debug(Bitmap);
+end;
+

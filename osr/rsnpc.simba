@@ -24,31 +24,30 @@ end;
 // help of RSWalker. Good when objects don't move and precision is needed.
 function TRSNpc.Find(Radius, Expand: Int32 = 0): T2DPointArray;
 var
-  Loc, Me: TPoint;
+  Tile, Me: TPoint;
   Rect: TRectangle;
-  Locations: TPointArray;
+  TPA, Locations: TPointArray;
 begin
   Me := Self.Map.GetMyPos();
   Locations := Self.Map.GetArea(Self.WorldLocation, Radius);
-  Locations.Sorted(Me);
 
-  for Loc in Locations do
+  for Tile in Locations do
   begin
-    Rect := Self.Map.GetTileMSEx(Me, Loc, 1).Expand(Expand);
+    Rect := Self.Map.GetTileMSEx(Me, Tile, 1).Expand(Expand);
     if InterfaceArea.Bounds.Contains(Rect.Bounds) then
-    begin
-      Result := MainScreen.FindObject(Finder, Rect.Bounds);
-      if Length(Result) = 0 then
-        Exit;
-      Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
-    end;
+      TPA += Rect.ToTPA;
   end;
+
+  Result := MainScreen.FindObject(Finder, TPA.Bounds);
+  if Length(Result) = 0 then
+    Exit;
+  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function MainScreen.HoverRSNpc(Map: TRSWalker; Tile: TPoint; Color: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean;
+function TRSWalker.HoverRSNpc(Tile: TPoint; Color: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean;
 var
   Finder: TRSObjectFinder;
   RSNpc: TRSNpc;
@@ -56,11 +55,11 @@ var
   Points: TPointArray;
   Point: TPoint;
 begin
-  if not Map.RotateUntilTileVisible(Tile) then
+  if not Self.RotateUntilTileVisible(Tile) then
     Exit(False);
 
   Finder.Colors += Color;
-  RSNpc := [Map, Tile, Finder, UpText];
+  RSNpc := [Self, Tile, Finder, UpText];
   RSNpc.SetupFinder;
 
   for 1 to Attempts do
@@ -74,14 +73,14 @@ begin
 
     Mouse.Move(Point);
 
-    Result := Self.IsUpText(UpText);
+    Result := MainScreen.IsUpText(UpText);
     if Result then
       Exit(True);
   end;
 end;
 
 // Searches for an object with ObjectFinder in several tiles and hovers it if found.
-function MainScreen.HoverRSNpc(Map: TRSWalker; Tile: TPoint; Radius: Int32; Color: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.HoverRSNpc(Tile: TPoint; Radius: Int32; Color: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean; overload;
 var
   Finder: TRSObjectFinder;
   RSNpc: TRSNpc;
@@ -89,11 +88,11 @@ var
   Points: TPointArray;
   Point: TPoint;
 begin
-  if not Map.RotateUntilTileVisible(Tile) then
+  if not Self.RotateUntilTileVisible(Tile) then
     Exit(False);
 
   Finder.Colors += Color;
-  RSNpc := [Map, Tile, Finder, UpText];
+  RSNpc := [Self, Tile, Finder, UpText];
   RSNpc.SetupFinder;
 
   for 1 to Attempts do
@@ -107,14 +106,14 @@ begin
 
     Mouse.Move(Point);
 
-    Result := Self.IsUpText(UpText);
+    Result := MainScreen.IsUpText(UpText);
     if Result then
       Exit(True);
   end;
 end;
 
 // Searches for an object with 2 colors with ObjectFinder in a certain tile and hovers it if found.
-function MainScreen.HoverRSNpc(Map: TRSWalker; Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.HoverRSNpc(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean; overload;
 var
   Finder: TRSObjectFinder;
   RSNpc: TRSNpc;
@@ -122,11 +121,11 @@ var
   Points: TPointArray;
   Point: TPoint;
 begin
-  if not Map.RotateUntilTileVisible(Tile) then
+  if not Self.RotateUntilTileVisible(Tile) then
     Exit(False);
 
   Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  RSNpc := [Map, Tile, Finder, UpText];
+  RSNpc := [Self, Tile, Finder, UpText];
   RSNpc.SetupFinder;
 
   for 1 to Attempts do
@@ -140,14 +139,14 @@ begin
 
     Mouse.Move(Point);
 
-    Result := Self.IsUpText(UpText);
+    Result := MainScreen.IsUpText(UpText);
     if Result then
       Exit(True);
   end;
 end;
 
 // Searches for an object with 2 colors with ObjectFinder in several tiles and hovers it if found.
-function MainScreen.HoverRSNpc(Map: TRSWalker; Tile: TPoint; Radius: Int32; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.HoverRSNpc(Tile: TPoint; Radius: Int32; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; Attempts: Int32 = 2): Boolean; overload;
 var
   Finder: TRSObjectFinder;
   RSNpc: TRSNpc;
@@ -155,11 +154,11 @@ var
   Points: TPointArray;
   Point: TPoint;
 begin
-  if not Map.RotateUntilTileVisible(Tile) then
+  if not Self.RotateUntilTileVisible(Tile) then
     Exit(False);
 
   Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  RSNpc := [Map, Tile, Finder, UpText];
+  RSNpc := [Self, Tile, Finder, UpText];
   RSNpc.SetupFinder;
 
   for 1 to Attempts do
@@ -173,7 +172,7 @@ begin
 
     Mouse.Move(Point);
 
-    Result := Self.IsUpText(UpText);
+    Result := MainScreen.IsUpText(UpText);
     if Result then
       Exit(True);
   end;
@@ -183,59 +182,59 @@ end;
 
 
 // Searches for an object with ObjectFinder in a certain tile and clicks it if found.
-function MainScreen.ClickRSNpc(Map: TRSWalker; Tile: TPoint; Color: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+function TRSWalker.ClickRSNpc(Tile: TPoint; Color: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  if not Self.HoverRSNpc(Map, Tile, Color, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, Color, UpText, Attempts) then
     Exit(False);
 
   if LeftClick then
     Mouse.Click(MOUSE_LEFT);
-  Result := Self.DidRedClick or ChooseOption.Open();
+  Result := MainScreen.DidRedClick or ChooseOption.Open();
 end;
 
 // Searches for an object with ObjectFinder in several tiles and clicks it if found.
-function MainScreen.ClickRSNpc(Map: TRSWalker; Tile: TPoint; Radius: Int32; Color: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.ClickRSNpc(Tile: TPoint; Radius: Int32; Color: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
 begin
-  if not Self.HoverRSNpc(Map, Tile, Radius, Color, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, Radius, Color, UpText, Attempts) then
     Exit(False);
 
   if LeftClick then
     Mouse.Click(MOUSE_LEFT);
-  Result := Self.DidRedClick or ChooseOption.Open();
+  Result := MainScreen.DidRedClick or ChooseOption.Open();
 end;
 
 // Searches for an object with ObjectFinder in a certain tile and clicks it if found.
-function MainScreen.ClickRSNpc(Map: TRSWalker; Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.ClickRSNpc(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
 begin
-  if not Self.HoverRSNpc(Map, Tile, PrimaryColor, SecondaryColor, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, PrimaryColor, SecondaryColor, UpText, Attempts) then
     Exit(False);
 
   if LeftClick then
     Mouse.Click(MOUSE_LEFT);
-  Result := Self.DidRedClick or ChooseOption.Open();
+  Result := MainScreen.DidRedClick or ChooseOption.Open();
 end;
 
 // Searches for an object with ObjectFinder in several tiles and clicks it if found.
-function MainScreen.ClickRSNpc(Map: TRSWalker; Tile: TPoint; Radius: Int32; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.ClickRSNpc(Tile: TPoint; Radius: Int32; PrimaryColor, SecondaryColor: TCTS2Color; UpText: String; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
 begin
-  if not Self.HoverRSNpc(Map, Tile, Radius, PrimaryColor, SecondaryColor, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, Radius, PrimaryColor, SecondaryColor, UpText, Attempts) then
     Exit(False);
 
   if LeftClick then
     Mouse.Click(MOUSE_LEFT);
-  Result := Self.DidRedClick or ChooseOption.Open();
+  Result := MainScreen.DidRedClick or ChooseOption.Open();
 end;
 
 
-function MainScreen.SelectRSNpcOption(Map: TRSWalker; Tile: TPoint; Color: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean;
+function TRSWalker.SelectRSNpcOption(Tile: TPoint; Color: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean;
 begin
-  if not Self.HoverRSNpc(Map, Tile, Color, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, Color, UpText, Attempts) then
     Exit(False);
 
   if MainScreen.IsUpText(Action) then
   begin
     Mouse.Click(MOUSE_LEFT);
-    Result := Self.DidRedClick;
+    Result := MainScreen.DidRedClick;
   end
   else if ChooseOption.Open() then
     Result := ChooseOption.Select(Action)
@@ -243,15 +242,15 @@ begin
     Result := False;
 end;
 
-function MainScreen.SelectRSNpcOption(Map: TRSWalker; Tile: TPoint; Radius: Int32; Color: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.SelectRSNpcOption(Tile: TPoint; Radius: Int32; Color: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean; overload;
 begin
-  if not Self.HoverRSNpc(Map, Tile, Radius, Color, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, Radius, Color, UpText, Attempts) then
     Exit(False);
 
   if MainScreen.IsUpText(Action) then
   begin
     Mouse.Click(MOUSE_LEFT);
-    Result := Self.DidRedClick;
+    Result := MainScreen.DidRedClick;
   end
   else if ChooseOption.Open() then
     Result := ChooseOption.Select(Action)
@@ -259,15 +258,15 @@ begin
     Result := False;
 end;
 
-function MainScreen.SelectRSNpcOption(Map: TRSWalker; Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.SelectRSNpcOption(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean; overload;
 begin
-  if not Self.HoverRSNpc(Map, Tile, PrimaryColor, SecondaryColor, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, PrimaryColor, SecondaryColor, UpText, Attempts) then
     Exit(False);
 
   if MainScreen.IsUpText(Action) then
   begin
     Mouse.Click(MOUSE_LEFT);
-    Result := Self.DidRedClick;
+    Result := MainScreen.DidRedClick;
   end
   else if ChooseOption.Open() then
     Result := ChooseOption.Select(Action)
@@ -275,15 +274,15 @@ begin
     Result := False;
 end;
 
-function MainScreen.SelectRSNpcOption(Map: TRSWalker; Tile: TPoint; Radius: Int32; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean; overload;
+function TRSWalker.SelectRSNpcOption(Tile: TPoint; Radius: Int32; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: String; Attempts: Int32 = 2): Boolean; overload;
 begin
-  if not Self.HoverRSNpc(Map, Tile, Radius, PrimaryColor, SecondaryColor, UpText, Attempts) then
+  if not Self.HoverRSNpc(Tile, Radius, PrimaryColor, SecondaryColor, UpText, Attempts) then
     Exit(False);
 
   if MainScreen.IsUpText(Action) then
   begin
     Mouse.Click(MOUSE_LEFT);
-    Result := Self.DidRedClick;
+    Result := MainScreen.DidRedClick;
   end
   else if ChooseOption.Open() then
     Result := ChooseOption.Select(Action)

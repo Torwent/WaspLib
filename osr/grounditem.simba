@@ -1,0 +1,253 @@
+{$DEFINE WL_GROUND_ITEM_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/wasplib.simba}
+{$ENDIF}
+
+type
+  TRSGroundItem = record
+    Finder: TRSObjectFinder;     //must have color
+    Name: String;
+  end;
+
+procedure TRSGroundItem.SetupFinder();
+begin
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Grow := 4;
+  Self.Finder.Erode := 2;
+end;
+
+// Searches for an object with ObjectFinder in the MainScreen with the
+// help of RSWalker. Good when objects don't move and precision is needed.
+function TRSGroundItem.Find: T2DPointArray;
+var
+  Tile: TPoint;
+  TPA: TPointArray;
+  Rect: TRectangle;
+  Tiles: TPointArray;
+begin
+  Tiles := Minimap.GetDots(MINIMAP_DOT_ITEM);
+  Tiles.Sorted(MainScreen.GetPlayerBox.Middle);
+
+  for Tile in Tiles do
+  begin
+    Rect := Minimap.VecToMSRect([Tile.X+2, Tile.Y+2, 2]);
+    if InterfaceArea.Bounds.Contains(Rect.Bounds) then
+    begin
+
+      if Self.Finder <> [] then
+        Result += MainScreen.FindObject(Finder, Rect.Bounds)
+      else
+      begin
+        TPA := [Rect.Mean];
+        TPA.Grow(10);
+        Result += [TPA];
+      end;
+    end;
+  end;
+
+  if Length(Result) = 0 then
+        Exit;
+  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+function TRSMainScreen.HoverGroundItem(Name: String; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean;
+var
+  GroundItem: TRSGroundItem;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  Point: TPoint;
+begin
+  GroundItem := [[], Name];
+
+  for 1 to Attempts do
+  begin
+    ATPA := GroundItem.Find;
+    if Length(ATPA) = 0 then
+      Exit(False);
+
+    Points := ATPA[Random(0, High(ATPA))];
+    Point := Points[Random(0, High(Points))];
+
+    Mouse.Move(Point);
+
+    Result := MainScreen.IsUpText(Name);
+    if Result then
+      Exit(True)
+    else if CheckPile then
+    begin
+      ChooseOption.Open;
+      if ChooseOption.HasOption([Name]) then
+        Exit(True);
+    end;
+  end;
+end;
+
+function TRSMainScreen.HoverGroundItem(Name: String; Color: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
+var
+  Finder: TRSObjectFinder;
+  GroundItem: TRSGroundItem;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  Point: TPoint;
+begin
+
+  Finder.Colors += Color;
+  GroundItem := [Finder, Name];
+  GroundItem.SetupFinder;
+
+  for 1 to Attempts do
+  begin
+    ATPA := GroundItem.Find;
+    if Length(ATPA) = 0 then
+      Exit(False);
+
+    Points := ATPA[Random(0, High(ATPA))];
+    Point := Points[Random(0, High(Points))];
+
+    Mouse.Move(Point);
+
+    Result := MainScreen.IsUpText(Name);
+    if Result then
+      Exit(True)
+    else if CheckPile then
+    begin
+      ChooseOption.Open;
+      if ChooseOption.HasOption([Name]) then
+        Exit(True);
+    end;
+  end;
+end;
+
+function TRSMainScreen.HoverGroundItem(Name: String; PrimaryColor, SecondaryColor: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
+var
+  Finder: TRSObjectFinder;
+  GroundItem: TRSGroundItem;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  Point: TPoint;
+begin
+
+  Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
+  GroundItem := [Finder, Name];
+  GroundItem.SetupFinder;
+
+  for 1 to Attempts do
+  begin
+    ATPA := GroundItem.Find;
+    if Length(ATPA) = 0 then
+      Exit(False);
+
+    Points := ATPA[Random(0, High(ATPA))];
+    Point := Points[Random(0, High(Points))];
+
+    Mouse.Move(Point);
+
+    Result := MainScreen.IsUpText(Name);
+    if Result then
+      Exit(True)
+    else if CheckPile then
+    begin
+      ChooseOption.Open;
+      if ChooseOption.HasOption([Name]) then
+        Exit(True);
+    end;
+  end;
+end;
+
+
+function TRSMainScreen.ClickGroundItem(Name: String; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean;
+begin
+  if not Self.HoverGroundItem(Name, CheckPile, Attempts) then
+    Exit(False);
+
+  if not CheckPile then
+    Mouse.Click(MOUSE_LEFT)
+  else if ChooseOption.IsOpen then
+    ChooseOption.Select(Name);
+  Result := MainScreen.DidRedClick;
+end;
+
+function TRSMainScreen.ClickGroundItem(Name: String; Color: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
+begin
+  if not Self.HoverGroundItem(Name, Color, CheckPile, Attempts) then
+    Exit(False);
+
+  if not CheckPile then
+    Mouse.Click(MOUSE_LEFT)
+  else if ChooseOption.IsOpen then
+    ChooseOption.Select(Name);
+  Result := MainScreen.DidRedClick;
+end;
+
+function TRSMainScreen.ClickGroundItem(Name: String; PrimaryColor, SecondaryColor: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
+begin
+  if not Self.HoverGroundItem(Name, PrimaryColor, SecondaryColor, CheckPile, Attempts) then
+    Exit(False);
+
+  if not CheckPile then
+    Mouse.Click(MOUSE_LEFT)
+  else if ChooseOption.IsOpen then
+    ChooseOption.Select(Name);
+  Result := MainScreen.DidRedClick;
+end;
+
+
+function TRSMainScreen.SelectGroundItemOption(Name, Action: String; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean;
+begin
+  if not Self.HoverGroundItem(Name, CheckPile, Attempts) then
+    Exit(False);
+
+  if MainScreen.IsUpText(Action) then
+    Mouse.Click(MOUSE_LEFT)
+  else if ChooseOption.Open() then
+    Result := ChooseOption.Select(Action);
+
+  Result := MainScreen.DidRedClick;
+end;
+
+function TRSMainScreen.SelectGroundItemOption(Name, Action: String; Color: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
+begin
+  if not Self.HoverGroundItem(Name, Color, CheckPile, Attempts) then
+    Exit(False);
+
+  if MainScreen.IsUpText(Action) then
+    Mouse.Click(MOUSE_LEFT)
+  else if ChooseOption.Open() then
+    Result := ChooseOption.Select(Action);
+
+  Result := MainScreen.DidRedClick;
+end;
+
+function TRSMainScreen.SelectGroundItemOption(Name, Action: String; PrimaryColor, SecondaryColor: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
+begin
+  if not Self.HoverGroundItem(Name, PrimaryColor, SecondaryColor, CheckPile, Attempts) then
+    Exit(False);
+
+  if MainScreen.IsUpText(Action) then
+    Mouse.Click(MOUSE_LEFT)
+  else if ChooseOption.Open() then
+    Result := ChooseOption.Select(Action);
+
+  Result := MainScreen.DidRedClick;
+end;
+
+
+procedure TRSGroundItem.Debug(Tiles: TPointArray);
+var
+  Img: TMufasaBitmap;
+  Tile: TPoint;
+  ATPA: T2DPointArray;
+  Rect: TRectangle;
+  Rectangles: Array of TRectangle;
+begin
+  Img.FromClient(MainScreen.Bounds);
+
+  for Tile in Tiles do
+    Rectangles += Minimap.VecToMSRect([Tile.X+2, Tile.Y+2, 2]);
+  for Rect in Rectangles do
+    ATPA += Rect.ToTPA.Connect;
+
+  Img.DrawATPA(ATPA);
+  ShowBitmap(Img);
+  Img.Free;
+end;

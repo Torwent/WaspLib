@@ -3,6 +3,7 @@
   {$I WaspLib/wasplib.simba}
 {$ENDIF}
 
+
 // This is just so I can load maps from my own maps folder
 function TRSWalker.FindMap(Map: String): String; static; override;
 var
@@ -173,6 +174,229 @@ begin
 
   Result := TPA;
 end;
+
+procedure TRSWalker.ActionWaitMoving(Action: ERSAction; Destination: TPoint; WaitUntilDistance: Int32);
+var
+  Timeout, Countdown: TCountDown;
+  Position: record
+    Current, Previous: TPoint;
+  end;
+begin
+  Timeout.Init(Round(SRL.TruncatedGauss(20000, 25000)));
+
+  Countdown.Init(Round(SRL.TruncatedGauss(500, 1500)));
+  Countdown.Timeout := GetTickCount() + Round(SRL.TruncatedGauss(2500, 3500));
+
+  Position.Previous := Self.GetMyPos();
+  Position.Current := Position.Previous;
+
+  // Break from the loop if:
+  // - Haven't moved in 500ms
+  // - Been walking for over 20 seconds
+  // - Within `WaitUntilDistance` to the destination
+  repeat
+    Self.CheckRunEnergy();
+
+    RSAction.DoAction(Action);
+
+    Position.Previous := Position.Current;
+    Position.Current := Self.GetMyPos();
+    if Position.Current <> Position.Previous then
+      Countdown.Restart();
+
+    Wait(100);
+  until Timeout.IsFinished() or Countdown.IsFinished() or (Position.Current.DistanceTo(Destination) <= WaitUntilDistance);
+end;
+
+function TRSWalker.ActionWalkFinalStep(Action: ERSAction; PlayerPoint, WorldPoint: TPoint; WaitUntilDistance: Int32): Boolean;
+var
+  MinimapPoint: TPoint;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, 0);
+  if Result then
+  begin
+    if SRL.Dice(90) then
+      Self.ActionWaitMoving(Action, WorldPoint, WaitUntilDistance)
+    else
+      Self.WaitMoving(WorldPoint, WaitUntilDistance);
+  end;
+end;
+
+function TRSWalker.ActionWalkStep(Action: ERSAction; PlayerPoint, WorldPoint: TPoint): Boolean;
+var
+  MinimapPoint: TPoint;
+  WaitUntilDistance: Int32;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, Self.ClickRandomness);
+
+  if Result then
+  begin
+    if SRL.Dice(90) then
+      RSAction.DoAction(Action);
+
+    if (Random() < 0.15) then // 15% chance of randomness else mean
+      WaitUntilDistance := Random(Distance(Minimap.Center, MinimapPoint))
+    else
+      WaitUntilDistance := SRL.NormalRange(0, Distance(Minimap.Center, MinimapPoint) + 10);
+
+    if SRL.Dice(90) then
+      Self.ActionWaitMoving(Action, WorldPoint, WaitUntilDistance)
+    else
+      Self.WaitMoving(WorldPoint, WaitUntilDistance);
+  end;
+end;
+
+function TRSWalker.ActionWalkPath(Action: ERSAction; Path: TPointArray; WaitUntilDistance: Int32 = 0): Boolean;
+
+  function BuildPath(TPA: TPointArray): TPointArray;
+  var
+    I, J: Int32;
+    Line: TPointArray;
+  begin
+    for I := 1 to High(TPA) do
+    begin
+      Line := TPAFromLine(TPA[I-1], TPA[I]);
+
+      J := 0;
+      while J < High(Line) do
+      begin
+        Result += Line[J];
+
+        Inc(J, Random(5, 15));
+      end;
+    end;
+
+    Result += TPA[High(TPA)];
+  end;
+
+  function AdvancePath(var Index: Int32; PlayerPoint: TPoint): Boolean;
+  var
+    Angle: Double := Minimap.GetCompassAngle(False);
+    Previous: Int32 := Index;
+    Nearest, Furthest: Int32;
+  begin
+    Nearest := Self.Path.Find(Self.Path.Sorted(PlayerPoint)[0]);
+
+    for Nearest := Nearest to High(Self.Path) do
+      if Self.IsWalkable(Self.Path[Nearest], PlayerPoint, Angle) then
+        Break;
+
+    for Furthest := Nearest to High(Self.Path) do
+      if not Self.IsWalkable(Self.Path[Furthest], PlayerPoint, Angle) then
+        Break;
+
+    // 15% chance of randomness else furthest
+    Index := Furthest - 1;
+    if Random() < 0.15 then
+      Index := Random(Nearest, Furthest);
+
+    Result := Index > Previous;
+  end;
+
+var
+  PlayerPoint: TPoint;
+  Index, Fails: Int32;
+begin
+  Self.Enabled := True;
+  Self.Path := BuildPath([Self.GetMyPos()] + Path);
+
+  while Self.Enabled and (Fails < 10) do
+  begin
+    PlayerPoint := Self.GetMyPos();
+
+    if AdvancePath(Index, PlayerPoint) then
+      Fails := 0
+    else
+    begin
+      Inc(Fails);
+
+      // Likely haven't moved far enough to advance to next point
+      if (Fails < 5) then
+      begin
+        Wait(300);
+
+        Continue;
+      end;
+
+      if (Fails mod 2 = 0) then
+        Minimap.WaitFlag();
+    end;
+
+    if Index = High(Self.Path) then
+    begin
+      if Self.ActionWalkFinalStep(Action, PlayerPoint, Self.Path[Index], WaitUntilDistance) then
+        Exit(True);
+    end else
+      Self.ActionWalkStep(Action, PlayerPoint, Self.Path[Index]);
+  end;
+
+  RSAction.ClearVariables;
+
+  if Fails = 10 then
+    Self.Debug('Failed to advance path');
+end;
+
+function TRSWalker.ActionWebWalk(Action: ERSAction; Destination: TPoint; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean;
+var
+  Path: TPointArray;
+begin
+  if not InRange(PathRandomness, 0, 1) then
+    Self.Fatal('TRSWalker.WebWalk `PathRandomness` must be within 0..1');
+
+  Path   := Self.WebGraph.PathBetween(Self.GetMyPos, Destination, PathRandomness);
+  Result := Self.ActionWalkPath(Action, Path, WaitUntilDistance);
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 procedure TRSWalker.DebugTiles(Tiles: TPointArray);
 var

@@ -1,56 +1,88 @@
 {$DEFINE WL_CHATBUTTONS_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/wasplib.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
 
 type
-  ERSChatTab = (
-    CHAT_TAB_ALL,
-    CHAT_TAB_GAME,
-    CHAT_TAB_PUBLIC,
-    CHAT_TAB_PRIVATE,
-    CHAT_TAB_CLAN,
-    CHAT_TAB_TRADE,
-    CHAT_TAB_NONE
+  ERSChatButton = (
+    ALL_CHAT,
+    GAME_CHAT,
+    PUBLIC_CHAT,
+    PRIVATE_CHAT,
+    CLAN_CHAT,
+    TRADE_CHAT,
+    REPORT_CHAT
   );
 
-function TRSChatButtons.GetActive: ERSChatTab;
+function TRSChatButtons.GetButtons: TRSButtonArray;
 var
-  ButtonBox: TBox;
+  I: Int32;
+  Boxes: TBoxArray;
+begin
+  SetLength(Boxes, 6);
+  for I := 0 to High(Boxes) do
+    Boxes[I] := [(Self.X1 + 5 + (I * 66)), Self.Y1, (Self.X1 + 60 + (I * 66)), (Self.Y2 - 1)];
+
+  Boxes += [[(Self.X1 + 403), Self.Y1, (Self.X1 + 513), (Self.Y2 - 1)]];
+
+  for I := 0 to High(Boxes) do
+    Result += [I, Boxes[I], Boxes[I].Middle];
+end;
+
+function TRSChatButtons.GetButton(Button: ERSChatButton): TRSButton;
+var
+  Buttons: TRSButtonArray := Self.GetButtons();
+begin
+  if Length(Buttons) = Length(ERSChatButton) then
+    Result := Buttons[Button];
+end;
+
+procedure TRSChatButtons.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawButtons(Self.GetButtons());
+end;
+
+function TRSChatButtons.GetActive: ERSChatButton;
+var
+  Buttons: TRSButtonArray := Self.GetButtons();
   i: Int32;
 begin
-  for i := 0 to High(Self.Buttons) do
+  for i := 0 to High(Buttons) do
   begin
-    if i = 5 then
-      Exit(ERSChatTab(i));
-    Self.FindButton(Self.Buttons[i], ButtonBox);
-    if SRL.CountColor(CTS2(2439238, 2, 0.22, 2.13), ButtonBox) > 0 then
-      Exit(ERSChatTab(i));
+    if i = 6 then
+      Exit(ERSChatButton(i));
+    if SRL.CountColor(CTS2(2439238, 2, 0.22, 2.13), Buttons[i].Bounds) > 0 then
+      Exit(ERSChatButton(i));
   end;
 end;
 
-function TRSChatButtons.IsActive(Tab: ERSChatTab): Boolean;
+function TRSChatButtons.IsActive(ChatButton: ERSChatButton): Boolean;
 begin
-  Result := Tab = Self.GetActive;
+  Result := ChatButton = Self.GetActive;
 end;
 
-function TRSChatButtons.Open(Tab: ERSChatTab): Boolean;
+function TRSChatButtons.Open(ChatButton: ERSChatButton): Boolean;
 begin
-  if Self.IsActive(Tab) then
+  if Self.IsActive(ChatButton) then
     Exit(True);
-  Self.ClickButton([Self.Buttons[Tab]], MOUSE_LEFT);
-  Result := WaitUntil(Self.IsActive(Tab), 10, 2000);
+
+  Self.GetButton(ChatButton).Click();
+  Result := WaitUntil(Self.IsActive(ChatButton), 10, 2000);
 end;
 
 function TRSChatButtons.Close: Boolean;
 begin
-  if RSClient.Mode = RS_CLIENT_FIXED then
+  if RSClient.Mode = ERSClientMode.FIXED then
     Exit(False);
-  if Self.GetActive = CHAT_TAB_NONE then
+  if Self.GetActive = ERSChatButton.REPORT_CHAT then
     Exit(True);
 
-  Self.ClickButton([Self.Buttons[Self.GetActive]], MOUSE_LEFT);
-
-  Result := Self.GetActive = CHAT_TAB_NONE;
+  Self.GetButton(Self.GetActive).Click();
+  Result := Self.GetActive = ERSChatButton.REPORT_CHAT;
 end;
 

@@ -3,16 +3,82 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-function GetPrice(Item: String): Int32;
+type
+  TRSItemInfo = Pointer;
+
+function TRSItemInfo.GetRSBuddyPage(Item: TRSItem): String;
+var
+  ItemID: String;
+begin
+  Item := VarToStr(Item);
+
+  if VarToStr(Item).IsDigit() then
+    ItemID := Item
+  else
+  begin
+    ItemID := ItemFinder.ItemNames.GetValues(Item);
+    if (ItemID = '') then
+      ItemFinder.Fatal('Unknown item: ' + Item);
+  end;
+
+  Result := GetPage('https://rsbuddy.com/exchange?id=' + ItemID);
+end;
+
+function TRSItemInfo.GetOSRSBoxPage(Item: TRSItem): String;
+var
+  ItemID: String;
+begin
+  if VarToStr(Item).IsDigit() then
+    ItemID := Item
+  else
+  begin
+    ItemID := ItemFinder.ItemNames.GetValues(Item);
+    if (ItemID = '') then
+      ItemFinder.Fatal('Unknown item: ' + Item);
+  end;
+
+  Result := GetPage('https://www.osrsbox.com/osrsbox-db/items-json/' + ItemID + '.json');
+end;
+
+function TRSItemInfo.GetBuyPrice(Item: TRSItem): Int32;
 var
   Link, Price: String;
 begin
-  Item := Replace(LowerCase(Item), ' ', '-',[rfReplaceAll]);
-
-  Link := GetPage('https://www.ge-tracker.com/item/' + Item);
-  Price:= between('<td id="item_stat_overall">','</td>', Link);
-  Result := StrToIntDef(replace(Price, ',', '', [rfReplaceAll]), 0);
+  Link := Self.GetRSBuddyPage(Item);
+  Price := Between('buy-price" class="col-md-7">'#13#10, #13#10, Link);
+  Price := Replace(Price, ' ', '', [rfReplaceAll]);
+  Result := StrToInt(Price);
 end;
+
+function TRSItemInfo.GetSellPrice(Item: TRSItem): Int32;
+var
+  Link, Price: String;
+begin
+
+  Link := Self.GetRSBuddyPage(Item);
+  Price := Between('sell-price" class="col-md-7">'#13#10, #13#10, Link);
+  Price := Replace(Price, ' ', '', [rfReplaceAll]);
+  Result := StrToInt(Price);
+end;
+
+function TRSItemInfo.GetCost(Item: TRSItem): Int32;
+var
+  Link: String;
+begin
+  Link := Self.GetOSRSBoxPage(Item);
+  Result := StrToInt(Between('cost": ', ',', Link));
+end;
+
+function TRSItemInfo.GetLowAlch(Item: TRSItem): Int32;
+begin
+  Result := Round(Self.GetCost(Item) * 0.4);
+end;
+
+function TRSItemInfo.GetHighAlch(Item: TRSItem): Int32;
+begin
+  Result := Round(Self.GetCost(Item) * 0.6);
+end;
+
 
 function ConvertToRSGP(Amount: Int64): String;
 var
@@ -52,15 +118,16 @@ begin
   Result := ConvertToRSGP(Trunc(Amount));
 end;
 
+
 procedure TWaspLib.UpdateClientState;
 begin
   RSClient.DetectClientMode(True);
   RSClient.ClientModeChanged;
-  if Options.IsOpen and Options.IsTabOpen(OPTIONS_TAB_CONTROLS) then
+  if Options.IsOpen and (Options.GetCurrentTab = ERSOptionsTab.CONTROLS) then
     MM2MS.ZoomLevel := Options.GetZoomLevel;
 end;
 
-procedure TWaspLib.ProcessWhileWaiting(PlayerNumber: Int32; DoAntiBan: Boolean = True);
+procedure TWaspLib.ProcessWhileWaiting(DoAntiBan: Boolean = True);
 begin
   if (GetTickCount - StatsDebugTick) > 500 then
   begin
@@ -73,6 +140,8 @@ begin
   end;
   Antiban.DismissRandom();
   if DoAntiban and Antiban.DoAntiban then
-    Players[PlayerNumber].Login;
+    Login.LoginPlayer;
 end;
 
+var
+  ItemInfo: TRSItemInfo;

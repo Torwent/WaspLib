@@ -1,6 +1,6 @@
 {$DEFINE WL_ACTION_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/wasplib.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
 
 type
@@ -12,13 +12,14 @@ type
   );
 
   TRSAction = record
-    Alchables, Droppables: TStringArray;
+    Alchables, Droppables: TRSItemArray;
     DropSlots: TIntegerArray;
   end;
 
+
 procedure TRSAction.Setup();
 begin
-  Alchables := [
+  Self.Alchables := [
     'Onyx bolts (e)', 'Yew longbow', 'Magic longbow', 'Adamant platebody'
     'Rune 2h sword', 'Rune axe', 'Rune battleaxe', 'Rune boots', 'Rune cane',
     'Rune chainbody', 'Rune claws', 'Rune crossbow', 'Rune dagger',
@@ -28,17 +29,17 @@ begin
     'Rune scimitar', 'Rune spear', 'Rune sq shield', 'Rune sword',
     'Runite crossbow (u)', 'Runite limbs'
   ];
-  Droppables := [
+  Self.Droppables := [
     'Trout', 'Salmon', 'Leaping trout', 'Leaping salmon','Leaping sturgeon'
   ];
 end;
 
-procedure TRSAction.SetDropSlots(Items: TStringArray; Pattern: TIntegerArray);
+procedure TRSAction.SetDropSlots(Items: TRSItemArray; Pattern: TIntegerArray);
 var
   Slots: TIntegerArray;
   I: Int32;
 begin
-  Slots := Inventory.FindAll(Items);
+  Inventory.FindItems(Items, Slots);
   for I := 0 to High(Pattern) do
     if Slots.Find(Pattern[I]) > -1 then
       Self.DropSlots += Pattern[I];
@@ -62,34 +63,36 @@ begin
 end;
 
 
-function TRSAction.Alch(Identifers: TStringArray; HighAlch: Boolean = True): Boolean;
+function TRSAction.Alch(Items: TRSItemArray; HighAlch: Boolean = True): Boolean;
 var
-  Spell: EStandardSpell;
+  Item: TRSItem;
+  Spell: ERSStandardSpell;
 begin
   if HighAlch then
-    Spell := SPELL_HIGH_LEVEL_ALCHEMY
+    Spell := ERSStandardSpell.HIGH_LEVEL_ALCHEMY
   else
-    Spell := SPELL_LOW_LEVEL_ALCHEMY;
+    Spell := ERSStandardSpell.LOW_LEVEL_ALCHEMY;
 
   if Magic.CastSpell(Spell) then
   begin
-    if Inventory.Click(Identifers) then
-      Result := XPBar.WaitXPDrop(600);
+    for Item in Items do
+      if Inventory.ClickItem(Item) then
+        Exit(XPBar.WaitXPDrop(600));
   end;
 end;
 
-function TRSAction.Alch(Identifer: String; HighAlch: Boolean = True): Boolean; overload;
+function TRSAction.Alch(Item: TRSItem; HighAlch: Boolean = True): Boolean; overload;
 var
-  Spell: EStandardSpell;
+  Spell: ERSStandardSpell;
 begin
   if HighAlch then
-    Spell := SPELL_HIGH_LEVEL_ALCHEMY
+    Spell := ERSStandardSpell.HIGH_LEVEL_ALCHEMY
   else
-    Spell := SPELL_LOW_LEVEL_ALCHEMY;
+    Spell := ERSStandardSpell.LOW_LEVEL_ALCHEMY;
 
   if Magic.CastSpell(Spell) then
   begin
-    if Inventory.Click(Identifer) then
+    if Inventory.ClickItem(Item) then
       Result := XPBar.WaitXPDrop(600);
   end;
 end;
@@ -101,9 +104,9 @@ procedure TRSAction.DoAction(Action: ERSAction);
 begin
   case Action of
     ACTION_CHECK_STATS: Antiban.HoverSkills;
-    ACTION_ALCHING: Self.Alch(Self.Alchables);
+    //ACTION_ALCHING: Self.Alch(Self.Alchables);
     ACTION_FLETCHING: ;
-    ACTION_DROP: Self.DropItems;
+    //ACTION_DROP: Self.DropItems;
   end;
 end;
 
@@ -111,5 +114,5 @@ var
   RSAction: TRSAction;
 
 begin
-  RSAction.Setup();
+  //RSAction.Setup();
 end;

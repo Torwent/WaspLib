@@ -5,10 +5,11 @@
 
 type
   ERSAction = (
-    ACTION_CHECK_STATS,
-    ACTION_ALCHING,
-    ACTION_FLETCHING,
-    ACTION_DROP
+    CHECK_STATS,
+    ALCHING,
+    FLETCHING,
+    FISH,
+    DROP
   );
 
   TRSAction = record
@@ -97,16 +98,121 @@ begin
   end;
 end;
 
+function TRSAction.FindFishSpot(out ATPA: T2DPointArray; ScanTime: Int32 = 250): Boolean;
+var
+  FinalTPA, TPA: TPointArray;
+  t: TCountDown;
+begin
+  t.Init(ScanTime);
+
+  while not t.IsFinished do
+  begin
+    SRL.FindColors(TPA, CTS2(8875103, 16, 0.2, 0.7), InterfaceArea.Bounds) > 0;
+    FinalTPA += TPA.Edges();
+  end;
+
+  if FinalTPA = [] then
+    Exit;
+
+  Result := True;
+
+  FinalTPA.ClearDuplicates;
+  FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges());
+
+  FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
+
+  ATPA := FinalTPA.Cluster(5);
+  ATPA.FilterSize(12, __GT__);
+  ATPA.FilterSize(200, __LT__);
+end;
+
+function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
+var
+  FinalTPA, TPA: TPointArray;
+  t: TCountDown;
+begin
+  t.Init(ScanTime);
+
+  while not t.IsFinished do
+  begin
+    SRL.FindColors(TPA, CTS2(8875103, 16, 0.2, 0.7), InterfaceArea.Bounds) > 0;
+    FinalTPA += TPA.Edges();
+  end;
+
+  Result := FinalTPA <> [];
+end;
+
+function TRSAction.IsFishing(): Boolean;
+var
+  Rect1,Rect2: TRectangle;
+  TPA1, TPA2: TPointArray;
+begin
+  Rect1 := Minimap.StaticToMsRect([(Minimap.Center.X + 4), Minimap.Center.Y],1);
+  Rect2 := Minimap.StaticToMsRect([(Minimap.Center.X + 7), Minimap.Center.Y],1);
+
+  if srl.FindColors(TPA1, CTS2(6694,10), Rect1.Bounds) > 12 then
+    Result := srl.FindColors(TPA2, CTS2(6694,10), Rect2.Bounds) > 5;
+end;
 
 
+procedure TRSAction.DebugObject(ATPA: T2DPointArray);
+var
+  Bitmap: TMufasaBitmap;
+begin
+  Bitmap.FromClient;
+  Bitmap.DrawBoxes(ATPA.ToTBA, False, $ffffff);
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+function TRSAction.ClickObject(UpText: String; ATPA: T2DPointArray): Boolean;
+var
+  i: Int32;
+begin
+  if MainScreen.IsUpText(UpText) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    if MainScreen.DidYellowClick then
+      Exit(False);
+    Minimap.WaitPlayerMoving(300, 3000);
+    Exit(True);
+  end
+  else if ATPA = [] then
+    Exit(False);
+
+  for i := 0 to High(ATPA) do
+  begin
+    Mouse.Move(ATPA[i].Bounds);
+    if MainScreen.IsUpText(UpText) then
+    begin
+      Mouse.Click(MOUSE_LEFT);
+      if MainScreen.DidYellowClick then
+        Exit(False);
+      Minimap.WaitPlayerMoving(300, 3000);
+      Exit(True);
+    end
+    else if i = High(ATPA) then
+      Exit(False);
+  end;
+end;
+
+function TRSAction.StartFishing: Boolean;
+var
+  ATPA: T2DPointArray;
+begin
+  if not Self.FindFishSpot(ATPA, 250) then
+    Exit;
+  Result := Self.ClickObject('Fishing spot', ATPA);
+end;
 
 procedure TRSAction.DoAction(Action: ERSAction);
 begin
   case Action of
-    ACTION_CHECK_STATS: Antiban.HoverSkills;
-    //ACTION_ALCHING: Self.Alch(Self.Alchables);
-    ACTION_FLETCHING: ;
-    //ACTION_DROP: Self.DropItems;
+    CHECK_STATS: Antiban.HoverSkills;
+    FISH: ;
+    //ALCHING: Self.Alch(Self.Alchables);
+    FLETCHING: ;
+    //DROP: Self.DropItems;
   end;
 end;
 
@@ -114,5 +220,5 @@ var
   RSAction: TRSAction;
 
 begin
-  //RSAction.Setup();
+  RSAction.Setup();
 end;

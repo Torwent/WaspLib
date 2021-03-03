@@ -5,12 +5,15 @@
 
 type
   ERSChatButton = (
+    CLOSED,
+
     ALL_CHAT,
     GAME_CHAT,
     PUBLIC_CHAT,
     PRIVATE_CHAT,
     CLAN_CHAT,
     TRADE_CHAT,
+
     REPORT_CHAT
   );
 
@@ -26,25 +29,15 @@ begin
   Boxes += [[(Self.X1 + 403), Self.Y1, (Self.X1 + 513), (Self.Y2 - 1)]];
 
   for I := 0 to High(Boxes) do
-    Result += [I, Boxes[I], Boxes[I].Middle];
+    Result += [[CTS1(1555, 6), CTS1(5399922, 0), CTS1(795452, 0)], I, Boxes[I], Boxes[I].Middle];
 end;
 
 function TRSChatButtons.GetButton(Button: ERSChatButton): TRSButton;
 var
   Buttons: TRSButtonArray := Self.GetButtons();
 begin
-  if Length(Buttons) = Length(ERSChatButton) then
-    Result := Buttons[Button];
-end;
-
-procedure TRSChatButtons.Debug(Bitmap: TMufasaBitmap); override;
-begin
-  if not Self.IsOpen then
-    Exit;
-
-  inherited;
-
-  Bitmap.DrawButtons(Self.GetButtons());
+  if Length(Buttons) = (Length(ERSChatButton) - 1) then
+    Result := Buttons[Button - 1];
 end;
 
 function TRSChatButtons.GetActive: ERSChatButton;
@@ -52,37 +45,43 @@ var
   Buttons: TRSButtonArray := Self.GetButtons();
   i: Int32;
 begin
+  Result := ERSChatButton.CLOSED;
   for i := 0 to High(Buttons) do
-  begin
-    if i = 6 then
-      Exit(ERSChatButton(i));
-    if SRL.CountColor(CTS2(2439238, 2, 0.22, 2.13), Buttons[i].Bounds) > 0 then
-      Exit(ERSChatButton(i));
-  end;
+    if Buttons[i].Enabled then
+      Exit(ERSChatButton((i+1)));
 end;
+
+function TRSChatButtons.IsOpen: Boolean; override;
+begin
+  Result := Self.GetActive = ERSChatButton.CLOSED;
+end;
+
+procedure TRSChatButtons.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Bitmap.DrawButtons(Self.GetButtons());
+end;
+
 
 function TRSChatButtons.IsActive(ChatButton: ERSChatButton): Boolean;
 begin
-  Result := ChatButton = Self.GetActive;
+  Result := Self.GetButton(ChatButton).Enabled;
 end;
 
 function TRSChatButtons.Open(ChatButton: ERSChatButton): Boolean;
 begin
-  if Self.IsActive(ChatButton) then
-    Exit(True);
-
-  Self.GetButton(ChatButton).Click();
-  Result := WaitUntil(Self.IsActive(ChatButton), 10, 2000);
+  Result := Self.GetButton(ChatButton).Enable;
 end;
 
 function TRSChatButtons.Close: Boolean;
 begin
   if RSClient.Mode = ERSClientMode.FIXED then
     Exit(False);
-  if Self.GetActive = ERSChatButton.REPORT_CHAT then
+
+  if Self.GetActive = ERSChatButton.CLOSED then
     Exit(True);
 
-  Self.GetButton(Self.GetActive).Click();
-  Result := Self.GetActive = ERSChatButton.REPORT_CHAT;
+  Result := Self.GetButton(Self.GetActive).Click();
 end;
 

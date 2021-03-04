@@ -1,6 +1,6 @@
 {$DEFINE WL_WALKER_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/wasplib.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
 
 
@@ -62,14 +62,109 @@ end;
 
 function TRSWalker.TileVisible(Tiles: TPointArray): Boolean; overload;
 var
-  i: Int32;
+  Tile: TPoint;
 begin
   Result := False;
 
-  for i := 0 to High(Tiles) do
-    if Self.TileVisible(Tiles[i]) then
+  for Tile in Tiles do
+    if Self.TileVisible(Tile) then
       Exit(True);
 end;
+
+function TRSWalker.TileCanBeVisible(Tile: TPoint): Boolean; overload;
+begin
+  Result := Self.GetMyPos.DistanceTo(Tile) <= 110;
+end;
+
+function TRSWalker.TileCanBeVisible(Tiles: TPointArray): Boolean; overload;
+var
+  Tile: TPoint;
+begin
+  Result := False;
+
+  for Tile in Tiles do
+    if Self.TileCanBeVisible(Tile) then
+      Exit(True);
+end;
+
+function TRSWalker.ZoomToTile(Tile: TPoint): Boolean; overload; //Need to improvements, this is super slow
+var
+  CurrentZoom, i, NeededZoomMin, NeededZoomMax: Int32;
+begin
+  if Self.TileVisible(Tile) then
+    Exit(True)
+  else if not Self.TileCanBeVisible(Tile) then
+    Exit(False);
+
+  CurrentZoom := MM2MS.ZoomLevel;
+  NeededZoomMin := -1;
+  NeededZoomMax := -1;
+  for i := MM2MS.ZoomLevel downto 0 do
+  begin
+    MM2MS.ZoomLevel := i;
+    if (NeededZoomMax = -1) then
+    begin
+      if Self.TileVisible(Tile) then
+        NeededZoomMax := i;
+    end
+    else if (NeededZoomMin = -1) and (not Self.TileVisible(Tile) or (i < NeededZoomMax - 25)) then
+      NeededZoomMin := i;
+
+    if (NeededZoomMin <> -1) and (NeededZoomMax <> -1) then
+      Break
+  end;
+
+  MM2MS.ZoomLevel := CurrentZoom;
+
+  if (NeededZoomMin = -1) and (NeededZoomMax = -1) then
+    Exit
+  else if (NeededZoomMin = -1) then
+    NeededZoomMin := 0;
+
+  Options.SetZoomLevel(Random(NeededZoomMin, NeededZoomMax));
+
+  Result := Self.TileVisible(Tile);
+end;
+
+function TRSWalker.ZoomToTile(Tiles: TPointArray): Boolean; overload; //Need to improvements, this is super slow
+var
+  CurrentZoom, i, NeededZoomMin, NeededZoomMax: Int32;
+begin
+  if Self.TileVisible(Tiles) then
+    Exit(True)
+  else if not Self.TileCanBeVisible(Tiles) then
+    Exit(False);
+
+  CurrentZoom := MM2MS.ZoomLevel;
+  NeededZoomMin := -1;
+  NeededZoomMax := -1;
+  for i := MM2MS.ZoomLevel downto 0 do
+  begin
+    MM2MS.ZoomLevel := i;
+    if (NeededZoomMax = -1) then
+    begin
+      if Self.TileVisible(Tiles) then
+        NeededZoomMax := i;
+    end
+    else if (NeededZoomMin = -1) and (not Self.TileVisible(Tiles) or (i < NeededZoomMax - 25)) then
+      NeededZoomMin := i;
+
+    if (NeededZoomMin <> -1) and (NeededZoomMax <> -1) then
+      Break
+  end;
+
+  MM2MS.ZoomLevel := CurrentZoom;
+
+  if (NeededZoomMin = -1) and (NeededZoomMax = -1) then
+    Exit
+  else if (NeededZoomMin = -1) then
+    NeededZoomMin := 0;
+
+  Options.SetZoomLevel(Random(NeededZoomMin, NeededZoomMax));
+
+  Result := Self.TileVisible(Tiles);
+end;
+
 
 function TRSWalker.UntilTileVisible(Tile: TPoint; Interval, WaitTime: UInt32 = 0): Boolean;
 begin
@@ -82,32 +177,25 @@ begin
 end;
 
 
-function TRSWalker.RotateUntilTileVisible(Tile: TPoint): Boolean;
-var
-  TPA: TPointArray;
+function TRSWalker.FaceTile(Tile: TPoint): Boolean;
 begin
   if Self.TileVisible(Tile) then
-    Exit(True)
-  else if not Self.AtTile(Tile, 25) then
-    Exit(False);
+    Exit(True);
 
-  TPA := Self.GetTileMS(Tile).ToTPA;
-  MainScreen.FacePoint(TPA.Mean, 0);
+  MainScreen.FacePoint(Self.GetTileMS(Tile).Mean, 5);
 
   Result := Self.TileVisible(Tile);
 end;
 
-function TRSWalker.RotateUntilTileVisible(Tiles: TPointArray): Boolean; overload;
+function TRSWalker.FaceTile(Tiles: TPointArray): Boolean; overload;
 var
   TPA: TPointArray;
 begin
   if Self.TileVisible(Tiles) then
-    Exit(True)
-  else if not Self.AtTile(Tiles, 25) then
-    Exit(False);
+    Exit(True);
 
   TPA := Self.GetTileMS(Tiles.Mean).ToTPA;
-  MainScreen.FacePoint(TPA.Mean, 0);
+  MainScreen.FacePoint(TPA.Mean, 5);
 
   Result := Self.TileVisible(Tiles);
 end;
@@ -361,7 +449,7 @@ begin
   RSAction.ClearVariables;
 
   if Fails = 10 then
-    Self.Debug('Failed to advance path');
+    Self.DebugLn('Failed to advance path');
 end;
 
 function TRSWalker.ActionWebWalk(Action: ERSAction; Destination: TPoint; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean;
@@ -374,23 +462,6 @@ begin
   Path   := Self.WebGraph.PathBetween(Self.GetMyPos, Destination, PathRandomness);
   Result := Self.ActionWalkPath(Action, Path, WaitUntilDistance);
 end;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

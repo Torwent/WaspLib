@@ -1,6 +1,6 @@
 {$DEFINE WL_INVENTORY_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/wasplib.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
 
 (*
@@ -16,6 +16,11 @@ const
   DROP_PATTERN_TWO_ROW: TIntegerArray = [0,4,1,5,2,6,3,7,8,12,9,13,10,14,11,15,16,20,17,21,18,22,19,23,20,24,25,26,27,28];
   DROP_PATTERN_TWO_ROW_R: TIntegerArray = [0,4,1,5,2,6,3,7,11,15,10,14,9,13,8,12,16,20,17,21,18,22,19,23,20,24,28,27,26,25];
 
+function TRSInventory.ItemIsStackable(Item: TRSItem): Boolean;
+begin
+  Result := Self.CountItemStack(Item) > 0;
+end;
+
 
 function TRSInventory.RandomPattern(): TIntegerArray;
 var
@@ -28,28 +33,21 @@ begin
   Result := Patterns[Random(0, High(Patterns))];
 end;
 
-function TRSInventory.Contains(Identifer: String): Boolean;
-begin
-  Result := Inventory.Find(Identifer) <> -1;
-end;
-
-function TRSInventory.ContainsAny(Identifers: TStringArray): Boolean;
+function TRSInventory.FindAllItems(Items: TRSItemArray; out Slots: TIntegerArray): Boolean;
 var
-  Identifer: String;
+  Item: TRSItem;
+  TempSlots: TIntegerArray;
 begin
-  for Identifer in Identifers do
-    if Self.Contains(Identifer) then
-      Exit(True);
-end;
-
-function TRSInventory.ContainsAll(Identifers: TStringArray): Boolean;
-var
-  Identifer: String;
-begin
-  Result := True;
-  for Identifer in Identifers do
-    if not Self.Contains(Identifer) then
+  for Item in Items do
+  begin
+    TempSlots := [];
+    if Self.FindItem(Item, TempSlots) then
+      Slots += TempSlots
+    else
       Exit(False);
+  end;
+
+  Result := True;
 end;
 
 function TRSInventory.SetSelectedSlot(Slot: Int32): Boolean; override;

@@ -1,0 +1,65 @@
+{$DEFINE WL_MINIMAP_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+function TRSMinimap.GetSpecLevel: Int32;
+begin
+  Result := Self.GetOrbLevel(Self.GetSpecAttackCircle);
+end;
+
+function TRSMinimap.IsSpecEnabled: Boolean;
+begin
+  Result := SRL.CountColor(CTS2(8682326, 16, 0.03, 1.15), Self.GetSpecAttackCircle.Bounds) > 0;
+end;
+
+function TRSMinimap.IsSpecWeapon: Boolean;
+begin
+  Result := ((SRL.CountColor(CTS2(8480786, 19, 0.05, 1.36), Self.GetSpecAttackCircle.Bounds) > 0) or
+            Self.IsSpecEnabled);
+end;
+
+function TRSMinimap.EnableSpec(MinSpec: Int32): Boolean;
+var
+  T: UInt64;
+begin
+  if not Self.IsSpecWeapon or (Self.GetSpecLevel < MinSpec) then
+    Exit(False);
+
+  Result := Self.IsSpecEnabled;
+  if not Result then
+  begin
+    Mouse.Click(Self.GetSpecAttackCircle, MOUSE_LEFT);
+
+    T := GetTickCount() + Round(SRL.TruncatedGauss(1000, 2000));
+    while (T > GetTickCount()) do
+    begin
+      if Self.IsSpecEnabled() then
+        Exit(True);
+
+      Wait(0, 1000, wdLeft);
+    end;
+  end;
+end;
+
+function TRSMinimap.DisableSpec: Boolean;
+var
+  T: UInt64;
+begin
+  Result := not Self.IsSpecEnabled;
+
+  if Result then
+  begin
+    Mouse.Click(Self.GetSpecAttackCircle, MOUSE_LEFT);
+
+    T := GetTickCount() + Round(SRL.TruncatedGauss(1000, 2000));
+    while (T > GetTickCount()) do
+    begin
+      if not Self.IsSpecEnabled() then
+        Exit(True);
+
+      Wait(0, 1000, wdLeft);
+    end;
+  end;
+end;
+

@@ -3,16 +3,127 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-function GetPrice(Item: String): Int32;
+type
+  TRSItemInfo = Pointer;
+
+function TRSItemInfo.GetGEPage(Item: TRSItem): String;
+var
+  ItemID: String;
+begin
+  Item := VarToStr(Item);
+
+  if VarToStr(Item).IsDigit() then
+    ItemID := Item
+  else
+  begin
+    ItemID := ItemFinder.ItemNames.GetValues(Item);
+    if (ItemID = '') then
+      ItemFinder.Fatal('Unknown item: ' + Item);
+  end;
+
+  Result := GetPage('https://secure.runescape.com/m=itemdb_oldschool/viewitem?obj=' + ItemID);
+end;
+
+function TRSItemInfo.GetRSBuddyPage(Item: TRSItem): String;
+var
+  ItemID: String;
+begin
+  Item := VarToStr(Item);
+
+  if VarToStr(Item).IsDigit() then
+    ItemID := Item
+  else
+  begin
+    ItemID := ItemFinder.ItemNames.GetValues(Item);
+    if (ItemID = '') then
+      ItemFinder.Fatal('Unknown item: ' + Item);
+  end;
+
+  Result := GetPage('https://rsbuddy.com/exchange?id=' + ItemID);
+end;
+
+function TRSItemInfo.GetOSRSBoxPage(Item: TRSItem): String;
+var
+  ItemID: String;
+begin
+  if VarToStr(Item).IsDigit() then
+    ItemID := Item
+  else
+  begin
+    ItemID := ItemFinder.ItemNames.GetValues(Item);
+    if (ItemID = '') then
+      ItemFinder.Fatal('Unknown item: ' + Item);
+  end;
+
+  Result := GetPage('https://www.osrsbox.com/osrsbox-db/items-json/' + ItemID + '.json');
+end;
+
+function TRSItemInfo.GetGEPrice(Item: TRSItem): Int32;
 var
   Link, Price: String;
 begin
-  Item := Replace(LowerCase(Item), ' ', '-',[rfReplaceAll]);
-
-  Link := GetPage('https://www.ge-tracker.com/item/' + Item);
-  Price:= between('<td id="item_stat_overall">','</td>', Link);
-  Result := StrToIntDef(replace(Price, ',', '', [rfReplaceAll]), 0);
+  Link := Self.GetGEPage(Item);
+  Price := Between('Current Guide Price <span title=''', '''>', Link);
+  Price := Replace(Price, ',', '', [rfReplaceAll]);
+  Result := StrToInt(Price);
 end;
+
+function TRSItemInfo.GetBuyPrice(Item: TRSItem): Int32;
+var
+  Link, Price: String;
+begin
+  Link := Self.GetRSBuddyPage(Item);
+  Price := Between('buy-price" class="col-md-7">'#13#10, #13#10, Link);
+  Price := Replace(Price, ' ', '', [rfReplaceAll]);
+  Result := StrToInt(Price);
+end;
+
+function TRSItemInfo.GetSellPrice(Item: TRSItem): Int32;
+var
+  Link, Price: String;
+begin
+
+  Link := Self.GetRSBuddyPage(Item);
+  Price := Between('sell-price" class="col-md-7">'#13#10, #13#10, Link);
+  Price := Replace(Price, ' ', '', [rfReplaceAll]);
+  Result := StrToInt(Price);
+end;
+
+function TRSItemInfo.GetAveragePrice(Item: TRSItem): Int32;
+var
+  Buy, Sell: Int32;
+begin
+  Buy := Self.GetBuyPrice(Item);
+  Sell := Self.GetSellPrice(Item);
+
+  if ((Buy = 0) and (Sell = 0)) then
+    Result := Self.GetGEPrice(Item)
+  else if Buy = 0 then
+    Result := Sell
+  else if Sell = 0 then
+    Result := Buy
+  else
+    Result := Round((Buy + Sell) / 2);
+end;
+
+function TRSItemInfo.GetStoreCost(Item: TRSItem): Int32;
+var
+  Link: String;
+begin
+  Link := Self.GetOSRSBoxPage(Item);
+  Result := StrToInt(Between('cost": ', ',', Link));
+end;
+
+function TRSItemInfo.GetLowAlch(Item: TRSItem): Int32;
+begin
+  Result := Round(Self.GetStoreCost(Item) * 0.4);
+end;
+
+function TRSItemInfo.GetHighAlch(Item: TRSItem): Int32;
+begin
+  Result := Round(Self.GetStoreCost(Item) * 0.6);
+end;
+
 
 function ConvertToRSGP(Amount: Int64): String;
 var
@@ -52,27 +163,57 @@ begin
   Result := ConvertToRSGP(Trunc(Amount));
 end;
 
+function NumberPerHour(Number: UInt64): Int32;
+begin
+  Result := Round((Number / GetTimeRunning) * ONE_HOUR);
+end;
+
+function NumberPerHour(Number: Extended): Int32; overload;
+begin
+  Result := NumberPerHour(Trunc(Number));
+end;
+
 procedure TWaspLib.UpdateClientState;
 begin
   RSClient.DetectClientMode(True);
   RSClient.ClientModeChanged;
-  if Options.IsOpen and Options.IsTabOpen(OPTIONS_TAB_CONTROLS) then
+  if Options.IsOpen and (Options.GetCurrentTab = ERSOptionsTab.CONTROLS) then
     MM2MS.ZoomLevel := Options.GetZoomLevel;
 end;
 
-procedure TWaspLib.ProcessWhileWaiting(PlayerNumber: Int32; DoAntiBan: Boolean = True);
+function TWaspLib.DoAntiban: Boolean;
 begin
+  Self.Activity.Pause();
+
+  try
+    Result := Antiban.DoAntiban();
+  finally
+    Self.Activity.Resume();
+  end;
+end;
+
+procedure TWaspLib.ProcessWhileWaiting(DoAntiban: Boolean = True);
+begin
+  TotalProfit := (ProductValue - CostPerAction) * TotalActions;
+
   if (GetTickCount - StatsDebugTick) > 500 then
   begin
     ClearDebug;
-    WriteLn('+---| STATS |----------------------------------------');
-    WriteLn('|- Script Runtime    : ', SRL.MsToTime(GetTimeRunning, Time_Short));
-    WriteLn('|- Action            : ', Action);
-    WriteLn('+----------------------------------------------------');
+    WriteLn('+---------------------------| STATS |---------------------------+');
+
+    Writeln(StringSpacer((' Action        : ' + Action), 37),                     'Runtime  	   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
+    Writeln(StringSpacer((' Total Actions : ' + ToStr(TotalActions)), 37),        'Actions/Hour : ', NumberPerHour(TotalActions));
+    Writeln(StringSpacer((' Total Profit  : ' + ConvertToRSGP(TotalProfit)), 37), 'Profit/Hour  : ', ConvertToRSGP(NumberPerHour(TotalProfit)));
+
+    WriteLn('+---------------------------------------------------------------+');
+
     StatsDebugTick := GetTickCount();
   end;
+
   Antiban.DismissRandom();
-  if DoAntiban and Antiban.DoAntiban then
-    Players[PlayerNumber].Login;
+  if DoAntiban and Self.DoAntiban then
+    Login.LoginPlayer;
 end;
 
+var
+  ItemInfo: TRSItemInfo;

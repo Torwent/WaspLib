@@ -1,4 +1,291 @@
 {$DEFINE WL_BANK_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/wasplib.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
+
+function TRSBank.GetTabBox(Tab: Int32): TBox;
+var
+  Tabs: TBoxArray := Self.GetTabBoxes();
+begin
+  if (Tab >= 0) and (Tab <= Length(Tabs)) then
+    Result := Tabs[Tab];
+end;
+
+function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+begin
+  if Bank.IsOpen then
+  begin
+    if Tab = ERSGameTab.INVENTORY then
+      Exit(True)
+    else
+      Bank.Close(SRL.Dice(98.5));
+  end;
+
+  if GetCurrentTab() = Tab then
+    Exit(True);
+
+  for 1 to 3 do
+  begin
+    Mouse.Click(GetTabBox(Tab), MOUSE_LEFT, SRL.Dice(50));
+
+    Result := WaitUntil(Self.GetCurrentTab() = Tab, SRL.TruncatedGauss(50, 2000), SRL.TruncatedGauss(2000, 3000));
+    if Result then
+      Exit;
+  end;
+end;
+
+function TRSBank.GetCurrentTab: Int32;
+var
+  Tabs: TBoxArray;
+  Tab: TBox;
+  i: Int32;
+begin
+  if Self.IsClosed() then
+    Exit;
+
+  Tabs := Self.GetTabBoxes;
+
+  for i := 0 to High(Tabs) do
+  begin
+    Tab := Tabs[i];
+    Tab.Y2 +=1;
+    if SRL.CountColor(CTS1(5334129, 0), Tab) = 0 then
+      Exit(i);
+  end;
+end;
+
+function TRSBank.OpenTab(Tab: Int32): Boolean;
+var
+  Box: TBox;
+begin
+  if Self.IsClosed() then
+    Exit;
+
+  if Tab = Self.GetCurrentTab then
+    Exit(True);
+
+  Box := Self.GetTabBox(Tab);
+  if Box <> [] then
+  begin
+    Mouse.Click(Box, MOUSE_LEFT);
+    Result := WaitUntil((Tab = Self.GetCurrentTab), 50, 2000);
+  end;
+end;
+
+function TRSBank.BankHasItem(Item: TRSBankWithdrawItem): Boolean;
+var
+  Box: TBox;
+begin
+  for 0 to 3 do
+  begin
+    if Bank.FindItem(Item.Item, Box) then
+      Exit(True);
+  end;
+
+  Result := False;
+end;
+
+function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
+var
+  ItemCount: Int32;
+begin
+  if not Bank.IsOpen or not Bank.OpenTab(Tab) then
+    Exit;
+
+  if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
+    Exit;
+
+  if not Self.BankHasItem(Item) then
+    TerminateScript('Ran out of ' + Item.Item + '.');
+
+  ItemCount := Bank.CountItemStack(Item.Item);
+  if Bank.WithdrawItem(Item, UseQuantityButtons) then
+    Result := WaitUntil((Bank.CountItemStack(Item.Item) <> ItemCount), 50, 2000);
+end;
+
+function TRSBank.DepositItem(Tab: Int32; Item: TRSBankDepositItem; UseQuantityButtons: Boolean): Boolean; overload;
+var
+  IsStackable: Boolean;
+  ItemCount: Int32;
+begin
+  if not Bank.IsOpen or not Bank.OpenTab(Tab) then
+    Exit;
+
+  IsStackable := Inventory.ItemIsStackable(Item.Item);
+
+  if IsStackable then
+    ItemCount := Inventory.CountItemStack(Item.Item)
+  else
+    ItemCount := Inventory.CountItem(Item.Item);
+
+  if Bank.DepositItem(Item, UseQuantityButtons) then
+  begin
+    if IsStackable then
+      Result := WaitUntil((Inventory.CountItemStack(Item.Item) <> ItemCount), 50, 2000)
+    else
+      Result := WaitUntil((Inventory.CountItem(Item.Item) <> ItemCount), 50, 2000);
+  end;
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Tries to open a bank with the specified Color at the specified Tile.
+// Returns true if bank or bankpin is open.
+function TRSWalker.OpenBank(Tile: TPoint; Color: TCTS2Color): Boolean;
+begin
+  if Self.ClickRSObject(Tile, Color, ['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(300, 3000);
+    Result := WaitUntil((Bank.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 3000);
+  end;
+end;
+
+// Same as above for multiple tiles.
+function TRSWalker.OpenBank(Tiles: TPointArray; Color: TCTS2Color): Boolean; overload;
+begin
+  if Self.ClickRSObject(Tiles, Color, ['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((Bank.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Walks to the object, and tries to do the same as above while walking.
+function TRSWalker.WalkOpenBank(Tile: TPoint; Color: TCTS2Color): Boolean;
+begin
+  if Self.WalkClickRSObject(Tile, Color, ['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((Bank.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Same as above for multiple tiles.
+function TRSWalker.WalkOpenBank(Tiles: TPointArray; Color: TCTS2Color): Boolean; overload
+begin
+  if Self.WalkClickRSObject(Tiles, Color, ['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((Bank.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+
+// Tries to open the collect box at bank with the specified Color at the specified Tile.
+// Returns true if collect box is open.
+function TRSWalker.OpenCollect(Tile: TPoint; Color: TCTS2Color): Boolean;
+begin
+  if Self.SelectRSObjectOption(Tile, Color, ['Collect'],['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((CollectBox.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Same as above for multiple tiles.
+function TRSWalker.OpenCollectBox(Tiles: TPointArray; Color: TCTS2Color): Boolean; overload;
+begin
+  if Self.SelectRSObjectOption(Tiles, Color, ['Collect'],['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((CollectBox.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Walks to the object, and tries to do the same as above while walking.
+function TRSWalker.WalkOpenCollectBox(Tile: TPoint; Color: TCTS2Color): Boolean;
+begin
+  if Self.WalkSelectRSObjectOption(Tile, Color, ['Collect'],['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((CollectBox.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Same as above for multiple tiles.
+function TRSWalker.WalkOpenCollectBox(Tiles: TPointArray; Color: TCTS2Color): Boolean; overload;
+begin
+  if Self.WalkSelectRSObjectOption(Tiles, Color, ['Collect'],['Bank', 'booth', 'chest']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((CollectBox.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+
+// Tries to open GE
+function TRSWalker.OpenGE(South: Boolean): Boolean;
+var
+  Tiles: TPointArray;
+begin
+  if South then
+    Tiles := WorldObjects.Tiles.GESouth
+  else
+    Tiles := WorldObjects.Tiles.GENorth;
+
+  if Self.ClickRSObject(Tiles, WorldObjects.Colors.GEStructure, ['Exchange', 'Grand', 'booth']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((GrandExchange.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Tries to open GE with less info
+function TRSWalker.OpenGE: Boolean; overload;
+begin
+  if Self.ClickRSObject(Self.GetClosestTile(WorldObjects.Tiles.GEExchange), WorldObjects.Colors.GEStructure, ['Exchange', 'Grand', 'booth']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((GrandExchange.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Walks to GE and attempts to open it while walking.
+function TRSWalker.WalkOpenGE(South: Boolean): Boolean;
+var
+  Tiles: TPointArray;
+begin
+  if South then
+    Tiles := WorldObjects.Tiles.GESouth
+  else
+    Tiles := WorldObjects.Tiles.GENorth;
+
+  if Self.WalkClickRSObject(Tiles, WorldObjects.Colors.GEStructure, ['Exchange', 'Grand', 'booth']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((GrandExchange.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+// Walks to GE and attempts to open it while walking with less info.
+function TRSWalker.WalkOpenGE: Boolean; overload;
+begin
+  if Self.WalkClickRSObject(Self.GetClosestTile(WorldObjects.Tiles.GEExchange), WorldObjects.Colors.GEStructure, ['Exchange', 'Grand', 'booth']) then
+  begin
+    Minimap.WaitPlayerMoving(500, 3000);
+    Result := WaitUntil((GrandExchange.IsOpen or BankPin.IsOpen), SRL.TruncatedGauss(50, 1500), 1000);
+  end;
+end;
+
+
+

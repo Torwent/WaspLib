@@ -129,6 +129,7 @@ end;
 function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
 var
   FinalTPA, TPA: TPointArray;
+  ATPA: T2DPointArray;
   t: TCountDown;
 begin
   t.Init(ScanTime);
@@ -139,7 +140,19 @@ begin
     FinalTPA += TPA.Edges();
   end;
 
-  Result := FinalTPA <> [];
+  if FinalTPA = [] then
+    Exit;
+
+  FinalTPA.ClearDuplicates;
+  FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges());
+
+  FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
+
+  ATPA := FinalTPA.Cluster(5);
+  ATPA.FilterSize(12, __GT__);
+  ATPA.FilterSize(200, __LT__);
+
+  Result := ATPA <> [];
 end;
 
 function TRSAction.IsFishing(): Boolean;

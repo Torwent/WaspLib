@@ -1,0 +1,38 @@
+{$DEFINE WL_GAMETABS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+// SHOULD ADD TO SRL.
+function TRSGameTabs.GetTabBox(Tab: ERSGameTab): TBox; override;
+var
+  Tabs: TBoxArray := Self.GetTabBoxes;
+begin
+  if (Tabs = []) or (Tab = ERSGameTab.UNKNOWN) then
+    Exit;
+  Result := Tabs[Tab];
+end;
+
+// SHOULD ADD TO SRL.
+function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+begin
+  if Bank.IsOpen then
+  begin
+    if Tab = ERSGameTab.INVENTORY then
+      Exit(True)
+    else
+      Bank.Close(SRL.Dice(98.5));
+  end;
+
+  if GetCurrentTab() = Tab then
+    Exit(True);
+
+  for 1 to 3 do
+  begin
+    Mouse.Click(GetTabBox(Tab), MOUSE_LEFT, SRL.Dice(50));
+
+    Result := WaitUntil(Self.GetCurrentTab() = Tab, SRL.TruncatedGauss(50, 2000), SRL.TruncatedGauss(2000, 3000));
+    if Result then
+      Exit;
+  end;
+end;

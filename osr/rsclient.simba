@@ -1,0 +1,46 @@
+{$DEFINE WL_RSCLIENT_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+
+(*
+RSClient.SetupRemoteInput
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSClient.SetupRemoteInput;
+
+If `SRL_USE_REMOTEINPUT` has been defined this method will be automatically called to setup the remote input plugin.
+*)
+{$IFDEF SRL_USE_REMOTEINPUT}
+procedure TRSClient.SetupRemoteInput; override;
+begin
+  {$IFNDEF SIMBAHEADLESS}
+  Self.PID := GetSimbaTargetPID();
+  {$ENDIF}
+
+  if Self.PID = 0 then
+  begin
+    if MessageDlg('SRL', 'Simba has no target. Do you want to automatically target a RS client?', mtConfirmation, [mbYes, mbNo]) = mrYes then
+    begin
+      RIInject({$IFDEF WINDOWS}'JagexLauncher.exe'{$ELSE}'java'{$ENDIF});
+
+      if EIOS_GetClients(True) > 0 then
+        Self.PID := EIOS_GetClientPID(0);
+    end else
+      Self.Fatal('Simba has no target.');
+  end else
+    RIInject(Self.PID);
+
+  Wait(500); // Allow time to injection to kick in
+
+  if Self.PID = 0 then
+    Self.Fatal('No OSRS clients found. You might need ' + {$IFDEF CPU32}'64'{$ELSE}'32'{$ENDIF} + ' bit Simba for this RS client');
+
+  WaitUntil((Self.EIOS := EIOS_PairClient(Self.PID)) <> nil, 50, 10000);
+  try
+    SetEIOSTarget({$libpath ../../SRL/plugins/libremoteinput}, ToString(Self.PID));
+  except
+    Self.Fatal('OSRS target failed');
+  end;
+end;
+{$ENDIF}

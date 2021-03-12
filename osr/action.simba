@@ -134,9 +134,8 @@ begin
 
   FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
 
-  ATPA := FinalTPA.Cluster(5);
+  ATPA := FinalTPA.Cluster(10);
   ATPA.FilterSize(12, __GT__);
-  ATPA.FilterSize(200, __LT__);
 end;
 
 function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
@@ -161,27 +160,112 @@ begin
 
   FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
 
-  ATPA := FinalTPA.Cluster(5);
+  ATPA := FinalTPA.Cluster(10);
   ATPA.FilterSize(12, __GT__);
-  ATPA.FilterSize(200, __LT__);
 
   Result := ATPA <> [];
 end;
 
-function TRSAction.IsFishing(): Boolean;
-var
-  Rect1,Rect2: TRectangle;
-  TPA1, TPA2: TPointArray;
+function TRSAction.GetFaceableTiles: TPointArray;
 begin
-  Rect1 := Minimap.StaticToMsRect([(Minimap.Center.X + 4), Minimap.Center.Y],1);
-  Rect2 := Minimap.StaticToMsRect([(Minimap.Center.X + 7), Minimap.Center.Y],1);
-
-  if srl.FindColors(TPA1, CTS2(6694,10), Rect1.Bounds) > 12 then
-    Result := srl.FindColors(TPA2, CTS2(6694,10), Rect2.Bounds) > 5;
+  Result := [
+    [Minimap.Center.X + 4, Minimap.Center.Y],
+    [Minimap.Center.X - 4, Minimap.Center.Y],
+    [Minimap.Center.X, Minimap.Center.Y + 4],
+    [Minimap.Center.X, Minimap.Center.Y - 4]
+  ];
 end;
 
 
-procedure TRSAction.DebugObject(ATPA: T2DPointArray);
+function TRSAction.FindWaterDirection: Int32;
+var
+  Water: TPointArray;
+  FaceableTiles: TPointArray := Self.GetFaceableTiles;
+  i: Int32;
+begin
+  Result = -1;
+
+  SRL.FindColors(Water, CTS0(12161149), Minimap.Bounds);
+
+  for i := 0 to High(FaceableTiles) do
+    if Water.Find(FaceableTiles[i]) <> -1 then
+      Exit(i)
+end;
+
+
+function TRSAction.IsFishing(): Boolean;
+var
+  Direction: Int32 := Self.FindWaterDirection;
+  Rect1, Rect2: TRectangle;
+  TPA1, TPA2: TPointArray;
+begin
+  if Direction = -1 then
+    Exit
+  else if Direction = 0 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
+  end
+  else if Direction = 1 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
+  end
+  else if Direction = 2 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
+  end
+  else if Direction = 3 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
+  end;
+
+  if SRL.FindColors(TPA1, CTS2(6694,10), Rect1.Bounds) > 12 then
+    Result := SRL.FindColors(TPA2, CTS2(6694,10), Rect2.Bounds) > 3;
+end;
+
+
+procedure TRSAction.DebugFaceableTiles;
+var
+  Bitmap: TMufasaBitmap;
+  Tiles: TPointArray;
+  Tile: TPoint;
+  Rects: array of TRectangle;
+  Rect: TRectangle;
+begin
+
+  Tiles := [
+    [Minimap.Center.X + 4, Minimap.Center.Y],
+    [Minimap.Center.X - 4, Minimap.Center.Y],
+    [Minimap.Center.X, Minimap.Center.Y + 4],
+    [Minimap.Center.X, Minimap.Center.Y - 4]
+  ];
+
+  for Tile in Tiles do
+    Rects += Minimap.StaticToMsRect(Tile, 0);
+
+  Bitmap.FromClient;
+
+  for Rect in Rects do
+    Bitmap.DrawRect(Rect, $ffffff);
+
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+procedure TRSAction.DebugObject(TPA: TPointArray);
+var
+  Bitmap: TMufasaBitmap;
+begin
+  Bitmap.FromClient;
+  Bitmap.DrawBox(TPA.Bounds, False, $ffffff);
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+procedure TRSAction.DebugObject(ATPA: T2DPointArray); overload;
 var
   Bitmap: TMufasaBitmap;
 begin
@@ -190,6 +274,7 @@ begin
   ShowBitmap(Bitmap);
   Bitmap.Free;
 end;
+
 
 function TRSAction.ClickObject(UpText: String; ATPA: T2DPointArray): Boolean;
 var
@@ -235,7 +320,7 @@ procedure TRSAction.DoAction(Action: ERSAction);
 begin
   case Action of
     CHECK_STATS: Antiban.HoverSkills;
-    FISH: ;
+    FISH: Self.StartFishing;
     //ALCH: Self.Alch(Self.Alchables);
     FLETCH: ;
     //DROP: Self.DropItems;

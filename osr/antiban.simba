@@ -4,25 +4,9 @@
 {$ENDIF}
 
 var
-  BioHash, Endurance, Patience: Double;
-
-procedure TAntiban.SetupBiometrics;
-var
-  h, i: UInt32;
-  k: String;
-begin
-  if Length(Login.Players) = 0 then
-    Exit;
-
-  k := Login.GetPlayer.User;
-  h := $811C9DC5;
-  for i:=1 to Length(k) do
-    h := (h * $1000193) xor Ord(k[i]);
-
-  BioHash   := h / $FFFFFFFF;
-  Endurance := Cos(BioHash*PI/2);
-  Patience  := Sin(BioHash*PI/1);
-end;
+  BioHash: Double;
+  Endurance: Double; //Unused for now.
+  Patience: Double;  //Unused for now.
 
 // Toggling random stuff antibans
 procedure TAntiban.ToggleRun();
@@ -139,6 +123,66 @@ begin
   Wait(3000 * Biohash, 5000 * Biohash);
   Bank.OpenTab(CurrentTab);
 end;
+
+
+// This biometrics "system" are straight out of older SRL versions.
+procedure TAntiban.SetupBiometrics;
+var
+  h, i: UInt32;
+  k: String;
+begin
+  if Length(Login.Players) = 0 then
+    Exit;
+
+  k := Login.GetPlayer.User;
+  h := $811C9DC5;
+  for i:=1 to Length(k) do
+    h := (h * $1000193) xor Ord(k[i]);
+
+  BioHash   := h / $FFFFFFFF;
+  Endurance := Cos(BioHash*PI/2);
+  Patience  := Sin(BioHash*PI/1);
+end;
+
+procedure TAntiban.SetupTasks;
+begin
+  Self.AddTask(5  * ONE_MINUTE, @Self.RandomRotate);
+  Self.AddTask(8  * ONE_MINUTE, @Self.RandomChatButton);
+  Self.AddTask(8  * ONE_MINUTE, @Self.RandomRightClick);
+  Self.AddTask(10 * ONE_MINUTE, @Self.LoseFocus);
+  Self.AddTask(12 * ONE_MINUTE, @Self.RandomTab);
+  Self.AddTask(20 * ONE_MINUTE, @Self.LoseFocus);
+  Self.AddTask(21 * ONE_MINUTE, @Self.HoverSkills);
+  Self.AddTask(30 * ONE_MINUTE, @Self.AdjustZoom);
+end;
+
+procedure TAntiban.SetupBreaks;
+begin
+  Self.AddBreak(30  * ONE_MINUTE,  2  * ONE_MINUTE, 0.33, 1);
+  Self.AddBreak(45  * ONE_MINUTE,  5  * ONE_MINUTE, 0.33, 3);
+  Self.AddBreak(60  * ONE_MINUTE,  10 * ONE_MINUTE, 0.33, 20);
+  Self.AddBreak(120 * ONE_MINUTE,  30 * ONE_MINUTE, 0.33, 80 * BioHash);
+end;
+
+procedure TAntiban.SetupSleep;
+var
+  Sleep: UInt64;
+begin
+  Sleep := (
+    ((22 + Round(5 * BioHash)) * ONE_HOUR) +
+    (Round(59 * BioHash) * ONE_MINUTE)
+  );
+  if Sleep > ONE_DAY then
+    Sleep -= ONE_DAY;
+
+  Self.AddSleep(
+    SRL.MsToTime(Sleep, Time_Bare),
+    (5 * ONE_HOUR) + ((200 * ONE_MINUTE) * BioHash),
+    0.1,
+    (100 * BioHash)
+  );
+end;
+
 
 
 

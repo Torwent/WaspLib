@@ -128,44 +128,6 @@ begin
 end;
 
 
-function ConvertToRSGP(Amount: Int64): String;
-var
-  StringLength: Int32;
-  Divider: UInt32;
-  Suffix: String;
-begin
-  Result := '';
-  StringLength := Length(IntToStr(Amount));
-  if StringLength <= 3 then
-  begin
-    Suffix := '';
-    Divider := 1;
-  end
-  else if (StringLength >= 4) and (StringLength <= 6) then
-  begin
-    Suffix := 'k';
-    Divider := 1000;
-  end
-  else if (StringLength >= 7) and (StringLength <= 9) then
-  begin
-    Suffix := 'm';
-    Divider := 1000000;
-  end
-  else if (StringLength >= 10) and (StringLength <= 12) then
-  begin
-    Suffix := 'b';
-    Divider := 1000000000;
-  end
-  else Exit();
-
-  Result := FloatToStr(Round(Amount/Divider, 2)) + Suffix;
-end;
-
-function ConvertToRSGP(Amount: Extended): String; overload;
-begin
-  Result := ConvertToRSGP(Trunc(Amount));
-end;
-
 function NumberPerHour(Number: UInt64): Int32;
 begin
   Result := Round((Number / GetTimeRunning) * ONE_HOUR);
@@ -207,19 +169,36 @@ begin
 end;
 
 procedure TWaspLib.ProcessWhileWaiting(DoAntiban: Boolean = True);
+var
+  TitleStr, ActionStr, RunTimeStr: String;
+  TActionsStr, TActionHourStr, TProfitStr, TProfitHourStr: String;
+  TitleLength: Int32;
 begin
   TotalProfit := TotalActions * ActionProfit;
 
   if (GetTickCount - StatsDebugTick) > 1000 then
   begin
     ClearDebug;
-    WriteLn(StringSpacer(('+=| ' + ScriptFile.After(ScriptPath).Before('.simba') + ' |'), '=', 63) + '+');
 
-    Writeln(StringSpacer((' Action        : ' + Action), 33),                     ' Runtime  	   : ', SRL.MsToTime(GetTimeRunning, Time_Short));
-    Writeln(StringSpacer((' Total Actions : ' + ToStr(TotalActions)), 33),        ' Actions/Hour : ', NumberPerHour(TotalActions));
-    Writeln(StringSpacer((' Total Profit  : ' + ConvertToRSGP(TotalProfit)), 33), ' Profit/Hour  : ', ConvertToRSGP(NumberPerHour(TotalProfit)));
+    TitleStr := ScriptFile.After(ScriptPath).Before('.simba');
+    TitleLength := TitleStr.Len;
+    TitleStr := '+' + PadL( ('|  ' + TitleStr + '  |'), 40, '=');
+    TitleStr := PadR(TitleStr, 80 - TitleLength, '=') + '+';
 
-    WriteLn('+---------------------------------------------------------------+');
+    TitleLength := TitleStr.Len;
+    ActionStr   := PadR((' Action        : ' + Action), Round(TitleLength/2));
+    RunTimeStr  :=       ' Runtime       : ' + SRL.MsToTime(GetTimeRunning, Time_Short);
+    TActionsStr := PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2));
+    TActionHourStr :=    ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions));
+    TProfitStr  := PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(TitleLength/2));
+    TProfitHourStr :=    ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit));
+
+    WriteLn(TitleStr);
+    Writeln(ActionStr, RunTimeStr);
+    Writeln(TActionsStr, TActionHourStr);
+    Writeln(TProfitStr, TProfitHourStr);
+
+    WriteLn('+', PadR('-', TitleLength - 2, '-'),'+');
 
     StatsDebugTick := GetTickCount();
   end;

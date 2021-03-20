@@ -75,18 +75,25 @@ begin
   end;
 end;
 
-function TRSBank.HasItem(Item: TRSBankWithdrawItem): Boolean;
+
+function TRSBank.HasItem(Item: TRSItem): Boolean;
 var
   Box: TBox;
 begin
   for 0 to 3 do
   begin
-    if Bank.FindItem(Item.Item, Box) then
+    if Bank.FindItem(Item, Box) then
       Exit(True);
   end;
 
   Result := False;
 end;
+
+function TRSBank.HasItem(Item: TRSBankWithdrawItem): Boolean; overload;
+begin
+  Result := Self.HasItem(Item.Item);
+end;
+
 
 function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
 var
@@ -128,7 +135,43 @@ begin
   end;
 end;
 
+function TRSBank.FindItemTab(Item: TRSItem): Int32;
+var
+  Box, SearchBox: TBox;
+  TPA: TPointArray;
+  TabsText: T2DPointArray;
+  Bitmap: TMufasaBitmap;
+begin
+  if not Self.Search(ToStr(Item)) or not Self.FindItem(Item, Box) then
+    Exit(-1);
 
+  SearchBox := [
+    Self.Bounds.X1 + 40,
+    Self.Bounds.Y1,
+    SearchBox.X1 + 50,
+    Box.Y1
+  ];
+
+  if SRL.FindColors(TPA, CTS0(10672356, 0), SearchBox) > 0 then
+    TabsText += TPA;
+  if SRL.FindColors(TPA, CTS0(16777215, 0), SearchBox) > 0 then
+    TabsText += TPA;
+
+  if TabsText = [] then
+    Exit(0);
+
+  TPA := TabsText.Merge();
+  TPA.SortByY(False);
+
+  TPA := TPA.Cluster(15)[0];
+  TPA.SortByX(False);
+
+  TPA := TPA.Cluster(1)[0];
+
+  Result := OCR.RecognizeNumber(TPA.Bounds, [10672356], RS_FONT_PLAIN_11)
+  if Result = 0 then
+    Result := OCR.RecognizeNumber(TPA.Bounds, [16777215], RS_FONT_PLAIN_11)
+end;
 
 
 
@@ -194,7 +237,7 @@ end;
 
 // Tries to open the collect box at bank with the specified Color at the specified Tile.
 // Returns true if collect box is open.
-function TRSWalker.OpenCollect(Tile: TPoint; Color: TCTS2Color): Boolean;
+function TRSWalker.OpenCollectBox(Tile: TPoint; Color: TCTS2Color): Boolean;
 begin
   if Self.SelectRSObjectOption(Tile, Color, ['Collect'],['Bank', 'booth', 'chest']) then
   begin

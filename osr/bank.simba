@@ -14,6 +14,7 @@ begin
     Result := Buttons[Button + 1];
 end;
 
+//SHOULD ADD TO SRL
 function TRSBank.GetTabBox(Tab: Int32): TBox;
 var
   Tabs: TBoxArray := Self.GetTabBoxes();
@@ -22,6 +23,7 @@ begin
     Result := Tabs[Tab];
 end;
 
+//SHOULD ADD TO SRL
 function TRSBank.CountTabs: Int32;
 var
   i: Integer;
@@ -37,6 +39,7 @@ begin
       Exit(i);
 end;
 
+//SHOULD ADD TO SRL
 function TRSBank.GetCurrentTab: Int32;
 var
   Tabs: TBoxArray;
@@ -57,6 +60,7 @@ begin
   end;
 end;
 
+//SHOULD ADD TO SRL
 function TRSBank.OpenTab(Tab: Int32): Boolean;
 var
   Box: TBox;
@@ -74,6 +78,243 @@ begin
     Result := WaitUntil((Tab = Self.GetCurrentTab), 50, 2000);
   end;
 end;
+
+//SHOULD ADD TO SRL
+function TRSBank._FindWintertodt: T2DPointArray;
+var
+  Finder: TRSObjectFinder;
+begin
+  Finder.ColorClusters += [
+    CTS2(3289384, 4, 0.51, 0.37),  //Dark hole
+    CTS2(13025214, 17, 0.13, 0.11), //Snow color
+    10
+  ];
+
+  Finder.ClusterDistance := 2;
+  Finder.Grow := 3;
+  Finder.Erode := 2;
+
+  Result := MainScreen.FindObject(Finder);
+  if Length(Result) = 0 then
+    Exit;
+  Result.SortByLongSide();
+  Result := Result[0].Cluster(3);
+  Result.SortByMiddle(Result.Merge.Mean());
+end;
+
+
+//VERY CUSTOM TEST CODE HERE -----------------------------------
+
+function TRSBank.GetSlotsArea: TBox;
+begin
+  Result := [Self.X1 + 57, Self.Y1 + 77, Self.Width - 48, Self.Height - 37];
+end;
+
+//Splits the slot area according to the tabs divider lines
+function TRSBank.GetTabAreas: TBoxArray;
+var
+  TPA: TPointArray;
+  Box, Tab, TabDivider: TBox;
+begin
+  Box := Self.GetSlotsArea;
+
+  for 0 to 9 do
+  begin
+    Tab.Y1 := Box.Y1;
+    Tab.X1 := Box.X1;
+    Tab.X2 := Box.X2;
+    if Box.Y1 > Box.Y2 then
+      Exit(Result);
+
+    if SRL.FindColors(TPA, CTS2(2832191, 1, 0.48, 1.53), Box) > 0 then
+    begin
+      TabDivider := TPA.Bounds;
+      Tab.Y2 := TabDivider.Y1 - 1;
+      Result += Tab;
+      Box.Y1 := TabDivider.Y1 + 7;
+    end
+    else
+    begin
+      Tab.Y2 := Box.Y2;
+      Result += Tab;
+      Exit(Result);
+    end;
+  end;
+end;
+
+(*
+BankScreen.GetSlotBoxesFromTab
+~~~~~~~~~~~~~~~~~~~
+
+Gets the slot boxes independently of the scroll position
+within a tab area (BankScreen.GetTabAreas).
+
+For the top most "Tab area" the slots are aligned with their amount text.
+(See SRL.GetItemAmount(Area: TBox)) to see what I mean).
+
+If the top most "Tab area" has several rows of items with 1 quantity,
+the function might break and fail to detect the top rows.
+I added failsafes for up to 3 rows, more than that won't work properly,
+though it's not likely in a real scenario IMO.
+
+*)
+function TRSBank.GetTabSlotBoxes(Tab: TBox): TBoxArray;
+const
+  TEXT_COLORS: TIntegerArray = [$00FFFF, $00FEFE, $FFFFFF, $80FF00]; // Million = white | Billion = green etc.
+var
+  i, Rows: Int32;
+  TPA, ColorTPA: TPointArray;
+  ATPA: T2DPointArray;
+  Box, NumberBoxes: TBox;
+  BoxArray: TBoxArray;
+begin
+
+    Box := Self.GetSlotsArea;
+    if (Tab.Y1 = Box.Y1) and (Tab.Y1 <= Tab.Y2) then // Check if Tab is the top most.
+    begin
+      for i := 0 to High(TEXT_COLORS) do
+      begin
+        if SRL.FindColors(TPA,  CTS0(TEXT_COLORS[i]), Tab) > 0 then  // Look for amount text and stores them in ColorTPA
+          ColorTPA += TPA;
+      end;
+
+      if ColorTPA <> [] then
+      begin
+        ATPA := ColorTPA.Cluster(1000, 5);              // Splits the ColorTPA into rows
+        BoxArray := ATPA.ToTBA;
+        NumberBoxes := BoxArray[0];                     // Gets the top most "row of amounts"
+        if (NumberBoxes.Y2 - NumberBoxes.Y1) < 7 then   // checks if the top most "row of amounts" if fully visible (7 pixels height).
+          Tab.Y1 := NumberBoxes.Y2 + 28                 // if it's not, ignores this row.
+
+        else if (NumberBoxes.Y1 - Tab.Y1) < 36 then     // Failsafe for 1 full row without any amount numbers.
+          Tab.Y1 := NumberBoxes.Y1
+
+        else if (NumberBoxes.Y1 - Tab.Y1) < 72 then     // Failsafe for 2 full rows without any amount numbers.
+          Tab.Y1 := NumberBoxes.Y1 - 36
+
+        else if (NumberBoxes.Y1 - Tab.Y1) < 108 then    // Failsafe for 3 full rows without any amount numbers.
+          Tab.Y1 := NumberBoxes.Y1 - 72;                // This is probably not the best way to do it, but works
+      end;
+    end;
+
+    Rows := (Tab.Y2 - Tab.Y1) div 35;
+    Result := Grid(8, Rows, 31, 31, [17, 5], [Tab.X1, Tab.Y1]);
+end;
+
+//Gets the slot boxes taking into account the tab divider lines.
+function TRSBank.GetSlotBoxes: TBoxArray; override;
+var
+  Box: TBox;
+begin
+  for Box in Self.GetTabAreas do
+    Result += Self.GetTabSlotBoxes(Box);
+end;
+
+
+//NORMAL CODE FROM HERE -----------------------------------------
+
+//Gets the Button up, Slider and Button down boxes.
+function TRSBank.GetScrollBoxes: TBoxArray;
+var
+  Box: TBox;
+begin
+  Box.X1 := Self.X2 - 21;
+  Box.X2 := Self.X2 - 6;
+
+  Box.Y1 := Self.Y1 + 77;
+  Box.Y2 := Box.Y1 + 15;   //up arrow
+  Result += Box;
+
+  Box.Y1 += 16;
+  Box.Y2 := Self.Y2 - 60;  //slider
+  Result += Box;
+
+  Box.Y2 := Self.Y2 - 44;
+  Box.Y1 := Box.Y2 - 15;  //down arrow
+  Result += Box;
+end;
+
+function TRSBank.GetScrollBox: TBox;
+begin
+  Result := Self.GetScrollBoxes[1];
+end;
+
+// Get scroll slider box
+function TRSBank.GetScrollSlider: TBox;
+var
+  ScrollBox: TBox := Self.GetScrollBox;
+  TPA: TPointArray;
+begin
+  ScrollBox.X1 += 1;
+  ScrollBox.X2 -= 1;
+
+  SRL.FindColors(TPA, CTS0(65536), ScrollBox);
+  Result := TPA.Bounds;
+end;
+
+// Get TRSBank slider position
+function TRSBank.GetScrollPosition: Int32;
+begin
+  Result := Self.GetScrollSlider.Y1 - 99;
+end;
+
+procedure TRSBank.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  // I have this next one off and in a different color because
+  // it's trippy as hell to have everything on.
+
+  //Bitmap.DrawBoxes(Self.GetTabAreas(), False, $FFFFFF);
+  Bitmap.DrawBoxes(Self.GetScrollBoxes, False, $00FFFF);
+  Bitmap.DrawBox(Self.GetScrollSlider, False, $FFFFFF);
+end;
+
+
+
+// Checks if the bank is scrollable up (false) or down (true)
+function TRSBank.CanScroll(UpToDown: Boolean): Boolean;
+begin
+  if UpToDown then
+    Result := (Self.GetScrollSlider.Y2 - Self.GetScrollBox.Y2) < 0
+  else
+    Result := Self.GetScrollPosition > 0;
+end;
+
+// Checks if the bank is scrollable at all.
+// Should only return false if you are in a bank tab with few items.
+function TRSBank.CanScroll: Boolean; overload;
+begin
+  Result := Self.CanScroll(True) or Self.CanScroll(False);
+end;
+
+//Scrolls up or down the bank
+function TRSBank.Scroll(UpToDown: Boolean = True; MinSteps: Int32 = 2; MaxSteps: Int32 = 5): Boolean;
+var
+  ScrollPosition: Int32;
+begin
+  if not Self.CanScroll(UpToDown) then
+    Exit(True);
+  ScrollPosition := Self.GetScrollPosition;
+
+  Mouse.Scroll(Self.GetSlotBoxes().Merge(), Random(MinSteps, MaxSteps), UpToDown);
+
+  Result := ScrollPosition <> Self.GetScrollPosition();
+end;
+
+//Scrolls to top or bottom of the bank
+function TRSBank.ScrollToEnd(UpToDown: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  while Self.CanScroll(UpToDown) do
+    Mouse.Scroll(Self.GetSlotBoxes().Merge(), Random(1, 3), UpToDown);
+  Result := True;
+end;
+
+
+
 
 
 function TRSBank.HasItem(Item: TRSItem): Boolean;
@@ -95,44 +336,17 @@ begin
 end;
 
 
-function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.SimplifyItemName(Item: TRSItem): String;
 var
-  ItemCount: Int32;
+  ItemStr: String := ToStr(Item);
+  MaxLength, MinLength: Int32;
 begin
-  if not Bank.IsOpen or not Bank.OpenTab(Tab) then
-    Exit;
-  if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
-    Exit;
-  if not Self.HasItem(Item) then
-    Exit;
+  ItemStr := ItemStr.Before('(');
+  ItemStr := ItemStr.Lower;
+  MaxLength := ItemStr.Len;
+  MinLength := MaxLength - Round(MaxLength/3);
 
-  ItemCount := Bank.CountItemStack(Item.Item);
-  if Bank.WithdrawItem(Item, UseQuantityButtons) then
-    Result := WaitUntil((Bank.CountItemStack(Item.Item) <> ItemCount), 50, 2000);
-end;
-
-function TRSBank.DepositItem(Tab: Int32; Item: TRSBankDepositItem; UseQuantityButtons: Boolean): Boolean; overload;
-var
-  IsStackable: Boolean;
-  ItemCount: Int32;
-begin
-  if not Bank.IsOpen or not Bank.OpenTab(Tab) then
-    Exit;
-
-  IsStackable := Inventory.ItemIsStackable(Item.Item);
-
-  if IsStackable then
-    ItemCount := Inventory.CountItemStack(Item.Item)
-  else
-    ItemCount := Inventory.CountItem(Item.Item);
-
-  if Bank.DepositItem(Item, UseQuantityButtons) then
-  begin
-    if IsStackable then
-      Result := WaitUntil((Inventory.CountItemStack(Item.Item) <> ItemCount), 50, 2000)
-    else
-      Result := WaitUntil((Inventory.CountItem(Item.Item) <> ItemCount), 50, 2000);
-  end;
+  Result := Copy(ItemStr, 0, Random(MinLength, MaxLength));
 end;
 
 function TRSBank.FindItemTab(Item: TRSItem): Int32;
@@ -140,18 +354,18 @@ var
   Box, SearchBox: TBox;
   TPA: TPointArray;
   TabsText: T2DPointArray;
-  Bitmap: TMufasaBitmap;
 begin
-  if not Self.Search(ToStr(Item)) or not Self.FindItem(Item, Box) then
+  if not Self.Search(Self.SimplifyItemName(Item)) or not Self.FindItem(Item, Box) then
     Exit(-1);
 
   SearchBox := [
-    Self.Bounds.X1 + 40,
-    Self.Bounds.Y1,
-    SearchBox.X1 + 50,
+    Self.X1 + 40,
+    Self.Y1,
+    Self.X1 + 90,
     Box.Y1
   ];
 
+  Writeln(SearchBox);
   if SRL.FindColors(TPA, CTS0(10672356, 0), SearchBox) > 0 then
     TabsText += TPA;
   if SRL.FindColors(TPA, CTS0(16777215, 0), SearchBox) > 0 then
@@ -168,9 +382,61 @@ begin
 
   TPA := TPA.Cluster(1)[0];
 
-  Result := OCR.RecognizeNumber(TPA.Bounds, [10672356], RS_FONT_PLAIN_11)
+  Result := OCR.RecognizeNumber(TPA.Bounds, [10672356], RS_FONT_PLAIN_11);
   if Result = 0 then
     Result := OCR.RecognizeNumber(TPA.Bounds, [16777215], RS_FONT_PLAIN_11)
+end;
+
+
+function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
+var
+  ItemCount: Int32;
+begin
+  if not Bank.IsOpen then
+    Exit;
+  if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
+    Exit;
+
+  if not Self.HasItem(Item) then
+  begin
+    if Tab = -1 then
+    begin
+      if (Tab := FindItemTab(Item.Item)) = -1 then
+        Exit;
+    end;
+
+    if not Bank.OpenTab(Tab) or not Bank.HasItem(Item) then
+      Exit;
+  end;
+
+  ItemCount := Bank.CountItemStack(Item.Item);
+  if Bank.WithdrawItem(Item, UseQuantityButtons) then
+    Result := WaitUntil((Bank.CountItemStack(Item.Item) <> ItemCount), 50, 2000);
+end;
+
+function TRSBank.DepositItem(Tab: Int32; Item: TRSBankDepositItem; UseQuantityButtons: Boolean): Boolean; overload;
+var
+  IsStackable: Boolean;
+  ItemCount: Int32;
+begin
+  if not Bank.IsOpen then
+    Exit;
+
+  if IsStackable := Inventory.ItemIsStackable(Item.Item) then
+    ItemCount := Inventory.CountItemStack(Item.Item)
+  else
+    ItemCount := Inventory.CountItem(Item.Item);
+
+  if Tab > -1 then
+    Bank.OpenTab(Tab);
+
+  if Bank.DepositItem(Item, UseQuantityButtons) then
+  begin
+    if IsStackable then
+      Result := WaitUntil((Inventory.CountItemStack(Item.Item) <> ItemCount), 50, 2000)
+    else
+      Result := WaitUntil((Inventory.CountItem(Item.Item) <> ItemCount), 50, 2000);
+  end;
 end;
 
 
@@ -188,10 +454,7 @@ end;
 
 
 
-
-
-
-
+//WALKER BASED INTERACTION WITH BANK-----------------------------------
 
 // Tries to open a bank with the specified Color at the specified Tile.
 // Returns true if bank or bankpin is open.

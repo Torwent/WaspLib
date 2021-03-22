@@ -4,17 +4,6 @@
 {$ENDIF}
 
 //SHOULD ADD TO SRL
-function TRSBank.GetButton(Button: ERSBankButton): TRSButton; override;
-var
-  Buttons: TRSButtonArray := Self.GetButtons();
-begin
-  if (Length(Buttons) = Length(ERSBankButton)) then
-    Result := Buttons[Button]
-  else if (Length(Buttons) = (Length(ERSBankButton) - 1)) then
-    Result := Buttons[Button + 1];
-end;
-
-//SHOULD ADD TO SRL
 function TRSBank.GetTabBox(Tab: Int32): TBox;
 var
   Tabs: TBoxArray := Self.GetTabBoxes();
@@ -348,7 +337,18 @@ begin
   Result := Copy(ItemStr, 0, Random(MinLength, MaxLength));
 end;
 
-function TRSBank.FindItemTab(Item: TRSItem): Int32;
+(*
+ Possibly too custom to belong in SRL?
+
+ Searches for an item "simplified name" and if found
+ returns the tab it's on.
+
+ Assuming someone as all the items a script needs in one tab
+ this can be used to find it and it can be stored in a variable.
+
+ SearchBox is a TBox of where the Tab text shows up.
+*)
+function TRSBank.FindItemTab(Item: TRSItem; OpenTab: Boolean = True): Int32;
 var
   Box, SearchBox: TBox;
   TPA: TPointArray;
@@ -364,14 +364,17 @@ begin
     Box.Y1
   ];
 
-  Writeln(SearchBox);
   if SRL.FindColors(TPA, CTS0(10672356, 0), SearchBox) > 0 then
     TabsText += TPA;
   if SRL.FindColors(TPA, CTS0(16777215, 0), SearchBox) > 0 then
     TabsText += TPA;
 
-  if TabsText = [] then
+  if TabsText = [] then //if we can see the item at this point
+  begin                 //and there's no tab text, it's in tab0
+    if OpenTab then
+      Self.OpenTab(0);
     Exit(0);
+  end;
 
   TPA := TabsText.Merge();
   TPA.SortByY(False);
@@ -384,6 +387,9 @@ begin
   Result := OCR.RecognizeNumber(TPA.Bounds, [10672356], RS_FONT_PLAIN_11);
   if Result = 0 then
     Result := OCR.RecognizeNumber(TPA.Bounds, [16777215], RS_FONT_PLAIN_11)
+
+  if (Result > 0) and OpenTab then
+    Self.OpenTab(Result);
 end;
 
 

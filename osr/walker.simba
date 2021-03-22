@@ -3,8 +3,13 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+type
+  TRSWalkerOffSet = type TPoint;
 
-// This is just so I can load maps from my own maps folder
+var
+  WalkerOffset: TRSWalkerOffSet;
+
+// overriden just so I can load maps from WaspLib maps folder
 function TRSWalker.FindMap(Map: String): String; static; override;
 var
   Mask: String = '.png;.bmp;';
@@ -22,6 +27,89 @@ begin
     Result := Files[0];
 end;
 
+// overloaded to provide the ability to offset the map
+procedure TRSWalker.Setup(Map: String; Offset: TPoint; Manage: Boolean = True; Scaling: Int32 = 9); overload;
+var
+  Path: String;
+  Bitmap, Mask, Sample: TMufasaBitmap;
+  X, Y: Int32;
+begin
+  Self.Name := 'Walker';
+
+  Path := Self.FindMap(Map);
+  if (Path = '') then
+    Self.Fatal('Unable to find map: ' + Map);
+
+  Self.Scaling := Scaling;
+  Self.ClickRandomness := 4;
+
+  case Map.Lower() of
+    'world': Self.WebGraph := WorldWeb;
+    'zeah':  Self.WebGraph := ZeahWeb;
+  end;
+
+  Self.World := Self.LoadMap(Path);
+  if Manage then
+    AddOnTerminate(@Self.Free);
+
+  // Fixed or resizable, doesn't matter.
+  Sample := Self.World.Downsample(Self.Scaling);
+  Bitmap := Self.GetCleanMinimap();
+  Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
+
+  for X := 0 to Mask.getWidth() - 1 do
+    for Y := 0 to Mask.getHeight() - 1 do
+      if (Mask.GetPixel(X, Y) <> 0) then
+        Mask.SetPixel(X, Y, $FFFFFF);
+
+  Self.Cache := TMatchTemplateRGBCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
+
+  WalkerOffset := Offset;
+
+  Sample.Free();
+  Bitmap.Free();
+  Mask.Free();
+end;
+
+function TRSWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
+const
+  TEMPL_SIZE = 25;
+  SLICE_SIZE = TEMPL_SIZE + 45;
+  SCALING = 2;
+var
+  Slice, SliceScaled, TemplScaled: TMufasaBitmap;
+  Matrix: TSingleMatrix;
+  Area: TBox;
+begin
+  Area := [
+    Max(0, Position.X - SLICE_SIZE),
+    Max(0, Position.Y - SLICE_SIZE),
+    Min(World.GetWidth()  - 1, Position.X + SLICE_SIZE),
+    Min(World.GetHeight() - 1, Position.Y + SLICE_SIZE)
+  ];
+
+  Slice := World.Copy(Area.X1, Area.Y1, Area.X2, Area.Y2);
+  SliceScaled := Slice.Downsample(SCALING);
+
+  TemplScaled := Templ.Downsample(SCALING);
+  with TemplScaled.GetCenter() do
+    TemplScaled.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
+
+  Matrix := SliceScaled.MatchTemplate(TemplScaled, TM_CCOEFF_NORMED);
+
+  with Matrix.ArgMax() do
+  begin
+    Match := Matrix[Y, X];
+
+    Result.X := Area.X1 + (X + TEMPL_SIZE) * SCALING;
+    Result.Y := Area.Y1 + (Y + TEMPL_SIZE) * SCALING;
+    Result := Result.Offset(WalkerOffset);
+  end;
+
+  TemplScaled.Free();
+  SliceScaled.Free();
+  Slice.Free();
+end;
 
 function TRSWalker.AtTile(Tile: TPoint; Distance: Int32 = 15): Boolean;
 begin

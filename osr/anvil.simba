@@ -16,11 +16,11 @@ type
   );
 
   ERSAnvilButton = (
-    CLOSE_ANVIL,
     QUANTITY_ONE,
     QUANTITY_FIVE,
     QUANTITY_TEN,
     QUANTITY_X,
+    QUANTITY_UNSET,
     QUANTITY_ALL,
     QUANTITY_CUSTOM
   );
@@ -33,80 +33,75 @@ type
 
 function TRSAnvil.GetButtons: TRSButtonArray;
 begin
-  Result := FindButtons([[37, 37], [21, 21]]);
+  Result := FindButtons([[37, 37]]);
 end;
+
+
 
 function TRSAnvil.GetButton(Button: ERSAnvilButton): TRSButton;
 var
   Buttons: TRSButtonArray := Self.GetButtons();
+  B: TRSButton;
+  TextArray: TStringArray := ['1', '5', '10', 'X', '?', 'All'];
+  FoundString: String;
 begin
-  if not Self.IsOpen() then
-    Exit;
-
-  case Button of
-    ERSAnvilButton.CLOSE_ANVIL: Result := Buttons[0];
-
-    ERSAnvilButton.QUANTITY_ONE:
-    begin
-      if Length(Buttons) >= 3 then
-      Result := Buttons[1];
-    end;
-
-    ERSAnvilButton.QUANTITY_FIVE:
-    begin
-      if Length(Buttons) >= 5 then Result := Buttons[2];
-    end;
-
-    ERSAnvilButton.QUANTITY_TEN:
-    begin
-      if Length(Buttons) >= 6 then Result := Buttons[3];
-    end;
-
-    ERSAnvilButton.QUANTITY_X:
-    begin
-      if Length(Buttons) >= 4 then Result := Buttons[High(Buttons)-1];
-    end;
-
-    ERSAnvilButton.QUANTITY_ALL:
-    begin
-      if Length(Buttons) >= 7 then
-        Result := Buttons[High(Buttons)-1]
-      else Result := Buttons[High(Buttons)];
-    end;
+  if Button <> ERSAnvilButton.QUANTITY_CUSTOM then
+  begin
+    for B in Buttons do
+      if B.FindText(TextArray[Ord(Button)], RS_FONT_PLAIN_11) then
+        Exit(B);
+  end
+  else
+  begin
+    B := Buttons[High(Buttons)];
+    if not B.FindText([], RS_FONT_PLAIN_11, FoundString) then
+      Exit(B);
   end;
-
-  if Length(Buttons) = Length(ERSAnvilButton) then
-    Result := Buttons[Button];
 end;
 
+(*
+  TRSAnvil.GetSlots
+
+  I though of doing something similar to Bank.FindItemBoundaries but I think
+  this is better since I don't get duplicate boxes overlapping.
+
+  The only static coordinates in the anvil menu are the Item name and bar amount.
+  This uses the item name to figure out the slots boxes.
+
+  Te actual slots width is 79 but the last column can overlap the previous one
+  if it exists so I use a width of 50 instead to not overcomplicate things.
+  This could be changed to every column having width of 70 except the last 2 but
+  this as is works in every scenario without overcomplicate things.
+*)
 function TRSAnvil.GetSlots: TBoxArray;
 var
   TPA: TPointArray;
   ATPA: T2DPointArray;
-  Box: TBox;
-  I: Int32;
+  Area: TBox;
+  i: Int32;
 begin
-  Box := Self.Bounds();
-  Box.Y1 += 30;
-  Box.X2 := Box.X2 - 90; //Excludes the buttons
+  Area := Self.Bounds();
+  Area.Y1 += 30;           //Excludes the title bar
+  Area.X2 := Area.X2 - 50; //Excludes the quantity buttons
 
-  if SRL.FindColors(TPA, CTS0(65280), Box) then
+
+  if SRL.FindColors(TPA, CTS0(65280), Area) then
     ATPA += TPA;
-  if SRL.FindColors(TPA, CTS0(2070783), Box) then
+  if SRL.FindColors(TPA, CTS0(2070783), Area) then
     ATPA += TPA;
 
-  TPA := ATPA.Merge();
+  TPA := ATPA.Merge;
 
   if TPA = [] then
     Exit;
 
   Result := TPA.Cluster(10).ToTBA();
-  for I := 0 to High(Result) do
+  for i := 0 to High(Result) do
   begin
-    Result[I].X1 -= 1;
-    Result[I].Y1 -= 44;
-    Result[I].X2 := Result[I].X1 + 50; // the actual slot width is 79 but they can be on top of each other on the last column
-    Result[I].Y2 += 3;
+    Result[i].X1 -= 1;
+    Result[i].Y1 -= 44;
+    Result[i].X2 := Result[i].X1 + 50;
+    Result[i].Y2 += 3;
   end;
 
   Result.SortByXY;
@@ -116,12 +111,59 @@ function TRSAnvil.GetSlot(Slot: Int32): TBox;
 var
   Slots: TBoxArray := Self.GetSlots();
 begin
-  if not Self.IsOpen() then
-    Exit;
-
   if Slot <= Length(Slots) then
     Result := Slots[Slot];
 end;
+
+
+
+function TRSAnvil.IsOpen: Boolean; overload;
+begin
+  Result := Self.IsTitle('you like to make');
+end;
+
+function TRSAnvil.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
+begin
+  if (Interval = -1) then
+    Interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen(), Interval, WaitTime);
+end;
+
+
+(*
+Anvil.Close
+~~~~~~~~~~
+.. pascal:: function TRSAnvil.Close(PressEscape: Boolean = False): Boolean;
+
+Closes the anvil, Depending on `PressEscape` the function will either click the button
+or press backspace.
+
+Example
+-------
+
+ WriteLn Anvil.Close();
+*)
+function TRSAnvil.Close(PressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+procedure TRSAnvil.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawButtons(Self.GetButtons());
+  Bitmap.DrawBoxes(Self.GetSlots, False, $00FFFF);
+end;
+
+
 
 (*
 Anvil.Setup
@@ -132,11 +174,9 @@ Initializes Anvil variables.
 
 .. note:: This is automatically called on the **Anvil** variable.
 *)
-
-procedure TRSAnvil.Setup; overload;
+procedure TRSAnvil.Setup; override;
 begin
-  if Self <> [] then
-    Exit;
+  inherited;
 
   Self.Name := 'Anvil';
 
@@ -173,42 +213,6 @@ begin
   end;
 end;
 
-
-function TRSAnvil.IsOpen: Boolean; overload;
-begin
-  Result := Self.IsTitle('you like to make');
-end;
-
-function TRSAnvil.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
-begin
-  if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 1500);
-
-  Result := WaitUntil(Self.IsOpen(), Interval, WaitTime);
-end;
-
-procedure TRSAnvil.Draw(Bitmap: TMufasaBitmap); override;
-begin
-  if not Self.IsOpen then
-    Exit;
-
-  inherited;
-
-  Bitmap.DrawButtons(Self.GetButtons());
-  Bitmap.DrawBoxes(Self.GetSlots, False, $00FFFF);
-end;
-
-
-function TRSAnvil.MouseSlot(Slot: Int32): Boolean;
-begin
-  if not Self.IsOpen then
-    Exit;
-
-  Mouse.Move(Self.GetSlot(Slot));
-
-  Result := MainScreen.IsUpText('Smith');
-end;
-
 function TRSAnvil.ClickSlot(Slot: Int32; ForceClick: Boolean = False): Boolean;
 const
   AVAILABLE = $FFFFFF;
@@ -217,26 +221,22 @@ begin
     Exit;
 
   if ForceClick or (CountColor(AVAILABLE, Self.GetSlot(Slot)) > 0) then
+  begin
     Mouse.Click(Self.GetSlot(Slot), MOUSE_LEFT);
-
-  Result := WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+    Result := WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+  end;
 end;
 
 
 function TRSAnvil.SmithSlot(Slot: Int32; Quantity: ERSAnvilButton): Boolean;
 begin
-  if not Self.IsOpen or not Self.GetButton(Quantity).Enable then
-    Exit;
-  Result := Self.ClickSlot(Slot);
+  Result := Self.GetButton(Quantity).Enable and Self.ClickSlot(Slot);
 end;
 
 function TRSAnvil.FindItem(Item: TRSItem; out Slot: Int32): Boolean;
 var
   Slots: TIntegerArray;
 begin
-  if not Self.IsOpen then
-    Exit;
-
   Slots := ItemFinder.Find(Item, Self.GetSlots(), 1);
 
   if Slots = [] then
@@ -256,38 +256,6 @@ begin
 
   Result := Self.SmithSlot(Slot, Quantity)
 end;
-
-
-
-
-
- (*
-Anvil.Close
-~~~~~~~~~~~~~~~~
-.. pascal:: function TRSAnvil.Close(UseKeyboard: Boolean = False): Boolean;
-
-Closes the smith screen, Depending on `UseKeyboard` the function will either click the button
-or press backspace.
-
-Example
--------
-
- WriteLn Anvil.Close();
-*)
-function TRSAnvil.Close(UseKeyboard: Boolean = False): Boolean;
-begin
-  if not Self.IsOpen() then
-    Exit(True);
-
-  if UseKeyboard then
-    Keyboard.PressKey(VK_ESCAPE)
-  else
-    Self.GetButton(ERSAnvilButton.CLOSE_ANVIL).Click();
-
-  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
-end;
-
-
 
 
 function TRSAnvil._FindAnvil(Color: TCTS2Color): T2DPointArray;

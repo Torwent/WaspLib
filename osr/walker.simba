@@ -111,6 +111,7 @@ begin
   Slice.Free();
 end;
 
+// Checks if we are within Distance of Tile
 function TRSWalker.AtTile(Tile: TPoint; Distance: Int32 = 15): Boolean;
 begin
   Result := Self.GetMyPos.DistanceTo(Tile) <= Distance;
@@ -143,50 +144,53 @@ begin
 end;
 
 
-// Compares Tiles with the Player position and returns the closest one.
-// If the Distance is the same for more than one, a random one will be returned.
+// Returns the closest tile to the player
+// If the Distance is the same for more than one, a random one will be returned
 function TRSWalker.GetClosestTile(Tiles: TPointArray): TPoint;
 var
-  i: Int32;
+  Tile: TPoint;
   ClosestDistances: TIntegerArray;
   Distances: TExtendedArray;
 begin
   if Tiles = [] then
-    Exit;
+    Exit
+  else if Length(Tiles) = 1 then
+    Exit(Tiles[0]);
 
-  for i := 0 to High(Tiles) do
-    Distances += Self.GetMyPos.DistanceTo(Tiles[i]);
+  for Tile in Tiles do
+    Distances += Self.GetMyPos.DistanceTo(Tile);
 
    ClosestDistances := Distances.FindAll(Distances.Min());
 
   Result := Tiles[ClosestDistances[Random(0, High(ClosestDistances))]];
 end;
 
-// Same as above but with ATPAs. Finds the closes distance to the closest tile of each array
-// and returns the closest array. If the Distance is the same for more than one, will return a random one.
-function TRSWalker.GetClosestTile(TilesArray: T2DPointArray): TPointArray; overload;
+function TRSWalker.GetClosestTile(TilesArray: T2DPointArray): TPoint; overload;
 var
-  Idx, i: Int32;
-  ClosestDistPos: TIntegerArray;
-  Distances, ClosestDistances: TExtendedArray;
+  Tiles, ClosesTiles: TPointArray;
 begin
   if TilesArray = [] then
     Exit;
 
-  for Idx := 0 to High(TilesArray) do
-  begin
-    for i := 0 to High(TilesArray[Idx]) do
-      Distances += Self.GetMyPos.DistanceTo(TilesArray[Idx][i]);
-    ClosestDistances += Distances.Min();
-    Distances := [];
-  end;
+  for Tiles in TilesArray do
+    ClosesTiles += Self.GetClosestTile(Tiles);
 
-  ClosestDistPos := ClosestDistances.FindAll(ClosestDistances.Min());
-
-  Result := TilesArray[ClosestDistPos[Random(0, High(ClosestDistPos))]];
+  Result := Self.GetClosestTile(ClosesTiles);
 end;
 
+// Returns all the an array of tiles that have the closest distance to the player
+function TRSWalker.GetClosestTileCluster(TilesArray: T2DPointArray): TPointArray;
+var
+  Tiles: TPointArray;
+begin
+  if TilesArray = [] then
+    Exit;
 
+  for Tiles in TilesArray do
+    Result += Self.GetClosestTile(Tiles);
+end;
+
+// Checks if the tile is currently visible
 function TRSWalker.TileVisible(Tile: TPoint): Boolean; overload;
 begin
   Result := InterfaceArea.Bounds.Contains(Self.GetTileMS(Tile));
@@ -199,7 +203,7 @@ begin
   Result := Self.TileVisible(Tile);
 end;
 
-
+// Checks if we can make the tile visible by zooming out
 function TRSWalker.TileWithinZoom(Tile: TPoint): Boolean;
 begin
   Result := Self.GetMyPos.DistanceTo(Tile) <= 110;
@@ -212,7 +216,7 @@ begin
   Result := Self.TileWithinZoom(Tile);
 end;
 
-
+// Attempts to rotate the screen in order to make Tile visible.
 function TRSWalker.FaceTile(Tile: TPoint): Boolean;
 begin
   if Self.TileVisible(Tile) then
@@ -230,14 +234,15 @@ begin
   Result := Self.FaceTile(Tile);
 end;
 
-
-function TRSWalker.ZoomToTile(Tile: TPoint): Boolean; //Need improvements, this is super slow
+// Attempts to zoom out enough so Tile is visible.
+// Need improvements, this is super slow.
+function TRSWalker.ZoomToTile(Tile: TPoint): Boolean;
 var
   CurrentZoom, i, NeededZoomMin, NeededZoomMax: Int32;
 begin
-  if Self.TileVisible(Tile) then
+  if Self.TileVisible(Tile) then //InterfaceArea.Bounds.Contains(Self.GetTileMS(Tile));
     Exit(True)
-  else if not Self.TileWithinZoom(Tile) then
+  else if not Self.TileWithinZoom(Tile) then   //Self.GetMyPos.DistanceTo(Tile) <= 110
     Exit(False);
 
   CurrentZoom := MM2MS.ZoomLevel;

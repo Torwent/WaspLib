@@ -71,6 +71,73 @@ begin
   Mask.Free();
 end;
 
+procedure TRSWalker.DebugPosition; override;
+var
+  X1, Y1, X2, Y2, X, Y: Int32;
+  P: TPoint;
+  Bitmap, WorldBitmap, MinimapBitmap: TMufasaBitmap;
+  Time: Double;
+  Position: TPoint;
+  Lines: TStringArray;
+begin
+  Freeze();
+
+  Time := PerformanceTimer();
+  Position := Self.GetMyPos();
+  Time := PerformanceTimer() - Time;
+
+  X1 := Max(0, (Position.X - WalkerOffset.X) - 200);
+  Y1 := Max(0, (Position.Y - WalkerOffset.Y) - 200);
+  X2 := Min(X1 + 400, Self.World.GetWidth()  - 1);
+  Y2 := Min(Y1 + 400, Self.World.GetHeight() - 1);
+
+  X := (Position.X - WalkerOffset.X) - X1;
+  Y := (Position.Y - WalkerOffset.Y) - Y1;
+
+  WorldBitmap := Self.World.Copy(X1, Y1, X2, Y2);
+  WorldBitmap.LineTo(Point(0, Y), Point(X2 - X1, Y), $00FF00);
+  WorldBitmap.LineTo(Point(X, 0), Point(X, Y2 - Y1), $00FF00);
+  WorldBitmap.DrawBox(Box(X - 2, Y - 2, X + 2, Y + 2), False, $FFFFFF);
+
+  MinimapBitmap := ScaleMinimap(GetCleanMinimap(), 1);
+
+  P := MinimapBitmap.GetCenter();
+  if RSClient.Mode = ERSClientMode.FIXED then
+    P := P.Offset(0, 8).Rotate(-Minimap.GetCompassAngle(False), P);
+
+  MinimapBitmap.DrawBox(P.X - 1, P.Y - 1, P.X + 1, P.Y + 1, True, $FFFFFF);
+  MinimapBitmap.SetTransparentColor(0);
+
+  Bitmap.Init();
+  Bitmap.SetSize(400 + MinimapBitmap.GetWidth() + 30, 420);
+  Bitmap.DrawClear($403027);
+
+  Lines := [
+    '('      + ToStr(Position.X, ', ', Position.Y) + ')',
+    'Acc: '  + ToStr(Round(Self.Similarity, 3)),
+    'Time: ' + ToStr(Round(Time)) + ' ms'
+  ];
+
+  Bitmap.SetFontName('Consolas');
+  Bitmap.SetFontSize(18);
+  Bitmap.SetFontAntialiasing(True);
+
+  Bitmap.DrawText(Lines[0], [420, 20 + MinimapBitmap.GetHeight()], $FFFFFF);
+  Bitmap.DrawText(Lines[1] + LineEnding + Lines[2], [420, 370], $FFFFFF);
+
+  WorldBitmap.DrawTransparent(10, 10, Bitmap);
+  WorldBitmap.Free();
+
+  MinimapBitmap.DrawTransparent(420, 10, Bitmap);
+  MinimapBitmap.Free();
+
+  Bitmap.Debug();
+  Bitmap.Free();
+
+  UnFreeze();
+end;
+
+
 function TRSWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
 const
   TEMPL_SIZE = 25;

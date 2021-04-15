@@ -3,37 +3,34 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-{$I walker/worldobject.simba}
-{$I walker/zeahobject.simba}
-
 type
   TRSObject = record
     Map: TRSWalker;
-    WorldLocations: TPointArray;  //tiles on the world map
+    Tiles: TPointArray;
     Height: Int32;
-    Finder: TRSObjectFinder;     //must have color
+    UpText: TStringArray;
+    Finder: TRSObjectFinder;
   end;
 
-procedure TRSObject.SetupFinder();
-begin
-  Self.Finder.ClusterDistance := 3;
-  Self.Finder.Grow := 4;
-  Self.Finder.Erode := 2;
-end;
+  TRSObjectArray = array of TRSObject;
+
+{$I walker/worldobject.simba}
+{$I walker/zeahobject.simba}
 
 // Searches for an object with ObjectFinder in the MainScreen with the
 // help of RSWalker. Good when objects don't move and precision is needed.
 function TRSObject.Find(Expand: Int32 = 0): T2DPointArray;
 var
-  Tile, Me: TPoint;
+  Me: TPoint;
+  Tile: TPoint;
+  TileArray: TPointArray;
   Rect: TRectangle;
-  Locations: TPointArray;
 begin
   Me := Self.Map.GetMyPos();
-  Locations := Copy(Self.WorldLocations);
-  Locations.Sorted(Me);
+  TileArray := Copy(Self.Tiles);
+  TileArray.Sorted(Me);
 
-  for Tile in Locations do
+  for Tile in TileArray do
   begin
     Rect := Self.Map.GetTileMSEx(Me, Tile, Height).Expand(Expand);
     if InterfaceArea.Bounds.Contains(Rect.Bounds) then
@@ -45,15 +42,40 @@ begin
 end;
 
 
+function TRSObjectArray.GetClosestObject: TRSObject;
+var
+  Map: TRSWalker;
+  i: Int32;
+  ClosestTiles: TPointArray;
+  RSObject: TRSObject;
+begin
+  if Self = [] then
+    Exit;
+
+  for i := 0 to High(Self) do
+  begin
+    if Map = [] then
+      Map := RSObject.Map;
+
+    if Map <> RSObject.Map then
+      Exit;
+
+    ClosestTiles += Map.GetClosestTile(Self[i].Tiles);
+  end;
+
+  Result := Self[ClosestTiles.Find(Map.GetClosestTile(ClosestTiles))];
+end;
+
+
 // HoverHelper function used by all non moving object hovering functions.
-function TRSWalker.HoverHelper(RSObject: TRSObject; UpText: TStringArray; Attempts: Int32): Boolean;
+function TRSWalker.HoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean;
 var
   ATPA: T2DPointArray;
   Points: TPointArray;
 begin
   for 0 to Attempts do
   begin
-    if MainScreen.IsUpText(UpText) then
+    if MainScreen.IsUpText(RSObject.UpText) then
       Exit(True);
 
     if (ATPA := RSObject.Find) <> [] then
@@ -62,7 +84,7 @@ begin
       Mouse.Move(Points.MinAreaRect);
     end;
 
-    if MainScreen.IsUpText(UpText) then
+    if MainScreen.IsUpText(RSObject.UpText) then
       Exit(True);
 
     Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
@@ -70,7 +92,7 @@ begin
 end;
 
 // WalkHoverHelper function used by all moving object hovering functions.
-function TRSWalker.WalkHoverHelper(RSObject: TRSObject; Tile: TPoint; UpText: TStringArray; Attempts: Int32): Boolean;
+function TRSWalker.WalkHoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -78,7 +100,10 @@ var
 begin
   for Attempt := 0 to Attempts do
   begin
-    if MainScreen.IsUpText(UpText) then
+    if InterfaceArea.HasInterface() then
+      Exit(False);
+
+    if MainScreen.IsUpText(RSObject.UpText) then
       Exit(True);
 
     if (ATPA := RSObject.Find) <> [] then
@@ -87,10 +112,10 @@ begin
       Mouse.Move(Points.MinAreaRect);
     end;
 
-    if MainScreen.IsUpText(UpText) then
+    if MainScreen.IsUpText(RSObject.UpText) then
       Exit(True)
-    else if not Self.AtTile(Tile, 50) or ((Attempt = (Attempts - 1)) and not Self.AtTile(Tile, 30)) then
-      Self.WebWalk(Tile, 10, 0.2)
+    else if not Self.AtTile(RSObject.Tiles, 50) or ((Attempt = (Attempts - 1)) and not Self.AtTile(RSObject.Tiles, 30)) then
+      Self.WebWalk(Self.GetClosestTile(RSObject.Tiles), 10, 0.2)
     else
       Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
   end;
@@ -133,306 +158,67 @@ end;
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.HoverRSObject(Tile: TPoint; Color: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
+function TRSWalker.HoverRSObject(RSObject: TRSObject; Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(UpText) then
+    if ChooseOption.HasOption(RSObject.UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Self.MakeTileVisible(Tile) then
+  if not Self.MakeTileVisible(RSObject.Tiles) then
     Exit(False);
 
-  Finder.Colors += Color;
-  RSObject := [Self, [Tile], 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.HoverHelper(RSObject, UpText, Attempts);
+  Result := Self.HoverHelper(RSObject, Attempts);
 end;
-
-// Searches for an object with ObjectFinder in several tiles and hovers it if found.
-function TRSWalker.HoverRSObject(Tiles: TPointArray; Color: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
-
-  if not Self.MakeTileVisible(Tiles) then
-    Exit(False);
-
-  Finder.Colors += Color;
-  RSObject := [Self, Tiles, 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.HoverHelper(RSObject, UpText, Attempts);
-end;
-
-// Searches for an object with 2 colors with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.HoverRSObject(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
-
-  if not Self.MakeTileVisible(Tile) then
-    Exit(False);
-
-  Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  RSObject := [Self, [Tile], 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.HoverHelper(RSObject, UpText, Attempts);
-end;
-
-// Searches for an object with 2 colors with ObjectFinder in several tiles and hovers it if found.
-function TRSWalker.HoverRSObject(Tiles: TPointArray; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
-
-  if not Self.MakeTileVisible(Tiles) then
-    Exit(False);
-
-  Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  RSObject := [Self, Tiles, 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.HoverHelper(RSObject, UpText, Attempts);
-end;
-
-
 
 // Searches for an object with ObjectFinder and HoverRSObject and clicks it if found.
-function TRSWalker.ClickRSObject(Tile: TPoint; Color: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+function TRSWalker.ClickRSObject(RSObject: TRSObject; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSObject(Tile, Color, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
+  Result := Self.HoverRSObject(RSObject, Attempts) and
+            Self.ClickHelper(RSObject.UpText, LeftClick);
 end;
-
-function TRSWalker.ClickRSObject(Tiles: TPointArray; Color: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.HoverRSObject(Tiles, Color, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
-end;
-
-function TRSWalker.ClickRSObject(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.HoverRSObject(Tile, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
-end;
-
-function TRSWalker.ClickRSObject(Tiles: TPointArray; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.HoverRSObject(Tiles, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
-end;
-
 
 // Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSWalker.SelectRSObjectOption(Tile: TPoint; Color: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean;
+function TRSWalker.SelectRSObjectOption(RSObject: TRSObject; Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSObject(Tile, Color, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
+  Result := Self.HoverRSObject(RSObject, Attempts) and
+            Self.SelectHelper(Action, RSObject.UpText);
 end;
-
-function TRSWalker.SelectRSObjectOption(Tiles: TPointArray; Color: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.HoverRSObject(Tiles, Color, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
-end;
-
-function TRSWalker.SelectRSObjectOption(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.HoverRSObject(Tile, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
-end;
-
-function TRSWalker.SelectRSObjectOption(Tiles: TPointArray; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.HoverRSObject(Tiles, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
-end;
-
 
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.WalkHoverRSObject(Tile: TPoint; Color: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
+function TRSWalker.WalkHoverRSObject(RSObject: TRSObject; Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(UpText) then
+    if ChooseOption.HasOption(RSObject.UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Self.MakeTileVisible(Tile) then
-    if not Self.WebWalk(Tile, 30, 0.2) then
+  if not Self.MakeTileVisible(RSObject.Tiles) then
+    if not Self.WebWalk(Self.GetClosestTile(RSObject.Tiles), 30, 0.2) then
       Exit(False);
 
-  Finder.Colors += Color;
-  RSObject := [Self, [Tile], 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.WalkHoverHelper(RSObject, Tile, UpText, Attempts);
+  Result := Self.WalkHoverHelper(RSObject, Attempts);
 end;
-
-// Searches for an object with ObjectFinder in several tiles and hovers it if found.
-function TRSWalker.WalkHoverRSObject(Tiles: TPointArray; Color: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
-  Tile: TPoint := Self.GetClosestTile(Tiles);
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
-
-  if not Self.MakeTileVisible(Tile) then
-    if not Self.WebWalk(Tile, 30, 0.2) then
-      Exit(False);
-
-  Finder.Colors += Color;
-  RSObject := [Self, Tiles, 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.WalkHoverHelper(RSObject, Tile, UpText, Attempts);
-end;
-
-// Searches for an object with 2 colors with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.WalkHoverRSObject(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
-
-  if not Self.MakeTileVisible(Tile) then
-    if not Self.WebWalk(Tile, 30, 0.2) then
-      Exit(False);
-
-  Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  RSObject := [Self, [Tile], 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.WalkHoverHelper(RSObject, Tile, UpText, Attempts);
-end;
-
-// Searches for an object with 2 colors with ObjectFinder in several tiles and hovers it if found.
-function TRSWalker.WalkHoverRSObject(Tiles: TPointArray; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  RSObject: TRSObject;
-  Tile: TPoint := Self.GetClosestTile(Tiles);
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
-
-  if not Self.MakeTileVisible(Tile) then
-    if not Self.WebWalk(Tile, 30, 0.2) then
-      Exit(False);
-
-  Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  RSObject := [Self, Tiles, 1, Finder];
-  RSObject.SetupFinder;
-
-  Result := Self.WalkHoverHelper(RSObject, Tile, UpText, Attempts);
-end;
-
-
 
 // Searches for an object with ObjectFinder and WalkHoverRSObject and clicks it if found.
-function TRSWalker.WalkClickRSObject(Tile: TPoint; Color: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+function TRSWalker.WalkClickRSObject(RSObject: TRSObject; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSObject(Tile, Color, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
-end;
-
-function TRSWalker.WalkClickRSObject(Tiles: TPointArray; Color: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.WalkHoverRSObject(Tiles, Color, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
-end;
-
-function TRSWalker.WalkClickRSObject(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.WalkHoverRSObject(Tile, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
-end;
-
-function TRSWalker.WalkClickRSObject(Tiles: TPointArray; PrimaryColor, SecondaryColor: TCTS2Color; UpText: TStringArray; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.WalkHoverRSObject(Tiles, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.ClickHelper(UpText, LeftClick);
+  Result := Self.WalkHoverRSObject(RSObject, Attempts) and
+            Self.ClickHelper(RSObject.UpText, LeftClick);
 end;
 
 // Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSWalker.WalkSelectRSObjectOption(Tile: TPoint; Color: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean;
+function TRSWalker.WalkSelectRSObjectOption(RSObject: TRSObject; Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSObject(Tile, Color, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
+  Result := Self.WalkHoverRSObject(RSObject, Attempts) and
+            Self.SelectHelper(Action, RSObject.UpText);
 end;
-
-function TRSWalker.WalkSelectRSObjectOption(Tiles: TPointArray; Color: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.WalkHoverRSObject(Tiles, Color, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
-end;
-
-function TRSWalker.WalkSelectRSObjectOption(Tile: TPoint; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.WalkHoverRSObject(Tile, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
-end;
-
-function TRSWalker.WalkSelectRSObjectOption(Tiles: TPointArray; PrimaryColor, SecondaryColor: TCTS2Color; Action, UpText: TStringArray; Attempts: Int32 = 2): Boolean; overload;
-begin
-  Result := Self.WalkHoverRSObject(Tiles, PrimaryColor, SecondaryColor, UpText, Attempts) and
-            Self.SelectHelper(Action, UpText);
-end;
-
-
-
-
 
 
 
@@ -441,7 +227,7 @@ begin
   inherited;
 
   case Map.Lower() of
-    'world': WorldObjects.Load;
+    'world': WorldObjects.Load(Self);
     'zeah': ZeahObjects.Load;
   end;
 end;
@@ -451,7 +237,7 @@ begin
   inherited;
 
   if Map.Contains('world') then
-    WorldObjects.Load
+    WorldObjects.Load(Self)
   else if Map.Contains('zeah') then
     ZeahObjects.Load;
 end;

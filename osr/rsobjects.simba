@@ -22,26 +22,76 @@ var
 
 // Searches for an object with ObjectFinder in the MainScreen with the
 // help of RSWalker. Good when objects don't move and precision is needed.
-function TRSObject.Find(Expand: Int32 = 0): T2DPointArray;
+function TRSObject.Find: T2DPointArray;
 var
   Me: TPoint;
   Tile: TPoint;
   TileArray: TPointArray;
+  i: Int32;
   Rect: TRectangle;
+  Box: TBox;
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
 begin
-  Me := Self.Map.GetMyPos();
-  TileArray := Copy(Self.Tiles);
+  Me := Map.GetMyPos();
+  TileArray := Copy(Tiles);
   TileArray.Sorted(Me);
 
   for Tile in TileArray do
   begin
-    Rect := Self.Map.GetTileMSEx(Me, Tile, Height).Expand(Expand);
-    if InterfaceArea.Bounds.Contains(Rect.Bounds) then
-      Result += MainScreen.FindObject(Finder, Rect.Bounds);
+    for i := 0 to Height do
+    begin
+      Rect := Map.GetTileMSEx(Me, Tile, i);
+      ATPA += Rect.ToTPA;
+    end;
+
+
+    TPA := ATPA.Merge;
+    TPA.ClearDuplicates;
+    Box := TPA.Bounds;
+    if InterfaceArea.Bounds.Contains(Box) then
+      Result += MainScreen.FindObject(Finder, Box);
   end;
-  if Length(Result) = 0 then
+
+  if Result = [] then
     Exit;
+
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+procedure TRSObject.SetupCommon(Walker: TRSWalker);
+begin
+  Map := Walker;
+  Height := 3;
+  Finder.ClusterDistance := 2;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+end;
+
+procedure TRSObject.Debug;
+var
+  Bitmap: TMufasaBitmap;
+  Tile: TPoint;
+  ATPA: T2DPointArray;
+  Obj: T2DPointArray;
+  Rect: TRectangle;
+  Rectangles: Array of TRectangle;
+begin
+  Bitmap.FromClient(MainScreen.Bounds);
+
+  //Debug tiles
+  for Tile in Tiles do
+    Rectangles += Map.GetTileMS(Tile);
+  for Rect in Rectangles do
+    ATPA += Rect.ToTPA.Connect;
+  Bitmap.DrawATPA(ATPA);
+
+  //Debug Object
+  Obj := Self.Find;
+  Bitmap.DrawATPA(Obj);
+
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
 end;
 
 
@@ -76,7 +126,7 @@ end;
 
 
 // HoverHelper function used by all non moving object hovering functions.
-function TRSWalker.HoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean;
+function TRSWalker.HoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean; overload;
 var
   ATPA: T2DPointArray;
   Points: TPointArray;
@@ -100,7 +150,7 @@ begin
 end;
 
 // WalkHoverHelper function used by all moving object hovering functions.
-function TRSWalker.WalkHoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean;
+function TRSWalker.WalkHoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean; overload;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -236,7 +286,7 @@ begin
 
   case Map.Lower() of
     'world': WorldObjects.Load(Self);
-    'zeah': ZeahObjects.Load;
+    'zeah': ZeahObjects.Load(Self);
   end;
 end;
 
@@ -247,5 +297,5 @@ begin
   if Map.Contains('world') then
     WorldObjects.Load(Self)
   else if Map.Contains('zeah') then
-    ZeahObjects.Load;
+    ZeahObjects.Load(Self);
 end;

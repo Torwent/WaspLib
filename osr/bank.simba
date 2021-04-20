@@ -186,7 +186,7 @@ function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantity
 var
   ItemCount: Int32;
 begin
-  if InterfaceArea.IsClassicOpen and not Self.IsOpen then
+  if not InterfaceArea.IsClassicOpen or not Self.IsOpen then
     Exit;
 
   if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
@@ -213,7 +213,7 @@ var
   IsStackable: Boolean;
   ItemCount: Int32;
 begin
-  if InterfaceArea.IsClassicOpen and not Self.IsOpen then
+  if not InterfaceArea.IsClassicOpen or not Self.IsOpen then
     Exit;
 
   if IsStackable := Inventory.ItemIsStackable(Item.Item) then
@@ -233,13 +233,39 @@ begin
   end;
 end;
 
+function TRSBank.DepositAllBut(Tab: Int32; Items: TRSItemArray): Boolean;
+var
+  Item: TRSItem;
+  Slots: TIntegerArray;
+  DepositSlots: TIntegerArray;
+begin
+  Writeln('here');
+  if not InterfaceArea.IsClassicOpen or not Self.IsOpen then
+    Exit;
 
+  if Tab > -1 then
+    Bank.OpenTab(Tab);
+
+  for Item in Items do
+    Inventory.FindItem(Item, Slots);
+
+  DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+
+  if DepositSlots <> [] then
+  repeat
+    if not InterfaceArea.IsClassicOpen or not Bank.IsOpen then
+      Exit;
+    if Bank.DepositSlot([DepositSlots[0], BANK_DEPOSIT_ALL], True) then
+      WaitUntil(not Inventory.IsSlotUsed(DepositSlots[0]), 100, 2000);
+    DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+  until Result := (DepositSlots = []);
+end;
 
 //WALKER BASED INTERACTION WITH BANK-----------------------------------
 
 // Tries to open a Bank RSObject.
 // Returns true if an interface is open.
-function TRSWalker.OpenBank(RSObject: TRSObject): Boolean;
+function TRSWalker.OpenBank(RSObject: TRSObject = CurrentBank): Boolean; overload;
 begin
   if Self.ClickRSObject(RSObject) then
   begin
@@ -248,11 +274,23 @@ begin
         (InterfaceArea.IsClassicOpen and (Bank.IsOpen or BankPin.IsOpen)),
         SRL.TruncatedGauss(50, 1500), 3000
     );
+  end
+  else if MainScreen.IsUpText('Banker') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Bank Banker') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+          (InterfaceArea.IsClassicOpen and (Bank.IsOpen or BankPin.IsOpen)),
+          SRL.TruncatedGauss(50, 1500), 3000
+      );
+    end;
   end;
 end;
 
-// Walks to the object, and tries to do the same as above while walking.
-function TRSWalker.WalkOpenBank(RSObject: TRSObject): Boolean;
+// Walks to the bank rsobject, and tries to do the same as above while walking.
+function TRSWalker.WalkOpenBank(RSObject: TRSObject = CurrentBank): Boolean;
 begin
   if Self.WalkClickRSObject(RSObject) then
   begin
@@ -261,13 +299,25 @@ begin
         (InterfaceArea.IsClassicOpen and (Bank.IsOpen or BankPin.IsOpen)),
         SRL.TruncatedGauss(50, 1500), 3000
     );
+  end
+  else if MainScreen.IsUpText('Banker') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Bank Banker') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+          (InterfaceArea.IsClassicOpen and (Bank.IsOpen or BankPin.IsOpen)),
+          SRL.TruncatedGauss(50, 1500), 3000
+      );
+    end;
   end;
 end;
 
 
-// Tries to open a CollectBox RSObject.
+// Tries to open a CollectBox  on a bank RSObject.
 // Returns true if collect box is open.
-function TRSWalker.OpenCollectBox(RSObject: TRSObject): Boolean;
+function TRSWalker.OpenCollectBox(RSObject: TRSObject = CurrentBank): Boolean;
 begin
   if Self.SelectRSObjectOption(RSObject, ['Collect']) then
   begin
@@ -276,12 +326,24 @@ begin
         (InterfaceArea.IsClassicOpen and (CollectBox.IsOpen or BankPin.IsOpen)),
         SRL.TruncatedGauss(50, 1500), 3000
     );
+  end
+  else if MainScreen.IsUpText('Banker') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Collect') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+        (InterfaceArea.IsClassicOpen and (CollectBox.IsOpen or BankPin.IsOpen)),
+        SRL.TruncatedGauss(50, 1500), 3000
+    );
+    end;
   end;
 end;
 
 
-// Walks to the object, and tries to do the same as above while walking.
-function TRSWalker.WalkOpenCollectBox(RSObject: TRSObject): Boolean;
+// Walks to the bank object, and tries to do the same as above while walking.
+function TRSWalker.WalkOpenCollectBox(RSObject: TRSObject = CurrentBank): Boolean;
 begin
   if Self.WalkSelectRSObjectOption(RSObject, ['Collect']) then
   begin
@@ -290,6 +352,18 @@ begin
         (InterfaceArea.IsClassicOpen and (CollectBox.IsOpen or BankPin.IsOpen)),
         SRL.TruncatedGauss(50, 1500), 3000
     );
+  end
+  else if MainScreen.IsUpText('Banker') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Collect') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+        (InterfaceArea.IsClassicOpen and (CollectBox.IsOpen or BankPin.IsOpen)),
+        SRL.TruncatedGauss(50, 1500), 3000
+    );
+    end;
   end;
 end;
 
@@ -311,19 +385,43 @@ begin
         (InterfaceArea.IsClassicOpen and (GrandExchange.IsOpen or BankPin.IsOpen)),
         SRL.TruncatedGauss(50, 1500), 3000
     );
+  end
+  else if MainScreen.IsUpText('Clerk') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Exchange') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+        (InterfaceArea.IsClassicOpen and (GrandExchange.IsOpen or BankPin.IsOpen)),
+        SRL.TruncatedGauss(50, 1500), 3000
+    );
+    end;
   end;
 end;
 
 // Tries to open GE with less info
 function TRSWalker.OpenGE: Boolean; overload;
 begin
-  if Self.ClickRSObject(WorldObjects.GEExchange.GetClosestObject) then
+  if Self.ClickRSObject(WorldObjects.GEExchange) then
   begin
     Minimap.WaitPlayerMoving(300, 5000);
     Result := WaitUntil(
         (InterfaceArea.IsClassicOpen and (GrandExchange.IsOpen or BankPin.IsOpen)),
         SRL.TruncatedGauss(50, 1500), 3000
     );
+  end
+  else if MainScreen.IsUpText('Clerk') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Exchange') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+        (InterfaceArea.IsClassicOpen and (GrandExchange.IsOpen or BankPin.IsOpen)),
+        SRL.TruncatedGauss(50, 1500), 3000
+    );
+    end;
   end;
 end;
 
@@ -350,7 +448,7 @@ end;
 // Walks to GE and attempts to open it while walking with less info.
 function TRSWalker.WalkOpenGE: Boolean; overload;
 begin
-  if Self.WalkClickRSObject(WorldObjects.GEExchange.GetClosestObject) then
+  if Self.WalkClickRSObject(WorldObjects.GEExchange) then
   begin
     Minimap.WaitPlayerMoving(300, 5000);
     Result := WaitUntil(

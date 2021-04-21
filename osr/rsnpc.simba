@@ -20,13 +20,14 @@ type
 
 function TRSNPC.Find: T2DPointArray;
 var
-  i: Int32;
   Dot: TPoint;
   Dots: TPointArray;
   FilteredDots: TPointArray;
   MMTile: TPoint;
   Rect: TRectangle;
   Box: TBox;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
   TPA: TPointArray;
   ATPA: T2DPointArray;
 begin
@@ -45,14 +46,25 @@ begin
 
   for Dot in FilteredDots do
   begin
-    for i := 0 to Height do
-    begin
-      Rect := Minimap.VecToMSRect([Dot.X, Dot.Y, i]);
-      ATPA += Rect.ToTPA;
-    end;
+    Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+    HighTPA := Rect.ToTPA;
 
-    TPA := ATPA.Merge;
-    TPA.ClearDuplicates;
+    if Height > 0 then
+    begin
+      HighTPA.SortByX;
+
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+      LowTPA := Rect.ToTPA;
+      LowTPA.SortByX;
+
+      TPA := [HighTPA[0], LowTPA[0], LowTPA[High(LowTPA)], HighTPA[High(HighTPA)]];
+      ATPA := [HighTPA, LowTPA, TPA];
+
+      TPA := ATPA.Merge;
+      TPA.ClearDuplicates;
+    end
+    else
+      TPA := HighTPA;
 
     Box := TPA.Bounds;
     if InterfaceArea.Bounds.Contains(Box) then
@@ -66,11 +78,11 @@ begin
 end;
 
 
-procedure TRSNPC.SetupCommon(Walker: TRSWalker; Radius: Int32 = 1);
+procedure TRSNPC.SetupCommon(Walker: TRSWalker; Radius: Int32 = 1; NPCHeight: Int32 = 6);
 begin
   Map := Walker;
   WanderRadius := Radius;
-  Height := 5;
+  Height := NPCHeight;
   Finder.ClusterDistance := 3;
   Finder.Erode := 2;
   Finder.Grow := 4;
@@ -79,6 +91,16 @@ end;
 procedure TRSNPC.Debug;
 var
   Bitmap: TMufasaBitmap;
+  Dot: TPoint;
+  Dots: TPointArray;
+  FilteredDots: TPointArray;
+  MMTile: TPoint;
+  Rect: TRectangle;
+  Box: TBox;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
   TileBorder: TPointArray;
   NPC: T2DPointArray;
   Rectangle: TRectangle;
@@ -91,7 +113,56 @@ begin
   Bitmap.DrawTPA(TileBorder, $ffffff);
 
   //Debug Object
-  NPC := Self.Find;
+  MMTile := Map.WorldToMM(Tile);
+  if not Minimap.IsPointOn(MMTile, WanderRadius) then
+    Exit;
+
+  Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+
+  for Dot in Dots do
+    if SRL.PointInCircle(Dot, MMTile, WanderRadius * 5) then
+      FilteredDots += Dot;
+
+  if FilteredDots = [] then
+    Exit;
+
+  for Dot in FilteredDots do
+  begin
+    Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+    HighTPA := Rect.ToTPA;
+    Bitmap.DrawTPA(HighTPA.Connect, $ffffff);
+
+    if Height > 0 then
+    begin
+      HighTPA.SortByX;
+
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+      LowTPA := Rect.ToTPA;
+      Bitmap.DrawTPA(LowTPA.Connect, $ffffff);
+      LowTPA.SortByX;
+
+      TPA := [HighTPA[0], LowTPA[0], LowTPA[High(LowTPA)], HighTPA[High(HighTPA)]];
+      Bitmap.DrawTPA(TPA.Connect, $ffffff);
+
+      ATPA := [HighTPA, LowTPA, TPA];
+
+      TPA := ATPA.Merge;
+      TPA.ClearDuplicates;
+      Bitmap.DrawRect(TPA.MinAreaRect, $0000ff);
+    end
+    else
+      TPA := HighTPA;
+
+    Box := TPA.Bounds;
+    if InterfaceArea.Bounds.Contains(Box) then
+      NPC += MainScreen.FindObject(Finder, Box);
+  end;
+
+  if NPC = [] then
+    Exit;
+
+  NPC.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+
   Bitmap.DrawATPA(NPC);
 
   ShowBitmap(Bitmap);

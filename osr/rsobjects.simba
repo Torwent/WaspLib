@@ -27,10 +27,11 @@ var
   Me: TPoint;
   Tile: TPoint;
   TileArray: TPointArray;
-  i: Int32;
   Rect: TRectangle;
   Box: TBox;
   TPA: TPointArray;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
   ATPA: T2DPointArray;
 begin
   Me := Map.GetMyPos();
@@ -39,15 +40,26 @@ begin
 
   for Tile in TileArray do
   begin
-    for i := 0 to Height do
+    Rect := Map.GetTileMSEx(Me, Tile, Height);
+    HighTPA := Rect.ToTPA;
+
+    if Height > 0 then
     begin
-      Rect := Map.GetTileMSEx(Me, Tile, i);
-      ATPA += Rect.ToTPA;
-    end;
+      HighTPA.SortByX;
 
+      Rect := Map.GetTileMSEx(Me, Tile, 0);
+      LowTPA := Rect.ToTPA;
+      LowTPA.SortByX;
 
-    TPA := ATPA.Merge;
-    TPA.ClearDuplicates;
+      TPA := [HighTPA[0], LowTPA[0], LowTPA[High(LowTPA)], HighTPA[High(HighTPA)]];
+      ATPA := [HighTPA, LowTPA, TPA];
+
+      TPA := ATPA.Merge;
+      TPA.ClearDuplicates;
+    end
+    else
+      TPA := HighTPA;
+
     Box := TPA.Bounds;
     if InterfaceArea.Bounds.Contains(Box) then
       Result += MainScreen.FindObject(Finder, Box);
@@ -59,10 +71,10 @@ begin
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
-procedure TRSObject.SetupCommon(Walker: TRSWalker);
+procedure TRSObject.SetupCommon(Walker: TRSWalker; ObjHeight: Int32 = 3);
 begin
   Map := Walker;
-  Height := 3;
+  Height := ObjHeight;
   Finder.ClusterDistance := 2;
   Finder.Erode := 2;
   Finder.Grow := 4;
@@ -71,8 +83,14 @@ end;
 procedure TRSObject.Debug;
 var
   Bitmap: TMufasaBitmap;
+  Me: TPoint;
   Tile: TPoint;
+  TileArray: TPointArray;
+  TPA: TPointArray;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
   ATPA: T2DPointArray;
+  Box: TBox;
   Obj: T2DPointArray;
   Rect: TRectangle;
   Rectangles: Array of TRectangle;
@@ -87,8 +105,52 @@ begin
   Bitmap.DrawATPA(ATPA);
 
   //Debug Object
-  Obj := Self.Find;
-  Bitmap.DrawATPA(Obj);
+
+  Me := Map.GetMyPos();
+  TileArray := Copy(Tiles);
+  TileArray.Sorted(Me);
+
+  for Tile in TileArray do
+  begin
+
+    Rect := Map.GetTileMSEx(Me, Tile, Height);
+    HighTPA := Rect.ToTPA;
+    Bitmap.DrawTPA(HighTPA.Connect, $ffffff);
+
+    if Height > 0 then
+    begin
+      HighTPA.SortByX;
+
+      Rect := Map.GetTileMSEx(Me, Tile, 0);
+      LowTPA := Rect.ToTPA;
+      Bitmap.DrawTPA(LowTPA.Connect, $ffffff);
+      LowTPA.SortByX;
+
+      TPA := [HighTPA[0], LowTPA[0], LowTPA[High(LowTPA)], HighTPA[High(HighTPA)]];
+
+      Bitmap.DrawTPA(TPA.Connect, $ffffff);
+
+      ATPA := [HighTPA, LowTPA, TPA];
+
+      TPA := ATPA.Merge;
+      TPA.ClearDuplicates;
+
+      Bitmap.DrawRect(TPA.MinAreaRect, $0000ff);
+    end
+    else
+      TPA := HighTPA;
+
+    Box := TPA.Bounds;
+    if InterfaceArea.Bounds.Contains(Box) then
+      Obj += MainScreen.FindObject(Finder, Box);
+  end;
+
+  if Obj = [] then
+    Exit;
+
+  Obj.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+
+  //Bitmap.DrawATPA(Obj);
 
   ShowBitmap(Bitmap);
   Bitmap.Free;

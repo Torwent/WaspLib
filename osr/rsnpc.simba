@@ -20,16 +20,16 @@ type
 
 function TRSNPC.Find: T2DPointArray;
 var
+  MMTile: TPoint;
   Dot: TPoint;
   Dots: TPointArray;
   FilteredDots: TPointArray;
-  MMTile: TPoint;
   Rect: TRectangle;
-  Box: TBox;
   HighTPA: TPointArray;
   LowTPA: TPointArray;
   TPA: TPointArray;
-  ATPA: T2DPointArray;
+  B: TBox;
+  Points: TPointArray;
 begin
   MMTile := Map.WorldToMM(Tile);
   if not Minimap.IsPointOn(MMTile, WanderRadius) then
@@ -51,24 +51,21 @@ begin
 
     if Height > 0 then
     begin
-      HighTPA.SortByX;
-
       Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
       LowTPA := Rect.ToTPA;
-      LowTPA.SortByX;
-
-      TPA := [HighTPA[0], LowTPA[0], LowTPA[High(LowTPA)], HighTPA[High(HighTPA)]];
-      ATPA := [HighTPA, LowTPA, TPA];
-
-      TPA := ATPA.Merge;
+      TPA := HighTPA.Combine(LowTPA);
       TPA.ClearDuplicates;
     end
     else
       TPA := HighTPA;
 
-    Box := TPA.Bounds;
-    if InterfaceArea.Bounds.Contains(Box) then
-      Result += MainScreen.FindObject(Finder, Box);
+    Rect := TPA.MinAreaRect;
+    B := TPA.Bounds;
+    if InterfaceArea.Bounds.Contains(Rect) then
+      Result += MainScreen.FindObject(Finder, B);
+
+    for Points in Result do
+      Points := Rect.Filter(Points);
   end;
 
   if Result = [] then
@@ -77,6 +74,44 @@ begin
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
+function TRSNPC.BlindFind(Height: Int32 = 6): T2DPointArray;
+var
+  Dot: TPoint;
+  Dots: TPointArray;
+  Rect: TRectangle;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
+  TPA: TPointArray;
+  Points: TPointArray;
+begin
+  Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+  if Dots = [] then
+    Exit;
+
+  for Dot in Dots do
+  begin
+    Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+    HighTPA := Rect.ToTPA;
+
+    if Height > 0 then
+    begin
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+      LowTPA := Rect.ToTPA;
+      TPA := HighTPA.Combine(LowTPA);
+      TPA.ClearDuplicates;
+    end
+    else
+      TPA := HighTPA;
+
+    Rect := TPA.MinAreaRect;
+    if InterfaceArea.Bounds.Contains(Rect) then
+    begin
+      Points := Rect.ToTPA();
+      Points.Fill;
+      Result += Points;
+    end;
+  end;
+end;
 
 procedure TRSNPC.SetupCommon(Walker: TRSWalker; Radius: Int32 = 1; NPCHeight: Int32 = 6);
 begin
@@ -91,31 +126,31 @@ end;
 procedure TRSNPC.Debug;
 var
   Bitmap: TMufasaBitmap;
+  Rect: TRectangle;
+  MMTile: TPoint;
   Dot: TPoint;
   Dots: TPointArray;
   FilteredDots: TPointArray;
-  MMTile: TPoint;
-  Rect: TRectangle;
-  Box: TBox;
   HighTPA: TPointArray;
   LowTPA: TPointArray;
   TPA: TPointArray;
-  ATPA: T2DPointArray;
-  TileBorder: TPointArray;
+  B: TBox;
   NPC: T2DPointArray;
-  Rectangle: TRectangle;
+  Points: TPointArray;
 begin
   Bitmap.FromClient(MainScreen.Bounds);
 
   //Debug tile
-  Rectangle := Map.GetTileMS(Tile);
-  TileBorder := Rectangle.ToTPA.Connect;
-  Bitmap.DrawTPA(TileBorder, $ffffff);
+  Rect := Map.GetTileMS(Tile);
+  Bitmap.DrawRect(Rect, $ffffff);
 
-  //Debug Object
+  //Debug NPC
   MMTile := Map.WorldToMM(Tile);
   if not Minimap.IsPointOn(MMTile, WanderRadius) then
+  begin
+    Bitmap.Free;
     Exit;
+  end;
 
   Dots := Minimap.GetDots(ERSMinimapDot.NPC);
 
@@ -124,46 +159,120 @@ begin
       FilteredDots += Dot;
 
   if FilteredDots = [] then
+  begin
+    Bitmap.Free;
     Exit;
+  end;
 
   for Dot in FilteredDots do
   begin
     Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
     HighTPA := Rect.ToTPA;
-    Bitmap.DrawTPA(HighTPA.Connect, $ffffff);
+    Bitmap.DrawRect(Rect, $ffffff);
 
     if Height > 0 then
     begin
-      HighTPA.SortByX;
-
       Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
       LowTPA := Rect.ToTPA;
-      Bitmap.DrawTPA(LowTPA.Connect, $ffffff);
-      LowTPA.SortByX;
-
-      TPA := [HighTPA[0], LowTPA[0], LowTPA[High(LowTPA)], HighTPA[High(HighTPA)]];
-      Bitmap.DrawTPA(TPA.Connect, $ffffff);
-
-      ATPA := [HighTPA, LowTPA, TPA];
-
-      TPA := ATPA.Merge;
+      Bitmap.DrawRect(Rect, $ffffff);
+      TPA := HighTPA.Combine(LowTPA);
       TPA.ClearDuplicates;
-      Bitmap.DrawRect(TPA.MinAreaRect, $0000ff);
     end
     else
       TPA := HighTPA;
 
-    Box := TPA.Bounds;
-    if InterfaceArea.Bounds.Contains(Box) then
-      NPC += MainScreen.FindObject(Finder, Box);
+    Rect := TPA.MinAreaRect;
+    Bitmap.DrawRect(Rect, $0000ff);
+    B := TPA.Bounds;
+    if InterfaceArea.Bounds.Contains(Rect) then
+      NPC += MainScreen.FindObject(Finder, B);
+
+    for Points in NPC do
+      Points := Rect.Filter(Points);
   end;
 
   if NPC = [] then
+  begin
+    Bitmap.Free;
     Exit;
+  end;
 
   NPC.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 
   Bitmap.DrawATPA(NPC);
+  Bitmap.DrawTPA(NPC[0], $000000);
+
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+procedure TRSNPC.DebugBlind(Height: Int32 = 6);
+var
+  Bitmap: TMufasaBitmap;
+  Rect: TRectangle;
+  MMTile: TPoint;
+  Dot: TPoint;
+  Dots: TPointArray;
+  FilteredDots: TPointArray;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
+  TPA: TPointArray;
+  B: TBox;
+  NPC: T2DPointArray;
+  Points: TPointArray;
+begin
+  Bitmap.FromClient(MainScreen.Bounds);
+
+  //Debug tile
+  Rect := Map.GetTileMS(Tile);
+  Bitmap.DrawRect(Rect, $ffffff);
+
+  //Debug NPC
+  Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+
+  if Dots = [] then
+  begin
+    Bitmap.Free;
+    Exit;
+  end;
+
+  for Dot in Dots do
+  begin
+    Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+    HighTPA := Rect.ToTPA;
+    Bitmap.DrawRect(Rect, $ffffff);
+
+    if Height > 0 then
+    begin
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+      LowTPA := Rect.ToTPA;
+      Bitmap.DrawRect(Rect, $ffffff);
+      TPA := HighTPA.Combine(LowTPA);
+      TPA.ClearDuplicates;
+    end
+    else
+      TPA := HighTPA;
+
+    Rect := TPA.MinAreaRect;
+    Bitmap.DrawRect(Rect, $0000ff);
+    if InterfaceArea.Bounds.Contains(Rect) then
+    begin
+      Points := Rect.ToTPA();
+      Points.Fill;
+      NPC += Points;
+    end;
+  end;
+
+  if NPC = [] then
+  begin
+    Bitmap.Free;
+    Exit;
+  end;
+
+  NPC.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+
+  Bitmap.DrawATPA(NPC);
+  Bitmap.DrawTPA(NPC[0], $000000);
 
   ShowBitmap(Bitmap);
   Bitmap.Free;

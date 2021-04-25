@@ -29,7 +29,6 @@ var
   LowTPA: TPointArray;
   TPA: TPointArray;
   B: TBox;
-  i: Int32;
 begin
   MMTile := Map.WorldToMM(Tile);
   if not Minimap.IsPointOn(MMTile, WanderRadius) then
@@ -61,66 +60,18 @@ begin
 
     Rect := TPA.MinAreaRect;
     B := TPA.Bounds;
-    if InterfaceArea.Bounds.Contains(Rect) then
-      Result += MainScreen.FindObject(Finder, B);
 
-    for i := 0 to High(Result) do
-      Result[i] := Rect.Filter(Result[i]);
+    if InterfaceArea.Bounds.Contains(Rect) then
+    begin
+      TPA := MainScreen.FindObject(Finder, B).Merge;
+      Result += Rect.Filter(TPA);
+    end;
   end;
 
   if Result = [] then
     Exit;
 
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
-end;
-
-function TRSNPC.BlindFind(Height: Int32 = 6): T2DPointArray;
-var
-  Dot: TPoint;
-  Dots: TPointArray;
-  Rect: TRectangle;
-  HighTPA: TPointArray;
-  LowTPA: TPointArray;
-  TPA: TPointArray;
-  Points: TPointArray;
-begin
-  Dots := Minimap.GetDots(ERSMinimapDot.NPC);
-  if Dots = [] then
-    Exit;
-
-  for Dot in Dots do
-  begin
-    Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
-    HighTPA := Rect.ToTPA;
-
-    if Height > 0 then
-    begin
-      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
-      LowTPA := Rect.ToTPA;
-      TPA := HighTPA.Combine(LowTPA);
-      TPA.ClearDuplicates;
-    end
-    else
-      TPA := HighTPA;
-
-    Rect := TPA.MinAreaRect;
-    if InterfaceArea.Bounds.Contains(Rect) then
-    begin
-      Points := Rect.ToTPA();
-      Points.Fill;
-      Result += Points;
-    end;
-  end;
-end;
-
-procedure TRSNPC.SetupCommon(Walker: TRSWalker; Radius: Int32 = 1; NPCHeight: Int32 = 6);
-begin
-  Map := Walker;
-  WanderRadius := Radius;
-  Height := NPCHeight;
-  Finder.ClusterDistance := 3;
-  Finder.Erode := 2;
-  Finder.Grow := 4;
 end;
 
 procedure TRSNPC.Debug;
@@ -136,7 +87,6 @@ var
   TPA: TPointArray;
   B: TBox;
   NPC: T2DPointArray;
-  i: Int32;
 begin
   Bitmap.FromClient(MainScreen.Bounds);
 
@@ -184,11 +134,12 @@ begin
     Rect := TPA.MinAreaRect;
     Bitmap.DrawRect(Rect, $0000ff);
     B := TPA.Bounds;
-    if InterfaceArea.Bounds.Contains(Rect) then
-      NPC += MainScreen.FindObject(Finder, B);
 
-    for i := 0 to High(NPC) do
-      NPC[i] := Rect.Filter(NPC[i]);
+    if InterfaceArea.Bounds.Contains(Rect) then
+    begin
+      TPA := MainScreen.FindObject(Finder, B).Merge;
+      NPC += Rect.Filter(TPA);
+    end;
   end;
 
   if NPC = [] then
@@ -206,7 +157,59 @@ begin
   Bitmap.Free;
 end;
 
-procedure TRSNPC.DebugBlind(Height: Int32 = 6);
+
+procedure TRSNPC.SetupCommon(Walker: TRSWalker; Radius: Int32 = 1; NPCHeight: Int32 = 6);
+begin
+  Map := Walker;
+  WanderRadius := Radius;
+  Height := NPCHeight;
+  Finder.ClusterDistance := 3;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+end;
+
+
+function TRSNPC.BlindFind: T2DPointArray;
+var
+  Dot: TPoint;
+  Dots: TPointArray;
+  Rect: TRectangle;
+  HighTPA: TPointArray;
+  LowTPA: TPointArray;
+  TPA: TPointArray;
+  B: TBox;
+begin
+  Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+  if Dots = [] then
+    Exit;
+
+  for Dot in Dots do
+  begin
+    Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+    HighTPA := Rect.ToTPA;
+
+    if Height > 0 then
+    begin
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+      LowTPA := Rect.ToTPA;
+      TPA := HighTPA.Combine(LowTPA);
+      TPA.ClearDuplicates;
+    end
+    else
+      TPA := HighTPA;
+
+    Rect := TPA.MinAreaRect;
+    B := TPA.Bounds;
+
+    if InterfaceArea.Bounds.Contains(Rect) then
+    begin
+      TPA := MainScreen.FindObject(Finder, B).Merge;
+      Result += Rect.Filter(TPA);
+    end;
+  end;
+end;
+
+procedure TRSNPC.DebugBlind;
 var
   Bitmap: TMufasaBitmap;
   Rect: TRectangle;
@@ -215,14 +218,10 @@ var
   HighTPA: TPointArray;
   LowTPA: TPointArray;
   TPA: TPointArray;
+  B: TBox;
   NPC: T2DPointArray;
-  Points: TPointArray;
 begin
   Bitmap.FromClient(MainScreen.Bounds);
-
-  //Debug tile
-  Rect := Map.GetTileMS(Tile);
-  Bitmap.DrawRect(Rect, $ffffff);
 
   //Debug NPC
   Dots := Minimap.GetDots(ERSMinimapDot.NPC);
@@ -252,11 +251,12 @@ begin
 
     Rect := TPA.MinAreaRect;
     Bitmap.DrawRect(Rect, $0000ff);
+    B := TPA.Bounds;
+
     if InterfaceArea.Bounds.Contains(Rect) then
     begin
-      Points := Rect.ToTPA();
-      Points.Fill;
-      NPC += Points;
+      TPA := MainScreen.FindObject(Finder, B).Merge;
+      NPC += Rect.Filter(TPA);
     end;
   end;
 
@@ -278,7 +278,7 @@ end;
 
 
 // HoverHelper function used by all non moving npc's hovering functions.
-function TRSWalker.HoverHelper(RSNPC: TRSNPC; Attempts: Int32): Boolean; overload;
+function TRSNPC.HoverHelper(Attempts: Int32): Boolean; overload;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -286,16 +286,47 @@ var
 begin
   for Attempt := 0 to Attempts do
   begin
-    if MainScreen.IsUpText(RSNPC.UpText) then
+    if MainScreen.IsUpText(UpText) then
       Exit(True);
 
-    if (ATPA := RSNPC.Find) <> [] then
+    if (ATPA := Self.Find) <> [] then
     begin
       Points := ATPA[Random(0, High(ATPA))];
       Mouse.Move(Points.MinAreaRect);
     end;
 
-    if MainScreen.IsUpText(RSNPC.UpText) then
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if Attempt = (Attempts - 1) then
+      Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+  end;
+end;
+
+// HoverHelper function used by all blind npc's hovering functions.
+function TRSNPC.BlindHoverHelper(Attempts: Int32): Boolean; overload;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+begin
+  for Attempt := 0 to Attempts do
+  begin
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if (ATPA := Self.BlindFind) <> [] then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+        Mouse.Move(Points[Random(0, High(Points))]);;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
       Exit(True);
 
     if Attempt = (Attempts - 1) then
@@ -304,7 +335,7 @@ begin
 end;
 
 // WalkHoverHelper function used by all moving npc's hovering functions.
-function TRSWalker.WalkHoverHelper(RSNPC: TRSNPC; Attempts: Int32): Boolean; overload;
+function TRSNPC.WalkHoverHelper(Attempts: Int32): Boolean; overload;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -315,88 +346,151 @@ begin
     if InterfaceArea.HasInterface() then
       Exit(False);
 
-    if MainScreen.IsUpText(RSNPC.UpText) then
+    if MainScreen.IsUpText(UpText) then
       Exit(True);
 
-    if (ATPA := RSNPC.Find) <> [] then
+    if (ATPA := Self.Find) <> [] then
     begin
       Points := ATPA[Random(0, High(ATPA))];
       Mouse.Move(Points.MinAreaRect);
     end;
 
-    if MainScreen.IsUpText(RSNPC.UpText) then
+    if MainScreen.IsUpText(UpText) then
       Exit(True)
-    else if not Self.AtTile(RSNPC.Tile, 50) or ((Attempt = (Attempts - 1)) and not Self.AtTile(RSNPC.Tile, 30)) then
-      Self.WebWalk(RSNPC.Tile, 10, 0.2)
+    else if not Map.AtTile(Tile, 50) or ((Attempt = (Attempts - 1)) and not Map.AtTile(Tile, 30)) then
+      Map.WebWalk(Tile, 10, 0.2)
     else
       Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
   end;
 end;
 
+// ClickHelper function used by all npc's clicking functions.
+function TRSNPC.ClickHelper(LeftClick: Boolean): Boolean;
+begin
+  if ChooseOption.IsOpen and ChooseOption.Select(UpText) then
+    Exit(True);
+
+  if LeftClick then
+    Mouse.Click(MOUSE_LEFT);
+
+  Result := MainScreen.DidRedClick or
+            (not LeftClick and ChooseOption.Select(UpText));
+end;
+
+// SelectHelper function used by all npc's option selection functions.
+function TRSNPC.SelectHelper(Action: TStringArray): Boolean;
+begin
+  if ChooseOption.IsOpen and
+     ChooseOption.HasOption(UpText) and
+     ChooseOption.Select(Action) then
+    Exit(True);
+
+  if not MainScreen.IsUpText(UpText) then
+    Exit;
+
+  if MainScreen.IsUpText(Action) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Result := MainScreen.DidRedClick;
+  end
+  else
+    Result := ChooseOption.Select(Action);
+end;
 
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.HoverRSNPC(RSNPC: TRSNPC; Attempts: Int32 = 2): Boolean;
+function TRSNPC.HoverRSNPC(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(RSNPC.UpText) then
+    if ChooseOption.HasOption(UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Self.MakeTileVisible(RSNPC.Tile) then
+  if not Map.MakeTileVisible(Tile) then
     Exit(False);
 
-  Result := Self.HoverHelper(RSNPC, Attempts);
+  Result := Self.HoverHelper(Attempts);
 end;
 
-// Searches for an object with ObjectFinder and HoverRSObject and clicks it if found.
-function TRSWalker.ClickRSNPC(RSNPC: TRSNPC; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+// Searches for an object with ObjectFinder and HoverRSNPC and clicks it if found.
+function TRSNPC.ClickRSNPC(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSNPC(RSNPC, Attempts) and
-            Self.ClickHelper(RSNPC.UpText, LeftClick);
+  Result := Self.HoverRSNPC(Attempts) and
+            Self.ClickHelper(LeftClick);
 end;
 
-// Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSWalker.SelectRSNPCOption(RSNPC: TRSNPC; Action: TStringArray; Attempts: Int32 = 2): Boolean;
+// Searches for an object with ObjectFinder and HoverRSNPC and selects the specified action if found.
+function TRSNPC.SelectRSNPCOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSNPC(RSNPC, Attempts) and
-            Self.SelectHelper(Action, RSNPC.UpText);
+  Result := Self.HoverRSNPC(Attempts) and
+            Self.SelectHelper(Action);
+end;
+
+
+// Searches for an object with ObjectFinder blindly and hovers it if found.
+function TRSNPC.BlindHoverRSNPC(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if not Map.MakeTileVisible(Tile) then
+    Exit(False);
+
+  Result := Self.BlindHoverHelper(Attempts);
+end;
+
+// Searches for an object with ObjectFinder and BlindHoverRSNPC and clicks it if found.
+function TRSNPC.BlindClickRSNPC(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.BlindHoverRSNPC(Attempts) and
+            Self.ClickHelper(LeftClick);
+end;
+
+// Searches for an object with ObjectFinder and BlindHoverRSNPC and selects the specified action if found.
+function TRSNPC.BlindSelectRSNPCOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.BlindHoverRSNPC(Attempts) and
+            Self.SelectHelper(Action);
 end;
 
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.WalkHoverRSNPC(RSNPC: TRSNPC; Attempts: Int32 = 2): Boolean;
+function TRSNPC.WalkHoverRSNPC(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(RSNPC.UpText) then
+    if ChooseOption.HasOption(UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Self.MakeTileVisible(RSNPC.Tile) then
-    if not Self.WebWalk(RSNPC.Tile, 30, 0.2) then
+  if not Map.MakeTileVisible(Tile) then
+    if not Map.WebWalk(Tile, 30, 0.2) then
       Exit(False);
 
-  Result := Self.WalkHoverHelper(RSNPC, Attempts);
+  Result := Self.WalkHoverHelper(Attempts);
 end;
 
 // Searches for an object with ObjectFinder and WalkHoverRSObject and clicks it if found.
-function TRSWalker.WalkClickRSNPC(RSNPC: TRSNPC; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+function TRSNPC.WalkClickRSNPC(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSNPC(RSNPC, Attempts) and
-            Self.ClickHelper(RSNPC.UpText, LeftClick);
+  Result := Self.WalkHoverRSNPC(Attempts) and
+            Self.ClickHelper(LeftClick);
 end;
 
 // Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSWalker.WalkSelectRSNPCOption(RSNPC: TRSNPC; Action: TStringArray; Attempts: Int32 = 2): Boolean;
+function TRSNPC.WalkSelectRSNPCOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSNPC(RSNPC, Attempts) and
-            Self.SelectHelper(Action, RSNPC.UpText);
+  Result := Self.WalkHoverRSNPC(Attempts) and
+            Self.SelectHelper(Action);
 end;
 
 

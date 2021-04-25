@@ -68,25 +68,6 @@ begin
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
-function TRSObject.BlindFind: T2DPointArray;
-begin
-  Result := MainScreen.FindObject(Finder);
-
-  if Result = [] then
-    Exit;
-
-  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
-end;
-
-procedure TRSObject.SetupCommon(Walker: TRSWalker; ObjHeight: Int32 = 3);
-begin
-  Map := Walker;
-  Height := ObjHeight;
-  Finder.ClusterDistance := 2;
-  Finder.Erode := 2;
-  Finder.Grow := 4;
-end;
-
 procedure TRSObject.Debug;
 var
   Bitmap: TMufasaBitmap;
@@ -157,6 +138,27 @@ begin
   Bitmap.Free;
 end;
 
+
+procedure TRSObject.SetupCommon(Walker: TRSWalker; ObjHeight: Int32 = 3);
+begin
+  Map := Walker;
+  Height := ObjHeight;
+  Finder.ClusterDistance := 2;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+end;
+
+
+function TRSObject.BlindFind: T2DPointArray;
+begin
+  Result := MainScreen.FindObject(Finder);
+
+  if Result = [] then
+    Exit;
+
+  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
 procedure TRSObject.BlindDebug;
 var
   Bitmap: TMufasaBitmap;
@@ -179,6 +181,7 @@ begin
   ShowBitmap(Bitmap);
   Bitmap.Free;
 end;
+
 
 
 function TRSObjectArray.GetClosestObject: TRSObject;  //NEED REWORK MAYBE?
@@ -205,14 +208,14 @@ begin
   Result := Self[ClosestTiles.Find(Map.GetClosestTile(ClosestTiles))];
 end;
 
-procedure TRSWalker.SetCurrentBank(RSObject: TRSObject);
+procedure TRSObject.SetCurrentBank;
 begin
-  CurrentBank := RSObject;
+  CurrentBank := Self;
 end;
 
 
 // HoverHelper function used by all non moving object hovering functions.
-function TRSWalker.HoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean; overload;
+function TRSObject.HoverHelper(Attempts: Int32): Boolean;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -220,43 +223,10 @@ var
 begin
   for Attempt := 0 to Attempts do
   begin
-    if MainScreen.IsUpText(RSObject.UpText) then
+    if MainScreen.IsUpText(UpText) then
       Exit(True);
 
-    if (ATPA := RSObject.Find) <> [] then
-    begin
-      if Attempt < 2 then
-        Points := ATPA[0] // 0 for the closest one.
-      else
-        Points := ATPA[Random(0, High(ATPA))];
-
-      if Points <> [] then
-        Mouse.Move(Points[Random(0, High(Points))]);;
-    end;
-
-    if MainScreen.IsUpText(RSObject.UpText) then
-      Exit(True);
-
-    Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
-  end;
-end;
-
-// WalkHoverHelper function used by all moving object hovering functions.
-function TRSWalker.WalkHoverHelper(RSObject: TRSObject; Attempts: Int32): Boolean; overload;
-var
-  Attempt: Int32;
-  ATPA: T2DPointArray;
-  Points: TPointArray;
-begin
-  for Attempt := 0 to Attempts do
-  begin
-    if InterfaceArea.HasInterface() then
-      Exit(False);
-
-    if MainScreen.IsUpText(RSObject.UpText) then
-      Exit(True);
-
-    if (ATPA := RSObject.Find) <> [] then
+    if (ATPA := Self.Find) <> [] then
     begin
       if Attempt < 2 then
         Points := ATPA[0] // 0 for the closest one.
@@ -267,17 +237,80 @@ begin
         Mouse.Move(Points[Random(0, High(Points))]);
     end;
 
-    if MainScreen.IsUpText(RSObject.UpText) then
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+  end;
+end;
+
+// HoverHelper function used by all blind object hovering functions.
+function TRSObject.BlindHoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+begin
+  for Attempt := 0 to Attempts do
+  begin
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if (ATPA := Self.BlindFind) <> [] then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+        Mouse.Move(Points[Random(0, High(Points))]);
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+  end;
+end;
+
+// WalkHoverHelper function used by all moving object hovering functions.
+function TRSObject.WalkHoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+begin
+  for Attempt := 0 to Attempts do
+  begin
+    if InterfaceArea.HasInterface() then
+      Exit(False);
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if (ATPA := Self.Find) <> [] then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+        Mouse.Move(Points[Random(0, High(Points))]);
+    end;
+
+    if MainScreen.IsUpText(UpText) then
       Exit(True)
-    else if not Self.AtTile(RSObject.Tiles, 50) or ((Attempt = (Attempts - 1)) and not Self.AtTile(RSObject.Tiles, 30)) then
-      Self.WebWalk(Self.GetClosestTile(RSObject.Tiles), 10, 0.2)
+    else if not Map.AtTile(Tiles, 50) or ((Attempt = (Attempts - 1)) and not Map.AtTile(Tiles, 30)) then
+      Map.WebWalk(Map.GetClosestTile(Tiles), 10, 0.2)
     else
       Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
   end;
 end;
 
 // ClickHelper function used by all object clicking functions.
-function TRSWalker.ClickHelper(UpText: TStringArray; LeftClick: Boolean): Boolean;
+function TRSObject.ClickHelper(LeftClick: Boolean): Boolean;
 begin
   if ChooseOption.IsOpen and ChooseOption.Select(UpText) then
     Exit(True);
@@ -290,7 +323,7 @@ begin
 end;
 
 // SelectHelper function used by all object option selection functions.
-function TRSWalker.SelectHelper(Action, UpText: TStringArray): Boolean;
+function TRSObject.SelectHelper(Action: TStringArray): Boolean;
 begin
   if ChooseOption.IsOpen and
      ChooseOption.HasOption(UpText) and
@@ -313,66 +346,98 @@ end;
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.HoverRSObject(RSObject: TRSObject; Attempts: Int32 = 2): Boolean;
+function TRSObject.HoverRSObject(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(RSObject.UpText) then
+    if ChooseOption.HasOption(UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Self.MakeTileVisible(RSObject.Tiles) then
+  if not Map.MakeTileVisible(Tiles) then
     Exit(False);
 
-  Result := Self.HoverHelper(RSObject, Attempts);
+  Result := Self.HoverHelper(Attempts);
 end;
 
 // Searches for an object with ObjectFinder and HoverRSObject and clicks it if found.
-function TRSWalker.ClickRSObject(RSObject: TRSObject; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+function TRSObject.ClickRSObject(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSObject(RSObject, Attempts) and
-            Self.ClickHelper(RSObject.UpText, LeftClick);
+  Result := Self.HoverRSObject(Attempts) and
+            Self.ClickHelper(LeftClick);
 end;
 
 // Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSWalker.SelectRSObjectOption(RSObject: TRSObject; Action: TStringArray; Attempts: Int32 = 2): Boolean;
+function TRSObject.SelectRSObjectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSObject(RSObject, Attempts) and
-            Self.SelectHelper(Action, RSObject.UpText);
+  Result := Self.HoverRSObject(Attempts) and
+            Self.SelectHelper(Action);
+end;
+
+
+
+// Searches for an object with ObjectFinder blindly and hovers it if found.
+function TRSObject.BlindHoverRSObject(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if not Map.MakeTileVisible(Tiles) then
+    Exit(False);
+
+  Result := Self.BlindHoverHelper(Attempts);
+end;
+
+// Searches for an object with ObjectFinder and BlindHoverRSObject and clicks it if found.
+function TRSObject.BlindClickRSObject(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.BlindHoverRSObject(Attempts) and
+            Self.ClickHelper(LeftClick);
+end;
+
+// Searches for an object with ObjectFinder and BlindHoverRSObject and selects the specified action if found.
+function TRSObject.BlindSelectRSObjectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.BlindHoverRSObject(Attempts) and
+            Self.SelectHelper(Action);
 end;
 
 
 
 // Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSWalker.WalkHoverRSObject(RSObject: TRSObject; Attempts: Int32 = 2): Boolean;
+function TRSObject.WalkHoverRSObject(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(RSObject.UpText) then
+    if ChooseOption.HasOption(UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Self.MakeTileVisible(RSObject.Tiles) then
-    if not Self.WebWalk(Self.GetClosestTile(RSObject.Tiles), 30, 0.2) then
+  if not Map.MakeTileVisible(Tiles) then
+    if not Map.WebWalk(Map.GetClosestTile(Tiles), 30, 0.2) then
       Exit(False);
 
-  Result := Self.WalkHoverHelper(RSObject, Attempts);
+  Result := Self.WalkHoverHelper(Attempts);
 end;
 
 // Searches for an object with ObjectFinder and WalkHoverRSObject and clicks it if found.
-function TRSWalker.WalkClickRSObject(RSObject: TRSObject; LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+function TRSObject.WalkClickRSObject(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSObject(RSObject, Attempts) and
-            Self.ClickHelper(RSObject.UpText, LeftClick);
+  Result := Self.WalkHoverRSObject(Attempts) and
+            Self.ClickHelper(LeftClick);
 end;
 
 // Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSWalker.WalkSelectRSObjectOption(RSObject: TRSObject; Action: TStringArray; Attempts: Int32 = 2): Boolean;
+function TRSObject.WalkSelectRSObjectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSObject(RSObject, Attempts) and
-            Self.SelectHelper(Action, RSObject.UpText);
+  Result := Self.WalkHoverRSObject(Attempts) and
+            Self.SelectHelper(Action);
 end;
 
 

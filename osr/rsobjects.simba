@@ -32,7 +32,6 @@ var
   LowTPA: TPointArray;
   B: TBox;
   TPA: TPointArray;
-  i: Int32;
 begin
   Me := Map.GetMyPos();
   TileArray := Copy(Tiles);
@@ -57,11 +56,21 @@ begin
     B := TPA.Bounds;
 
     if InterfaceArea.Bounds.Contains(Rect) then
-      Result += MainScreen.FindObject(Finder, B);
-
-    for i := 0 to High(Result) do
-      Result[i] := Rect.Filter(Result[i]);
+    begin
+      TPA := MainScreen.FindObject(Finder, B).Merge;
+      Result += Rect.Filter(TPA);
+    end;
   end;
+
+  if Result = [] then
+    Exit;
+
+  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+function TRSObject.BlindFind: T2DPointArray;
+begin
+  Result := MainScreen.FindObject(Finder);
 
   if Result = [] then
     Exit;
@@ -91,7 +100,6 @@ var
   TPA: TPointArray;
   B: TBox;
   Obj: T2DPointArray;
-  i: Int32;
 begin
   Bitmap.FromClient(MainScreen.Bounds);
 
@@ -102,7 +110,6 @@ begin
     Bitmap.DrawRect(Rect, $ffffff);
 
   //Debug Object
-
   Me := Map.GetMyPos();
   TileArray := Copy(Tiles);
   TileArray.Sorted(Me);
@@ -129,10 +136,10 @@ begin
 
     B := TPA.Bounds;
     if InterfaceArea.Bounds.Contains(Rect) then
-      Obj += MainScreen.FindObject(Finder, B);
-
-    for i := 0 to High(Obj) do
-      Obj[i] := Rect.Filter(Obj[i]);
+    begin
+      TPA := MainScreen.FindObject(Finder, B).Merge;
+      Obj += Rect.Filter(TPA);
+    end;
   end;
 
   if Obj = [] then
@@ -143,6 +150,29 @@ begin
 
   Obj.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 
+  Bitmap.DrawATPA(Obj);
+  Bitmap.DrawTPA(Obj[0], $000000);
+
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+procedure TRSObject.BlindDebug;
+var
+  Bitmap: TMufasaBitmap;
+  Obj: T2DPointArray;
+begin
+  Bitmap.FromClient(MainScreen.Bounds);
+
+  Obj := MainScreen.FindObject(Finder);
+
+  if Obj = [] then
+  begin
+    Bitmap.Free;
+    Exit;
+  end;
+
+  Obj.SortByMiddle(MainScreen.GetPlayerBox.Middle);
   Bitmap.DrawATPA(Obj);
   Bitmap.DrawTPA(Obj[0], $000000);
 
@@ -232,7 +262,9 @@ begin
         Points := ATPA[0] // 0 for the closest one.
       else
         Points := ATPA[Random(0, High(ATPA))];
-      Mouse.Move(Points[Random(0, High(Points))]);
+
+      if Points <> [] then
+        Mouse.Move(Points[Random(0, High(Points))]);
     end;
 
     if MainScreen.IsUpText(RSObject.UpText) then

@@ -4,18 +4,18 @@
 {$ENDIF}
 
 type
+  PRSObject = ^TRSObject;
+
   TRSObject = record
-    Map: TRSWalker;
+    Map: PRSWalker;
     Tiles: TPointArray;
     Height: Int32;
     UpText: TStringArray;
     Finder: TRSObjectFinder;
   end;
 
-  TRSObjectArray = array of TRSObject;
-
 var
-  CurrentBank: TRSObject;
+  CurrentBank: PRSObject;
 
 {$I walker/worldobject.simba}
 {$I walker/zeahobject.simba}
@@ -34,18 +34,18 @@ var
   TPA: TPointArray;
   ObjFinder: TRSObjectFinder;
 begin
-  Me := Map.GetMyPos();
+  Me := Map^.GetMyPos();
   TileArray := Copy(Tiles);
   TileArray.Sorted(Me);
 
   for Tile in TileArray do
   begin
-    Rect := Map.GetTileMSEx(Me, Tile, Height);
+    Rect := Map^.GetTileMSEx(Me, Tile, Height);
     HighTPA := Rect.ToTPA;
 
     if Height > 0 then
     begin
-      Rect := Map.GetTileMSEx(Me, Tile, 0);
+      Rect := Map^.GetTileMSEx(Me, Tile, 0);
       LowTPA := Rect.ToTPA;
       TPA := HighTPA.Combine(LowTPA);
       TPA.ClearDuplicates;
@@ -91,24 +91,24 @@ begin
 
   //Debug tiles
   for Tile in Tiles do
-    Rectangles += Map.GetTileMS(Tile);
+    Rectangles += Map^.GetTileMS(Tile);
   for Rect in Rectangles do
     Bitmap.DrawRect(Rect, $ffffff);
 
   //Debug Object
-  Me := Map.GetMyPos();
+  Me := Map^.GetMyPos();
   TileArray := Copy(Tiles);
   TileArray.Sorted(Me);
 
   for Tile in TileArray do
   begin
-    Rect := Map.GetTileMSEx(Me, Tile, Height);
+    Rect := Map^.GetTileMSEx(Me, Tile, Height);
     HighTPA := Rect.ToTPA;
     Bitmap.DrawRect(Rect, $ffffff);
 
     if Height > 0 then
     begin
-      Rect := Map.GetTileMSEx(Me, Tile, 0);
+      Rect := Map^.GetTileMSEx(Me, Tile, 0);
       LowTPA := Rect.ToTPA;
       Bitmap.DrawRect(Rect, $ffffff);
       TPA := HighTPA.Combine(LowTPA);
@@ -148,7 +148,7 @@ begin
 end;
 
 
-procedure TRSObject.SetupCommon(Walker: TRSWalker; ObjHeight: Int32 = 3);
+procedure TRSObject.SetupCommon(Walker: PRSWalker; ObjHeight: Int32 = 3);
 begin
   Map := Walker;
   Height := ObjHeight;
@@ -192,34 +192,9 @@ begin
 end;
 
 
-
-function TRSObjectArray.GetClosestObject: TRSObject;  //NEED REWORK MAYBE?
-var
-  Map: TRSWalker;
-  i: Int32;
-  ClosestTiles: TPointArray;
-  RSObject: TRSObject;
-begin
-  if Self = [] then
-    Exit;
-
-  for i := 0 to High(Self) do
-  begin
-    if Map = [] then
-      Map := RSObject.Map;
-
-    if Map <> RSObject.Map then
-      Exit;
-
-    ClosestTiles += Map.GetClosestTile(Self[i].Tiles);
-  end;
-
-  Result := Self[ClosestTiles.Find(Map.GetClosestTile(ClosestTiles))];
-end;
-
 procedure TRSObject.SetCurrentBank;
 begin
-  CurrentBank := Self;
+  CurrentBank := @Self;
 end;
 
 
@@ -278,8 +253,6 @@ begin
 
     if MainScreen.IsUpText(UpText) then
       Exit(True);
-
-    Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
   end;
 end;
 
@@ -311,8 +284,8 @@ begin
 
     if MainScreen.IsUpText(UpText) then
       Exit(True)
-    else if not Map.AtTile(Tiles, 50) or ((Attempt = (Attempts - 1)) and not Map.AtTile(Tiles, 30)) then
-      Map.WebWalk(Map.GetClosestTile(Tiles), 10, 0.2)
+    else if not Map^.AtTile(Tiles, 50) or ((Attempt = (Attempts - 1)) and not Map^.AtTile(Tiles, 30)) then
+      Map^.WebWalk(Map^.GetClosestTile(Tiles), 10, 0.2)
     else
       Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
   end;
@@ -364,7 +337,7 @@ begin
     ChooseOption.Close;
   end;
 
-  if not Map.MakeTileVisible(Tiles) then
+  if not Map^.MakeTileVisible(Tiles) then
     Exit(False);
 
   Result := Self.HoverHelper(Attempts);
@@ -396,7 +369,7 @@ begin
     ChooseOption.Close;
   end;
 
-  if not Map.MakeTileVisible(Tiles) then
+  if (Tiles <> []) and not Map^.MakeTileVisible(Tiles) then
     Exit(False);
 
   Result := Self.BlindHoverHelper(Attempts);
@@ -428,8 +401,8 @@ begin
     ChooseOption.Close;
   end;
 
-  if not Map.MakeTileVisible(Tiles) then
-    if not Map.WebWalk(Map.GetClosestTile(Tiles), 30, 0.2) then
+  if not Map^.MakeTileVisible(Tiles) then
+    if not Map^.WebWalk(Map^.GetClosestTile(Tiles), 30, 0.2) then
       Exit(False);
 
   Result := Self.WalkHoverHelper(Attempts);
@@ -456,7 +429,7 @@ begin
   inherited;
 
   if Name.Contains('world') then
-    WorldObjects.Load(Self)
+    WorldObjects.Load(@Self)
   else if Name.Contains('zeah') then
-    ZeahObjects.Load(Self);
+    ZeahObjects.Load(@Self);
 end;

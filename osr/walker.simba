@@ -3,11 +3,9 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-type
-  TRSWalkerOffSet = type TPoint;
-
 var
-  WalkerOffset: TRSWalkerOffSet;
+  WalkerArray: TStringArray;
+  WalkerOffsetArray: TPointArray;
 
 // overriden just so I can load maps from WaspLib maps folder
 function TRSWalker.FindMap(Map: String): String; static; override;
@@ -28,13 +26,13 @@ begin
 end;
 
 // overloaded to provide the ability to offset the map
-procedure TRSWalker.Setup(Map: String; Offset: TPoint; Manage: Boolean = True; Scaling: Int32 = 9); overload;
+procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
 var
   Path: String;
   Bitmap, Mask, Sample: TMufasaBitmap;
   X, Y: Int32;
 begin
-  Self.Name := 'Walker';
+  Self.Name := Map.Lower();
 
   Path := Self.FindMap(Map);
   if (Path = '') then
@@ -43,10 +41,10 @@ begin
   Self.Scaling := Scaling;
   Self.ClickRandomness := 4;
 
-  case Map.Lower() of
-    'world': Self.WebGraph := WorldWeb;
-    'zeah':  Self.WebGraph := ZeahWeb;
-  end;
+  if Name.Contains('world') then
+    Self.WebGraph := WorldWeb
+  else if Name.Contains('zeah') then
+    Self.WebGraph := ZeahWeb;
 
   Self.World := Self.LoadMap(Path);
   if Manage then
@@ -64,11 +62,19 @@ begin
 
   Self.Cache := TMatchTemplateRGBCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
 
-  WalkerOffset := Offset;
-
   Sample.Free();
   Bitmap.Free();
   Mask.Free();
+
+  WalkerArray += Name;
+  if Name.ContainsAll(['_x', 'y']) then
+  begin
+    X := StrToInt(Name.After('_x').Before('y'));
+    Y := StrToInt(Name.After('_x').After('y'));
+    WalkerOffsetArray += [X, Y];
+  end
+  else
+    WalkerOffsetArray += [0, 0];
 end;
 
 procedure TRSWalker.DebugPosition; override;
@@ -79,7 +85,10 @@ var
   Time: Double;
   Position: TPoint;
   Lines: TStringArray;
+  WalkerOffset: TPoint;
 begin
+  WalkerOffset := WalkerOffsetArray[WalkerArray.Find(Name)];
+
   Freeze();
 
   Time := PerformanceTimer();
@@ -147,7 +156,10 @@ var
   Slice, SliceScaled, TemplScaled: TMufasaBitmap;
   Matrix: TSingleMatrix;
   Area: TBox;
+  WalkerOffset: TPoint;
 begin
+  WalkerOffset := WalkerOffsetArray[WalkerArray.Find(Name)];
+
   Area := [
     Max(0, Position.X - SLICE_SIZE),
     Max(0, Position.Y - SLICE_SIZE),

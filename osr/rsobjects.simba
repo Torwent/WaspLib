@@ -10,9 +10,16 @@ type
     Map: PRSWalker;
     Tiles: TPointArray;
     Height: Int32;
-    UpText: TStringArray;
     Finder: TRSObjectFinder;
+    UpText: TStringArray;
+    Filter: record
+      Walker: Boolean;
+      Finder: Boolean;
+      UpText: Boolean;
+    end;
   end;
+
+  TRSObjectArray = array of TRSObject;
 
 var
   CurrentBank: PRSObject;
@@ -23,48 +30,78 @@ var
 // Searches for an object with ObjectFinder in the MainScreen with the
 // help of RSWalker. Good when objects don't move and precision is needed.
 function TRSObject.Find: T2DPointArray;
+  function GetTilesRects: TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos();
+    Tile: TPoint;
+    TileArray: TPointArray := Copy(Tiles);
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      Rect := Map^.GetTileMSEx(Me, Tile, Height);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Map^.GetTileMSEx(Me, Tile, 0);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Result += Rect;
+    end;
+  end;
+
 var
-  Me: TPoint;
-  Tile: TPoint;
-  TileArray: TPointArray;
   Rect: TRectangle;
-  HighTPA: TPointArray;
-  LowTPA: TPointArray;
+  Rects: TRectArray;
   B: TBox;
   TPA: TPointArray;
   ObjFinder: TRSObjectFinder;
 begin
-  Me := Map^.GetMyPos();
-  TileArray := Copy(Tiles);
-  TileArray.Sorted(Me);
-
-  for Tile in TileArray do
+  if Filter.Walker then
   begin
-    Rect := Map^.GetTileMSEx(Me, Tile, Height);
-    HighTPA := Rect.ToTPA;
-
-    if Height > 0 then
+    Rects := GetTilesRects;
+    if Filter.Finder then
     begin
-      Rect := Map^.GetTileMSEx(Me, Tile, 0);
-      LowTPA := Rect.ToTPA;
-      TPA := HighTPA.Combine(LowTPA);
-      TPA.ClearDuplicates;
-    end
-    else
-      TPA := HighTPA;
-
-    Rect := TPA.MinAreaRect;
-    B := TPA.Bounds;
-    ObjFinder := Finder;
-    ObjFinder.MinLongSide := 0;
-    ObjFinder.MinShortSide := 0;
-
-    if InterfaceArea.Bounds.Contains(Rect) then
-    begin
-      TPA := MainScreen.FindObject(ObjFinder, B).Merge;
-      Result += Rect.Filter(TPA);
+      ObjFinder := Finder;
+      ObjFinder.MinLongSide := 0;
+      ObjFinder.MinShortSide := 0;
     end;
-  end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(ObjFinder, B).Merge;
+          Result += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          Result += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    Result := MainScreen.FindObject(Finder);
 
   if Result = [] then
     Exit;
@@ -72,65 +109,87 @@ begin
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
+//unified debug function
 procedure TRSObject.Debug;
+  function GetTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos();
+    Tile: TPoint;
+    TileArray: TPointArray := Copy(Tiles);
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      Rect := Map^.GetTileMSEx(Me, Tile, Height);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Map^.GetTileMSEx(Me, Tile, 0);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+
+      Result += Rect;
+    end;
+  end;
+
 var
   Bitmap: TMufasaBitmap;
-  Tile: TPoint;
   Rect: TRectangle;
-  Rectangles: Array of TRectangle;
-  Me: TPoint;
-  TileArray: TPointArray;
-  HighTPA: TPointArray;
-  LowTPA: TPointArray;
-  TPA: TPointArray;
+  Rects: TRectArray;
   B: TBox;
-  Obj: T2DPointArray;
+  TPA: TPointArray;
   ObjFinder: TRSObjectFinder;
+  Obj: T2DPointArray;
 begin
   Bitmap.FromClient(MainScreen.Bounds);
 
-  //Debug tiles
-  for Tile in Tiles do
-    Rectangles += Map^.GetTileMS(Tile);
-  for Rect in Rectangles do
-    Bitmap.DrawRect(Rect, $ffffff);
-
-  //Debug Object
-  Me := Map^.GetMyPos();
-  TileArray := Copy(Tiles);
-  TileArray.Sorted(Me);
-
-  for Tile in TileArray do
+  if Filter.Walker then
   begin
-    Rect := Map^.GetTileMSEx(Me, Tile, Height);
-    HighTPA := Rect.ToTPA;
-    Bitmap.DrawRect(Rect, $ffffff);
-
-    if Height > 0 then
+    Rects := GetTilesRects(Bitmap);
+    if Filter.Finder then
     begin
-      Rect := Map^.GetTileMSEx(Me, Tile, 0);
-      LowTPA := Rect.ToTPA;
-      Bitmap.DrawRect(Rect, $ffffff);
-      TPA := HighTPA.Combine(LowTPA);
-      TPA.ClearDuplicates;
-    end
-    else
-      TPA := HighTPA;
-
-    Rect := TPA.MinAreaRect;
-    Bitmap.DrawRect(Rect, $0000ff);
-
-    B := TPA.Bounds;
-    ObjFinder := Finder;
-    ObjFinder.MinLongSide := 0;
-    ObjFinder.MinShortSide := 0;
-
-    if InterfaceArea.Bounds.Contains(Rect) then
-    begin
-      TPA := MainScreen.FindObject(ObjFinder, B).Merge;
-      Obj += Rect.Filter(TPA);
+      ObjFinder := Finder;
+      ObjFinder.MinLongSide := 0;
+      ObjFinder.MinShortSide := 0;
     end;
-  end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(ObjFinder, B).Merge;
+          Obj += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          Obj += TPA;
+        end;
+      end;
+    end;
+  end
+  else if Filter.Finder then
+    Obj := MainScreen.FindObject(Finder);
 
   if Obj = [] then
   begin
@@ -146,6 +205,8 @@ begin
   ShowBitmap(Bitmap);
   Bitmap.Free;
 end;
+
+
 
 
 procedure TRSObject.SetupCommon(Walker: PRSWalker; ObjHeight: Int32 = 3);
@@ -155,42 +216,11 @@ begin
   Finder.ClusterDistance := 2;
   Finder.Erode := 2;
   Finder.Grow := 4;
+
+  Filter.Walker := True;
+  Filter.Finder := True;
+  Filter.UpText := True;
 end;
-
-
-function TRSObject.BlindFind: T2DPointArray;
-begin
-  Result := MainScreen.FindObject(Finder);
-
-  if Result = [] then
-    Exit;
-
-  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
-end;
-
-procedure TRSObject.BlindDebug;
-var
-  Bitmap: TMufasaBitmap;
-  Obj: T2DPointArray;
-begin
-  Bitmap.FromClient(MainScreen.Bounds);
-
-  Obj := MainScreen.FindObject(Finder);
-
-  if Obj = [] then
-  begin
-    Bitmap.Free;
-    Exit;
-  end;
-
-  Obj.SortByMiddle(MainScreen.GetPlayerBox.Middle);
-  Bitmap.DrawATPA(Obj);
-  Bitmap.DrawTPA(Obj[0], $000000);
-
-  ShowBitmap(Bitmap);
-  Bitmap.Free;
-end;
-
 
 procedure TRSObject.SetCurrentBank;
 begin
@@ -198,8 +228,10 @@ begin
 end;
 
 
-// HoverHelper function used by all non moving object hovering functions.
-function TRSObject.HoverHelper(Attempts: Int32): Boolean;
+
+
+// HoverHelper function used by non walking object hovering functions.
+function TRSObject._HoverHelper(Attempts: Int32): Boolean;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -207,7 +239,7 @@ var
 begin
   for Attempt := 0 to Attempts do
   begin
-    if MainScreen.IsUpText(UpText) then
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
       Exit(True);
 
     if (ATPA := Self.Find) <> [] then
@@ -218,57 +250,38 @@ begin
         Points := ATPA[Random(0, High(ATPA))];
 
       if Points <> [] then
+      begin
         Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
     end;
 
     if MainScreen.IsUpText(UpText) then
       Exit(True);
 
-    Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+    //will rotate the screen for the last attempt if hasn't hovered properly yet
+    if Attempt = (Attempts - 1) then
+      Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
   end;
 end;
 
-// HoverHelper function used by all blind object hovering functions.
-function TRSObject.BlindHoverHelper(Attempts: Int32): Boolean;
+// WalkHoverHelper function used by walking object hovering functions.
+function TRSObject._WalkHoverHelper(Attempts: Int32): Boolean;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
   Points: TPointArray;
 begin
-  for Attempt := 0 to Attempts do
-  begin
-    if MainScreen.IsUpText(UpText) then
-      Exit(True);
+  if not Filter.Walker then
+    Exit;
 
-    if (ATPA := Self.BlindFind) <> [] then
-    begin
-      if Attempt < 2 then
-        Points := ATPA[0] // 0 for the closest one.
-      else
-        Points := ATPA[Random(0, High(ATPA))];
-
-      if Points <> [] then
-        Mouse.Move(Points[Random(0, High(Points))]);
-    end;
-
-    if MainScreen.IsUpText(UpText) then
-      Exit(True);
-  end;
-end;
-
-// WalkHoverHelper function used by all moving object hovering functions.
-function TRSObject.WalkHoverHelper(Attempts: Int32): Boolean;
-var
-  Attempt: Int32;
-  ATPA: T2DPointArray;
-  Points: TPointArray;
-begin
   for Attempt := 0 to Attempts do
   begin
     if InterfaceArea.HasInterface() then
       Exit(False);
 
-    if MainScreen.IsUpText(UpText) then
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
       Exit(True);
 
     if (ATPA := Self.Find) <> [] then
@@ -279,41 +292,52 @@ begin
         Points := ATPA[Random(0, High(ATPA))];
 
       if Points <> [] then
+      begin
         Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
     end;
 
     if MainScreen.IsUpText(UpText) then
       Exit(True)
-    else if not Map^.AtTile(Tiles, 50) or ((Attempt = (Attempts - 1)) and not Map^.AtTile(Tiles, 30)) then
+    else if not Map^.AtTile(Tiles, 50) then
       Map^.WebWalk(Map^.GetClosestTile(Tiles), 10, 0.2)
-    else
+    else if Attempt = (Attempts - 1) then
+    begin
+      if not Map^.AtTile(Tiles, 30) then
+        Map^.WebWalk(Map^.GetClosestTile(Tiles), 10, 0.2);
       Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+    end;
   end;
 end;
 
-// ClickHelper function used by all object clicking functions.
-function TRSObject.ClickHelper(LeftClick: Boolean): Boolean;
+// ClickHelper function used by object clicking functions.
+function TRSObject._ClickHelper(LeftClick: Boolean): Boolean;
 begin
-  if ChooseOption.IsOpen and ChooseOption.Select(UpText) then
-    Exit(True);
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.Select(UpText) then
+      Exit(True)
+    else
+    begin
+      ChooseOption.Close;
+      Exit;
+    end;
+  end;
 
   if LeftClick then
     Mouse.Click(MOUSE_LEFT);
 
   Result := MainScreen.DidRedClick or
-            (not LeftClick and ChooseOption.Select(UpText));
+            (not LeftClick and Filter.UpText and ChooseOption.Select(UpText));
 end;
 
-// SelectHelper function used by all object option selection functions.
-function TRSObject.SelectHelper(Action: TStringArray): Boolean;
+// SelectHelper function used by object option selection functions.
+function TRSObject._SelectHelper(Action: TStringArray): Boolean;
 begin
-  if ChooseOption.IsOpen and
-     ChooseOption.HasOption(UpText) and
-     ChooseOption.Select(Action) then
+  if ChooseOption.IsOpen and ChooseOption.Select(Action) then
     Exit(True);
-
-  if not MainScreen.IsUpText(UpText) then
-    Exit;
 
   if MainScreen.IsUpText(Action) then
   begin
@@ -327,99 +351,69 @@ end;
 
 
 
-// Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSObject.HoverRSObject(Attempts: Int32 = 2): Boolean;
+// Searches for an object with TRSObject.Find.
+function TRSObject.Hover(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(UpText) then
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if not Map^.MakeTileVisible(Tiles) then
+  if Filter.Walker and not Map^.MakeTileVisible(Tiles) then
     Exit(False);
 
-  Result := Self.HoverHelper(Attempts);
+  Result := Self._HoverHelper(Attempts);
 end;
 
-// Searches for an object with ObjectFinder and HoverRSObject and clicks it if found.
-function TRSObject.ClickRSObject(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+// Searches for an object with TRSObject.Find, hovers and clicks it if found.
+function TRSObject.Click(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSObject(Attempts) and
-            Self.ClickHelper(LeftClick);
+  Result := Self.Hover(Attempts) and
+            Self._ClickHelper(LeftClick);
 end;
 
-// Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSObject.SelectRSObjectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+// Searches for an object with TRSObject.Find, hovers and selects the specified action if found.
+function TRSObject.SelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.HoverRSObject(Attempts) and
-            Self.SelectHelper(Action);
+  Result := Self.Hover(Attempts) and
+            Self._SelectHelper(Action);
 end;
 
 
-
-// Searches for an object with ObjectFinder blindly and hovers it if found.
-function TRSObject.BlindHoverRSObject(Attempts: Int32 = 2): Boolean;
+// Searches for an object with TRSObject.Find and walker.
+function TRSObject.WalkHover(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
-    if ChooseOption.HasOption(UpText) then
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
       Exit(True);
     ChooseOption.Close;
   end;
 
-  if (Tiles <> []) and not Map^.MakeTileVisible(Tiles) then
-    Exit(False);
-
-  Result := Self.BlindHoverHelper(Attempts);
-end;
-
-// Searches for an object with ObjectFinder and BlindHoverRSObject and clicks it if found.
-function TRSObject.BlindClickRSObject(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
-begin
-  Result := Self.BlindHoverRSObject(Attempts) and
-            Self.ClickHelper(LeftClick);
-end;
-
-// Searches for an object with ObjectFinder and BlindHoverRSObject and selects the specified action if found.
-function TRSObject.BlindSelectRSObjectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
-begin
-  Result := Self.BlindHoverRSObject(Attempts) and
-            Self.SelectHelper(Action);
-end;
-
-
-
-// Searches for an object with ObjectFinder in a certain tile and hovers it if found.
-function TRSObject.WalkHoverRSObject(Attempts: Int32 = 2): Boolean;
-begin
-  if ChooseOption.IsOpen then
-  begin
-    if ChooseOption.HasOption(UpText) then
-      Exit(True);
-    ChooseOption.Close;
-  end;
+  if not Filter.Walker then
+    Exit;
 
   if not Map^.MakeTileVisible(Tiles) then
     if not Map^.WebWalk(Map^.GetClosestTile(Tiles), 30, 0.2) then
       Exit(False);
 
-  Result := Self.WalkHoverHelper(Attempts);
+  Result := Self._WalkHoverHelper(Attempts);
 end;
 
-// Searches for an object with ObjectFinder and WalkHoverRSObject and clicks it if found.
-function TRSObject.WalkClickRSObject(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+// Searches for an object with TRSObject.Find and walker, hovers and clicks it if found.
+function TRSObject.WalkClick(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSObject(Attempts) and
-            Self.ClickHelper(LeftClick);
+  Result := Self.WalkHover(Attempts) and
+            Self._ClickHelper(LeftClick);
 end;
 
-// Searches for an object with ObjectFinder and HoverRSObject and selects the specified action if found.
-function TRSObject.WalkSelectRSObjectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+// Searches for an object with TRSObject.Find and walker, hovers and selects the specified action if found.
+function TRSObject.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHoverRSObject(Attempts) and
-            Self.SelectHelper(Action);
+  Result := Self.WalkHover(Attempts) and
+            Self._SelectHelper(Action);
 end;
 
 

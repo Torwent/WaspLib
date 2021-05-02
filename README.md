@@ -13,7 +13,7 @@
 
  # What can I expect to get with WaspLib?
 
- Better walker maps.
+ ## Better walker maps
  WaspLib includes custom runescape maps that are more reliable and contain way more locations than the original SRL-Development maps.
  The reason I say they are more reliable is because it has proper edges around the map edges unlike SRL-Development.
  A good example of this would be the western edge of the desert, if you ever tried using RSWalker around the map edges in the desert you know it doesn't work properly.
@@ -37,6 +37,7 @@
  - Walk fletch
  - Walk crush dark essence
 
+ ## Tile accurate object npc and ground item detection
  WaspLib also provides tile accurate object and npc detection framework.
  You can use this when you want to find something only in one specific tile.
  For example if you are doing smithing on Varrock West and only want to use the southern most bank and the northern most anvil. WaspLib let's you do that easily.

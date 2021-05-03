@@ -17,7 +17,7 @@
  WaspLib includes custom runescape maps that are more reliable and contain way more locations than the original SRL-Development maps.
  The reason I say they are more reliable is because it has proper edges around the map edges unlike SRL-Development.
  A good example of this would be the western edge of the desert, if you ever tried using RSWalker around the map edges in the desert you know it doesn't work properly.
- With my maps it might should accurately walk around the edges.
+ With my maps it should accurately walk around most edges.
 
  My maps also include way more locations and it conyains nearly everything I consider useful.
  The only missing parts are Keldagrim and GWD that can be included separately if needed and a couple upstairs locations and minigames.
@@ -28,6 +28,7 @@
  - Lumbridge castle
  - Slayer tower
  - Much much more
+
  ![Image of WaspLib Map](https://github.com/Torwent/WaspLib/raw/master/docs/images/runescape.png)
  
 

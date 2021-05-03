@@ -34,14 +34,17 @@
  ## WalkActions
  WaspLib also has a way of doing actions while walking.
  A lot of things can be done with it but some of the best uses for this are:
- - Walk alching
- - Walk magic imbue
- - Walk drop
- - Walk fletch
- - Walk crush dark essence
+ - [x] Walk alching
+ - [ ] Walk magic imbue
+ - [x] Walk drop
+ - [ ] Walk fletch
+ - [ ] Walk crush dark essence
 
  ## Tile accurate object npc and ground item detection
  WaspLib also provides tile accurate object and npc detection framework.
  You can use this when you want to find something only in one specific tile.
  For example if you are doing smithing on Varrock West and only want to use the southern most bank and the northern most anvil. WaspLib let's you do that easily.
-
+ 
+ ![Image of rsobject0]()
+ ![Image of rsobject1]()
+ ![Image of rsobject2]()

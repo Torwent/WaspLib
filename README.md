@@ -2,6 +2,7 @@
  WaspLib is a include for Simba to bot OldSchool RuneScape.
  
  WaspLib v2 is intended to work with [Simba 1400](https://github.com/ollydev/Simba) and [SRL-Development](https://github.com/ollydev/SRL-Development).
+
  If you are having problems I suggest you try [my fork of SRL-Development](https://github.com/Torwent/SRL) due to code changing too frequently in Olly's SRL-Development and something might be incompatible for a while.
  Also, as of right now, my fork has some bug fixes that are not live yet on Olly's SRL.
  
@@ -49,3 +50,12 @@
  ![Image of rsobjects0](https://github.com/Torwent/WaspLib/raw/master/docs/images/rsobjects/rsobjects0.png)
  ![Image of rsobjects1](https://github.com/Torwent/WaspLib/raw/master/docs/images/rsobjects/rsobjects1.png)
  ![Image of rsobjects2](https://github.com/Torwent/WaspLib/raw/master/docs/images/rsobjects/rsobjects2.png)
+
+ ## Extra Interfaces
+ WaspLib supports several interfaces that SRL does not.
+ Examples of this are:
+ - [x] Anvil
+ - [x] Collect box
+ - [] Furniture builder
+ - [] NMZ Reward chest
+ - [] NMZ Dream Setup

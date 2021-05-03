@@ -45,6 +45,6 @@
  You can use this when you want to find something only in one specific tile.
  For example if you are doing smithing on Varrock West and only want to use the southern most bank and the northern most anvil. WaspLib let's you do that easily.
  
- ![Image of rsobject0]()
- ![Image of rsobject1]()
- ![Image of rsobject2]()
+ ![Image of rsobjects0](https://github.com/Torwent/WaspLib/raw/master/docs/images/rsobjects/rsobjects0.png)
+ ![Image of rsobjects1](https://github.com/Torwent/WaspLib/raw/master/docs/images/rsobjects/rsobjects1.png)
+ ![Image of rsobjects2](https://github.com/Torwent/WaspLib/raw/master/docs/images/rsobjects/rsobjects2.png)

@@ -27,7 +27,9 @@
  - Waterbirth
  - Lumbridge castle
  - Slayer tower
- - Much much more.
+ - Much much more
+ ![Image of WaspLib Map](https://github.com/Torwent/WaspLib/raw/master/docs/images/runescape.png)
+ 
 
  WaspLib also has a way of doing actions while walking.
  A lot of things can be done with it but some of the best uses for this are:

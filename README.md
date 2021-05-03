@@ -40,7 +40,7 @@
  - [ ] Walk fletch
  - [ ] Walk crush dark essence
 
- ## Tile accurate object npc and ground item detection
+ ## Tile accurate object, npc and ground item detection
  WaspLib also provides tile accurate object and npc detection framework.
  You can use this when you want to find something only in one specific tile.
  For example if you are doing smithing on Varrock West and only want to use the southern most bank and the northern most anvil. WaspLib let's you do that easily.

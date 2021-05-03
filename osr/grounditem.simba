@@ -1,253 +1,440 @@
-{$DEFINE WL_GROUND_ITEM_INCLUDED}
+{$DEFINE WL_GROUNDITEM_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/wasplib.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
 
 type
+  PRSGroundItem = ^TRSGroundItem;
+
   TRSGroundItem = record
-    Finder: TRSObjectFinder;     //must have color
-    Name: String;
-  end;
-
-procedure TRSGroundItem.SetupFinder();
-begin
-  Self.Finder.ClusterDistance := 3;
-  Self.Finder.Grow := 4;
-  Self.Finder.Erode := 2;
-end;
-
-// Searches for an object with ObjectFinder in the MainScreen with the
-// help of RSWalker. Good when objects don't move and precision is needed.
-function TRSGroundItem.Find: T2DPointArray;
-var
-  Tile: TPoint;
-  TPA: TPointArray;
-  Rect: TRectangle;
-  Tiles: TPointArray;
-begin
-  Tiles := Minimap.GetDots(ERSMinimapDot.ITEM);
-  Tiles.Sorted(MainScreen.GetPlayerBox.Middle);
-
-  for Tile in Tiles do
-  begin
-    Rect := Minimap.VecToMSRect([Tile.X+2, Tile.Y+2, 2]);
-    if InterfaceArea.Bounds.Contains(Rect.Bounds) then
-    begin
-
-      if Self.Finder <> [] then
-        Result += MainScreen.FindObject(Finder, Rect.Bounds)
-      else
-      begin
-        TPA := [Rect.Mean];
-        TPA.Grow(10);
-        Result += [TPA];
-      end;
+    Map: PRSWalker;
+    Tile: TPoint;
+    RadiusCheck: Int32;
+    Height: Int32; //Possibly always 0
+    Finder: TRSObjectFinder;
+    UpText: TStringArray;
+    Filter: record
+      Walker: Boolean;
+      Finder: Boolean;
+      UpText: Boolean;
     end;
   end;
 
-  if Length(Result) = 0 then
-        Exit;
+  TRSGroundItemArray = array of TRSGroundItem;
+
+function TRSGroundItem.Find: T2DPointArray;
+  function GetTilesRects: TRectArray;
+  var
+    MMTile: TPoint := Map^.WorldToMM(Tile);
+    Dot: TPoint;
+    Dots: TPointArray;
+    FilteredDots: TPointArray;
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    if not Minimap.IsPointOn(MMTile, RadiusCheck) then
+      Exit;
+
+    Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
+
+    for Dot in Dots do
+      if SRL.PointInCircle(Dot, MMTile, RadiusCheck * 5) then
+        FilteredDots += Dot;
+
+    if FilteredDots = [] then
+      Exit;
+
+    for Dot in FilteredDots do
+    begin
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Result += Rect;
+    end;
+  end;
+
+var
+  Rect: TRectangle;
+  Rects: TRectArray;
+  B: TBox;
+  TPA: TPointArray;
+  NPCFinder: TRSObjectFinder;
+begin
+
+  if Filter.Walker then
+  begin
+    Rects := GetTilesRects;
+    if Filter.Finder then
+    begin
+      NPCFinder := Finder;
+      NPCFinder.MinLongSide := 0;
+      NPCFinder.MinShortSide := 0;
+    end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(NPCFinder, B).Merge;
+          Result += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          Result += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    Result := MainScreen.FindObject(Finder);
+
+  if Result = [] then
+    Exit;
+
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
-function TRSMainScreen.HoverGroundItem(Name: String; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean;
-var
-  GroundItem: TRSGroundItem;
-  ATPA: T2DPointArray;
-  Points: TPointArray;
-  Point: TPoint;
-begin
-  GroundItem := [[], Name];
-
-  for 1 to Attempts do
+procedure TRSGroundItem.Debug;
+  function GetTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
+  var
+    MMTile: TPoint := Map^.WorldToMM(Tile);
+    Dot: TPoint;
+    Dots: TPointArray;
+    FilteredDots: TPointArray;
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
   begin
-    ATPA := GroundItem.Find;
-    if Length(ATPA) = 0 then
-      Exit(False);
+    if not Minimap.IsPointOn(MMTile, RadiusCheck) then
+      Exit;
 
-    Points := ATPA[Random(0, High(ATPA))];
-    Point := Points[Random(0, High(Points))];
+    Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
 
-    Mouse.Move(Point);
+    for Dot in Dots do
+      if SRL.PointInCircle(Dot, MMTile, RadiusCheck * 5) then
+        FilteredDots += Dot;
 
-    Result := MainScreen.IsUpText(Name);
-    if Result then
-      Exit(True)
-    else if CheckPile then
+    if FilteredDots = [] then
+      Exit;
+
+    for Dot in FilteredDots do
     begin
-      ChooseOption.Open;
-      if ChooseOption.HasOption([Name]) then
-        Exit(True);
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $ffffff);
+      Result += Rect;
     end;
   end;
-end;
 
-function TRSMainScreen.HoverGroundItem(Name: String; Color: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
 var
-  Finder: TRSObjectFinder;
-  GroundItem: TRSGroundItem;
-  ATPA: T2DPointArray;
-  Points: TPointArray;
-  Point: TPoint;
-begin
-
-  Finder.Colors += Color;
-  GroundItem := [Finder, Name];
-  GroundItem.SetupFinder;
-
-  for 1 to Attempts do
-  begin
-    ATPA := GroundItem.Find;
-    if Length(ATPA) = 0 then
-      Exit(False);
-
-    Points := ATPA[Random(0, High(ATPA))];
-    Point := Points[Random(0, High(Points))];
-
-    Mouse.Move(Point);
-
-    Result := MainScreen.IsUpText(Name);
-    if Result then
-      Exit(True)
-    else if CheckPile then
-    begin
-      ChooseOption.Open;
-      if ChooseOption.HasOption([Name]) then
-        Exit(True);
-    end;
-  end;
-end;
-
-function TRSMainScreen.HoverGroundItem(Name: String; PrimaryColor, SecondaryColor: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
-var
-  Finder: TRSObjectFinder;
-  GroundItem: TRSGroundItem;
-  ATPA: T2DPointArray;
-  Points: TPointArray;
-  Point: TPoint;
-begin
-
-  Finder.ColorClusters += [PrimaryColor, SecondaryColor, 30];
-  GroundItem := [Finder, Name];
-  GroundItem.SetupFinder;
-
-  for 1 to Attempts do
-  begin
-    ATPA := GroundItem.Find;
-    if Length(ATPA) = 0 then
-      Exit(False);
-
-    Points := ATPA[Random(0, High(ATPA))];
-    Point := Points[Random(0, High(Points))];
-
-    Mouse.Move(Point);
-
-    Result := MainScreen.IsUpText(Name);
-    if Result then
-      Exit(True)
-    else if CheckPile then
-    begin
-      ChooseOption.Open;
-      if ChooseOption.HasOption([Name]) then
-        Exit(True);
-    end;
-  end;
-end;
-
-
-function TRSMainScreen.ClickGroundItem(Name: String; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean;
-begin
-  if not Self.HoverGroundItem(Name, CheckPile, Attempts) then
-    Exit(False);
-
-  if not CheckPile then
-    Mouse.Click(MOUSE_LEFT)
-  else if ChooseOption.IsOpen then
-    ChooseOption.Select(Name);
-  Result := MainScreen.DidRedClick;
-end;
-
-function TRSMainScreen.ClickGroundItem(Name: String; Color: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
-begin
-  if not Self.HoverGroundItem(Name, Color, CheckPile, Attempts) then
-    Exit(False);
-
-  if not CheckPile then
-    Mouse.Click(MOUSE_LEFT)
-  else if ChooseOption.IsOpen then
-    ChooseOption.Select(Name);
-  Result := MainScreen.DidRedClick;
-end;
-
-function TRSMainScreen.ClickGroundItem(Name: String; PrimaryColor, SecondaryColor: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
-begin
-  if not Self.HoverGroundItem(Name, PrimaryColor, SecondaryColor, CheckPile, Attempts) then
-    Exit(False);
-
-  if not CheckPile then
-    Mouse.Click(MOUSE_LEFT)
-  else if ChooseOption.IsOpen then
-    ChooseOption.Select(Name);
-  Result := MainScreen.DidRedClick;
-end;
-
-
-function TRSMainScreen.SelectGroundItemOption(Name, Action: String; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean;
-begin
-  if not Self.HoverGroundItem(Name, CheckPile, Attempts) then
-    Exit(False);
-
-  if MainScreen.IsUpText(Action) then
-    Mouse.Click(MOUSE_LEFT)
-  else if ChooseOption.Open() then
-    Result := ChooseOption.Select(Action);
-
-  Result := MainScreen.DidRedClick;
-end;
-
-function TRSMainScreen.SelectGroundItemOption(Name, Action: String; Color: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
-begin
-  if not Self.HoverGroundItem(Name, Color, CheckPile, Attempts) then
-    Exit(False);
-
-  if MainScreen.IsUpText(Action) then
-    Mouse.Click(MOUSE_LEFT)
-  else if ChooseOption.Open() then
-    Result := ChooseOption.Select(Action);
-
-  Result := MainScreen.DidRedClick;
-end;
-
-function TRSMainScreen.SelectGroundItemOption(Name, Action: String; PrimaryColor, SecondaryColor: TCTS2Color; CheckPile: Boolean = False; Attempts: Int32 = 2): Boolean; overload;
-begin
-  if not Self.HoverGroundItem(Name, PrimaryColor, SecondaryColor, CheckPile, Attempts) then
-    Exit(False);
-
-  if MainScreen.IsUpText(Action) then
-    Mouse.Click(MOUSE_LEFT)
-  else if ChooseOption.Open() then
-    Result := ChooseOption.Select(Action);
-
-  Result := MainScreen.DidRedClick;
-end;
-
-
-procedure TRSGroundItem.Debug(Tiles: TPointArray);
-var
-  Img: TMufasaBitmap;
-  Tile: TPoint;
-  ATPA: T2DPointArray;
+  Bitmap: TMufasaBitmap;
   Rect: TRectangle;
-  Rectangles: Array of TRectangle;
+  Rects: TRectArray;
+  B: TBox;
+  TPA: TPointArray;
+  NPCFinder: TRSObjectFinder;
+  NPC: T2DPointArray;
 begin
-  Img.FromClient(MainScreen.Bounds);
+  Bitmap.FromClient(MainScreen.Bounds);
 
-  for Tile in Tiles do
-    Rectangles += Minimap.VecToMSRect([Tile.X+2, Tile.Y+2, 2]);
-  for Rect in Rectangles do
-    ATPA += Rect.ToTPA.Connect;
+  if Filter.Walker then
+  begin
+    Rects := GetTilesRects(Bitmap);
+    if Filter.Finder then
+    begin
+      NPCFinder := Finder;
+      NPCFinder.MinLongSide := 0;
+      NPCFinder.MinShortSide := 0;
+    end;
 
-  Img.DrawATPA(ATPA);
-  ShowBitmap(Img);
-  Img.Free;
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(NPCFinder, B).Merge;
+          NPC += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          NPC += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    NPC := MainScreen.FindObject(Finder);
+
+  if NPC = [] then
+  begin
+    Bitmap.Free;
+    Exit;
+  end;
+
+  NPC.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+
+  Bitmap.DrawATPA(NPC);
+  Bitmap.DrawTPA(NPC[0], $000000);
+
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
 end;
+
+
+procedure TRSGroundItem.SetupCommon(Walker: PRSWalker; Radius: Int32 = 2; ItemHeight: Int32 = 0);
+begin
+  Map := Walker;
+  RadiusCheck := Radius;
+  Height := ItemHeight;
+  Finder.ClusterDistance := 3;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+
+  Filter.Walker := True;
+  Filter.Finder := True;
+  Filter.UpText := True;
+end;
+
+
+
+
+// HoverHelper function used by non walking ground item hovering functions.
+function TRSGroundItem._HoverHelper(Attempts: Int32): Boolean; overload;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+begin
+  for Attempt := 0 to Attempts do
+  begin
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if (ATPA := Self.Find) <> [] then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+      begin
+        Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    //will rotate the screen for the last attempt if hasn't hovered properly yet
+    if Attempt = (Attempts - 1) then
+      Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+  end;
+end;
+
+// WalkHoverHelper function used by walking ground item hovering functions.
+function TRSGroundItem._WalkHoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+begin
+  if not Filter.Walker then
+    Exit;
+
+  for Attempt := 0 to Attempts do
+  begin
+    if InterfaceArea.HasInterface() then
+      Exit(False);
+
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if (ATPA := Self.Find) <> [] then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+      begin
+        Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True)
+    else if not Map^.AtTile(Tile, 50) then
+      Map^.WebWalk(Tile, 10, 0.2)
+    else if Attempt = (Attempts - 1) then
+    begin
+      if not Map^.AtTile(Tile, 30) then
+        Map^.WebWalk(Tile, 10, 0.2);
+      Minimap.SetCompassAngle(Random(Minimap.GetCompassAngle - 50, Minimap.GetCompassAngle + 50) , 10);
+    end;
+  end;
+end;
+
+// ClickHelper function used by ground item clicking functions.
+function TRSGroundItem._ClickHelper(LeftClick: Boolean): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.Select(UpText) then
+      Exit(True)
+    else
+    begin
+      ChooseOption.Close;
+      Exit;
+    end;
+  end;
+
+  if LeftClick then
+    Mouse.Click(MOUSE_LEFT);
+
+  Result := MainScreen.DidRedClick or
+            (not LeftClick and Filter.UpText and ChooseOption.Select(UpText));
+end;
+
+// SelectHelper function used by ground item option selection functions.
+function TRSGroundItem._SelectHelper(Action: TStringArray): Boolean;
+begin
+  if ChooseOption.IsOpen and ChooseOption.Select(Action) then
+    Exit(True);
+
+  if MainScreen.IsUpText(Action) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Result := MainScreen.DidRedClick;
+  end
+  else
+    Result := ChooseOption.Select(Action);
+end;
+
+
+
+
+// Searches for an NPC with TRSGroundItem.Find.
+function TRSGroundItem.Hover(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if Filter.Walker and not Map^.MakeTileVisible(Tile) then
+    Exit(False);
+
+  Result := Self._HoverHelper(Attempts);
+end;
+
+// Searches for an NPC with TRSGroundItem.Find, hovers and clicks it if found.
+function TRSGroundItem.Click(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(Attempts) and
+            Self._ClickHelper(LeftClick);
+end;
+
+// Searches for an NPC with TRSGroundItem.Find, hovers and selects the specified action if found.
+function TRSGroundItem.SelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(Attempts) and
+            Self._SelectHelper(Action);
+end;
+
+
+
+
+// Searches for an NPC with TRSGroundItem.Find and walker.
+function TRSGroundItem.WalkHover(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if not Filter.Walker then
+    Exit;
+
+  if not Map^.MakeTileVisible(Tile) then
+    if not Map^.WebWalk(Tile, 30, 0.2) then
+      Exit(False);
+
+  Result := Self._WalkHoverHelper(Attempts);
+end;
+
+// Searches for an NPC with TRSGroundItem.Find and walker, hovers and clicks it if found.
+function TRSGroundItem.WalkClick(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(Attempts) and
+            Self._ClickHelper(LeftClick);
+end;
+
+// Searches for an NPC with TRSGroundItem.Find and walker, hovers and selects the specified action if found.
+function TRSGroundItem.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(Attempts) and
+            Self._SelectHelper(Action);
+end;
+
+
+
+
+procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
+begin
+  inherited;
+
+  //NEED TO IMPLEMENT: Load GroundItem collection.
+  //Similar to RSObjects and RSNPCs
+end;
+

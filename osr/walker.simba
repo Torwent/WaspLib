@@ -295,15 +295,24 @@ begin
   Result := Self.TileWithinZoom(Tile);
 end;
 
+
+
+function TRSWalker.FacingTile(Tile: TPoint; Randomness: Int32 = 20): Boolean;
+var
+  Angle: Double;
+begin
+  Angle := MainScreen.PointToMM(Self.GetTileMS(Tile).Mean).ToPoint.AngleBetween(Minimap.Center);
+  Result := (Angle <= (0 + Randomness)) or (Angle >= (360 - Randomness));
+end
+
 // Attempts to rotate the screen in order to make Tile visible.
 function TRSWalker.FaceTile(Tile: TPoint): Boolean;
 begin
-  if Self.TileVisible(Tile) then
-    Exit(True);
-
-  MainScreen.FacePoint(Self.GetTileMS(Tile).Mean, 5);
-
-  Result := Self.TileVisible(Tile);
+  if not Self.FacingTile(Tile, 10) then
+  begin
+    MainScreen.FacePoint(Self.GetTileMS(Tile).Mean, 10);
+    Result := Self.FacingTile(Tile, 10);
+  end;
 end;
 
 function TRSWalker.FaceTile(Tiles: TPointArray): Boolean; overload;
@@ -364,10 +373,9 @@ end;
 
 function TRSWalker.MakeTileVisible(Tile: TPoint): Boolean;
 begin
-  if Self.FaceTile(Tile) then
-    Exit(True);
-
-  Result := ZoomToTile(Tile);
+  Result := Self.TileVisible(Tile) or
+            (Self.FaceTile(Tile) and Self.TileVisible(Tile)) or
+            ZoomToTile(Tile);
 end;
 
 function TRSWalker.MakeTileVisible(Tiles: TPointArray): Boolean; overload;

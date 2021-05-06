@@ -1,4 +1,4 @@
-{$DEFINE WL_GROUNDITEM_INCLUDED}
+{$DEFINE WL_RSGROUNDITEM_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
@@ -13,6 +13,13 @@ type
     Height: Int32; //Possibly always 0
     Finder: TRSObjectFinder;
     UpText: TStringArray;
+
+    ItemArray: TRSItemArray; //Array because coins, arrows bolts, have multiple ids.
+    GEValue: Int32;
+    StoreValue: Int32;
+    LowAlch: Int32;
+    HighAlch: Int32;
+
     Filter: record
       Walker: Boolean;
       Finder: Boolean;
@@ -21,6 +28,21 @@ type
   end;
 
   TRSGroundItemArray = array of TRSGroundItem;
+
+procedure TRSGroundItem.SetupCommon(Radius: Int32 = 2; ItemHeight: Int32 = 0);
+begin
+  RadiusCheck := Radius;
+  Height := ItemHeight;
+  Finder.ClusterDistance := 3;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+
+  Filter.Walker := True;
+  Filter.Finder := True;
+  Filter.UpText := True;
+end;
+
+{$I rsgrounditems.simba}
 
 function TRSGroundItem.Find: T2DPointArray;
   function GetTilesRects: TRectArray;
@@ -221,23 +243,13 @@ begin
   Bitmap.Free;
 end;
 
-
-procedure TRSGroundItem.SetupCommon(Walker: PRSWalker; Radius: Int32 = 2; ItemHeight: Int32 = 0);
+procedure TRSGroundItem.SetupValue;
 begin
-  Map := Walker;
-  RadiusCheck := Radius;
-  Height := ItemHeight;
-  Finder.ClusterDistance := 3;
-  Finder.Erode := 2;
-  Finder.Grow := 4;
-
-  Filter.Walker := True;
-  Filter.Finder := True;
-  Filter.UpText := True;
+  GEValue := ItemInfo.GetAveragePrice(ItemArray[0]);
+  StoreValue := ItemInfo.GetStoreCost(ItemArray[0]);
+  LowAlch := Round(StoreValue * 0.4);
+  HighAlch := Round(StoreValue * 0.6);
 end;
-
-
-
 
 // HoverHelper function used by non walking ground item hovering functions.
 function TRSGroundItem._HoverHelper(Attempts: Int32): Boolean; overload;
@@ -435,15 +447,3 @@ begin
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);
 end;
-
-
-
-
-procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
-begin
-  inherited;
-
-  //NEED TO IMPLEMENT: Load GroundItem collection.
-  //Similar to RSObjects and RSNPCs
-end;
-

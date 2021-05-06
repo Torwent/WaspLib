@@ -1,4 +1,4 @@
-{$DEFINE WL_NPC_INCLUDED}
+{$DEFINE WL_RSNPC_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
@@ -22,8 +22,20 @@ type
 
   TRSNPCArray = array of TRSNPC;
 
-{$I walker/worldnpc.simba}
-{$I walker/zeahnpc.simba}
+procedure TRSNPC.SetupCommon(Radius: Int32 = 1; NPCHeight: Int32 = 6);
+begin
+  WanderRadius := Radius;
+  Height := NPCHeight;
+  Finder.ClusterDistance := 3;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+
+  Filter.Walker := True;
+  Filter.Finder := True;
+  Filter.UpText := True;
+end;
+
+{$I rsnpcs.simba}
 
 function TRSNPC.Find: T2DPointArray;
   function GetTilesRects: TRectArray;
@@ -225,24 +237,6 @@ begin
 end;
 
 
-
-procedure TRSNPC.SetupCommon(Walker: PRSWalker; Radius: Int32 = 1; NPCHeight: Int32 = 6);
-begin
-  Map := Walker;
-  WanderRadius := Radius;
-  Height := NPCHeight;
-  Finder.ClusterDistance := 3;
-  Finder.Erode := 2;
-  Finder.Grow := 4;
-
-  Filter.Walker := True;
-  Filter.Finder := True;
-  Filter.UpText := True;
-end;
-
-
-
-
 // HoverHelper function used by non walking NPC hovering functions.
 function TRSNPC._HoverHelper(Attempts: Int32): Boolean; overload;
 var
@@ -438,17 +432,4 @@ function TRSNPC.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boo
 begin
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);
-end;
-
-
-
-
-procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
-begin
-  inherited;
-
-  if Name.Contains('world') then
-    WorldNPCs.Load(@Self)
-  else if Name.Contains('zeah') then
-    ZeahNPCs.Load(@Self);
 end;

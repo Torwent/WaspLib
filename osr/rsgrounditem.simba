@@ -1,18 +1,25 @@
-{$DEFINE WL_RSNPC_INCLUDED}
+{$DEFINE WL_RSGROUNDITEM_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
 type
-  PRSNPC = ^TRSNPC;
+  PRSGroundItem = ^TRSGroundItem;
 
-  TRSNPC = record
+  TRSGroundItem = record
     Map: PRSWalker;
     Tile: TPoint;
-    WanderRadius: Int32;
-    Height: Int32;
+    RadiusCheck: Int32;
+    Height: Int32; //Possibly always 0
     Finder: TRSObjectFinder;
     UpText: TStringArray;
+
+    ItemArray: TRSItemArray; //Array because coins, arrows bolts, have multiple ids.
+    GEValue: Int32;
+    StoreValue: Int32;
+    LowAlch: Int32;
+    HighAlch: Int32;
+
     Filter: record
       Walker: Boolean;
       Finder: Boolean;
@@ -20,12 +27,12 @@ type
     end;
   end;
 
-  TRSNPCArray = array of TRSNPC;
+  TRSGroundItemArray = array of TRSGroundItem;
 
-procedure TRSNPC.SetupCommon(Radius: Int32 = 1; NPCHeight: Int32 = 6);
+procedure TRSGroundItem.SetupCommon(Radius: Int32 = 2; ItemHeight: Int32 = 0);
 begin
-  WanderRadius := Radius;
-  Height := NPCHeight;
+  RadiusCheck := Radius;
+  Height := ItemHeight;
   Finder.ClusterDistance := 3;
   Finder.Erode := 2;
   Finder.Grow := 4;
@@ -35,9 +42,9 @@ begin
   Filter.UpText := True;
 end;
 
-{$I rsnpcs.simba}
+{$I rsgrounditems.simba}
 
-function TRSNPC.Find: T2DPointArray;
+function TRSGroundItem.Find: T2DPointArray;
   function GetTilesRects: TRectArray;
   var
     MMTile: TPoint := Map^.WorldToMM(Tile);
@@ -49,13 +56,13 @@ function TRSNPC.Find: T2DPointArray;
     LowTPA: TPointArray;
     TPA: TPointArray;
   begin
-    if not Minimap.IsPointOn(MMTile, WanderRadius) then
+    if not Minimap.IsPointOn(MMTile, RadiusCheck) then
       Exit;
 
-    Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+    Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
 
     for Dot in Dots do
-      if SRL.PointInCircle(Dot, MMTile, WanderRadius * 5) then
+      if SRL.PointInCircle(Dot, MMTile, RadiusCheck * 5) then
         FilteredDots += Dot;
 
     if FilteredDots = [] then
@@ -129,7 +136,7 @@ begin
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
-procedure TRSNPC.Debug;
+procedure TRSGroundItem.Debug;
   function GetTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
   var
     MMTile: TPoint := Map^.WorldToMM(Tile);
@@ -141,13 +148,13 @@ procedure TRSNPC.Debug;
     LowTPA: TPointArray;
     TPA: TPointArray;
   begin
-    if not Minimap.IsPointOn(MMTile, WanderRadius) then
+    if not Minimap.IsPointOn(MMTile, RadiusCheck) then
       Exit;
 
-    Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+    Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
 
     for Dot in Dots do
-      if SRL.PointInCircle(Dot, MMTile, WanderRadius * 5) then
+      if SRL.PointInCircle(Dot, MMTile, RadiusCheck * 5) then
         FilteredDots += Dot;
 
     if FilteredDots = [] then
@@ -236,9 +243,16 @@ begin
   Bitmap.Free;
 end;
 
+procedure TRSGroundItem.SetupValue;
+begin
+  GEValue := ItemInfo.GetAveragePrice(ItemArray[0]);
+  StoreValue := ItemInfo.GetStoreCost(ItemArray[0]);
+  LowAlch := Round(StoreValue * 0.4);
+  HighAlch := Round(StoreValue * 0.6);
+end;
 
-// HoverHelper function used by non walking NPC hovering functions.
-function TRSNPC._HoverHelper(Attempts: Int32): Boolean; overload;
+// HoverHelper function used by non walking ground item hovering functions.
+function TRSGroundItem._HoverHelper(Attempts: Int32): Boolean; overload;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -278,8 +292,8 @@ begin
   end;
 end;
 
-// WalkHoverHelper function used by walking NPC hovering functions.
-function TRSNPC._WalkHoverHelper(Attempts: Int32): Boolean;
+// WalkHoverHelper function used by walking ground item hovering functions.
+function TRSGroundItem._WalkHoverHelper(Attempts: Int32): Boolean;
 var
   Attempt: Int32;
   ATPA: T2DPointArray;
@@ -328,8 +342,8 @@ begin
   end;
 end;
 
-// ClickHelper function used by NPC clicking functions.
-function TRSNPC._ClickHelper(LeftClick: Boolean): Boolean;
+// ClickHelper function used by ground item clicking functions.
+function TRSGroundItem._ClickHelper(LeftClick: Boolean): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
@@ -349,8 +363,8 @@ begin
             (not LeftClick and Filter.UpText and ChooseOption.Select(UpText));
 end;
 
-// SelectHelper function used by NPC option selection functions.
-function TRSNPC._SelectHelper(Action: TStringArray): Boolean;
+// SelectHelper function used by ground item option selection functions.
+function TRSGroundItem._SelectHelper(Action: TStringArray): Boolean;
 begin
   if ChooseOption.IsOpen and ChooseOption.Select(Action) then
     Exit(True);
@@ -367,8 +381,8 @@ end;
 
 
 
-// Searches for an NPC with TRSNPC.Find.
-function TRSNPC.Hover(Attempts: Int32 = 2): Boolean;
+// Searches for an NPC with TRSGroundItem.Find.
+function TRSGroundItem.Hover(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
@@ -383,15 +397,15 @@ begin
   Result := Self._HoverHelper(Attempts);
 end;
 
-// Searches for an NPC with TRSNPC.Find, hovers and clicks it if found.
-function TRSNPC.Click(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+// Searches for an NPC with TRSGroundItem.Find, hovers and clicks it if found.
+function TRSGroundItem.Click(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
   Result := Self.Hover(Attempts) and
             Self._ClickHelper(LeftClick);
 end;
 
-// Searches for an NPC with TRSNPC.Find, hovers and selects the specified action if found.
-function TRSNPC.SelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+// Searches for an NPC with TRSGroundItem.Find, hovers and selects the specified action if found.
+function TRSGroundItem.SelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
   Result := Self.Hover(Attempts) and
             Self._SelectHelper(Action);
@@ -400,8 +414,8 @@ end;
 
 
 
-// Searches for an NPC with TRSNPC.Find and walker.
-function TRSNPC.WalkHover(Attempts: Int32 = 2): Boolean;
+// Searches for an NPC with TRSGroundItem.Find and walker.
+function TRSGroundItem.WalkHover(Attempts: Int32 = 2): Boolean;
 begin
   if ChooseOption.IsOpen then
   begin
@@ -420,15 +434,15 @@ begin
   Result := Self._WalkHoverHelper(Attempts);
 end;
 
-// Searches for an NPC with TRSNPC.Find and walker, hovers and clicks it if found.
-function TRSNPC.WalkClick(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+// Searches for an NPC with TRSGroundItem.Find and walker, hovers and clicks it if found.
+function TRSGroundItem.WalkClick(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
 begin
   Result := Self.WalkHover(Attempts) and
             Self._ClickHelper(LeftClick);
 end;
 
-// Searches for an NPC with TRSNPC.Find and walker, hovers and selects the specified action if found.
-function TRSNPC.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+// Searches for an NPC with TRSGroundItem.Find and walker, hovers and selects the specified action if found.
+function TRSGroundItem.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);

@@ -5,15 +5,54 @@
 
 type
   TRSBoost = record
-    SkillBoost: record
-      Skill: ERSSkill;
-      Divine: Boolean;
-      Countdown: TCountdown;
-      LevelBoost: Int32;
-    end;
+    Skills: array of ERSSkill;
+    LevelsBoost: TIntegerArray;
+    ItemDoses: TRSItemArray;
+    LeftOver: TRSItem;
+    Countdown: TCountdown;
   end;
 
-function TRSBoost.Boost(Identifer: String): Boolean;
-begin
+  TRSBaseStats = record
+    Skills: array of ERSSkill;
+    Levels: TIntegerArray;
+  end;
 
+procedure TRSBaseStats.Setup;
+var
+  i: Int32;
+begin
+  if not Stats.Open then
+    Exit;
+
+  for i := Ord(ERSSkill.ATTACK) to Ord(ERSSkill.HUNTER) do
+  begin
+    Skills += ERSSkill(i);
+    Levels += Stats.GetCurrentLevel(ERSSkill(i));
+  end;
 end;
+
+var
+  BaseStats: TRSBaseStats;
+
+function TRSBoost.Consume: Boolean;
+var
+  ItemDose: TRSItem;
+  Slot: Int32;
+begin
+  if BaseStats = [] then
+    BaseStats.Setup;
+
+  for ItemDose in ItemDoses do
+    if Inventory.FindItem(ItemDose, Slot) then
+      Break;
+
+  if Slot < 0 then
+    Exit;
+
+  if Inventory.ClickSlot(Slot) then
+    Result := Inventory.WaitItemFade(Slot);
+
+  if Result then
+    Countdown.Restart;
+end;
+

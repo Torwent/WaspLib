@@ -15,6 +15,7 @@ type
     UpText: TStringArray;
     Filter: record
       Walker: Boolean;
+      Minimap: Boolean;
       Finder: Boolean;
       UpText: Boolean;
     end;
@@ -30,15 +31,15 @@ begin
   Finder.Erode := 2;
   Finder.Grow := 4;
 
-  Filter.Walker := True;
-  Filter.Finder := True;
-  Filter.UpText := True;
+  Filter.Minimap := True;
+  Filter.Finder  := True;
+  Filter.UpText  := True;
 end;
 
 {$I rsnpcs.simba}
 
 function TRSNPC.Find: T2DPointArray;
-  function GetTilesRects: TRectArray;
+  function GetWalkerTilesRects: TRectArray;
   var
     MMTile: TPoint := Map^.WorldToMM(Tile);
     Dot: TPoint;
@@ -81,6 +82,40 @@ function TRSNPC.Find: T2DPointArray;
     end;
   end;
 
+  function GetTilesRects: TRectArray;
+  var
+    Dot: TPoint;
+    Dots: TPointArray;
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+
+    if Dots = [] then
+      Exit;
+
+    for Dot in Dots do
+    begin
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Result += Rect;
+    end;
+  end;
+
 var
   Rect: TRectangle;
   Rects: TRectArray;
@@ -90,6 +125,37 @@ var
 begin
 
   if Filter.Walker then
+  begin
+    Rects := GetWalkerTilesRects;
+    if Filter.Finder then
+    begin
+      NPCFinder := Finder;
+      NPCFinder.MinLongSide := 0;
+      NPCFinder.MinShortSide := 0;
+    end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(NPCFinder, B).Merge;
+          Result += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          Result += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Minimap then
   begin
     Rects := GetTilesRects;
     if Filter.Finder then
@@ -130,7 +196,7 @@ begin
 end;
 
 procedure TRSNPC.Debug;
-  function GetTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
+  function GetWalkerTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
   var
     MMTile: TPoint := Map^.WorldToMM(Tile);
     Dot: TPoint;
@@ -171,7 +237,44 @@ procedure TRSNPC.Debug;
         TPA := HighTPA;
 
       Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+      Result += Rect;
+    end;
+  end;
+
+  function GetTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Dot: TPoint;
+    Dots: TPointArray;
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    Dots := Minimap.GetDots(ERSMinimapDot.NPC);
+
+    if Dots = [] then
+      Exit;
+
+    for Dot in Dots do
+    begin
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]);
       Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
       Result += Rect;
     end;
   end;
@@ -188,6 +291,37 @@ begin
   Bitmap.FromClient(MainScreen.Bounds);
 
   if Filter.Walker then
+  begin
+    Rects := GetWalkerTilesRects(Bitmap);
+    if Filter.Finder then
+    begin
+      NPCFinder := Finder;
+      NPCFinder.MinLongSide := 0;
+      NPCFinder.MinShortSide := 0;
+    end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(NPCFinder, B).Merge;
+          NPC += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          NPC += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Minimap then
   begin
     Rects := GetTilesRects(Bitmap);
     if Filter.Finder then
@@ -217,6 +351,7 @@ begin
       end;
     end;
   end
+
 
   else if Filter.Finder then
     NPC := MainScreen.FindObject(Finder);

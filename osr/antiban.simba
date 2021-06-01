@@ -8,6 +8,98 @@ var
   Endurance: Double; //Unused for now.
   Patience: Double;  //Unused for now.
 
+
+// POV antibans
+procedure TAntiban.RandomPOVTask;
+begin
+  case Random(0, 5) of
+    0:        Self.AdjustZoom;
+    1, 2, 3,
+    4, 5:     Self.RandomRotate;
+  end;
+end;
+
+// Mouse antibans
+
+procedure TAntiban.RandomRightClick; override;
+begin
+  Self.DebugLn('Random Right Click');
+
+  Mouse.Move(GetClientBounds(), True, MOUSE_DISTRIBUTION_RANDOM);
+
+  if ChooseOption.Open() then
+  begin
+    if Random() < 0.50 then
+      Mouse.Move(ChooseOption.Bounds);
+
+    if not SRL.Dice(60 * BioHash) or not ChooseOption.Select('Examine') then
+    begin
+      Wait(100 * BioHash, 8000 * BioHash, wdLeft);
+      ChooseOption.Close();
+    end;
+  end;
+end;
+
+procedure TAntiban.RandomMouseTask;
+begin
+  case Random(0, 8) of
+    0, 1:     Self.RandomRightClick;
+    2, 3, 4:  Self.RandomMouse;
+    5, 6, 7,
+    8, 9:     Self.SmallRandomMouse;
+  end;
+end;
+
+// GameTabs antibans
+procedure TAntiban.RandomTab; override;
+begin
+  Self.DebugLn('Random Tab');
+
+  if Random() < 0.80 then
+  begin
+    if Random() < 0.50 then
+    begin
+      GameTabs.Open(ERSGameTab(SRL.NormalRange(Ord(ERSGameTab.COMBAT), Ord(ERSGameTab.MAGIC), 6.0)));
+
+      Wait(300, 3000, wdLeft);
+    end;
+
+    GameTabs.Open(ERSGameTab(Random(Ord(ERSGameTab.COMBAT), Ord(ERSGameTab.MAGIC))));
+  end else
+  begin
+    if Random() < 0.50 then
+    begin
+      GameTabs.Open(ERSGameTab(SRL.NormalRange(Ord(ERSGameTab.CLAN), Ord(ERSGameTab.MUSIC), 6.0)));
+
+      Wait(0, 2500, wdLeft);
+    end;
+
+    GameTabs.Open(ERSGameTab(Random(Ord(ERSGameTab.CLAN), Ord(ERSGameTab.MUSIC))));
+  end;
+end;
+
+procedure TAntiban.ToggleTab;
+var
+  CurrentTab: ERSGameTab := GameTabs.GetCurrentTab;
+begin
+  Self.DebugLn('Toggling game tabs');
+  Self.RandomTab;
+  Wait(100 * BioHash, 7000 * BioHash, wdLeft);
+  GameTabs.Open(CurrentTab);
+end;
+
+procedure TAntiban.RandomGameTabTask;
+begin
+  case Random(0, 5) of
+    0, 1:        Self.RandomTab;
+    2, 3, 4, 5:  Self.ToggleTab;
+  end;
+end;
+
+
+
+
+
 // Toggling random stuff antibans
 procedure TAntiban.ToggleRun();
 begin
@@ -43,26 +135,9 @@ begin
   end;
 end;
 
-procedure TAntiban.RandomRightClick; override;
-begin
-  Self.DebugLn('Random Right Click');
-
-  Mouse.Move(GetClientBounds(), True, MOUSE_DISTRIBUTION_RANDOM);
-
-  if ChooseOption.Open() then
-  begin
-    if Random() < 0.50 then
-      Mouse.Move(ChooseOption.Bounds);
-
-    Wait(0, 8000, wdLeft);
-
-    ChooseOption.Close();
-  end;
-end;
-
 
 // Chatbox antibans
-procedure TAntiban.ChatScrolling();
+procedure TAntiban.ChatScrolling;
 begin
   Self.DebugLn('[RND] Random scrolling on chat');
   //Chatbox.RandomScroll();
@@ -70,21 +145,48 @@ end;
 
 procedure TAntiban.RandomChatButton;
 var
-  ChatButton: ERSChatButton := ERSChatButton(Random(0, 5));
+  ChatButton: ERSChatButton := ERSChatButton(Random(0, (Length(ERSChatButton) - 2)));
 begin
   Self.DebugLn('[RND] Opening ' + ToStr(ChatButton) + ' chat button');
 
   ChatButtons.Open(ChatButton);
 end;
 
-procedure TAntiban.ToggleChatButton();
+procedure TAntiban.ToggleChatButton;
 var
   CurrentButton: ERSChatButton := ChatButtons.GetActive;
 begin
-  Self.DebugLn('[RND] Toggling Chat Tabs');
+  Self.DebugLn('[RND] Toggling chat buttons');
   Self.RandomChatButton;
-  Wait(3000 * Biohash, 5000 * Biohash);
+  Wait(3000 * BioHash, 5000 * BioHash);
   ChatButtons.Open(CurrentButton);
+end;
+
+procedure TAntiban.RandomChatButtonState;
+var
+  RandomButton: ERSChatButton := ERSChatButton(Random(2, (Length(ERSChatButton) - 2)));
+  RandomState: ERSChatButtonState;
+begin
+  case RandomButton of
+    ERSChatButton.GAME_CHAT:    RandomState := ERSChatButtonState.FILTERED;
+    ERSChatButton.PUBLIC_CHAT:  RandomState := ERSChatButtonState(Random(1, Length(ERSChatButtonState)));
+    ERSChatButton.PRIVATE_CHAT: RandomState := ERSChatButtonState(Random(1, 3));
+    ERSChatButton.CHANNEL_CHAT: RandomState := ERSChatButtonState(Random(1, 3));
+    ERSChatButton.CLAN_CHAT:    RandomState := ERSChatButtonState(Random(1, 3));
+    ERSChatButton.TRADE_CHAT:   RandomState := ERSChatButtonState(Random(1, 3));
+  end;
+
+  Self.DebugLn('[RND] Changing ' + ToStr(RandomButton) + ' state to ' + ToStr(RandomState));
+  ChatButtons.ChangeState(RandomButton, RandomState);
+end;
+
+procedure TAntiban.RandomChatTask;
+begin
+  case Random(0, 5) of
+    0:        Self.RandomChatButton;
+    1, 2, 3:  Self.ToggleChatButton;
+    4, 5:     Self.RandomChatButtonState;
+  end;
 end;
 
 
@@ -100,13 +202,15 @@ end;
 
 procedure TAntiban.RandomBankTab;
 var
+  HighTab: Int32;
   BankTab: Int32;
 begin
   if not Bank.IsOpen then
     Exit;
 
-  BankTab := Random(0, Bank.CountTabs());
-  Self.DebugLn('[RND] Opening Bank Tab ' + ToStr(BankTab));
+  HighTab := Bank.CountTabs();
+  BankTab := Random(0, HighTab);
+  Self.DebugLn('[RND] Opening bank tab ' + ToStr(BankTab));
   Bank.OpenTab(BankTab);
 end;
 
@@ -117,11 +221,34 @@ begin
   if not Bank.IsOpen then
     Exit;
 
-  Self.DebugLn('[RND] Toggling Bank Tabs');
+  Self.DebugLn('[RND] Toggling bank tabs');
   CurrentTab := Bank.GetCurrentTab();
   Self.RandomBankTab;
   Wait(3000 * Biohash, 5000 * Biohash);
   Bank.OpenTab(CurrentTab);
+end;
+
+procedure TAntiban.RandomBankButton;
+var
+  RandomButton: ERSBankButton;
+  BankButton: TRSButton;
+begin
+  if not Bank.IsOpen then
+    Exit;
+
+  RandomButton := ERSBankButton(Random(2, 10));
+  BankButton := Bank.GetButton(RandomButton);
+  Self.DebugLn('[RND] Clicking ' + ToStr(RandomButton) + ' bank button');
+  BankButton.Enable;
+end;
+
+procedure TAntiban.RandomBankTask;
+begin
+  case Random(0, 4) of
+    0:        Self.RandomBankTab;
+    1, 2, 3:  Self.ToggleBankTab;
+    4:        Self.RandomBankTask;
+  end;
 end;
 
 
@@ -149,14 +276,12 @@ begin
   if Self.Tasks <> [] then
     Exit;
 
-  Self.AddTask(5  * ONE_MINUTE, @Self.RandomRotate);
-  Self.AddTask(8  * ONE_MINUTE, @Self.RandomChatButton);
-  Self.AddTask(8  * ONE_MINUTE, @Self.RandomRightClick);
+  Self.AddTask(5  * ONE_MINUTE, @Self.RandomPOVTask);
+  Self.AddTask(8  * ONE_MINUTE, @Self.RandomChatTask);
+  Self.AddTask(8  * ONE_MINUTE, @Self.RandomMouseTask);
   Self.AddTask(10 * ONE_MINUTE, @Self.LoseFocus);
-  Self.AddTask(12 * ONE_MINUTE, @Self.RandomTab);
-  Self.AddTask(20 * ONE_MINUTE, @Self.LoseFocus);
-  Self.AddTask(21 * ONE_MINUTE, @Self.HoverSkills);
-  Self.AddTask(30 * ONE_MINUTE, @Self.AdjustZoom);
+  Self.AddTask(12 * ONE_MINUTE, @Self.RandomGameTabTask);
+  Self.AddTask(18 * ONE_MINUTE, @Self.HoverSkills);
 end;
 
 procedure TAntiban.SetupBreaks;
@@ -192,6 +317,15 @@ begin
   );
 end;
 
-
-
+// Antiban tasks that can be performed while using walker.
+procedure TAntiban.WalkerTasks();
+begin
+  case Random(0, 8) of
+    0:          Self.RandomChatTask();
+    1, 2, 3,
+    4, 5:       Self.RandomMouseTask();
+    6:          Self.RandomGameTabTask();
+    7, 8:       Self.HoverSkills();
+  end;
+end;
 

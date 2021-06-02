@@ -27,7 +27,7 @@ begin
     Result := Files[0];
 end;
 
-// overloaded to provide the ability to offset the map
+// overriden to provide the ability to offset the map
 procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
 var
   Path: String;
@@ -79,6 +79,7 @@ begin
     WalkerOffsetArray += [0, 0];
 end;
 
+// overriden to take into account map offset on debug
 procedure TRSWalker.DebugPosition; override;
 var
   X1, Y1, X2, Y2, X, Y: Int32;
@@ -148,7 +149,7 @@ begin
   UnFreeze();
 end;
 
-
+// overriden to take into account map offset
 function TRSWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
 const
   TEMPL_SIZE = 25;
@@ -191,6 +192,195 @@ begin
   SliceScaled.Free();
   Slice.Free();
 end;
+
+
+// overriden to add antiban
+procedure TRSWalker.WaitMoving(Destination: TPoint; WaitUntilDistance: Int32; DoAntiban: Boolean); overload;
+var
+  Timeout, Countdown: TCountDown;
+  Position: record
+    Current, Previous: TPoint;
+  end;
+begin
+  Timeout.Init(Round(SRL.TruncatedGauss(20000, 25000)));
+
+  Countdown.Init(Round(SRL.TruncatedGauss(500, 1500)));
+  Countdown.Timeout := GetTickCount() + Round(SRL.TruncatedGauss(2500, 3500));
+
+  Position.Previous := Self.GetMyPos();
+  Position.Current := Position.Previous;
+
+  // Break from the loop if:
+  // - Haven't moved in 500ms
+  // - Been walking for over 20 seconds
+  // - Within `WaitUntilDistance` to the destination
+  repeat
+    Self.CheckRunEnergy();
+
+    if DoAntiban then
+    begin
+      Antiban.WalkerTasks();
+      DoAntiban := False;
+    end;
+
+    Position.Previous := Position.Current;
+    Position.Current := Self.GetMyPos();
+    if Position.Current <> Position.Previous then
+      Countdown.Restart();
+
+    if (@OnWalkingEvent <> nil) then
+      OnWalkingEvent(@Self, Position.Current, Destination);
+
+    if not Self.Enabled then
+      Break;
+
+    Wait(100);
+  until Timeout.IsFinished() or Countdown.IsFinished() or (Position.Current.DistanceTo(Destination) <= WaitUntilDistance);
+end;
+
+function TRSWalker.WalkFinalStep(PlayerPoint, WorldPoint: TPoint; WaitUntilDistance: Int32; DoAntiban: Boolean): Boolean; overload;
+var
+  MinimapPoint: TPoint;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, 0);
+  if Result then
+    Self.WaitMoving(WorldPoint, WaitUntilDistance, DoAntiban);
+end;
+
+function TRSWalker.WalkStep(PlayerPoint, WorldPoint: TPoint; DoAntiban: Boolean): Boolean; overload;
+var
+  MinimapPoint: TPoint;
+  WaitUntilDistance: Int32;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, Self.ClickRandomness);
+
+  if Result then
+  begin
+    if (Random() < 0.15) then // 15% chance of randomness else mean
+      WaitUntilDistance := Random(Distance(Minimap.Center, MinimapPoint))
+    else
+      WaitUntilDistance := SRL.NormalRange(0, Distance(Minimap.Center, MinimapPoint) + 10);
+
+    Self.WaitMoving(WorldPoint, WaitUntilDistance, DoAntiban);
+  end
+end
+
+function TRSWalker.WalkPath(Path: TPointArray; WaitUntilDistance: Int32 = 0): Boolean; override;
+
+  function BuildPath(TPA: TPointArray): TPointArray;
+  var
+    I, J: Int32;
+    Line: TPointArray;
+  begin
+    for I := 1 to High(TPA) do
+    begin
+      Line := TPAFromLine(TPA[I-1], TPA[I]);
+
+      J := 0;
+      while J < High(Line) do
+      begin
+        Result += Line[J];
+
+        Inc(J, Random(5, 15));
+      end;
+    end;
+
+    Result += TPA[High(TPA)];
+  end;
+
+  function AdvancePath(var Index: Int32; PlayerPoint: TPoint): Boolean;
+  var
+    Angle: Double := Minimap.GetCompassAngle(False);
+    Previous: Int32 := Index;
+    Nearest, Furthest: Int32;
+  begin
+    Nearest := Self.Path.Find(Self.Path.Sorted(PlayerPoint)[0]);
+
+    while (Nearest < High(Self.Path)) and (not Self.IsWalkable(Self.Path[Nearest+1], PlayerPoint, Angle)) do
+      Inc(Nearest);
+
+    Furthest := Nearest;
+    while (Furthest < High(Self.Path)) and Self.IsWalkable(Self.Path[Furthest+1], PlayerPoint, Angle) do
+      Inc(Furthest);
+
+    // 15% chance of randomness else furthest
+    Index := Furthest;
+    if Random() < 0.15 then
+      Index := Random(Nearest, Furthest);
+
+    Result := Index > Previous;
+  end;
+
+var
+  PlayerPoint: TPoint;
+  Index, Fails: Int32;
+begin
+  Self.Enabled := True;
+  Self.Path := BuildPath([Self.GetMyPos()] + Path);
+
+  while Self.Enabled and (Fails < 10) do
+  begin
+    PlayerPoint := Self.GetMyPos();
+
+    if AdvancePath(Index, PlayerPoint) then
+      Fails := 0
+    else
+    begin
+      Inc(Fails);
+
+      // Likely haven't moved far enough to advance to next point
+      if (Fails < 5) then
+      begin
+        Wait(300);
+
+        Continue;
+      end;
+
+      if (Fails mod 2 = 0) then
+        Minimap.WaitFlag();
+    end;
+
+    if Index = High(Self.Path) then
+    begin
+      if Self.WalkFinalStep(PlayerPoint, Self.Path[Index], WaitUntilDistance, SRL.Dice(3)) then
+        Exit(True);
+    end else
+      Self.WalkStep(PlayerPoint, Self.Path[Index], SRL.Dice(10));
+  end;
+
+  if Fails = 10 then
+    Self.DebugLn('Failed to advance path');
+end;
+
+
 
 // Checks if we are within Distance of Tile
 function TRSWalker.AtTile(Tile: TPoint; Distance: Int32 = 15): Boolean;

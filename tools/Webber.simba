@@ -1,0 +1,456 @@
+
+
+(*
+Webber with WaspLib maps
+======
+*)
+
+{$I SRL/osr.simba}
+{$I WaspLib/osr.simba}
+
+type
+  TWebberForm = record
+    Form: TForm;
+    ImageBox: TSimbaImageBox;
+    Graph: TWebGraph;
+    SelectedNode: Int32;
+    Dragging: Boolean;
+    Path: TIntegerArray;
+    Map: String;
+    Name: String;
+  end;
+
+var
+  Webber: TWebberForm;
+
+begin
+  // Change the map here
+  Webber.Map := TRSWalker.FindMap('world');
+
+  // Comment out for a new graph ...
+  Webber.Graph := WaspWorld;
+end;
+
+procedure TWebberForm.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Int32);
+var
+  I: Int32;
+  best, bestIndex: Int32;
+begin
+  if Dragging and (Self.SelectedNode > -1) then
+  begin
+    Self.Graph.Nodes[Self.SelectedNode].X := X;
+    Self.Graph.Nodes[Self.SelectedNode].Y := Y;
+    Self.ImageBox.Update();
+  end;
+
+  if (ssShift in Shift) and (ssCtrl in Shift) then
+  begin
+    if Self.SelectedNode = -1 then
+      Exit;
+
+    best := $FFFFFF;
+    for I := 0 to High(Self.Graph.Nodes) do
+      if Distance(Self.Graph.Nodes[I].X, Self.Graph.Nodes[I].Y, X, Y) <= best then
+      begin
+        best := Distance(Self.Graph.Nodes[I].X, Self.Graph.Nodes[I].Y, X, Y);
+        bestIndex := I;
+      end;
+
+    Self.Path := Self.Graph.FindPath(Self.SelectedNode, bestIndex, 0.75);
+    Self.ImageBox.Update();
+  end else
+  begin
+    if Self.Path <> [] then
+    begin
+      Self.Path := [];
+      Self.ImageBox.Update();
+    end;
+  end;
+end;
+
+procedure TWebberForm.ConnectNodes(a,b: Int32);
+begin
+  if not Graph.ConnectNodes(a,b) then
+    WriteLn('Error: Path crosses another path');
+end;
+
+procedure TWebberForm.AddNode(p: TPoint);
+var
+  c: Int32;
+begin
+  if (SelectedNode > -1) and (Graph.InvalidConnection(p,Graph.Nodes[Self.SelectedNode])) then
+  begin
+    WriteLn('Error: Path crosses another path');
+    Exit;
+  end;
+
+  c := Length(Graph.Nodes);
+  SetLength(Graph.Nodes, c + 1);
+  SetLength(Graph.Paths, c + 1);
+  SetLength(Graph.Names, c + 1);
+
+  Graph.Nodes[c] := p;
+  if Self.SelectedNode > -1 then
+    Graph.ConnectNodes(c, Self.SelectedNode);
+
+  Self.SelectedNode := c;
+  Self.ImageBox.Update();
+end;
+
+procedure TWebberForm.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+var
+  I: Int32;
+  T: UInt64;
+begin
+  if Button = mbLeft then
+  begin
+    if (ssShift in Shift) then
+    begin
+      if Self.SelectedNode = -1 then
+        Exit;
+
+      for I := 0 to High(Self.Graph.Nodes) do
+        if Distance(Self.Graph.Nodes[I].X, Self.Graph.Nodes[I].Y, X, Y) <= 3 then
+        begin
+          if Self.SelectedNode <> I then
+            Self.ConnectNodes(self.SelectedNode, I);
+          Self.ImageBox.Update();
+          Exit;
+        end;
+    end else
+    begin
+      Self.Dragging := True;
+
+      for I := 0 to High(Self.Graph.Nodes) do
+        if Distance(Self.Graph.Nodes[I].X, Self.Graph.Nodes[I].Y, X, Y) <= 3 then
+        begin
+          Self.SelectedNode := I;
+          Self.ImageBox.GetStatusPanel().SetText(Self.Graph.Names[I]);
+          Self.ImageBox.Update();
+          Exit;
+        end;
+
+       AddNode([X, Y]);
+    end;
+  end;
+end;
+
+procedure TWebberForm.OnMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+begin
+  if Button = mbLeft then
+    Dragging := False;
+end;
+
+procedure TWebberForm.DeleteNode(node: Int32);
+var
+  i,j,n,curr: Int32;
+  marked: TIntegerArray;
+  p: TPoint;
+begin
+  p := Self.Graph.Nodes[node];
+  marked += node;
+
+  repeat
+    curr := marked.Pop();
+
+    for n in Graph.Paths[curr] do
+    begin
+      Graph.Paths[n].Remove(curr, True);
+      if Length(Graph.Paths[n]) = 0 then
+        marked += n;
+    end;
+
+    // offset remainding nodes
+    for i:=0 to High(Graph.Paths) do
+      for j:=0 to High(Graph.Paths[i]) do
+        if Graph.Paths[i][j] > curr then
+          Dec(Graph.Paths[i][j]);
+
+    for i:=0 to High(marked) do
+      if marked[i] > curr then Dec(marked[i]);
+
+    // remove the node itself
+    Delete(Graph.Paths, curr, 1);
+    Delete(Graph.Nodes, curr, 1);
+    Delete(Graph.Names, curr, 1);
+  until Length(marked) = 0;
+
+  Self.SelectedNode := Self.Graph.FindNearestNode(p);
+  Self.ImageBox.Update();
+end;
+
+procedure TWebberForm.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_DELETE) and (Self.SelectedNode > -1) then
+    Self.DeleteNode(Self.SelectedNode);
+end;
+
+procedure TWebberForm.DrawWeb(Area: TBox);
+var
+  W,H,i,j,n,color,add: Int32;
+  p,q: TPoint;
+  nodes,line: TPointArray;
+  canvas: TCanvas;
+  B: TBox;
+begin
+  Nodes := Self.Graph.Nodes;
+  if Length(Nodes) = 0 then
+    Exit;
+
+  Canvas := Self.ImageBox.GetOverlay.GetCanvas();
+  Canvas.GetPen.SetColor($00FFFF);
+
+  for i := 0 to High(Graph.Paths) do
+  begin
+    p := Nodes[i];
+
+    for j:=0 to High(Graph.Paths[i]) do
+    begin
+      q := Nodes[Graph.Paths[i][j]];
+
+      if p.InBox(Area) or q.InBox(Area) then
+      begin
+        Canvas.MoveTo(p.x, p.y);
+        Canvas.LineTo(q.x, q.y);
+      end;
+    end;
+  end;
+
+  for i := 0 to High(Nodes) do
+  begin
+    color := $0000FF;
+    if Length(Graph.Names[i]) <> 0 then
+      color := $77FF00;
+
+    if Nodes[i].InBox(Area) then
+    begin
+      Canvas.GetBrush().SetColor(Color);
+      Canvas.FillRect(Nodes[i].X-3, Nodes[i].Y-3, Nodes[i].X+3, Nodes[i].Y+3);
+    end;
+  end;
+
+  if InRange(SelectedNode, Low(Nodes), High(Nodes)) then
+  begin
+    Canvas.GetBrush().SetColor($FF0000);
+    Canvas.FillRect(Nodes[SelectedNode].X-3, Nodes[SelectedNode].Y-3, Nodes[SelectedNode].X+3, Nodes[SelectedNode].Y+3);
+  end;
+end;
+
+procedure TWebberForm.DrawPath(Area: TBox);
+var
+  i,j,W,H: Int32;
+  p,q: TPoint;
+  Nodes: TPointArray;
+  Canvas: TCanvas;
+  TPA: TPointArray;
+begin
+  Nodes := Self.Graph.Nodes;
+  if Length(Nodes) = 0 then
+    Exit;
+
+  p := Nodes[Path[0]];
+  q := Nodes[Path[High(Path)]];
+
+  Canvas := Self.ImageBox.GetOverlay.GetCanvas();
+  Canvas.GetPen().SetColor(clNavy);
+  Canvas.GetPen().setWidth(3);
+
+  for i := 0 to High(Path) do
+  begin
+    p := Nodes[Path[i]];
+
+    if i < High(Path) then
+    begin
+      q := Nodes[Path[i+1]];
+
+      if p.InBox(Area) or q.InBox(Area) then
+      begin
+        Canvas.MoveTo(p.x, p.y);
+        Canvas.LineTo(q.x, q.y);
+      end;
+    end;
+  end;
+
+  Canvas.GetPen().setWidth(1);
+end;
+
+procedure TWebberForm.PaintArea(Sender: TObject; Canvas: TCanvas; R: TRect);
+begin
+  DrawWeb([R.Left, R.Top, R.Right, R.Bottom]);
+  if Self.Path <> [] then
+    DrawPath([R.Left, R.Top, R.Right, R.Bottom]);
+end;
+
+procedure TWebberForm.OnNameSelectedNode(Sender: TObject);
+var
+  Value: String;
+begin
+  if Self.SelectedNode = -1 then
+    Exit;
+
+  Value := Self.Graph.Names[Self.SelectedNode];
+
+  if InputQuery('Node Name: ', 'Enter Node Name', Value) then
+  begin
+    Self.Graph.Names[Self.SelectedNode] := Value;
+    Self.ImageBox.Update();
+  end;
+end;
+
+procedure TWebberForm.OnUnSelectNode(Sender: TObject);
+begin
+  Self.SelectedNode := -1;
+  Self.ImageBox.Update();
+end;
+
+procedure TWebberForm.OnPrintGraph(Sender: TObject);
+var
+  I, J: Int32;
+  Locations: TStringArray;
+  Points: TPointArray;
+  Name: String;
+begin
+  Name := 'TWorldWeb';
+  if not InputQuery('Webber', 'Web name?', Name) then
+    Exit;
+
+  ClearDebug();
+
+  for I := 0 to High(Graph.Names) do
+    if Graph.Names[I] <> '' then
+    begin
+      Locations += UpperCase('LOCATION_' + Graph.Names[I]).Replace(' ', '_');
+      Points += Graph.Nodes[I];
+    end;
+
+  for I := 0 to High(Locations) do
+    for J := 0 to High(Locations) do
+      if (Locations[I] < Locations[J]) then
+      begin
+        Swap(Locations[I], Locations[J]);
+        Swap(Points[I], Points[J]);
+      end;
+
+  WriteLn('type');
+  WriteLn('  ', Name, ' = record(TWebGraph)');
+  for I := 0 to High(Locations) do
+    WriteLn('    ', Locations[I], ': TPoint;');
+  WriteLn('  end;');
+
+  WriteLn('');
+  WriteLn('var');
+  WriteLn('  ', Name.After('T'), ': ', Name, ';');
+
+  WriteLn('');
+  WriteLn('procedure ', Name, '.Load;');
+  WriteLn('begin');
+  WriteLn('  Self.LoadNodesFromString(' + #39 + Graph.NodesToString() + #39 + ');');
+  WriteLn('  Self.LoadPathsFromString(' + #39 + Graph.PathsToString() + #39 + ');');
+  WriteLn('  Self.LoadNamesFromString(' + #39 + Graph.NamesToString() + #39 + ');');
+  WriteLn('');
+  for I := 0 to High(Locations) do
+    WriteLn('  Self.', Locations[I], ' := ', '[', Points[I].X, ', ', Points[I].Y, '];');
+  WriteLn('end;');
+
+  WriteLn('');
+  WriteLn('operator := (var Left: TWebGraph; var Right: ', Name, '): TWebGraph;');
+  WriteLn('begin');
+  WriteLn('  Right.Load();');
+  WriteLn('');
+  WriteLn('  Left.Nodes := Right.Nodes;');
+  WriteLn('  Left.Paths := Right.Paths;');
+  WriteLn('  Left.Names := Right.Names;');
+  WriteLn('');
+  WriteLn('  Result.Nodes := Right.Nodes;');
+  WriteLn('  Result.Paths := Right.Paths;');
+  WriteLn('  Result.Names := Right.Names;');
+  WriteLn('end;');
+  WriteLn('');
+end;
+
+procedure TWebberForm.OnFormShow(Sender: TObject);
+begin
+  Self.SelectedNode := High(Self.Graph.Nodes);
+  if Self.SelectedNode > -1 then
+    Self.ImageBox.MoveTo(Self.Graph.Nodes[SelectedNode].X, Self.Graph.Nodes[SelectedNode].Y);
+  Self.ImageBox.Update();
+end;
+
+procedure TWebberForm.OnFormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Self.OnPrintGraph(nil);
+end;
+
+procedure TWebberForm.Run;
+var
+  Panel: TPanel;
+  Button: TButton;
+begin
+  try
+    Self.Name := 'Graph';
+
+    Self.Form.Init(nil);
+    Self.Form.SetPosition(poScreenCenter);
+    Self.Form.SetCaption('Webber');
+    Self.Form.SetWidth(1000);
+    Self.Form.SetHeight(1000);
+    Self.Form.GetFont().SetSize(10);
+    Self.Form.SetOnShow(@Self.OnFormShow);
+    Self.Form.SetOnClose(@Self.OnFormClose);
+
+    Panel.Init(Self.Form);
+    Panel.SetParent(Self.Form);
+    Panel.SetAutoSize(True);
+    Panel.SetAlign(alTop);
+
+    Button.Init(Panel);
+    Button.SetParent(Panel);
+    Button.SetAutoSize(True);
+    Button.SetCaption('Name Node');
+    Button.SetOnClick(@Self.OnNameSelectedNode);
+    Button.SetAlign(alLeft);
+
+    Button.Init(Panel);
+    Button.SetParent(Panel);
+    Button.SetAutoSize(True);
+    Button.SetCaption('UnSelect node');
+    Button.SetOnClick(@Self.OnUnSelectNode);
+    Button.SetAlign(alLeft);
+
+    Button.Init(Panel);
+    Button.SetParent(Panel);
+    Button.SetAutoSize(True);
+    Button.SetCaption('Print Graph');
+    Button.SetOnClick(@Self.OnPrintGraph);
+    Button.setAlign(alLeft);
+
+    Self.ImageBox.Init(Form);
+    Self.ImageBox.SetParent(Form);
+    Self.ImageBox.SetAlign(alClient);
+    Self.ImageBox.SetOnPaintArea(@Self.PaintArea);
+    Self.ImageBox.SetOnMouseMove(@Self.OnMouseMove);
+    Self.ImageBox.SetOnMouseDown(@Self.OnMouseDown);
+    Self.ImageBox.SetOnMouseUp(@Self.OnMouseUp);
+    Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
+    Self.ImageBox.GetBackground().LoadFromFile(Self.Map);
+    Self.ImageBox.BackgroundChanged();
+
+    WriteLn('Click:                Add or select node'    + LineEnding +
+            'Click + Drag:         Move selected node'    + LineEnding +
+            'Click + Shift:        Connect nodes'         + LineEnding +
+            'Click + Shift + Ctrl: Test Path'             + LineEnding +
+            'Press Delete Key:     Remove Selected Node'  + LineEnding +
+            'Right Click + Drag:   Move around'           + LineEnding +
+            'Ctrl + Mouse Wheel:   Zoom');
+
+    Form.ShowModal();
+    Form.Free();
+  except
+    Writeln GetExceptionMessage();
+  end;
+end;
+
+begin
+  Sync(@Webber.Run);
+end.
+

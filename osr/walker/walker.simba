@@ -477,7 +477,7 @@ end;
 // Checks if we can make the tile visible by zooming out
 function TRSWalker.TileWithinZoom(Tile: TPoint): Boolean;
 begin
-  Result := Self.GetMyPos.DistanceTo(Tile) <= 110;
+  Result := Minimap.PointInZoomRadius(Self.WorldToMM(Tile));
 end;
 
 function TRSWalker.TileWithinZoom(Tiles: TPointArray): Boolean; overload;
@@ -515,44 +515,18 @@ begin
 end;
 
 // Attempts to zoom out enough so Tile is visible.
-// Need improvements, this is super slow.
 function TRSWalker.ZoomToTile(Tile: TPoint): Boolean;
 var
-  CurrentZoom, i, NeededZoomMin, NeededZoomMax: Int32;
+  ZoomLevel: Int32;
 begin
-  if Self.TileVisible(Tile) then //InterfaceArea.Bounds.Contains(Self.GetTileMS(Tile));
-    Exit(True)
-  else if not Self.TileWithinZoom(Tile) then   //Self.GetMyPos.DistanceTo(Tile) <= 110
-    Exit(False);
+  if Self.TileWithinZoom(Tile) then
+    Exit(True);
 
-  CurrentZoom := MM2MS.ZoomLevel;
-  NeededZoomMin := -1;
-  NeededZoomMax := -1;
-  for i := MM2MS.ZoomLevel downto 0 do
-  begin
-    MM2MS.ZoomLevel := i;
-    if (NeededZoomMax = -1) then
-    begin
-      if Self.TileVisible(Tile) then
-        NeededZoomMax := i;
-    end
-    else if (NeededZoomMin = -1) and (not Self.TileVisible(Tile) or (i < NeededZoomMax - 25)) then
-      NeededZoomMin := i;
+  ZoomLevel := Minimap.ZoomToPoint(Self.WorldToMM(Tile));
+  if (ZoomLevel >= 0) and (ZoomLevel <= 100) then
+    Options.SetZoomLevel(ZoomLevel);
 
-    if (NeededZoomMin <> -1) and (NeededZoomMax <> -1) then
-      Break
-  end;
-
-  MM2MS.ZoomLevel := CurrentZoom;
-
-  if (NeededZoomMin = -1) and (NeededZoomMax = -1) then
-    Exit
-  else if (NeededZoomMin = -1) then
-    NeededZoomMin := 0;
-
-  Options.SetZoomLevel(Random(NeededZoomMin, NeededZoomMax));
-
-  Result := Self.TileVisible(Tile);
+  Result := Self.TileWithinZoom(Tile);
 end;
 
 function TRSWalker.ZoomToTile(Tiles: TPointArray): Boolean; overload;
@@ -565,9 +539,8 @@ end;
 
 function TRSWalker.MakeTileVisible(Tile: TPoint): Boolean;
 begin
-  Result := Self.TileVisible(Tile) or
-            (Self.FaceTile(Tile) and Self.TileVisible(Tile)) or
-            ZoomToTile(Tile);
+  Result := Self.TileVisible(Tile) or ZoomToTile(Tile) or
+            (Self.FaceTile(Tile) and Self.TileVisible(Tile));
 end;
 
 function TRSWalker.MakeTileVisible(Tiles: TPointArray): Boolean; overload;

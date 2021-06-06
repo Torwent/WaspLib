@@ -40,39 +40,62 @@ begin
   Result := WikiMappingInfo.After('"id":' + ItemID + ',').Before('},');
 end;
 
+procedure TRSItemInfo.SetItemID;
+var
+  Str: String;
+begin
+  Str := VarToStr(RSItem);
+
+  if VarToStr(Str).IsDigit() then
+    ItemID := Str
+  else
+  begin
+    ItemID := ItemFinder.ItemNames.GetValues(Str);
+    if (ItemID = '') then
+      ItemFinder.Fatal('Unknown item: ' + Str);
+  end;
+end;
+
 
 procedure TRSItemInfo.SetInfo(Item: TRSItem);
+var
+  MainStr,Str: String;
 begin
-  if Item = RSItem then
+  if VarToStr(Item) = VarToStr(RSItem) then
     Exit;
+
+  RSItem := Item;
+  Self.SetItemID;
 
   if (LastCheckTick + 1200000) < GetTickCount then
     Self.Setup;
 
-  Item := VarToStr(Item);
+  MainStr := Self.GetRealTime;
+  Str := MainStr.After('"high":').Before(',');
+  if Str <> '' then
+    HighPrice := StrToInt(Str);
 
-  if VarToStr(Item).IsDigit() then
-    ItemID := Item
-  else
-  begin
-    ItemID := ItemFinder.ItemNames.GetValues(Item);
-    if (ItemID = '') then
-      ItemFinder.Fatal('Unknown item: ' + Item);
-  end;
+  Str := MainStr.After('"low":').Before(',');
+  if Str <> '' then
+    LowPrice := StrToInt(Str);
 
-  HighPrice := StrToInt(Self.GetRealTime.After('"high":').Before(','));
-  LowPrice := StrToInt(Self.GetRealTime.After('"low":').Before(','));
 
-  StoreValue := StrToInt(Self.GetMapping.After('"value":').Before(','));
-  LowAlchemy := StrToInt(Self.GetMapping.After('"lowalch":').Before(','));
-  HighAlchemy := StrToInt(Self.GetMapping.After('"highalch":').Before(','));
-  GELimit := StrToInt(Self.GetMapping.After('"limit":').Before(','));
+  MainStr := Self.GetMapping;
+  Str := MainStr.After('"limit":').Before(',');
+  if Str <> '' then
+    GELimit := StrToInt(Str);
+
+  Str := MainStr.After('"value":').Before(',');
+  if Str <> '' then
+    StoreValue := StrToInt(Str);
+
+  LowAlchemy := Round(StoreValue * 0.4);
+  HighAlchemy := Round(StoreValue * 0.6);
 end;
-
 
 function TRSItemInfo.GetHighPrice(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := HighPrice;
@@ -80,7 +103,7 @@ end;
 
 function TRSItemInfo.GetLowPrice(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := LowPrice;
@@ -89,7 +112,7 @@ end;
 
 function TRSItemInfo.GetStoreValue(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := StoreValue;
@@ -97,7 +120,7 @@ end;
 
 function TRSItemInfo.GetHighAlchemy(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := HighAlchemy;
@@ -105,7 +128,7 @@ end;
 
 function TRSItemInfo.GetLowAlchemy(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := LowAlchemy;
@@ -113,7 +136,7 @@ end;
 
 function TRSItemInfo.GetGELimit(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := GELimit;
@@ -121,7 +144,7 @@ end;
 
 function TRSItemInfo.GetAveragePrice(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   if ((HighPrice = 0) and (LowPrice = 0)) then
@@ -137,7 +160,7 @@ end;
 
 function TRSItemInfo.GetHighAlchemyProfit(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := HighAlchemy - Self.GetAveragePrice(Item) - Self.GetAveragePrice('Nature rune');
@@ -145,7 +168,7 @@ end;
 
 function TRSItemInfo.GetLowAlchemyProfit(Item: TRSItem): Int32;
 begin
-  if Item <> RSItem then
+  if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
   Result := HighAlchemy - Self.GetAveragePrice(Item) - Self.GetAveragePrice('Nature rune');

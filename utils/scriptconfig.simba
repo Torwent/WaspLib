@@ -46,10 +46,7 @@ type
   end;
 
 
-procedure TScriptConfig.OnFormClose();
-begin
-  TerminateScript;
-end;
+
 
 function TScriptConfig.BuildCredentials: String;
 var
@@ -107,6 +104,8 @@ procedure TScriptConfig.ReloadSelector(Sender: TObject);
 var
   Player: TRSLoginPlayer;
 begin
+  Writeln(Sender.ToString + ' reloading account selector');
+
   AccountSelector.Clear;
 
   if Login.Players <> [] then
@@ -121,6 +120,8 @@ end;
 
 procedure TScriptConfig.ClearInputs(Sender: TObject);
 begin
+  Writeln(Sender.ToString + ' clearing inputs');
+
   AccountUser.setText('');
   AccountPass.setText('');
   AccountPin.setText('');
@@ -133,6 +134,8 @@ var
   i: Int32;
   WorldsStr: String;
 begin
+  Writeln(Sender.ToString + ' auto filling inputs');
+
   AccountUser.setText(Login.Players[Idx].User);
   AccountPass.setText(Login.Players[Idx].Password);
   AccountPin.setText(Login.Players[Idx].Pin);
@@ -243,19 +246,26 @@ begin
   Self.SelectorClick(Sender);
 end;
 
-
-
 procedure TScriptConfig.BankPinKeyPress(Sender: TObject; var Key: char);
 begin
+  Writeln(Sender.ToString + ' limiting input to numbers');
   if not (Key in ['0'..'9', #8, #9]) then Key := #0;
 end;
 
 procedure TScriptConfig.WorldsKeyPress(Sender: TObject; var Key: char);
 begin
+  Writeln(Sender.ToString + ' limiting input to numbers commas and spaces');
   if not (Key in ['0'..'9', ',', ' ' ,#8, #9]) then Key := #0;
 end;
 
-
+procedure TScriptConfig.OnFormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Writeln(Sender.ToString + ' was ' + ToStr(CloseAction));
+  {$IFDEF SRL_USE_REMOTEINPUT}
+    if RemoteInputEnabled then
+      RSClient.SetupRemoteInput();
+  {$ENDIF}
+end;
 
 procedure TScriptConfig.Setup; //override me to add stuff!
 begin
@@ -267,6 +277,7 @@ begin
     SetHeight(357);
     SetWidth(590);
     SetPosition(poScreenCenter);
+    setOnClose(@Self.OnFormClose);
   end;
 
 
@@ -503,26 +514,29 @@ begin
   end;
 end;
 
-procedure TScriptConfig.Init(Sender: TObject);
+procedure TScriptConfig.Init(Sender: TObject); //override me to add stuff!
 begin
-  Form.Close;
-  Writeln('Script starting...');
-
-  {$IFDEF SRL_USE_REMOTEINPUT}
-    RemoteInputEnabled := RemoteInputState.Checkbox.getState = cbChecked;
-    if RemoteInputEnabled then
-      RSClient.SetupRemoteInput();
-  {$ENDIF}
+  Writeln(Sender.ToString + ' was click. Form will now close.');
 
   {$IFDEF SCRIPT_GUI}
-    AntibanEnabled := AntibanState.Checkbox.getState = cbChecked;
-    BreaksEnabled  := BreaksState.Checkbox.getState = cbChecked;
-    SleepEnabled   := SleepsState.Checkbox.getState = cbChecked;
+  AntibanEnabled := AntibanState.Checkbox.getState = cbChecked;
+  BreaksEnabled  := BreaksState.Checkbox.getState = cbChecked;
+  SleepEnabled   := SleepsState.Checkbox.getState = cbChecked;
+  RemoteInputEnabled := RemoteInputState.Checkbox.getState = cbChecked;
   {$ENDIF}
+
+  Form.Close;
+  Writeln('Script starting...');
 
   //override me to add more stuff.
 end;
 
-
-var
-  ScriptConfig: TScriptConfig;
+procedure TScriptConfig.Run;
+begin
+  try
+    Form.ShowModal;
+    Form.Free;
+  except
+    Writeln(GetExceptionMessage);
+  end;
+end;

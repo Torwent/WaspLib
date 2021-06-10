@@ -1,0 +1,536 @@
+{$DEFINE WL_SCRIPTCONFIG_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+{$IFHASFILE ../credentials.simba}{$I ../credentials.simba}{$ENDIF}
+
+const
+  CREDENTIALS_FILE = AppPath + 'credentials.simba';
+
+var
+  AntibanEnabled     := True; //Enables most antiban
+  BreaksEnabled      := True; //Enables short breaks
+  SleepEnabled       := True; //Enables sleep breaks
+  RemoteInputEnabled := True; //Enables Remote Input
+
+type
+  TScriptConfig = record
+    Form: TForm;
+
+    AccountManagerPanel: TPanel;
+    AccountLabel: TLabel;
+    AccountSelector: TListBox;
+    AccountAddButton: TButton;
+    AccountSaveButton: TButton;
+    AccountDeleteButton: TButton;
+
+    AccountUser: TLabeledEdit;
+    AccountPass: TLabeledEdit;
+    AccountPin: TLabeledEdit;
+    AccountWorldsLabel: TLabel;
+    AccountWorldsMemo: TMemo;
+
+    AntibanPanel: TPanel;
+    AntibanSettingsLabel: TLabel;
+    AntibanState: TLabeledCheckbox;
+    BreaksState: TLabeledCheckbox;
+    SleepsState: TLabeledCheckbox;
+
+
+    ScriptSettingsPanel: TPanel;
+    ScriptSettingsLabel: TLabel;
+    RemoteInputState: TLabeledCheckbox;
+    StartButton: TButton;
+
+    ScriptPanel: TPanel;
+  end;
+
+
+procedure TScriptConfig.OnFormClose();
+begin
+  TerminateScript;
+end;
+
+function TScriptConfig.BuildCredentials: String;
+var
+  Player: TRSLoginPlayer;
+  World: Int32;
+begin
+  Result := 'begin'#13#10'';
+  for Player in Login.Players do
+  begin
+    Result += '  Login.AddPlayer('#13#10'';
+    Result += '    ''' + Player.User + ''','#13#10'';
+    Result += '    ''' + Player.Password + ''','#13#10'';
+    Result += '    ''' + Player.Pin + ''','#13#10'';
+
+    Result += '    [';
+
+    for World in Player.Worlds do
+    begin
+      Result += ToStr(World);
+      if World <> Player.Worlds[High(Player.Worlds)] then
+        Result += ', ';
+    end;
+
+    Result += ']'#13#10'';
+
+    Result += '  );'#13#10'';
+    Result += ''#13#10''
+  end;
+  Result += 'end;';
+end;
+
+procedure TScriptConfig.RewriteCredentials;
+var
+  FileHandle: Int32;
+begin
+  try
+    if FileExists(CREDENTIALS_FILE) then
+      CloseFile(RewriteFile(CREDENTIALS_FILE, True))
+    else
+      CloseFile(CreateFile(CREDENTIALS_FILE));
+
+    FileHandle := AppendFile(CREDENTIALS_FILE);
+
+    WriteFileString(FileHandle, Self.BuildCredentials);
+
+    CloseFile(FileHandle);
+  except
+    Writeln(GetExceptionMessage);
+    Writeln('It''s possible you lost your saved accounts!');
+  end;
+end;
+
+
+procedure TScriptConfig.ReloadSelector(Sender: TObject);
+var
+  Player: TRSLoginPlayer;
+begin
+  AccountSelector.Clear;
+
+  if Login.Players <> [] then
+  begin
+    for Player in Login.Players do
+      AccountSelector.GetItems().Add(Player.User);
+    AccountSelector.setItemIndex(Login.PlayerIndex);
+  end;
+
+  AccountSelector.getItems.Add('New user');
+end;
+
+procedure TScriptConfig.ClearInputs(Sender: TObject);
+begin
+  AccountUser.setText('');
+  AccountPass.setText('');
+  AccountPin.setText('');
+  AccountWorldsMemo.SetText('');
+end;
+
+procedure TScriptConfig.FillInputs(Sender: TObject);
+var
+  Idx: Int32 := Login.PlayerIndex;
+  i: Int32;
+  WorldsStr: String;
+begin
+  AccountUser.setText(Login.Players[Idx].User);
+  AccountPass.setText(Login.Players[Idx].Password);
+  AccountPin.setText(Login.Players[Idx].Pin);
+
+  for i := 0 to High(Login.Players[Idx].Worlds) do
+  begin
+    WorldsStr += ToStr(Login.Players[Idx].Worlds[i]);
+    if i < High(Login.Players[Idx].Worlds) then
+      WorldsStr += ', ';
+  end;
+
+  AccountWorldsMemo.SetText(WorldsStr);
+end;
+
+
+
+procedure TScriptConfig.OnAddClick(Sender: TObject);
+var
+  Worlds: TIntegerArray;
+  Str: String;
+  Ext: Extended;
+begin
+  Str := AccountWorldsMemo.GetText;
+  for Ext in Str.ExtractNumbers do
+    Worlds += Round(Ext);
+
+  Login.Players += [AccountUser.GetText, AccountPass.GetText, AccountPin.GetText, Worlds];
+
+  Self.RewriteCredentials;
+  Self.ReloadSelector(Sender);
+end;
+
+procedure TScriptConfig.OnSaveClick(Sender: TObject);
+var
+  Worlds: TIntegerArray;
+  Str: String;
+  ExtArray: TExtendedArray;
+  Ext: Extended;
+  Idx: Int32;
+begin
+  Idx := AccountSelector.getItemIndex;
+  if Idx > High(Login.Players) then
+  begin
+    Self.OnAddClick(Sender);
+    Exit;
+  end;
+
+  Str := AccountWorldsMemo.GetText;
+  ExtArray := Str.ExtractNumbers;
+  for Ext in ExtArray do
+    Worlds += Round(Ext);
+
+  if Idx = -1 then
+    Login.Players += [AccountUser.GetText, AccountPass.GetText, AccountPin.GetText, Worlds]
+  else
+    Login.Players[Idx] := [AccountUser.GetText, AccountPass.GetText, AccountPin.GetText, Worlds];
+
+  Self.RewriteCredentials;
+  Self.ReloadSelector(Sender);
+end;
+
+procedure TScriptConfig.OnDeleteClick(Sender: TObject);
+var
+  Idx: Int32;
+begin
+  Idx := AccountSelector.getItemIndex;
+
+  Writeln(Idx);
+  Writeln(High(Login.Players));
+
+  if Idx > High(Login.Players) then
+    Exit;
+  Delete(Login.Players, Idx, 1);
+  Login.PlayerIndex -= 1;
+
+
+  Self.ClearInputs(Sender);
+
+  Self.RewriteCredentials;
+  Self.ReloadSelector(Sender);
+end;
+
+
+procedure TScriptConfig.SelectorClick(Sender: TObject);
+var
+  Idx: Int32 := AccountSelector.getItemIndex;
+begin
+  if Idx = -1 then
+  begin
+    Login.PlayerIndex := 0;
+    Self.ClearInputs(Sender);
+  end
+  else if (Idx > High(Login.Players)) then
+  begin
+    Login.PlayerIndex := Idx;
+    Self.ClearInputs(Sender);
+  end
+  else
+  begin
+    Login.PlayerIndex := Idx;
+    Self.FillInputs(Sender);
+  end;
+end;
+
+procedure TScriptConfig.SelectorKey(Sender: TObject; var Key: char);
+begin
+  Key := #0;
+  Self.SelectorClick(Sender);
+end;
+
+
+
+procedure TScriptConfig.BankPinKeyPress(Sender: TObject; var Key: char);
+begin
+  if not (Key in ['0'..'9', #8, #9]) then Key := #0;
+end;
+
+procedure TScriptConfig.WorldsKeyPress(Sender: TObject; var Key: char);
+begin
+  if not (Key in ['0'..'9', ',', ' ' ,#8, #9]) then Key := #0;
+end;
+
+
+
+procedure TScriptConfig.Setup; //override me to add stuff!
+begin
+
+  with Self.Form do
+  begin
+    Self.Form.Init(nil);
+    SetCaption('Script Configuration');
+    SetHeight(357);
+    SetWidth(590);
+    SetPosition(poScreenCenter);
+  end;
+
+
+  //Account Manager
+  with AccountManagerPanel do
+  begin
+    Init(Self.Form);
+    SetParent(Self.Form);
+    SetLeft(0);
+    SetTop(0);
+    setHeight(200);
+    setWidth(Self.Form.getWidth);
+  end;
+
+  with AccountLabel do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetCaption('Current account:');
+    SetLeft(20);
+    SetTop(5);
+    SetWidth(150);
+    GetFont().SetSize(12);
+  end;
+
+  with AccountSelector do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetLeft(AccountLabel.getLeft);
+    SetTop(AccountLabel.GetTop + AccountLabel.getHeight + 5);
+    SetWidth(250);
+    setHeight(AccountManagerPanel.getHeight - GetTop - 5);
+
+    SetOnClick(@Self.SelectorClick);
+    SetOnEnter(@Self.SelectorClick);
+    setOnKeyPress(@Self.SelectorKey);
+
+    Self.ReloadSelector(AccountSelector);
+  end;
+
+
+  with AccountUser do
+  begin
+    Init(AccountManagerPanel);
+    SetCaption('Username:');
+    SetLeft(AccountSelector.GetLeft + AccountSelector.getWidth + 5);
+    SetTop(20);
+    SetWidth(230);
+  end;
+
+  with AccountPass do
+  begin
+    Init(AccountManagerPanel);
+    SetCaption('Password:');
+    SetLeft(AccountUser.GetLeft);
+    SetTop(AccountUser.GetTop + AccountUser.GetHeight + 5);
+    SetWidth(150);
+    Edit.setPasswordChar('*');
+  end;
+
+  with AccountPin do
+  begin
+    Init(AccountManagerPanel);
+    SetCaption('Bank pin:');
+    SetLeft(AccountPass.GetLeft + AccountPass.GetWidth + 5);
+    SetTop(AccountPass.GetTop);
+    SetWidth(70);
+    Edit.setPasswordChar('*');
+    Edit.setMaxLength(4);
+    Edit.setOnKeyPress(@Self.BankPinKeyPress);
+  end;
+
+  with AccountWorldsLabel do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetCaption('Worlds (separated by commas):');
+    SetLeft(AccountPass.GetLeft);
+    SetTop(AccountPass.GetTop + AccountPass.GetHeight + 5);
+  end;
+
+  with AccountWorldsMemo do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetCaption('');
+    SetLeft(AccountWorldsLabel.GetLeft);
+    SetTop(AccountWorldsLabel.GetTop + AccountWorldsLabel.GetHeight + 1);
+    SetHeight(AccountManagerPanel.GetHeight - GetTop - 5);
+    SetWidth(AccountUser.GetWidth);
+    setOnKeyPress(@Self.WorldsKeyPress);
+  end;
+
+
+  with AccountSaveButton do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetCaption('Save');
+    SetLeft(AccountUser.getLeft + AccountUser.getWidth + 10);
+    SetTop(AccountPass.GetTop);
+    SetWidth(50);
+
+    setOnClick(@Self.OnSaveClick);
+  end;
+
+  with AccountAddButton do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetCaption('Add');
+    SetLeft(AccountSaveButton.getLeft);
+    SetTop(AccountSaveButton.GetTop + AccountSaveButton.getHeight + 5);
+    SetWidth(50);
+
+    setOnClick(@Self.OnAddClick);
+  end;
+
+  with AccountDeleteButton do
+  begin
+    Init(AccountManagerPanel);
+    SetParent(AccountManagerPanel);
+    SetCaption('Delete');
+    SetLeft(AccountSaveButton.getLeft);
+    SetTop(AccountAddButton.GetTop + AccountAddButton.getHeight + 5);
+    SetWidth(50);
+
+    setOnClick(@Self.OnDeleteClick);
+  end;
+
+
+
+  //Antiban
+  with AntibanPanel do
+  begin
+    Init(Self.Form);
+    SetParent(Self.Form);
+    SetLeft(0);
+    SetTop(AccountManagerPanel.GetTop + AccountManagerPanel.getHeight + 5);
+    setHeight(Self.Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight) - 5);
+    setWidth(200);
+  end;
+
+  with AntibanSettingsLabel do
+  begin
+    Init(AntibanPanel);
+    SetParent(AntibanPanel);
+    SetCaption('Antiban Settings');
+    SetLeft(20);
+    SetTop(5);
+    SetWidth(150);
+    SetHeight(30);
+    GetFont().SetSize(12);
+  end;
+
+  with AntibanState do
+  begin
+    Init(AntibanPanel);
+    SetCaption('Antiban:');
+    SetLeft(AntibanSettingsLabel.getLeft + 5);
+    SetTop(AntibanSettingsLabel.getTop + AntibanSettingsLabel.getHeight + 15);
+    SetWidth(50);
+    SetHeight(10);
+    SetEnabled(True);
+  end;
+
+  with BreaksState do
+  begin
+    Init(AntibanPanel);
+    SetCaption('Short breaks:');
+    SetLeft(AntibanSettingsLabel.getLeft + 5);
+    SetTop(AntibanState.getTop + AntibanState.getHeight + 15);
+    SetWidth(50);
+    SetHeight(10);
+    SetEnabled(True);
+  end;
+
+  with SleepsState do
+  begin
+    Init(AntibanPanel);
+    SetCaption('Sleep breaks:');
+    SetLeft(AntibanSettingsLabel.getLeft + 5);
+    SetTop(BreaksState.getTop + BreaksState.getHeight + 15);
+    SetWidth(50);
+    SetHeight(10);
+    SetEnabled(True);
+  end;
+
+
+  //Script settings
+  with ScriptSettingsPanel do
+  begin
+    Init(Self.Form);
+    SetParent(Self.Form);
+    SetLeft(AntibanPanel.getLeft + AntibanPanel.getWidth + 5);
+    SetTop(AntibanPanel.getTop);
+    setHeight(Self.Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight) - 5);
+    setWidth(Self.Form.getWidth - AntibanPanel.getWidth - 5);
+  end;
+
+  with ScriptSettingsLabel do
+  begin
+    Init(ScriptSettingsPanel);
+    SetParent(ScriptSettingsPanel);
+    SetCaption('Script Settings');
+    SetLeft(20);
+    SetTop(5);
+    SetWidth(150);
+    SetHeight(30);
+    GetFont().SetSize(12);
+  end;
+
+  with RemoteInputState do
+  begin
+    Init(ScriptSettingsPanel);
+    SetCaption('Remote Input:');
+    SetLeft(ScriptSettingsLabel.getLeft + 5);
+    SetTop(ScriptSettingsPanel.getHeight - 35);
+    SetWidth(50);
+    SetHeight(10);
+    SetEnabled(True);
+  end;
+
+  with StartButton do
+  begin
+    Init(ScriptSettingsPanel);
+    SetParent(ScriptSettingsPanel);
+    SetCaption('Start');
+    SetLeft(ScriptSettingsPanel.getWidth - 55);
+    SetTop(ScriptSettingsPanel.getHeight - 35);
+    SetWidth(50);
+    SetHeight(30);
+  end;
+end;
+
+procedure TScriptConfig.Init(Sender: TObject);
+begin
+  Form.Close;
+  Writeln('Script starting...');
+
+  {$IFDEF SRL_USE_REMOTEINPUT}
+    RemoteInputEnabled := RemoteInputState.Checkbox.getState = cbChecked;
+    if RemoteInputEnabled then
+      RSClient.SetupRemoteInput();
+  {$ENDIF}
+
+  {$IFDEF SCRIPT_GUI}
+    AntibanEnabled := AntibanState.Checkbox.getState = cbChecked;
+    BreaksEnabled  := BreaksState.Checkbox.getState = cbChecked;
+    SleepEnabled   := SleepsState.Checkbox.getState = cbChecked;
+  {$ENDIF}
+
+  Antiban.SetupBiometrics;
+  if AntibanEnabled then
+    Antiban.SetupTasks;
+
+  if BreaksEnabled then
+    Antiban.SetupBreaks;
+
+  if SleepEnabled then
+    Antiban.SetupSleep;
+end;
+
+
+var
+  ScriptConfig: TScriptConfig;

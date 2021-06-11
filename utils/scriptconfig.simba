@@ -19,7 +19,7 @@ type
 
     AccountManagerPanel: TPanel;
     AccountLabel: TLabel;
-    AccountSelector: TListBox;
+    AccountSelector: TLabeledCombobox;
     AccountAddButton: TButton;
     AccountSaveButton: TButton;
     AccountDeleteButton: TButton;
@@ -27,8 +27,7 @@ type
     AccountUser: TLabeledEdit;
     AccountPass: TLabeledEdit;
     AccountPin: TLabeledEdit;
-    AccountWorldsLabel: TLabel;
-    AccountWorldsMemo: TMemo;
+    AccountWorlds: TLabeledMemo;
 
     AntibanPanel: TPanel;
     AntibanSettingsLabel: TLabel;
@@ -111,11 +110,11 @@ begin
   if Login.Players <> [] then
   begin
     for Player in Login.Players do
-      AccountSelector.GetItems().Add(Player.User);
-    AccountSelector.setItemIndex(Login.PlayerIndex);
+      AccountSelector.AddItem(Player.User);
+    AccountSelector.SetItemIndex(Login.PlayerIndex);
   end;
 
-  AccountSelector.getItems.Add('New user');
+  AccountSelector.AddItem('New user');
 end;
 
 procedure TScriptConfig.ClearInputs(Sender: TObject);
@@ -125,7 +124,7 @@ begin
   AccountUser.setText('');
   AccountPass.setText('');
   AccountPin.setText('');
-  AccountWorldsMemo.SetText('');
+  AccountWorlds.SetText('');
 end;
 
 procedure TScriptConfig.FillInputs(Sender: TObject);
@@ -147,9 +146,8 @@ begin
       WorldsStr += ', ';
   end;
 
-  AccountWorldsMemo.SetText(WorldsStr);
+  AccountWorlds.SetText(WorldsStr);
 end;
-
 
 
 procedure TScriptConfig.OnAddClick(Sender: TObject);
@@ -158,7 +156,7 @@ var
   Str: String;
   Ext: Extended;
 begin
-  Str := AccountWorldsMemo.GetText;
+  Str := AccountWorlds.GetText;
   for Ext in Str.ExtractNumbers do
     Worlds += Round(Ext);
 
@@ -183,7 +181,7 @@ begin
     Exit;
   end;
 
-  Str := AccountWorldsMemo.GetText;
+  Str := AccountWorlds.GetText;
   ExtArray := Str.ExtractNumbers;
   for Ext in ExtArray do
     Worlds += Round(Ext);
@@ -219,31 +217,39 @@ begin
 end;
 
 
-procedure TScriptConfig.SelectorClick(Sender: TObject);
+procedure TScriptConfig.SelectorOnChange(Sender: TObject);
 var
-  Idx: Int32 := AccountSelector.getItemIndex;
+  Idx: Int32;
 begin
+  Writeln('here0');
+  Idx := AccountSelector.GetItemIndex;
+  Writeln('here1');
   if Idx = -1 then
   begin
+    Writeln('here2');
     Login.PlayerIndex := 0;
     Self.ClearInputs(Sender);
   end
   else if (Idx > High(Login.Players)) then
   begin
+    Writeln('here3');
     Login.PlayerIndex := Idx;
     Self.ClearInputs(Sender);
   end
   else
   begin
+    Writeln('here4');
     Login.PlayerIndex := Idx;
     Self.FillInputs(Sender);
   end;
 end;
 
+
+
 procedure TScriptConfig.SelectorKey(Sender: TObject; var Key: char);
 begin
   Key := #0;
-  Self.SelectorClick(Sender);
+  Self.SelectorOnChange(Sender);
 end;
 
 procedure TScriptConfig.BankPinKeyPress(Sender: TObject; var Key: char);
@@ -296,7 +302,7 @@ begin
   begin
     Init(AccountManagerPanel);
     SetParent(AccountManagerPanel);
-    SetCaption('Current account:');
+    SetCaption('Account Manager');
     SetLeft(20);
     SetTop(5);
     SetWidth(150);
@@ -306,27 +312,23 @@ begin
   with AccountSelector do
   begin
     Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
+    SetCaption('Current account:');
     SetLeft(AccountLabel.getLeft);
     SetTop(AccountLabel.GetTop + AccountLabel.getHeight + 5);
+    Combobox.setStyle(csDropDownList);
     SetWidth(250);
-    setHeight(AccountManagerPanel.getHeight - GetTop - 5);
 
-    SetOnClick(@Self.SelectorClick);
-    SetOnEnter(@Self.SelectorClick);
-    setOnKeyPress(@Self.SelectorKey);
-
-    Self.ReloadSelector(AccountSelector);
+    Combobox.SetOnChange(@Self.SelectorOnChange);
   end;
-
+    Self.ReloadSelector(AccountSelector.Combobox);
 
   with AccountUser do
   begin
     Init(AccountManagerPanel);
     SetCaption('Username:');
-    SetLeft(AccountSelector.GetLeft + AccountSelector.getWidth + 5);
-    SetTop(20);
-    SetWidth(230);
+    SetLeft(AccountSelector.GetLeft);
+    SetTop(AccountSelector.GetTop + AccountSelector.GetHeight -20);
+    SetWidth(AccountSelector.GetWidth);
   end;
 
   with AccountPass do
@@ -343,33 +345,24 @@ begin
   begin
     Init(AccountManagerPanel);
     SetCaption('Bank pin:');
-    SetLeft(AccountPass.GetLeft + AccountPass.GetWidth + 5);
+    SetLeft(AccountPass.GetLeft + AccountPass.GetWidth + 10);
     SetTop(AccountPass.GetTop);
-    SetWidth(70);
+    SetWidth((AccountSelector.GetLeft + AccountSelector.GetWidth) - GetLeft);
     Edit.setPasswordChar('*');
     Edit.setMaxLength(4);
     Edit.setOnKeyPress(@Self.BankPinKeyPress);
   end;
 
-  with AccountWorldsLabel do
+  with AccountWorlds do
   begin
     Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
     SetCaption('Worlds (separated by commas):');
-    SetLeft(AccountPass.GetLeft);
-    SetTop(AccountPass.GetTop + AccountPass.GetHeight + 5);
-  end;
-
-  with AccountWorldsMemo do
-  begin
-    Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
-    SetCaption('');
-    SetLeft(AccountWorldsLabel.GetLeft);
-    SetTop(AccountWorldsLabel.GetTop + AccountWorldsLabel.GetHeight + 1);
-    SetHeight(AccountManagerPanel.GetHeight - GetTop - 5);
+    SetLeft(AccountSelector.GetLeft + AccountSelector.GetWidth + 25);
+    SetTop(AccountSelector.GetTop);
+    SetHeight(AccountUser.GetTop - 3);
     SetWidth(AccountUser.GetWidth);
-    setOnKeyPress(@Self.WorldsKeyPress);
+
+    Memo.setOnKeyPress(@Self.WorldsKeyPress);
   end;
 
 
@@ -378,8 +371,8 @@ begin
     Init(AccountManagerPanel);
     SetParent(AccountManagerPanel);
     SetCaption('Save');
-    SetLeft(AccountUser.getLeft + AccountUser.getWidth + 10);
-    SetTop(AccountPass.GetTop);
+    SetLeft(AccountWorlds.GetLeft + 40);
+    SetTop(AccountWorlds.GetTop + AccountWorlds.GetHeight + 5);
     SetWidth(50);
 
     setOnClick(@Self.OnSaveClick);
@@ -390,8 +383,8 @@ begin
     Init(AccountManagerPanel);
     SetParent(AccountManagerPanel);
     SetCaption('Add');
-    SetLeft(AccountSaveButton.getLeft);
-    SetTop(AccountSaveButton.GetTop + AccountSaveButton.getHeight + 5);
+    SetLeft(AccountSaveButton.getLeft + AccountSaveButton.getWidth + 5);
+    SetTop(AccountSaveButton.GetTop);
     SetWidth(50);
 
     setOnClick(@Self.OnAddClick);
@@ -402,8 +395,8 @@ begin
     Init(AccountManagerPanel);
     SetParent(AccountManagerPanel);
     SetCaption('Delete');
-    SetLeft(AccountSaveButton.getLeft);
-    SetTop(AccountAddButton.GetTop + AccountAddButton.getHeight + 5);
+    SetLeft(AccountAddButton.getLeft + AccountAddButton.getWidth + 5);
+    SetTop(AccountAddButton.GetTop);
     SetWidth(50);
 
     setOnClick(@Self.OnDeleteClick);

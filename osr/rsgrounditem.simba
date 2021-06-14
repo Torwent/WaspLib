@@ -8,7 +8,7 @@ type
 
   TRSGroundItem = record
     Map: PRSWalker;
-    Tile: TPoint;
+    Tiles: TPointArray;
     RadiusCheck: Int32;
     Height: Int32; //Possibly always 0
     Finder: TRSObjectFinder;
@@ -46,7 +46,9 @@ end;
 function TRSGroundItem.Find: T2DPointArray;
   function GetWalkerTilesRects: TRectArray;
   var
-    MMTile: TPoint := Map^.WorldToMM(Tile);
+    Tile: TPoint;
+    MMTiles: TPointArray;
+    FilteredMMTiles: TPointArray;
     Dot: TPoint;
     Dots: TPointArray;
     FilteredDots: TPointArray;
@@ -55,17 +57,31 @@ function TRSGroundItem.Find: T2DPointArray;
     LowTPA: TPointArray;
     TPA: TPointArray;
   begin
-    if not Minimap.IsPointOn(MMTile, RadiusCheck) then
+    for Tile in Tiles do
+    begin
+      if not Map^.TileVisible(Tile) then
+        Continue; //Skips tiles out of view)
+      MMTiles += Map^.WorldToMM(Tile);
+    end;
+
+    for Tile in MMTiles do
+      if Minimap.IsPointOn(Tile, RadiusCheck) then
+        FilteredMMTiles += Tile;
+
+    if FilteredMMTiles = [] then
       Exit;
 
     Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
 
     for Dot in Dots do
-      if SRL.PointInCircle(Dot, MMTile, RadiusCheck * 5) then
-        FilteredDots += Dot;
+      for Tile in FilteredMMTiles do
+        if SRL.PointInCircle(Dot, Tile, RadiusCheck * 5) then
+          FilteredDots += Dot;
 
     if FilteredDots = [] then
       Exit;
+
+    FilteredDots.ClearDuplicates;
 
     for Dot in FilteredDots do
     begin
@@ -205,7 +221,9 @@ end;
 procedure TRSGroundItem.Debug;
   function GetWalkerTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
   var
-    MMTile: TPoint := Map^.WorldToMM(Tile);
+    Tile: TPoint;
+    MMTiles: TPointArray;
+    FilteredMMTiles: TPointArray;
     Dot: TPoint;
     Dots: TPointArray;
     FilteredDots: TPointArray;
@@ -214,17 +232,31 @@ procedure TRSGroundItem.Debug;
     LowTPA: TPointArray;
     TPA: TPointArray;
   begin
-    if not Minimap.IsPointOn(MMTile, RadiusCheck) then
+    for Tile in Tiles do
+    begin
+      if not Map^.TileVisible(Tile) then
+        Continue; //Skips tiles out of view)
+      MMTiles += Map^.WorldToMM(Tile);
+    end;
+
+    for Tile in MMTiles do
+      if Minimap.IsPointOn(Tile, RadiusCheck) then
+        FilteredMMTiles += Tile;
+
+    if FilteredMMTiles = [] then
       Exit;
 
     Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
 
     for Dot in Dots do
-      if SRL.PointInCircle(Dot, MMTile, RadiusCheck * 5) then
-        FilteredDots += Dot;
+      for Tile in FilteredMMTiles do
+        if SRL.PointInCircle(Dot, Tile, RadiusCheck * 5) then
+          FilteredDots += Dot;
 
     if FilteredDots = [] then
       Exit;
+
+    FilteredDots.ClearDuplicates;
 
     for Dot in FilteredDots do
     begin
@@ -464,11 +496,11 @@ begin
 
     if MainScreen.IsUpText(UpText) then
       Exit(True)
-    else if not Map^.AtTile(Tile, 50) then
-      Map^.WebWalk(Tile, 10, 0.2)
+    else if not Map^.AtTile(Tiles, 50) then
+      Map^.WebWalk(Map^.GetClosestTile(Tiles), 10, 0.2)
     else if Attempt = (Attempts - 1) then
     begin
-      if not Map^.AtTile(Tile, 30) and Map^.WebWalk(Tile, 10, 0.2) then
+      if not Map^.AtTile(Tiles, 30) and Map^.WebWalk(Map^.GetClosestTile(Tiles), 10, 0.2) then
         Continue;
 
       CompassAngle := Minimap.GetCompassAngle;
@@ -527,7 +559,7 @@ begin
     ChooseOption.Close;
   end;
 
-  if Filter.Walker and not Map^.MakeTileVisible(Tile) then
+  if Filter.Walker and not Map^.MakeTileVisible(Tiles) then
     Exit(False);
 
   Result := Self._HoverHelper(Attempts);
@@ -563,8 +595,8 @@ begin
   if not Filter.Walker then
     Exit;
 
-  if not Map^.MakeTileVisible(Tile) then
-    if not Map^.WebWalk(Tile, 30, 0.2) then
+  if not Map^.MakeTileVisible(Tiles) then
+    if not Map^.WebWalk(Map^.GetClosestTile(Tiles), 30, 0.2) then
       Exit(False);
 
   Result := Self._WalkHoverHelper(Attempts);

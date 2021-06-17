@@ -138,21 +138,18 @@ function TRSBank.FindItemTab(Item: TRSItem; OpenTab: Boolean = True): Int32;
 var
   Box, SearchBox: TBox;
   TPA: TPointArray;
+  ATPA: T2DPointArray;
   TabsText: T2DPointArray;
 begin
   if Self.FindItem(Item, Box) then
-    Exit(Self.GetCurrentTab);
-
-  if not Self.Search(Self._SimplifyItemName(Item)) or not Self.FindItem(Item, Box) then
+  begin
+    if not Bank.GetButton(ERSBankButton.SEARCH).Enabled then
+      Exit(Self.GetCurrentTab);
+  end
+  else if not Self.Search(Self._SimplifyItemName(Item)) or not Self.FindItem(Item, Box) then
     Exit(-1);
 
-
-  SearchBox := [
-    Self.X1 + 40,
-    Self.Y1,
-    Self.X1 + 90,
-    Box.Y1
-  ];
+  SearchBox := [Self.X1 + 56, Self.Y1 + 77, Self.X1 + 84, Box.Y1];
 
   if SRL.FindColors(TPA, CTS0(10672356, 0), SearchBox) > 0 then
     TabsText += TPA;
@@ -166,10 +163,14 @@ begin
     Exit(0);
   end;
 
-  TPA := TabsText.Merge();
-  TPA.SortByY(False);
+  TPA := TabsText.Merge;
+  TPA.SortByY(False);     //Sort the tabs text from bottom to top.
 
-  TPA := TPA.Cluster(15)[0];
+  ATPA := TPA.Cluster(15);
+  //filter out anything that does not fit the size of the tab text.
+  ATPA.FilterDimensions(24, 8, 26, 8);
+
+  TPA := ATPA[0];
   TPA.SortByX(False);
 
   TPA := TPA.Cluster(1)[0];
@@ -181,7 +182,6 @@ begin
   if (Result > 0) and OpenTab then
     Self.OpenTab(Result);
 end;
-
 
 function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
 var

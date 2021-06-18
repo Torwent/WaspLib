@@ -1,0 +1,132 @@
+{$DEFINE WL_BASESCRIPT_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TBaseScript = record
+    Name: String;
+    Version: String;
+
+    IsSetup: Boolean;
+
+    TimeRunning: TStopwatch;
+    StatsDebugTick: Int64;
+
+    Action: String;
+    ExtraInfo: String;
+
+    ActionProfit: Int32;
+    TotalActions: Int32;
+    TotalProfit: Int32;
+  end;
+
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TRSWalker;
+  end;
+
+  TBaseBankScript = record(TBaseWalkerScript)
+    ScriptBank: PRSObject;
+    BankTab: Int32;
+
+    BankEmpty: Boolean;
+    CollectEmpty: Boolean;
+    CollectTimer: TCountDown;
+  end;
+
+
+procedure TBaseScript.Init; //override me to add more stuff.
+begin
+  if IsSetup then Exit;
+  IsSetup := True;
+
+  {$IFDEF SRL_USE_REMOTEINPUT}
+  if RemoteInputEnabled then RSClient.SetupRemoteInput;
+  {$ENDIF}
+
+  SRL.Setup;
+  Antiban.Setup;
+  WL.Activity.Init(260000);
+  TimeRunning.Start;
+  //override me to add more stuff.
+end;
+
+function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
+begin
+  Antiban.DismissRandom;
+  TimeRunning.Pause;
+  WL.Activity.Pause;
+
+  try
+    Result := Antiban.DoAntiban(CheckBreaks, CheckSleeps);
+  finally
+    TimeRunning.Resume;
+    WL.Activity.Resume;
+  end;
+end;
+
+procedure TBaseScript.ProcessWhileWaiting;
+var
+  TitleStr, ActionStr, RunTimeStr: String;
+  TActionsStr, TActionHourStr, TProfitStr, TProfitHourStr: String;
+  TitleLength: Int32;
+  ElapseTime: UInt64 := TimeRunning.ElapsedTime;
+begin
+  TotalProfit := TotalActions * ActionProfit;
+
+  if (GetTickCount - StatsDebugTick) > 1000 then
+  begin
+    ClearDebug;
+
+    TitleStr := Name + ' ' + Version;
+    TitleLength := TitleStr.Len;
+    TitleStr := '+' + PadL( ('|  ' + TitleStr + '  |'), 40, '=');
+    TitleStr := PadR(TitleStr, 80 - TitleLength, '=') + '+';
+
+    TitleLength := TitleStr.Len;
+    ActionStr   := PadR((' Action        : ' + Action), Round(TitleLength/2));
+    RunTimeStr  :=       ' Runtime       : ' + SRL.MsToTime(ElapseTime, Time_Short);
+    TActionsStr := PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2));
+    TActionHourStr :=    ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapseTime));
+    TProfitStr  := PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(TitleLength/2));
+    TProfitHourStr :=    ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapseTime));
+
+    WriteLn(TitleStr);
+    Writeln(ActionStr, RunTimeStr);
+    Writeln(TActionsStr, TActionHourStr);
+    Writeln(TProfitStr, TProfitHourStr);
+    if ExtraInfo.Len > 0 then
+      Writeln(ExtraInfo);
+
+    WriteLn('+', PadR('-', TitleLength - 2, '-'),'+');
+
+    StatsDebugTick := GetTickCount();
+  end;
+end;
+
+
+procedure TBaseBankScript.Init; override;//override me to add more stuff.
+begin
+  inherited;
+
+  BankTab := -1;
+  CollectTimer.Init(600000);
+  //override me to add more stuff.
+end;
+
+
+function TBaseBankScript.Terminate: Boolean;//override me to add more stuff.
+begin
+  for 0 to 5 do
+  begin
+    if InterfaceArea.HasInterface then
+    begin
+      if Result := Bank.IsOpen then Break
+      else InterfaceArea.Close(SRL.Dice(90));
+    end;
+
+    if Result := Bank.WalkOpen(ScriptBank) then Break;
+  end;
+  //override me to add more stuff.
+end;
+

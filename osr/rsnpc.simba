@@ -23,10 +23,8 @@ type
 
   TRSNPCArray = array of TRSNPC;
 
-procedure TRSNPC.SetupCommon(Radius: Int32 = 1; NPCHeight: Int32 = 6);
+procedure TRSNPC.SetupCommon;
 begin
-  WanderRadius := Radius;
-  Height := NPCHeight;
   Finder.ClusterDistance := 3;
   Finder.Erode := 2;
   Finder.Grow := 4;
@@ -36,10 +34,18 @@ begin
   Filter.UpText  := True;
 end;
 
+procedure TRSNPC.SetupCommon(Walker: PRSWalker; Radius, NPCHeight: Int32; NPCTiles: TPointArray); overload;
+begin
+  Map := Walker;
+  WanderRadius := Radius;
+  Height := NPCHeight;
+  Filter.Walker := True;
+  Tiles := NPCTiles;
+end;
 
 
 function TRSNPC.Find: T2DPointArray;
-  function GetWalkerTilesRects: TRectArray;
+  function GetWalkerMMTileRects: TRectArray;
   var
     Me: TPoint := Map^.GetMyPos;
     TileArray: TPointArray := Copy(Tiles);
@@ -59,8 +65,7 @@ function TRSNPC.Find: T2DPointArray;
 
     for Tile in TileArray do
     begin
-      if Me.DistanceTo(Tile) > 200 then
-        Continue; //Skips tiles too far away
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
       MMTiles += Map^.WorldToMM(Tile);
     end;
 
@@ -106,7 +111,41 @@ function TRSNPC.Find: T2DPointArray;
     end;
   end;
 
-  function GetTilesRects: TRectArray;
+  function GetWalkerTileRects: TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos;
+    Tile: TPoint;
+    TileArray: TPointArray := Copy(Tiles);
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
+
+      Rect := Map^.GetTileMSEx(Me, Tile, Height);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Map^.GetTileMSEx(Me, Tile, 0);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Result += Rect;
+    end;
+    TPA.ClearDuplicates;
+  end;
+
+  function GetMMTileRects: TRectArray;
   var
     Dot: TPoint;
     Dots: TPointArray;
@@ -151,10 +190,11 @@ var
   TPA: TPointArray;
   NPCFinder: TRSObjectFinder;
 begin
-
-  if Filter.Walker then
+  if Filter.Walker then  //walker has priority over minimap.
   begin
-    Rects := GetWalkerTilesRects;
+    if Filter.Minimap then Rects := GetWalkerMMTileRects
+    else Rects := GetWalkerTileRects;
+
     if Filter.Finder then
     begin
       NPCFinder := Finder;
@@ -186,7 +226,7 @@ begin
 
   else if Filter.Minimap then
   begin
-    Rects := GetTilesRects;
+    Rects := GetMMTileRects;
     if Filter.Finder then
     begin
       NPCFinder := Finder;
@@ -226,7 +266,7 @@ begin
 end;
 
 procedure TRSNPC.Debug;
-  function GetWalkerTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
+  function GetWalkerMMTileRects(out Bitmap: TMufasaBitmap): TRectArray;
   var
     Me: TPoint := Map^.GetMyPos;
     TileArray: TPointArray := Copy(Tiles);
@@ -246,8 +286,7 @@ procedure TRSNPC.Debug;
 
     for Tile in TileArray do
     begin
-      if Me.DistanceTo(Tile) > 200 then
-        Continue; //Skips tiles too far away
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
       MMTiles += Map^.WorldToMM(Tile);
     end;
 
@@ -296,7 +335,45 @@ procedure TRSNPC.Debug;
     end;
   end;
 
-  function GetTilesRects(out Bitmap: TMufasaBitmap): TRectArray;
+  function GetWalkerTileRects(out Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos();
+    Tile: TPoint;
+    TileArray: TPointArray := Copy(Tiles);
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
+
+      Rect := Map^.GetTileMSEx(Me, Tile, Height);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Map^.GetTileMSEx(Me, Tile, 0);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+
+      Result += Rect;
+    end;
+  end;
+
+  function GetMMTileRects(out Bitmap: TMufasaBitmap): TRectArray;
   var
     Dot: TPoint;
     Dots: TPointArray;
@@ -350,7 +427,9 @@ begin
 
   if Filter.Walker then
   begin
-    Rects := GetWalkerTilesRects(Bitmap);
+    if Filter.Minimap then Rects := GetWalkerMMTileRects(Bitmap)
+    else Rects := GetWalkerTileRects(Bitmap);
+
     if Filter.Finder then
     begin
       NPCFinder := Finder;
@@ -382,7 +461,7 @@ begin
 
   else if Filter.Minimap then
   begin
-    Rects := GetTilesRects(Bitmap);
+    Rects := GetMMTileRects(Bitmap);
     if Filter.Finder then
     begin
       NPCFinder := Finder;

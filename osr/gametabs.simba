@@ -3,6 +3,143 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+type
+  TRSKeybind = record
+    IsSetup: Boolean;
+    Tab: ERSGameTab;
+    Key: UInt32;
+  end;
+
+  TRSKeybindings = record
+    UseKeybindings: Boolean;
+    Keybinds: array of TRSKeybind;
+    UncheckedKeyArray: TIntegerArray;
+  end;
+
+
+procedure TRSKeybindings.Setup;
+var
+  i: Int32;
+begin
+  UncheckedKeyArray := [VK_ESCAPE, VK_F1, VK_F2, VK_F3, VK_F4, VK_F5, VK_F6,
+                    VK_F7, VK_F8, VK_F9, VK_F10, VK_F11, VK_F12];
+
+  SetLength(Keybinds, Length(UncheckedKeyArray));
+
+  for i := 0 to High(UncheckedKeyArray) do
+  begin
+    Keybinds[i].Key := UncheckedKeyArray[i];
+    Keybinds[i].Tab := ERSGameTab.UNKNOWN;
+  end;
+end;
+
+
+procedure TRSKeybind.Setup(Gametab: ERSGameTab);
+begin
+  if IsSetup then Exit;
+  Tab := Gametab;
+  IsSetup := True;
+end;
+
+function TRSKeybindings.GetKeyIndex(Key: Int32): Int32;
+var
+  i: Int32
+begin
+  for i := 0 to High(Keybinds) do
+    if Keybinds[i].Key = Key then
+      Exit(i);
+
+  Result := -1;
+end;
+
+function TRSKeybindings.GetKeyIndex(Gametab: ERSGameTab): Int32; overload;
+var
+  i: Int32
+begin
+  for i := 0 to High(Keybinds) do
+    if Keybinds[i].Tab = Gametab then
+      Exit(i);
+
+  Result := -1;
+end;
+
+var
+  Keybindings: TRSKeybindings;
+
+
+function TRSGameTabs.FKeyOpen(Tab: ERSGameTab): Boolean;
+var
+  CurrentTab: ERSGameTab;
+  NewTab: ERSGameTab;
+  Idx: Int32;
+  Idx2: Int32;
+  Key: UInt32;
+  TabSwitched: Boolean;
+begin
+  Idx := Keybindings.GetKeyIndex(Tab);
+
+  if Idx > -1 then
+  begin
+    Keyboard.PressKey(Keybindings.Keybinds[Idx].Key);
+    Exit(WaitUntil(Self.GetCurrentTab = Tab,
+                   SRL.TruncatedGauss(50, 2000),
+                   SRL.TruncatedGauss(2000, 3000)));
+  end;
+
+  if Keybindings.UncheckedKeyArray = [] then
+    Exit(False); //all keys are already setup and there's no match
+
+
+  Key := Keybindings.UncheckedKeyArray[Random(0, High(Keybindings.UncheckedKeyArray))];
+
+  CurrentTab := Self.GetCurrentTab;
+
+  Idx := Keybindings.GetKeyIndex(Key);
+
+  Keyboard.PressKey(Keybindings.Keybinds[Idx].Key);
+
+  TabSwitched := WaitUntil(CurrentTab <> (NewTab := Self.GetCurrentTab),
+                           SRL.TruncatedGauss(50, 2000),
+                           SRL.TruncatedGauss(2000, 3000));
+
+  if TabSwitched then //if tab switched we are sure of this key-gametab pair
+  begin
+    Keybindings.Keybinds[Idx].Setup(NewTab);
+    Keybindings.UncheckedKeyArray.Del(
+                Keybindings.UncheckedKeyArray.Find(Key));
+  end
+  else   //if the tab didn't switch the key is either paired to the current tab
+  begin  //or has no pair. We only decide it has no pair if we are sure by setting it to UNKNOWN
+    Idx2 := Keybindings.GetKeyIndex(CurrentTab);
+    if Keybindings.Keybinds[Idx2].IsSetup then
+    begin
+      Keybindings.Keybinds[Idx].Setup(ERSGameTab.UNKNOWN);
+      Keybindings.UncheckedKeyArray.Del(
+                  Keybindings.UncheckedKeyArray.Find(Key));
+    end;
+  end;
+
+  Result := NewTab = Tab;
+end;
+
+
+function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+begin
+  if Bank.IsOpen(False) then
+  begin
+    if Tab = ERSGameTab.INVENTORY then Exit(True);
+    Bank.Close;
+  end;
+
+  if GetCurrentTab = Tab then Exit(True);
+
+  if Keybindings.UseKeybindings then
+    Result := Self.FKeyOpen(Tab);
+
+  if not Result then
+    Result := inherited;
+end;
+
 // SHOULD ADD TO SRL.
 function TRSGameTabs.GetTabBox(Tab: ERSGameTab): TBox; override;
 var
@@ -11,4 +148,9 @@ begin
   if (Tabs = []) or (Tab = ERSGameTab.UNKNOWN) then
     Exit;
   Result := Tabs[Tab];
+end;
+
+begin
+  Keybindings.Setup;
+  Keybindings.UseKeybindings := True;
 end;

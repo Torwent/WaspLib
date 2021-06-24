@@ -15,20 +15,21 @@ type
   TRSAction = record
     Alchables, Droppables: TRSItemArray;
     DropSlots: TIntegerArray;
+    ActionCooldown: TCountDown;
   end;
 
 
-procedure TRSAction.Setup();
+procedure TRSAction.Setup;
 begin
-  Self.Alchables := [
-    'Onyx bolts (e)', '9282', '9283', '9284', '9285', 'Yew longbow', 'Magic longbow', 'Adamant platebody',
-    'Rune 2h sword', 'Rune axe', 'Rune battleaxe', 'Rune boots', 'Rune cane',
-    'Rune chainbody', 'Rune claws', 'Rune crossbow', 'Rune dagger',
-    'Rune dagger(p+)', 'Rune full helm', 'Rune halberd', 'Rune hasta',
-    'Rune kiteshield', 'Rune longsword', 'Rune mace', 'Rune med helm',
-    'Rune pickaxe', 'Rune platebody', 'Rune platelegs', 'Rune plateskirt',
-    'Rune scimitar', 'Rune spear', 'Rune sq shield', 'Rune sword',
-    'Runite crossbow (u)', 'Runite limbs',
+  Alchables := [
+    'Onyx bolts (e)', '9282', '9283', '9284', '9285', 'Yew longbow',
+    'Magic longbow', 'Adamant platebody', 'Rune 2h sword', 'Rune axe',
+    'Rune battleaxe', 'Rune boots', 'Rune cane', 'Rune chainbody', 'Rune claws',
+    'Rune crossbow', 'Rune dagger', 'Rune dagger(p+)', 'Rune full helm',
+    'Rune halberd', 'Rune hasta', 'Rune kiteshield', 'Rune longsword',
+    'Rune mace', 'Rune med helm','Rune pickaxe', 'Rune platebody',
+    'Rune platelegs', 'Rune plateskirt', 'Rune scimitar', 'Rune spear',
+    'Rune sq shield', 'Rune sword', 'Runite crossbow (u)', 'Runite limbs',
 
     'noted Yew longbow', 'noted Magic longbow', 'noted Adamant platebody',
     'noted Rune 2h sword', 'noted Rune axe', 'noted Rune battleaxe',
@@ -41,8 +42,9 @@ begin
     'noted Rune scimitar', 'noted Rune spear', 'noted Rune sq shield',
     'noted Rune sword', 'noted Runite crossbow (u)', 'noted Runite limbs'
   ];
+  ActionCooldown.Init(800);
 
-  Self.Droppables := [
+  Droppables := [
     'Trout', 'Salmon', 'Leaping trout', 'Leaping salmon','Leaping sturgeon'
   ];
 
@@ -77,25 +79,30 @@ begin
 end;
 
 
-function TRSAction.Alch(Items: TRSItemArray; HighAlch: Boolean = True): Boolean;
+function TRSAction.AlchItems(Items: TRSItemArray; HighAlch: Boolean = True): Boolean;
 var
   Item: TRSItem;
   Spell: ERSSpell;
 begin
+  if not ActionCooldown.IsFinished then
+    Exit;
+
   if HighAlch then
     Spell := ERSSpell.HIGH_LEVEL_ALCHEMY
   else
     Spell := ERSSpell.LOW_LEVEL_ALCHEMY;
 
   if Magic.CastSpell(Spell) then
-  begin
     for Item in Items do
       if Inventory.ClickItem(Item) then
-        Exit(XPBar.WaitXPDrop(600));
-  end;
+        if Result := XPBar.WaitXPDrop(600) then
+        begin
+          ActionCooldown.Restart(Random(-100, 200));
+          Exit;
+        end;
 end;
 
-function TRSAction.Alch(Item: TRSItem; HighAlch: Boolean = True): Boolean; overload;
+function TRSAction.AlchItem(Item: TRSItem; HighAlch: Boolean = True): Boolean;
 var
   Spell: ERSSpell;
 begin
@@ -293,9 +300,9 @@ begin
   case Action of
     CHECK_STATS: Antiban.HoverSkills;
     FISH: Self.StartFishing;
-    //ALCH: Self.Alch(Self.Alchables);
+    ALCH: Self.AlchItems(Alchables);
     FLETCH: ;
-    //DROP: Self.DropItems;
+    DROP: Self.DropItems;
   end;
 end;
 
@@ -303,5 +310,5 @@ var
   RSAction: TRSAction;
 
 begin
-  RSAction.Setup();
+  RSAction.Setup;
 end;

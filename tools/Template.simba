@@ -24,9 +24,8 @@ type
     WAIT_STATE
   );
 
-  TScript = record
+  TScript = record(TBaseWalkerScript)
     State: EState;
-    RSW: TRSWalker;
   end;
 
 procedure TAntiban.Setup; override;
@@ -38,14 +37,11 @@ begin
   Antiban.MaxZoom := 40;
 end;
 
-procedure TScript.Init;
+procedure TScript.Init; override;
 begin
-  SRL.Setup;
-  RSW.Setup('world');
-  Antiban.Setup
+  inherited;
 
-  if not RSClient.IsLoggedIn then
-    Login.LoginPlayer;
+  if not RSClient.IsLoggedIn then Login.LoginPlayer;
 end;
 
 function TScript.GetState: EState;
@@ -61,21 +57,19 @@ begin
   while True do
   begin
     State := Self.GetState;
-    WL.Action := ToStr(State);
-    WL.ProcessWhileWaiting;
+    Action := ToStr(State);
+    Self.ProcessWhileWaiting;
 
     case State of
       WAIT_STATE: Wait(500, 800);
     end;
 
-    Antiban.DismissRandom;
-    if WL.DoAntiban and not RSClient.IsLoggedIn then
-      Login.LoginPlayer;
+    Self.DoAntiban;
+    if not RSClient.IsLoggedIn then Login.LoginPlayer;
   end;
 end;
 
-var
-  Script: TScript;
+var Script: TScript;
 
 type
   TConfig = record(TScriptConfig)
@@ -115,8 +109,7 @@ begin
   inherited;
 end;
 
-var
-  Config: TConfig;
+var Config: TConfig;
 
 begin
   {$IFDEF SCRIPT_GUI}

@@ -21,9 +21,6 @@ type
 
   TRSObjectArray = array of TRSObject;
 
-var
-  CurrentBank: PRSObject;
-
 procedure TRSObject.SetupCommon;
 begin
   Finder.ClusterDistance := 2;
@@ -87,6 +84,8 @@ var
   TPA: TPointArray;
   ObjFinder: TRSObjectFinder;
 begin
+  MM2MS.SetupZoom;
+
   if Filter.Walker then
   begin
     Rects := GetTileRects;
@@ -128,7 +127,7 @@ begin
   Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
-//unified debug function
+//Unified debug function
 procedure TRSObject.Debug;
   function GetTileRects(out Bitmap: TMufasaBitmap): TRectArray;
   var
@@ -179,6 +178,7 @@ var
 begin
   Bitmap.FromClient(MainScreen.Bounds);
 
+  MM2MS.SetupZoom;
   if Filter.Walker then
   begin
     Rects := GetTileRects(Bitmap);
@@ -227,9 +227,94 @@ begin
   Bitmap.Free;
 end;
 
-procedure TRSObject.SetCurrentBank;
+procedure TRSObject.Draw(out Bitmap: TMufasaBitmap);
+  function GetTileRects(out Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos();
+    Tile: TPoint;
+    TileArray: TPointArray := Copy(Tiles);
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
+
+      Rect := Map^.GetTileMSEx(Me, Tile, Height);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Map^.GetTileMSEx(Me, Tile, 0);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+
+      Result += Rect;
+    end;
+  end;
+
+var
+  Rect: TRectangle;
+  Rects: TRectArray;
+  B: TBox;
+  TPA: TPointArray;
+  ObjFinder: TRSObjectFinder;
+  Obj: T2DPointArray;
 begin
-  CurrentBank := @Self;
+  MM2MS.SetupZoom;
+  if Filter.Walker then
+  begin
+    Rects := GetTileRects(Bitmap);
+    if Filter.Finder then
+    begin
+      ObjFinder := Finder;
+      ObjFinder.MinLongSide := 0;
+      ObjFinder.MinShortSide := 0;
+    end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(ObjFinder, B).Merge;
+          Obj += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          Obj += TPA;
+        end;
+      end;
+    end;
+  end
+  else if Filter.Finder then
+    Obj := MainScreen.FindObject(Finder);
+
+  if Obj <> [] then
+  begin
+    Obj.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+
+    Bitmap.DrawATPA(Obj);
+    Bitmap.DrawTPA(Obj[0], $000000);
+  end;
 end;
 
 
@@ -430,6 +515,7 @@ begin
 end;
 
 
+var CurrentBank: PRSObject;
 
 //Extra bank opening methods using TRSObjects
 function TRSBank.Hover(RSObject: PRSObject = CurrentBank): Boolean; overload;
@@ -512,4 +598,17 @@ begin
       );
     end;
   end;
+end;
+
+var
+  DebugRSObjectArray: TRSObjectArray;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugRSObject: TRSObject;
+begin
+  inherited;
+
+  for DebugRSObject in DebugRSObjectArray do
+    DebugRSObject.Draw(Bitmap);
 end;

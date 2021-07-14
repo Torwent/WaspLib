@@ -196,6 +196,7 @@ var
   TPA: TPointArray;
   GItemFinder: TRSObjectFinder;
 begin
+  MM2MS.SetupZoom;
   if Filter.Walker then
   begin
     if Filter.Minimap then Rects := GetWalkerMMTileRects
@@ -431,6 +432,7 @@ var
 begin
   Bitmap.FromClient(MainScreen.Bounds);
 
+  MM2MS.SetupZoom;
   if Filter.Walker then
   begin
     if Filter.Minimap then Rects := GetWalkerMMTileRects(Bitmap)
@@ -514,6 +516,244 @@ begin
   ShowBitmap(Bitmap);
   Bitmap.Free;
 end;
+
+procedure TRSGroundItem.Draw(Bitmap: TMufasaBitmap);
+  function GetWalkerMMTileRects(Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos;
+    TileArray: TPointArray := Copy(Tiles);
+    Tile: TPoint;
+    MMTiles: TPointArray;
+    FilteredMMTiles: TPointArray;
+    Dot: TPoint;
+    Dots: TPointArray;
+    FilteredDots: TPointArray;
+    Expand: Single;
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
+      MMTiles += Map^.WorldToMM(Tile);
+    end;
+
+    for Tile in MMTiles do
+      if Minimap.IsPointOn(Tile, RadiusCheck) then
+        FilteredMMTiles += Tile;
+
+    if FilteredMMTiles = [] then
+      Exit;
+
+    Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
+
+    for Dot in Dots do
+      for Tile in FilteredMMTiles do
+        if SRL.PointInCircle(Dot, Tile, RadiusCheck * 5) then
+          FilteredDots += Dot;
+
+    if FilteredDots = [] then
+      Exit;
+
+    FilteredDots.ClearDuplicates;
+
+    for Dot in FilteredDots do
+    begin
+      if Filter.Finder = True then Expand := 10 //without finder it's best to not expand the rectangle.
+      else Expand := 0;
+
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]).Expand(Expand);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]).Expand(Expand);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+      Result += Rect;
+    end;
+  end;
+
+  function GetWalkerTileRects(Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Me: TPoint := Map^.GetMyPos();
+    Tile: TPoint;
+    TileArray: TPointArray := Copy(Tiles);
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    TileArray.Sorted(Me);
+
+    for Tile in TileArray do
+    begin
+      if Me.DistanceTo(Tile) > 200 then Continue; //Skips tiles too far away
+
+      Rect := Map^.GetTileMSEx(Me, Tile, Height);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Map^.GetTileMSEx(Me, Tile, 0);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+
+      Result += Rect;
+    end;
+  end;
+
+  function GetMMTileRects(Bitmap: TMufasaBitmap): TRectArray;
+  var
+    Dot: TPoint;
+    Dots: TPointArray;
+    Expand: Single;
+    Rect: TRectangle;
+    HighTPA: TPointArray;
+    LowTPA: TPointArray;
+    TPA: TPointArray;
+  begin
+    Dots := Minimap.GetDots(ERSMinimapDot.ITEM);
+
+    if Dots = [] then
+      Exit;
+
+    for Dot in Dots do
+    begin
+      if Filter.Finder = True then Expand := 10 //without finder it's best to not expand the rectangle.
+      else Expand := 0;
+
+      Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, Height]).Expand(Expand);
+      Bitmap.DrawRect(Rect, $ffffff);
+      HighTPA := Rect.ToTPA;
+
+      if Height > 0 then
+      begin
+        Rect := Minimap.VecToMSRect([Dot.X+2, Dot.Y+2, 0]).Expand(Expand);
+        Bitmap.DrawRect(Rect, $ffffff);
+        LowTPA := Rect.ToTPA;
+        TPA := HighTPA.Combine(LowTPA);
+        TPA.ClearDuplicates;
+      end
+      else
+        TPA := HighTPA;
+
+      Rect := TPA.MinAreaRect;
+      Bitmap.DrawRect(Rect, $0000ff);
+      Result += Rect;
+    end;
+  end;
+
+var
+  Rect: TRectangle;
+  Rects: TRectArray;
+  B: TBox;
+  TPA: TPointArray;
+  GItemFinder: TRSObjectFinder;
+  GItem: T2DPointArray;
+begin
+  MM2MS.SetupZoom;
+  if Filter.Walker then
+  begin
+    if Filter.Minimap then Rects := GetWalkerMMTileRects(Bitmap)
+    else Rects := GetWalkerTileRects(Bitmap);
+
+    if Filter.Finder then
+    begin
+      GItemFinder := Finder;
+      GItemFinder.MinLongSide := 0;
+      GItemFinder.MinShortSide := 0;
+    end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(GItemFinder, B).Merge;
+          if TPA <> [] then
+            GItem += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          GItem += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Minimap then
+  begin
+    Rects := GetMMTileRects(Bitmap);
+    if Filter.Finder then
+    begin
+      GItemFinder := Finder;
+      GItemFinder.MinLongSide := 0;
+      GItemFinder.MinShortSide := 0;
+    end;
+
+    for Rect in Rects do
+    begin
+      B := Rect.Bounds;
+
+      if InterfaceArea.Bounds.Contains(Rect) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(GItemFinder, B).Merge;
+          if TPA <> [] then
+            GItem += Rect.Filter(TPA);
+        end
+        else
+        begin
+          TPA := Rect.ToTPA.Connect;
+          TPA.Fill;
+          GItem += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    GItem := MainScreen.FindObject(Finder);
+
+  if GItem = [] then
+    Exit;
+
+  GItem.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+
+  Bitmap.DrawATPA(GItem);
+  Bitmap.DrawTPA(GItem[0], $000000);
+end;
+
+
 
 procedure TRSGroundItem.SetupValue;
 begin
@@ -718,4 +958,18 @@ function TRSGroundItem.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 
 begin
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);
+end;
+
+
+var
+  DebugRSGroundItemArray: TRSGroundItemArray;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugRSGroundItem: TRSGroundItem;
+begin
+  inherited;
+
+  for DebugRSGroundItem in DebugRSGroundItemArray do
+    DebugRSGroundItem.Draw(Bitmap);
 end;

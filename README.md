@@ -4,7 +4,7 @@
  WaspLib v2 is intended to work with [Simba 1400](https://github.com/ollydev/Simba) and [SRL-Development](https://github.com/ollydev/SRL-Development).
 
  If you are having problems I suggest you try [my fork of SRL-Development](https://github.com/Torwent/SRL) due to code changing too frequently in Olly's SRL-Development and something might be incompatible for a while.
- Also, as of right now, my fork has some bug fixes that are not live yet on Olly's SRL.
+ I also recommend you join my discord server and ask around there for help: [WaspBots](https://discord.gg/Duv2Mhzn9X).
  
  
 # What is WaspLib for?
@@ -59,3 +59,6 @@
  - [ ] Furniture builder
  - [ ] NMZ Reward chest
  - [ ] NMZ Dream Setup
+
+
+

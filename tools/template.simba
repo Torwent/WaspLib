@@ -1,0 +1,121 @@
+{$DEFINE SRL_USE_REMOTEINPUT}
+{$IFDEF WINDOWS}{$DEFINE SCRIPT_GUI}{$ENDIF}
+{$I SRL/osr.simba}
+{$I WaspLib/osr.simba}
+
+begin
+  Login.PlayerIndex  := 0;
+  AntibanEnabled     := True; //Enables most antiban
+  BreaksEnabled      := True; //Enables short breaks
+  SleepEnabled       := True; //Enables sleep breaks
+  RemoteInputEnabled := True; //Enables remote input
+end;
+
+type
+  ETask = (
+    TASK_TO_DO
+  );
+
+var
+  CurrentTask: ETask := ETask.TASK_TO_DO;
+
+type
+  EState = (
+    WAIT_STATE
+  );
+
+  TScript = record(TBaseWalkerScript)
+    State: EState;
+  end;
+
+procedure TAntiban.Setup; override;
+begin
+  inherited;
+
+  Antiban.Skills := [ERSSkill.TOTAL];
+  Antiban.MinZoom := 15;
+  Antiban.MaxZoom := 40;
+end;
+
+procedure TScript.Init; override;
+begin
+  inherited;
+
+  RSW.Setup('world');
+
+  if not RSClient.IsLoggedIn then Login.LoginPlayer;
+end;
+
+function TScript.GetState: EState;
+begin
+  Exit(EState.WAIT_STATE);
+end;
+
+procedure TScript.Run;
+begin
+  ClearDebug;
+  Self.Init;
+
+  while True do
+  begin
+    State := Self.GetState;
+    Action := ToStr(State);
+    Self.ProcessWhileWaiting;
+
+    case State of
+      WAIT_STATE: Wait(500, 800);
+    end;
+
+    Self.DoAntiban;
+    if not RSClient.IsLoggedIn then Login.LoginPlayer;
+  end;
+end;
+
+var Script: TScript;
+
+type
+  TConfig = record(TScriptConfig)
+    Selector: TLabeledCombobox;
+  end;
+
+procedure TConfig.StartScript(Sender: TObject);
+begin
+  Self.Init(Sender);
+
+  CurrentTask := ETask(Selector.Combobox.getItemIndex);
+end;
+
+procedure TConfig.Setup; override;
+begin
+  inherited;
+
+  with Selector do
+  begin
+    Init(ScriptSettingsPanel);
+    SetCaption('Task:');
+    SetLeft(ScriptSettingsLabel.getLeft + 5);
+    SetTop(ScriptSettingsLabel.getTop + ScriptSettingsLabel.getHeight + 5);
+    SetWidth(200);
+    Combobox.setStyle(csDropDownList);
+    Combobox.getItems.Add('Task to do');
+    Combobox.setItemIndex(Ord(CurrentTask));
+  end;
+
+  StartButton.setOnClick(@Self.StartScript);
+end;
+
+procedure TConfig.Run; override;
+begin
+  Self.Setup;
+
+  inherited;
+end;
+
+var Config: TConfig;
+
+begin
+  {$IFDEF SCRIPT_GUI}
+  Sync(@Config.Run);
+  {$ENDIF}
+  Script.Run
+end.

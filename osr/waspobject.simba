@@ -1,0 +1,1121 @@
+{$DEFINE WL_WASPOBJECT_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  //TWaspObjectFilter is used to enable/disable certain functionality of TWaspObjects
+  TWaspObjectFilter = record
+    Walker: Boolean;
+    MinimapDot: Boolean;
+    Finder: Boolean;
+    UpText: Boolean;
+  end;
+
+  //TWaspObject base record for TRSObjects and TRSMMDots
+  TWaspObject = record
+    Walker: PRSWalker;
+    TileArray: TPointArray;
+    Height: Int32;
+    Finder: TRSObjectFinder;
+    UpText: TStringArray;
+    Filter: TWaspObjectFilter;
+  end;
+
+  //TRSObjects
+  TRSObject = type TWaspObject;
+  TRSObjectArray = array of TRSObject;
+  PRSObject = ^TRSObject;
+  PRSObjectArray = array of PRSObject;
+
+  //TRSMMDots base record for all objects that have a minimap dot.
+  TRSMMDot = record(TWaspObject)
+    TileRadius: Int32;
+    Size: Int32;
+    DotType: ERSMinimapDot;
+  end;
+
+  //RSNPCs
+  TRSNPC = type TRSMMDot;
+  TRSNPCArray = array of TRSNPC;
+  PRSNPC = ^TRSNPC;
+  PRSNPCArray = array of PRSNPC;
+
+  //RSGroundItems
+  TRSGroundItem = type TRSMMDot;
+  TRSGroundItemArray = array of TRSGroundItem;
+  PRSGroundItem = ^TRSGroundItem;
+  PRSGroundItemArray = array of PRSGroundItem;
+
+  //RSPlayers
+  TRSPlayer = type TRSMMDot;
+  TRSPlayerArray = array of TRSPlayer;
+  PRSPlayer = ^TRSPlayer;
+  PRSPlayerArray = array of PRSPlayer;
+
+
+procedure TWaspObject.SetupCommon;
+begin
+  Finder.ClusterDistance := 3;
+  Finder.Erode := 2;
+  Finder.Grow := 4;
+
+  Filter.Finder := True;
+  Filter.UpText := True;
+end;
+
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight: Int32; ObjTileArray: TPointArray); overload;
+begin
+  Walker := PWalker;
+  Height := ObjHeight;
+  Filter.Walker := True;
+  TileArray := ObjTileArray;
+end;
+
+
+procedure TRSMMDot.SetupCommon; override;
+begin
+  inherited;
+
+  Size := 1;
+  Height := 6;
+  Filter.MinimapDot := True;
+end;
+
+procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius, DotHeight: Int32; ObjTileArray: TPointArray); overload;
+begin
+  Walker := PWalker;
+  Height := DotHeight;
+  TileRadius := Radius;
+  Filter.Walker := True;
+  TileArray := ObjTileArray;
+end;
+
+
+procedure TRSNPC.SetupCommon; override;
+begin
+  inherited;
+
+  DotType := ERSMinimapDot.NPC;
+end;
+
+procedure TRSGroundItem.SetupCommon; override;
+begin
+  inherited;
+
+  Height := 1;
+  DotType := ERSMinimapDot.ITEM;
+end;
+
+procedure TRSPlayer.SetupCommon; override;
+begin
+  inherited;
+
+  DotType := ERSMinimapDot.PLAYER;
+end;
+
+
+// Searches for an object with ObjectFinder in the MainScreen with the
+// help of RSWalker. Good when objects don't move and precision is needed.
+function TRSObject.Find(out FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
+var
+  i: Int32;
+  TPA: TPointArray;
+  ObjFinder: TRSObjectFinder;
+begin
+  MM2MS.SetupZoom;
+
+  if Filter.Walker then
+  begin
+    FloorTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray);
+
+    if Height > 0 then
+    begin
+      RoofTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, Height);
+      PolyArray := FloorTiles.GetPolys(RoofTiles);
+    end
+    else
+      PolyArray := FloorTiles.GetPolys;
+
+    if PolyArray = [] then
+      Exit(False);
+
+    if Filter.Finder then ObjFinder := Finder.Unlimited;
+
+    for i := 0 to High(PolyArray) do
+    begin
+      if MainScreen.IsVisible(PolyArray[i]) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(ObjFinder, PolyArray[i].Bounds).Merge;
+          if TPA <> [] then
+            ATPA += PolyArray[i].Filter(TPA);
+        end
+        else
+        begin
+          TPA := PolyArray[i].Connect;
+          TPA.Fill;
+          ATPA += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    ATPA := MainScreen.FindObject(Finder);
+
+  if Result := (ATPA <> []) then
+    ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+//instead of calling the previous function inside this one we actually make it slightly differently.
+//since we don't want to return as many parameters on this one we can improve it's performance slightly.
+function TRSObject.Find(out ATPA: T2DPointArray): Boolean; overload;
+var
+  PolyArray: TPolyArray;
+  i: Int32;
+  TPA: TPointArray;
+  ObjFinder: TRSObjectFinder;
+begin
+  MM2MS.SetupZoom;
+
+  if Filter.Walker then
+  begin
+    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height);
+
+    if PolyArray = [] then
+      Exit(False);
+
+    if Filter.Finder then ObjFinder := Finder.Unlimited;
+
+    for i := 0 to High(PolyArray) do
+    begin
+      if MainScreen.IsVisible(PolyArray[i]) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(ObjFinder, PolyArray[i].Bounds).Merge;
+          if TPA <> [] then
+            ATPA += PolyArray[i].Filter(TPA);
+        end
+        else
+        begin
+          TPA := PolyArray[i].Connect;
+          TPA.Fill;
+          ATPA += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    ATPA := MainScreen.FindObject(Finder);
+
+  if Result := (ATPA <> []) then
+    ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+//This one is for True or False only but performs even better because it exits on the first match.
+function TRSObject.Find: Boolean; overload;
+var
+  PolyArray: TPolyArray;
+  i: Int32;
+  ObjFinder: TRSObjectFinder;
+begin
+  MM2MS.SetupZoom;
+
+  if Filter.Walker then
+  begin
+    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height);
+
+    if PolyArray = [] then
+      Exit(False);
+
+    if Filter.Finder then ObjFinder := Finder.Unlimited;
+
+    for i := 0 to High(PolyArray) do
+    begin
+      if MainScreen.IsVisible(PolyArray[i]) then
+      begin
+        if Filter.Finder then
+        begin
+          if MainScreen.FindObject(ObjFinder, PolyArray[i].Bounds) <> [] then
+            Exit(True);
+        end
+        else
+          Exit(True);
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    Result := MainScreen.FindObject(Finder) <> [];
+end;
+
+
+//MMDot.Find functions
+function TRSMMDot.Find(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
+var
+  i: Int32;
+  AdaptedSize: Int32;
+  TPA: TPointArray;
+  MMDotFinder: TRSObjectFinder;
+begin
+  MM2MS.SetupZoom;
+
+  if Filter.Walker or Filter.MinimapDot then
+  begin
+    AdaptedSize := Size * 4;
+
+    if Filter.Walker and Filter.MinimapDot then
+    begin
+      MMPoints := Walker^.WorldToMM(TileArray);
+      Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
+      Dots := Minimap.GetDotArrayInRadiuses(DotType, MMPoints, TileRadius);
+      Tiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, MMPoints);
+      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, AdaptedSize);
+
+      if Height > 0 then
+      begin
+        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, AdaptedSize);
+        PolyArray := FloorTiles.GetPolys(RoofTiles);
+      end
+      else
+        PolyArray := FloorTiles.GetPolys;
+    end
+
+    else if Filter.Walker then
+    begin
+      MMPoints := Walker^.WorldToMM(TileArray);
+      Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
+
+      Tiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, MMPoints);
+      FloorTiles := Minimap.GetTileArrayMS(MMPoints, 0,
+                                          (AdaptedSize * (TileRadius * 4)));
+
+
+      if Height > 0 then
+      begin
+        RoofTiles := Minimap.GetTileArrayMS(MMPoints, Height,
+                                           (AdaptedSize * (TileRadius * 4)));
+        PolyArray := FloorTiles.GetPolys(RoofTiles);
+      end
+      else
+        PolyArray := FloorTiles.GetPolys;
+    end
+
+    else if Filter.MinimapDot then
+    begin
+      Dots := Minimap.GetDots(DotType);
+      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, AdaptedSize);
+
+      if Height > 0 then
+      begin
+        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, AdaptedSize);
+        PolyArray := FloorTiles.GetPolys(RoofTiles);
+      end
+      else
+        PolyArray := FloorTiles.GetPolys;
+    end;
+
+    if PolyArray = [] then
+      Exit(False);
+
+    if Filter.Finder then MMDotFinder := Finder.Unlimited;
+
+    for i := 0 to High(PolyArray) do
+    begin
+      if MainScreen.IsVisible(PolyArray[i]) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(MMDotFinder, PolyArray[i].Bounds).Merge;
+          if TPA <> [] then
+            ATPA += PolyArray[i].Filter(TPA);
+        end
+        else
+        begin
+          TPA := PolyArray[i].Connect;
+          TPA.Fill;
+          ATPA += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    ATPA := MainScreen.FindObject(Finder);
+
+  if Result := (ATPA <> []) then
+    ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+function TRSMMDot.Find(out ATPA: T2DPointArray): Boolean; overload;
+var
+  Dots: TPointArray;
+  PolyArray: TPolyArray;
+  i: Int32;
+  TPA: TPointArray;
+  MMDotFinder: TRSObjectFinder;
+begin
+  MM2MS.SetupZoom;
+
+  if Filter.Walker or Filter.MinimapDot then
+  begin
+    if Filter.Walker and Filter.MinimapDot then
+    begin
+      Dots := Minimap.GetDotArrayInRadiuses(DotType,
+                      Walker^.WorldToMM(TileArray), TileRadius);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, ((Size - 1) * 8));
+    end
+
+    else if Filter.Walker then
+      PolyArray := Minimap.GetTileArrayPolys(
+                      Walker^.WorldToMM(TileArray),
+                      Height, ((Size - 1) * 8 * (TileRadius * 4)))
+
+    else if Filter.MinimapDot then
+    begin
+      Dots := Minimap.GetDots(DotType);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, (Size - 1) * 8);
+    end;
+
+    if PolyArray = [] then
+      Exit(False);
+
+    if Filter.Finder then MMDotFinder := Finder.Unlimited;
+
+    for i := 0 to High(PolyArray) do
+    begin
+      if MainScreen.IsVisible(PolyArray[i]) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(MMDotFinder, PolyArray[i].Bounds).Merge;
+          if TPA <> [] then
+            ATPA += PolyArray[i].Filter(TPA);
+        end
+        else
+        begin
+          TPA := PolyArray[i].Connect;
+          TPA.Fill;
+          ATPA += TPA;
+        end;
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    ATPA := MainScreen.FindObject(Finder);
+
+  if Result := (ATPA <> []) then
+    ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+end;
+
+function TRSMMDot.Find: Boolean; overload;
+var
+  Dots: TPointArray;
+  PolyArray: TPolyArray;
+  i: Int32;
+  TPA: TPointArray;
+  MMDotFinder: TRSObjectFinder;
+begin
+  MM2MS.SetupZoom;
+
+  if Filter.Walker or Filter.MinimapDot then
+  begin
+    if Filter.Walker and Filter.MinimapDot then
+    begin
+      Dots := Minimap.GetDotArrayInRadiuses(DotType,
+                      Walker^.WorldToMM(TileArray), TileRadius);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, ((Size - 1) * 8));
+    end
+
+    else if Filter.Walker then
+      PolyArray := Minimap.GetTileArrayPolys(
+                      Walker^.WorldToMM(TileArray),
+                      Height, ((Size - 1) * 8 * (TileRadius * 4)))
+
+    else if Filter.MinimapDot then
+    begin
+      Dots := Minimap.GetDots(DotType);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, (Size - 1) * 8);
+    end;
+
+    if PolyArray = [] then
+      Exit(False);
+
+    if Filter.Finder then MMDotFinder := Finder.Unlimited;
+
+    for i := 0 to High(PolyArray) do
+    begin
+      if MainScreen.IsVisible(PolyArray[i]) then
+      begin
+        if Filter.Finder then
+        begin
+          TPA := MainScreen.FindObject(MMDotFinder, PolyArray[i].Bounds).Merge;
+          if TPA <> [] then
+            Exit(True);
+        end
+        else
+          Exit(True);
+      end;
+    end;
+  end
+
+  else if Filter.Finder then
+    Result := MainScreen.FindObject(Finder) <> [];
+end;
+
+
+
+//Debug RSObject.
+procedure Debug(RSObject: TRSObject); overload;
+var
+  Bitmap: TMufasaBitmap;
+  FloorTiles, RoofTiles: TRectArray;
+  PolyArray: TPolyArray;
+  ATPA: T2DPointArray;
+  I: Int32;
+begin
+  Bitmap.FromClient;
+
+  RSObject.Find(FloorTiles, RoofTiles, PolyArray, ATPA);
+
+  for I := 0 to High(ATPA) do
+  begin
+    if I = 0 then
+      Bitmap.DrawTPA(ATPA[0], clBlack) //Closest object will be painted black.
+    else
+      Bitmap.DrawTPA(ATPA[I], DEBUG_COLORS[I mod Length(DEBUG_COLORS)]);
+  end;
+
+  for I := 0 to High(FloorTiles) do
+    Bitmap.DrawRect(FloorTiles[I], $FFFFFF);
+
+  for I := 0 to High(RoofTiles) do
+    Bitmap.DrawRect(RoofTiles[I], $FFFFFF);
+
+  for I := 0 to High(PolyArray) do
+    Bitmap.DrawPoly(PolyArray[I], $00FFFF);
+
+  Bitmap.Debug;
+  Bitmap.Free;
+end;
+
+//Debug TRSMMDot
+procedure Debug(MMDot: TRSMMDot); overload;
+var
+  Bitmap: TMufasaBitmap;
+  MMPoints, Dots: TPointArray;
+  Radiuses: TCircleArray;
+  Tiles, FloorTiles, RoofTiles: TRectArray;
+  PolyArray: TPolyArray;
+  ATPA: T2DPointArray;
+  I: Int32;
+begin
+  Bitmap.FromClient;
+
+  MMDot.Find(MMPoints, Dots, Radiuses,
+             Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
+
+  //Minimap drawing
+  for I := 0 to High(MMPoints) do
+    Bitmap.DrawCrosshairs(MMPoints[I], 4, clBlue);
+
+  for I := 0 to High(Dots) do
+    Bitmap.DrawCrosshairs(Dots[I], 2, clTeal);
+
+  for I := 0 to High(Radiuses) do
+    Bitmap.DrawCircle(Radiuses[I].Mean, Radiuses[I].Radius, clLime);
+
+  for I := 0 to High(Tiles) do
+    Bitmap.DrawRect(Tiles[I], $00FFFF);
+
+  for I := 0 to High(FloorTiles) do
+    Bitmap.DrawRect(FloorTiles[I], $FFFFFF);
+
+  for I := 0 to High(RoofTiles) do
+    Bitmap.DrawRect(RoofTiles[I], $FFFFFF);
+
+  for I := 0 to High(PolyArray) do
+    Bitmap.DrawPoly(PolyArray[I], $00FFFF);
+
+  for I := 0 to High(ATPA) do
+  begin
+    if I = 0 then
+      Bitmap.DrawTPA(ATPA[0], clBlack) //Closest object will be painted black.
+    else
+      Bitmap.DrawTPA(ATPA[I], DEBUG_COLORS[I mod Length(DEBUG_COLORS)]);
+  end;
+
+  Bitmap.Debug;
+  Bitmap.Free;
+end;
+
+//add object to DebugObjectArray and call SRL.Debug to use this below.
+//Used to debug several objects at the same time.
+procedure TRSObject.Draw(out Bitmap: TMufasaBitmap);
+var
+  FloorTiles, RoofTiles: TRectArray;
+  PolyArray: TPolyArray;
+  ATPA: T2DPointArray;
+  I: Int32;
+begin
+  Self.Find(FloorTiles, RoofTiles, PolyArray, ATPA);
+
+  for I := 0 to High(ATPA) do
+  begin
+    if I = 0 then
+      Bitmap.DrawTPA(ATPA[0], clBlack) //Closest object will be painted black.
+    else
+      Bitmap.DrawTPA(ATPA[I], DEBUG_COLORS[I mod Length(DEBUG_COLORS)]);
+  end;
+
+  for I := 0 to High(FloorTiles) do
+    Bitmap.DrawRect(FloorTiles[I], $FFFFFF);
+
+  for I := 0 to High(RoofTiles) do
+    Bitmap.DrawRect(RoofTiles[I], $FFFFFF);
+
+  for I := 0 to High(PolyArray) do
+    Bitmap.DrawPoly(PolyArray[I], $00FFFF);
+end;
+
+//add object to DebugObjectArray and call SRL.Debug to use this below.
+//Used to debug several objects at the same time.
+procedure TRSMMDot.Draw(out Bitmap: TMufasaBitmap);
+var
+  MMPoints, Dots: TPointArray;
+  Radiuses: TCircleArray;
+  Tiles, FloorTiles, RoofTiles: TRectArray;
+  PolyArray: TPolyArray;
+  ATPA: T2DPointArray;
+  I: Int32;
+begin
+  Self.Find(MMPoints, Dots, Radiuses,
+             Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
+
+  //Minimap drawing
+  for I := 0 to High(MMPoints) do
+    Bitmap.DrawCrosshairs(MMPoints[I], 3, $FFFFFF);
+
+  for I := 0 to High(Dots) do
+    Bitmap.DrawCrosshairs(Dots[I], 3, $00FFFF);
+
+  for I := 0 to High(Radiuses) do
+    Bitmap.DrawCircle(Radiuses[I].Mean, Radiuses[I].Radius, $FFFFFF);
+
+  for I := 0 to High(Tiles) do
+    Bitmap.DrawRect(Tiles[I], $00FFFF);
+
+  for I := 0 to High(FloorTiles) do
+    Bitmap.DrawRect(FloorTiles[I], $FFFFFF);
+
+  for I := 0 to High(RoofTiles) do
+    Bitmap.DrawRect(RoofTiles[I], $FFFFFF);
+
+  for I := 0 to High(PolyArray) do
+    Bitmap.DrawPoly(PolyArray[I], $00FFFF);
+
+  for I := 0 to High(ATPA) do
+  begin
+    if I = 0 then
+      Bitmap.DrawTPA(ATPA[0], clBlack) //Closest object will be painted black.
+    else
+      Bitmap.DrawTPA(ATPA[I], DEBUG_COLORS[I mod Length(DEBUG_COLORS)]);
+  end;
+
+end;
+
+
+// HoverHelper function used by non walking object hovering functions.
+function TRSObject._HoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  CompassAngle: Double;
+begin
+  for Attempt := 0 to Attempts do
+  begin
+    if (RSClient.Mode = ERSClientMode.FIXED) and InterfaceArea.HasInterface then
+      Exit(False);
+
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if Self.Find(ATPA) then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else if Length(ATPA) >= (Attempt - 2) then
+        Points := ATPA[Attempt - 2]
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+      begin
+        Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    //will rotate the screen for the last attempt if hasn't hovered properly yet
+    if Attempt = (Attempts - 1) then
+    begin
+      CompassAngle := Minimap.GetCompassAngle;
+      CompassAngle += Random(-50, 50);
+      Minimap.SetCompassAngle(CompassAngle, 10);
+    end;
+  end;
+end;
+
+// WalkHoverHelper function used by walking object hovering functions.
+function TRSObject._WalkHoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  CompassAngle: Double;
+begin
+  if not Filter.Walker then
+    Exit;
+
+  for Attempt := 0 to Attempts do
+  begin
+    if (RSClient.Mode = ERSClientMode.FIXED) and InterfaceArea.HasInterface then
+      Exit(False);
+
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if Self.Find(ATPA) then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+      begin
+        if Length(ATPA) >= (Attempt - 2) then
+          Points := ATPA[Attempt - 2]
+        else
+          Points := ATPA[Random(0, High(ATPA))];
+      end;
+
+      if Points <> [] then
+      begin
+        Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True)
+    else if not Walker^.AtTile(TileArray, 50) then
+      Walker^.WebWalk(TileArray, 10, 0.2)
+    else if Attempt = (Attempts - 1) then
+    begin
+      if not Walker^.AtTile(TileArray, 25) and Walker^.WebWalk(TileArray, 10, 0.2) then
+        Continue;
+
+      CompassAngle := Minimap.GetCompassAngle;
+      CompassAngle += Random(-50, 50);
+      Minimap.SetCompassAngle(CompassAngle, 10);
+    end;
+  end;
+end;
+
+
+// HoverHelper function used by non walking object hovering functions.
+function TRSMMDot._HoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  CompassAngle: Double;
+begin
+  for Attempt := 0 to Attempts do
+  begin
+    if (RSClient.Mode = ERSClientMode.FIXED) and InterfaceArea.HasInterface then
+      Exit(False);
+
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if Self.Find(ATPA) then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else if Length(ATPA) >= (Attempt - 2) then
+        Points := ATPA[Attempt - 2]
+      else
+        Points := ATPA[Random(0, High(ATPA))];
+
+      if Points <> [] then
+      begin
+        Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    //will rotate the screen for the last attempt if hasn't hovered properly yet
+    if Attempt = (Attempts - 1) then
+    begin
+      CompassAngle := Minimap.GetCompassAngle;
+      CompassAngle += Random(-50, 50);
+      Minimap.SetCompassAngle(CompassAngle, 10);
+    end;
+  end;
+end;
+
+// WalkHoverHelper function used by walking object hovering functions.
+function TRSMMDot._WalkHoverHelper(Attempts: Int32): Boolean;
+var
+  Attempt: Int32;
+  ATPA: T2DPointArray;
+  Points: TPointArray;
+  CompassAngle: Double;
+begin
+  if not Filter.Walker then
+    Exit;
+
+  for Attempt := 0 to Attempts do
+  begin
+    if (RSClient.Mode = ERSClientMode.FIXED) and InterfaceArea.HasInterface then
+      Exit(False);
+
+    if Filter.UpText and MainScreen.IsUpText(UpText) then
+      Exit(True);
+
+    if Self.Find(ATPA) then
+    begin
+      if Attempt < 2 then
+        Points := ATPA[0] // 0 for the closest one.
+      else
+      begin
+        if Length(ATPA) >= (Attempt - 2) then
+          Points := ATPA[Attempt - 2]
+        else
+          Points := ATPA[Random(0, High(ATPA))];
+      end;
+
+      if Points <> [] then
+      begin
+        Mouse.Move(Points[Random(0, High(Points))]);
+        if not Filter.UpText then
+          Exit(True);
+      end;
+    end;
+
+    if MainScreen.IsUpText(UpText) then
+      Exit(True)
+    else if not Walker^.AtTile(TileArray, 50) then
+      Walker^.WebWalk(TileArray, 10, 0.2)
+    else if Attempt = (Attempts - 1) then
+    begin
+      if not Walker^.AtTile(TileArray, 25) and Walker^.WebWalk(TileArray, 10, 0.2) then
+        Continue;
+
+      CompassAngle := Minimap.GetCompassAngle;
+      CompassAngle += Random(-50, 50);
+      Minimap.SetCompassAngle(CompassAngle, 10);
+    end;
+  end;
+end;
+
+
+
+// ClickHelper function used by object clicking functions.
+function TWaspObject._ClickHelper(LeftClick: Boolean): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.Select(UpText) then
+      Exit(True)
+    else
+    begin
+      ChooseOption.Close;
+      Exit(False);
+    end;
+  end;
+
+  if LeftClick then Mouse.Click(MOUSE_LEFT);
+
+  Result := MainScreen.DidRedClick or
+            (not LeftClick and Filter.UpText and ChooseOption.Select(UpText));
+end;
+
+// SelectHelper function used by object option selection functions.
+function TWaspObject._SelectHelper(Action: TStringArray): Boolean;
+begin
+  if ChooseOption.IsOpen and ChooseOption.Select(Action) then
+    Exit(True);
+
+  if MainScreen.IsUpText(Action) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Result := MainScreen.DidRedClick;
+  end
+  else
+    Result := ChooseOption.Select(Action);
+end;
+
+
+
+
+// Searches for an object with TRSObject.Find and hovers it if found.
+function TRSObject.Hover(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if Filter.Walker and not Walker^.MakeTileVisible(TileArray) then
+    Exit(False);
+
+  Result := Self._HoverHelper(Attempts);
+end;
+
+// Searches for an object with TRSObject.Find, hovers and clicks it if found.
+function TRSObject.Click(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(Attempts) and
+            Self._ClickHelper(LeftClick);
+end;
+
+// Searches for an object with TRSObject.Find, hovers and selects the specified action if found.
+function TRSObject.SelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(Attempts) and
+            Self._SelectHelper(Action);
+end;
+
+
+// Searches for an object with TRSObject.Find and walker and hovers it if found.
+function TRSObject.WalkHover(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if not Filter.Walker then
+    Exit;
+
+  if not Walker^.MakeTileVisible(TileArray) then
+    if not Walker^.WebWalk(TileArray, 20, 0.2) then
+      Exit(False);
+
+  Result := Self._WalkHoverHelper(Attempts);
+end;
+
+// Searches for an object with TRSObject.Find and walker, hovers and clicks it if found.
+function TRSObject.WalkClick(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(Attempts) and
+            Self._ClickHelper(LeftClick);
+end;
+
+// Searches for an object with TRSObject.Find and walker, hovers and selects the specified action if found.
+function TRSObject.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(Attempts) and
+            Self._SelectHelper(Action);
+end;
+
+
+
+// Searches for an object with TRSMMDot.Find and hovers it if found.
+function TRSMMDot.Hover(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if Filter.Walker and not Walker^.MakeTileVisible(TileArray) then
+    Exit(False);
+
+  Result := Self._HoverHelper(Attempts);
+end;
+
+// Searches for an object with TRSMMDot.Find, hovers and clicks it if found.
+function TRSMMDot.Click(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(Attempts) and
+            Self._ClickHelper(LeftClick);
+end;
+
+// Searches for an object with TRSMMDot.Find, hovers and selects the specified action if found.
+function TRSMMDot.SelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(Attempts) and
+            Self._SelectHelper(Action);
+end;
+
+
+// Searches for an object with TRSMMDot.Find and walker and hovers it if found.
+function TRSMMDot.WalkHover(Attempts: Int32 = 2): Boolean;
+begin
+  if ChooseOption.IsOpen then
+  begin
+    if Filter.UpText and ChooseOption.HasOption(UpText) then
+      Exit(True);
+    ChooseOption.Close;
+  end;
+
+  if not Filter.Walker then
+    Exit;
+
+  if not Walker^.MakeTileVisible(TileArray) then
+    if not Walker^.WebWalk(TileArray, 20, 0.2) then
+      Exit(False);
+
+  Result := Self._WalkHoverHelper(Attempts);
+end;
+
+// Searches for an object with TRSMMDot.Find and walker, hovers and clicks it if found.
+function TRSMMDot.WalkClick(LeftClick: Boolean = True; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(Attempts) and
+            Self._ClickHelper(LeftClick);
+end;
+
+// Searches for an object with TRSMMDot.Find and walker, hovers and selects the specified action if found.
+function TRSMMDot.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(Attempts) and
+            Self._SelectHelper(Action);
+end;
+
+
+var
+  CurrentBank: PRSObject;
+
+//Extra bank opening methods using TRSObjects
+function TRSBank.Hover(RSObject: PRSObject = CurrentBank): Boolean; overload;
+begin
+  if InterfaceArea.HasInterface then
+  begin
+    if Self.IsOpen then Exit(True)
+    else InterfaceArea.Close;
+  end;
+
+  Result := RSObject^.Hover;
+end;
+
+function TRSBank.Open(RSObject: PRSObject = CurrentBank): Boolean; overload;
+begin
+  if InterfaceArea.HasInterface then
+  begin
+    if Self.IsOpen then Exit(True)
+    else InterfaceArea.Close;
+  end;
+
+  if RSObject^.Click then
+  begin
+    Minimap.WaitPlayerMoving(300, 5000);
+    Result := WaitUntil(
+        (InterfaceArea.IsClassicOpen and (Self.IsOpen or BankPin.IsOpen)),
+        SRL.TruncatedGauss(50, 1500), 3000
+    );
+  end
+  else if MainScreen.IsUpText('Banker') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Bank Banker') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+          (InterfaceArea.IsClassicOpen and (Self.IsOpen or BankPin.IsOpen)),
+          SRL.TruncatedGauss(50, 1500), 3000
+      );
+    end;
+  end;
+end;
+
+function TRSBank.WalkHover(RSObject: PRSObject = CurrentBank): Boolean; overload;
+begin
+  if InterfaceArea.HasInterface then
+  begin
+    if Self.IsOpen then Exit(True)
+    else InterfaceArea.Close;
+  end;
+
+  Result := RSObject^.WalkHover;
+end;
+
+function TRSBank.WalkOpen(RSObject: PRSObject = CurrentBank): Boolean;
+begin
+  if InterfaceArea.HasInterface then
+  begin
+    if Self.IsOpen then Exit(True)
+    else InterfaceArea.Close;
+  end;
+
+  if RSObject^.WalkClick then
+  begin
+    Minimap.WaitPlayerMoving(300, 5000);
+    Result := WaitUntil(
+        (InterfaceArea.IsClassicOpen and (Self.IsOpen or BankPin.IsOpen)),
+        SRL.TruncatedGauss(50, 1500), 3000
+    );
+  end
+  else if MainScreen.IsUpText('Banker') then
+  begin
+    ChooseOption.Open;
+    if ChooseOption.Select('Bank Banker') then
+    begin
+      Minimap.WaitPlayerMoving(300, 5000);
+      Result := WaitUntil(
+          (InterfaceArea.IsClassicOpen and (Self.IsOpen or BankPin.IsOpen)),
+          SRL.TruncatedGauss(50, 1500), 3000
+      );
+    end;
+  end;
+end;
+
+var
+  DebugObjectArray: PRSObjectArray;
+  DebugNPCArray:    PRSNPCArray;
+  DebugGItemArray:  PRSGroundItemArray;
+  DebugPlayerArray: PRSPlayerArray;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugObject: PRSObject;
+  DebugNPC:    PRSNPC;
+  DebugGItem:  PRSGroundItem;
+  DebugPlayer: PRSPlayer;
+begin
+  inherited;
+
+  for DebugObject in DebugObjectArray do
+    DebugObject^.Draw(Bitmap);
+
+  for DebugNPC in DebugNPCArray do
+    DebugNPC^.Draw(Bitmap);
+
+  for DebugGItem in DebugGItemArray do
+    DebugGItem^.Draw(Bitmap);
+
+  for DebugPlayer in DebugPlayerArray do
+    DebugPlayer^.Draw(Bitmap);
+end;

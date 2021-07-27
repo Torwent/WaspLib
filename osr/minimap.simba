@@ -101,3 +101,278 @@ begin
   Result := SRL.CountColor(CTS0(2709951, 38), Self.GetRunCircle.Bounds) > 0;
 end;
 
+
+
+
+function TRSMinimap.GetTileMS(Loc: TPoint; Height: Double = 0; Offx, Offy: Double = 0; Expand: Double = 0; Angle: Single = $FFFF): TRectangle;
+begin
+  if not Self.IsPointOn(Loc) then
+    Exit;
+
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  Result := Self.VecToMSRect([Loc.X - Offx, Loc.Y - Offy, Height], Angle).Expand(Expand);
+end;
+
+function TRSMinimap.GetTileMS(Loc: TPoint; Height: Double = 0; Expand: Double = 0): TRectangle; overload;
+begin
+  Result := Self.GetTileMS(Loc, Height, 0, 0, Expand, Self.GetCompassAngle(False));
+end;
+
+
+function TRSMinimap.GetTilePoly(Loc: TPoint; Height: Double = 0; Offx, Offy: Double = 0; Expand: Double = 0; Angle: Single = $FFFF): TPoly;
+var
+  Rect: TRectangle;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  if Height = 0 then
+    Result := Self.GetTileMS(Loc, 0, Offx, Offy, Expand, Angle).ToTPA
+  else
+  begin
+    Rect := Self.GetTileMS(Loc, 0, Offx, Offy, Expand, Angle);
+    Result := Rect.GetPoly(Self.GetTileMS(Loc, Height, Offx, Offy, Expand, Angle));
+  end;
+end;
+
+function TRSMinimap.GetTilePoly(Loc: TPoint; Height: Double = 0; Expand: Double = 0): TPoly; overload;
+begin
+  Result := Self.GetTilePoly(Loc, Height, 0, 0, Expand, Self.GetCompassAngle(False));
+end;
+
+
+function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; Height: Double; Offx, Offy: Double; Expand: Double; Angle: Single = $FFFF): TRectArray;
+var
+  Loc: TPoint;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  for Loc in LocArray.Sorted(Self.Center) do
+    Result += Self.GetTileMS(Loc, Height, Offx, Offy, Expand, Angle);
+end;
+
+function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; Height: Double = 0; Expand: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetTileArrayMS(LocArray, Height, -2, -2, Expand, Self.GetCompassAngle(False));
+end;
+
+
+function TRSMinimap.GetTileArrayPolys(LocArray: TPointArray; Height: Double; Offx, Offy: Double; Expand: Double; Angle: Single = $FFFF): TPolyArray;
+var
+  Loc: TPoint;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  for Loc in LocArray do
+    Result += Self.GetTilePoly(Loc, Height, Offx, Offy, Expand, Angle);
+end;
+
+function TRSMinimap.GetTileArrayPolys(LocArray: TPointArray; Height: Double = 0; Expand: Double = 0): TPolyArray; overload;
+begin
+    Result := Self.GetTileArrayPolys(LocArray, Height, 0, 0, Expand, Self.GetCompassAngle(False));
+end;
+
+
+//Get a radius in the minimap
+function TRSMinimap.GetRadius(Loc: TPoint; Offset: TPoint; Radius: Int32): TCircle;
+begin
+  if (Self.Center.DistanceTo((Loc - Offset)) - Radius) > 80 then
+    Exit; //This means it's impossible the result will be in the minimap.
+
+  Loc := Loc - Offset;
+  Result := [Loc.X, Loc.Y, Radius * 4];
+end;
+
+function TRSMinimap.GetRadius(Loc: TPoint; Radius: Int32): TCircle; overload;
+begin
+  Result := Self.GetRadius(Loc, [0, 0], Radius);
+end;
+
+//Get several radius in the minimap
+function TRSMinimap.GetRadiuses(Locs: TPointArray; Offset: TPoint; Radius: Int32): TCircleArray;
+var
+  Loc: TPoint;
+begin
+  for Loc in Locs do
+    Result += Self.GetRadius(Loc, Offset, Radius);
+end;
+
+function TRSMinimap.GetRadiuses(Loc: TPointArray; Radius: Int32): TCircleArray; overload;
+begin
+  Result := Self.GetRadiuses(Loc, [0, 0], Radius);
+end;
+
+
+
+//Get the first dot within a radius.
+function TRSMinimap.GetDotInRadius(Dot: ERSMinimapDot; Loc, Offset: TPoint; Radius: Int32): TPoint;
+var
+  i: Int32;
+  Dots: TPointArray;
+  Circle: TCircle;
+begin
+  Dots := Self.GetDots(Dot);
+
+  Dots.Sort(Self.Center);
+
+  Circle := Self.GetRadius(Loc, Offset, Radius);
+  for i := 0 to High(Dots) do
+    if SRL.PointInCircle(Dots[i], Circle.Mean, Circle.Radius) then
+      Exit(Dots[i]);
+end;
+
+function TRSMinimap.GetDotInRadius(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32): TPoint; overload;
+begin
+  Result := Self.GetDotInRadius(Dot, Loc, [0, 0], Radius);
+end;
+
+//Get all first dots withing several radius.
+function TRSMinimap.GetDotInRadius(Dot: ERSMinimapDot; Locs: TPointArray; Offset: TPoint; Radius: Int32): TPointArray; overload;
+var
+  Loc: TPoint;
+begin
+  for Loc in Locs do
+    Result += Self.GetDotInRadius(Dot, Loc, Offset, Radius);
+end;
+
+function TRSMinimap.GetDotInRadius(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32): TPointArray; overload;
+begin
+  Result := Self.GetDotInRadius(Dot, Locs, [0, 0], Radius);
+end;
+
+
+
+//Get all dots within a radius.
+function TRSMinimap.GetDotArrayInRadius(Dot: ERSMinimapDot; Loc, Offset: TPoint; Radius: Int32): TPointArray;
+var
+  i: Int32;
+  Dots: TPointArray;
+  Circle: TCircle;
+begin
+  Dots := Self.GetDots(Dot);
+
+  Dots.Sort(Self.Center);
+
+  Circle := Self.GetRadius(Loc, Offset, Radius);
+  for i := 0 to High(Dots) do
+    if SRL.PointInCircle(Dots[i], Circle.Mean, Circle.Radius) then
+      Result += Dots[i];
+end;
+
+function TRSMinimap.GetDotArrayInRadius(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32): TPointArray; overload;
+begin
+  Result := Self.GetDotArrayInRadius(Dot, Loc, [0, 0], Radius);
+end;
+
+//Get all dots within several radius.
+function TRSMinimap.GetDotArrayInRadiuses(Dot: ERSMinimapDot; Locs: TPointArray; Offset: TPoint; Radius: Int32): TPointArray;
+var
+  i: Int32;
+  ATPA: T2DPointArray;
+begin
+  for i := 0 to High(Locs) do
+    ATPA += Self.GetDotArrayInRadius(Dot, Locs[i], Offset, Radius);
+
+  Result := ATPA.Merge;
+
+  Result.Sort(Self.Center);
+end;
+
+function TRSMinimap.GetDotArrayInRadiuses(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32): TPointArray; overload;
+begin
+  Result := Self.GetDotArrayInRadiuses(Dot, Locs, [0, 0], Radius);
+end;
+
+
+//Get the closest dot tile within a radius
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc, Offset: TPoint; Radius: Int32; Height: Double = 0; Offx, Offy: Double = 0; Expand: Double = 0; Angle: Single = $FFFF): TRectangle;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  Result := Self.GetTileMS(
+              Self.GetDotInRadius(Dot, Loc, Offset, Radius),
+              Height, Offx, Offy, Expand, Angle
+            );
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Height: Double = 0; Expand: Double = 0): TRectangle; overload;
+begin
+  Result := Self.GetDotTileMS(
+              Dot, Loc, [0, 0], Radius, Height, 0, 0, Expand,
+              Self.GetCompassAngle(False)
+            );
+end;
+
+//Get the closest dot tile within several radius
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Offset: TPoint; Radius: Int32; Height: Double = 0; Offx, Offy: Double = 0; Expand: Double = 0; Angle: Single = $FFFF): TRectArray; overload;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  Result := Self.GetTileArrayMS(
+              Self.GetDotInRadius(Dot, Locs, Offset, Radius),
+              Height, Offx, Offy, Expand, Angle
+            );
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Height: Double = 0; Expand: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotTileMS(
+              Dot, Locs, [0, 0], Radius, Height, 0, 0, Expand,
+              Self.GetCompassAngle(False)
+            );
+end;
+
+
+//Get all dot tiles within a radius
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc, Offset: TPoint; Radius: Int32; Height: Double = 0; Offx, Offy: Double = 0; Expand: Double = 0; Angle: Single = $FFFF): TRectArray;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  Result := Self.GetTileArrayMS(
+              Self.GetDotArrayInRadius(Dot, Loc, Offset, Radius),
+              Height, Offx, Offy, Expand, Angle
+            );
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Height: Double = 0; Expand: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotArrayTilesMS(
+              Dot, Loc, [0, 0], Radius, Height, 0, 0, Expand,
+              Self.GetCompassAngle(False)
+            );
+end;
+
+//Get all dot tiles within several radius
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Offset: TPoint; Radius: Int32; Height: Double = 0; Offx, Offy: Double = 0; Expand: Double = 0; Angle: Single = $FFFF): TRectArray; overload;
+begin
+  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+
+  Result := Self.GetTileArrayMS(
+              Self.GetDotArrayInRadiuses(Dot, Locs, Offset, Radius),
+              Height, Offx, Offy, Expand, Angle
+            );
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Height: Double = 0; Expand: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotArrayTilesMS(
+              Dot, Locs, [0, 0], Radius, Height, 0, 0, Expand,
+              Self.GetCompassAngle(False)
+            );
+end;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

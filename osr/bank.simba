@@ -46,7 +46,7 @@ function TRSBank.OpenTab(Tab: Int32): Boolean;
 var
   TabBox: TBox;
 begin
-  if InterfaceArea.IsClassicOpen and not Self.IsOpen then
+  if not Self.IsOpen then
     Exit;
 
   if Tab = Self.GetCurrentTab then
@@ -84,29 +84,36 @@ begin
 end;
 
 
-
-function TRSBank.HasItem(Item: TRSItem): Boolean;
+//SHOULD ADD TO SRL
+function TRSBank.FindItem(Item: TRSItem): Boolean; overload;
 var
-  Box: TBox;
+  B: TBox;
 begin
-  Result := Bank.FindItem(Item, Box);
+  Result := Self.FindItem(Item, B);
 end;
 
-function TRSBank.HasItem(Item: TRSBankWithdrawItem): Boolean; overload;
+//SHOULD ADD TO SRL
+function TRSBank.FindItem(Item: TRSBankWithdrawItem): Boolean; overload;
 begin
-  Result := Self.HasItem(Item.Item);
+  Result := Self.FindItem(Item.Item);
 end;
 
-function TRSBank.HasItem(BankTab: Int32; Item: TRSItem): Boolean; overload;
+function TRSBank.FindItem(BankTab: Int32; Item: TRSItem; out Bounds: TBox): Boolean; overload;
 begin
   if Self.OpenTab(BankTab) then
-    Result := Self.HasItem(Item);
+    Result := Self.FindItem(Item, Bounds);
 end;
 
-function TRSBank.HasItem(BankTab: Int32; Item: TRSBankWithdrawItem): Boolean; overload;
+function TRSBank.FindItem(BankTab: Int32; Item: TRSItem): Boolean; overload;
 begin
   if Self.OpenTab(BankTab) then
-    Result := Self.HasItem(Item);
+    Result := Self.FindItem(Item);
+end;
+
+function TRSBank.FindItem(BankTab: Int32; Item: TRSBankWithdrawItem): Boolean; overload;
+begin
+  if Self.OpenTab(BankTab) then
+    Result := Self.FindItem(Item);
 end;
 
 
@@ -143,12 +150,12 @@ var
 begin
   if Self.FindItem(Item, Box) then
   begin
-    if not Bank.GetButton(ERSBankButton.SEARCH).Enabled then
+    if not Self.GetButton(ERSBankButton.SEARCH).Enabled then
       Exit(Self.GetCurrentTab)
     else
     begin
-      Bank.OpenSearch(600);
-      Bank.CloseSearch;
+      Self.OpenSearch(600);
+      Self.CloseSearch;
     end;
   end;
 
@@ -193,20 +200,20 @@ function TRSBank.WithdrawItem(Tab: Int32; Item: TRSBankWithdrawItem; UseQuantity
 var
   ItemCount: Int32;
 begin
-  if not InterfaceArea.IsClassicOpen or not Self.IsOpen then
+  if not Self.IsOpen then
     Exit;
 
   if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
     Exit;
 
-  if not Self.HasItem(Item) then
+  if not Self.FindItem(Item) then
   begin
     if Tab = -1 then
       Self.FindItemTab(Item.Item)
     else
       Self.OpenTab(Tab);
 
-    if not Self.HasItem(Item) then
+    if not Self.FindItem(Item) then
       Exit(False);
   end;
 
@@ -233,7 +240,7 @@ var
   IsStackable: Boolean;
   ItemCount: Int32;
 begin
-  if not InterfaceArea.IsClassicOpen or not Self.IsOpen then
+  if not Self.IsOpen then
     Exit;
 
   if IsStackable := Inventory.ItemIsStackable(Item.Item) then
@@ -242,9 +249,9 @@ begin
     ItemCount := Inventory.CountItem(Item.Item);
 
   if Tab > -1 then
-    Bank.OpenTab(Tab);
+    Self.OpenTab(Tab);
 
-  if Bank.DepositItem(Item, UseQuantityButtons) then
+  if Self.DepositItem(Item, UseQuantityButtons) then
   begin
     if IsStackable then
       Result := WaitUntil((Inventory.CountItemStack(Item.Item) <> ItemCount), 50, 2000)
@@ -297,11 +304,11 @@ var
   Slots: TIntegerArray;
   DepositSlots: TIntegerArray;
 begin
-  if not InterfaceArea.IsClassicOpen or not Self.IsOpen then
+  if not Self.IsOpen then
     Exit;
 
   if Tab > -1 then
-    Bank.OpenTab(Tab);
+    Self.OpenTab(Tab);
 
   for Item in Items do
     Inventory.FindItem(Item, Slots);
@@ -310,12 +317,13 @@ begin
 
   if DepositSlots <> [] then
   repeat
-    if not InterfaceArea.IsClassicOpen or not Bank.IsOpen then
+    if not Self.IsOpen then //Exit in case the bank somehow closed.
       Exit;
-    if Bank.DepositSlot([DepositSlots[0], BANK_DEPOSIT_ALL], True) then
+
+    if Self.DepositSlot([DepositSlots[0], BANK_DEPOSIT_ALL], True) then
       WaitUntil(not Inventory.IsSlotUsed(DepositSlots[0]), 100, 2000);
+
     DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
   until Result := (DepositSlots = []);
 end;
-
 

@@ -833,10 +833,67 @@ begin
   end;
 end;
 
+procedure HoverMSTile(DotType: ERSMinimapDot; RightClick: Boolean = False);//Copied from Flight
+//Belongs in Minimap most likely
+//Modified for ASyncMouse
+var
+  Tries: Int32;
+  msBox: TBox;
+  tpa,cTPA: TPointArray;
+  cArr: TIntegerArray;
+begin
+  tpa := Minimap.GetDots(DotType);
+  if tpa.Len() < 1 then Exit;
+  repeat
+    inc(Tries);
+    msBox := Minimap.PointToMsBox(tpa[random(low(tpa),high(tpa))]);
+    if MainScreen.Bounds.Contains(msBox) then
+    begin
+      msBox := msBox.Expand(5);
+      if (not MainScreen.Bounds.Contains(msBox)) then Continue;
+      // Get all colors on the tile
+      // Extract the rarest
+      // Gather points
+      // Mouse to random point
+      cArr := getColors(tpaFromBox(msBox));
+      if (SRL.FindColors(cTPA, cArr.Min, msBox) > 0) then
+      begin
+        ASyncMouse.Move(cTPA.Mean());
+      end;
+      exit;
+    end;
+  until(Tries > 10);
+end;
+
+procedure MouseOffClient(direction: Byte);//Copied from old SRL, modified
+//Let's play a different YouTube song, anyone?
+var
+  W,H: Int32;
+  pt: TPoint;
+begin
+  GetClientDimensions(W, H);
+  pt := ASyncMouse.Position();
+  if (pt.X < 0) or (pt.X > W) or (pt.Y < 0) or (pt.Y > H) then
+    Exit();
+  if (direction >= 4) then
+    direction := Random(0,3);
+  case direction of
+    0: ASyncMouse.Move(SRL.RandomPoint(Box(-300, -300, W, 0))); // top
+    1: ASyncMouse.Move(SRL.RandomPoint(Box(0, H, W, H+300)));   // bottom
+    2: ASyncMouse.Move(SRL.RandomPoint(Box(-300, 0, 0, H)));    // left
+    3: ASyncMouse.Move(SRL.RandomPoint(Box(W, 0, W+300, H)));   // right
+  end;
+end;
+
 
 
 // ClickHelper function used by object clicking functions.
+//This function is heavily modified with anti-ban principle's
 function TWaspObject._ClickHelper(LeftClick: Boolean): Boolean;
+var
+  i: Integer;
+  randP: Double;
+  P: TPoint;
 begin
   if ChooseOption.IsOpen then
   begin
@@ -853,7 +910,60 @@ begin
 
   Result := MainScreen.DidRedClick or
             (not LeftClick and Filter.UpText and ChooseOption.Select(UpText));
-end;
+  if SRL.Dice(40) then
+{40% of the time we will attempt:
+1)A small mouse movement within 250 pixels of click
+2)A small pause (min. 1.6, max 4.0 sec) with 50% of moving mouse off OSRS client
+3)One of the following:
+a.Random mouse movement somewhere inside screen bounds (Gauss vs Random)
+b.Mouse movement onto an Object (Item, NPC, or Player)
+-followed by a 50% of right-click for (0.7, 3.0 sec) if spectacular point (object)
+-25% chance of right-click on non-spectacular points (0.2, 1.0 sec)  }
+  begin
+  wait(200, 700);
+  randP := Random();
+    if randP < 0.33 then
+      begin
+          Sleep(300+random(700));
+          repeat
+            P := SRL.RandomPoint(Mouse.Position(), 250);
+        until P.DistanceTo(Mouse.Position) > 50; // Make sure we move at least 50 distance
+          ASyncMouse.Move(P);
+      end;
+    if (randP >= 0.33) and (randP < 0.66) then
+    begin
+      if SRL.Dice(50) then
+      MouseOffClient(Random(4));
+        wait(1600, 4000);
+        end;
+    if randP > 0.66 then
+      begin
+      i := random(5);
+        case i of
+        0: ASyncMouse.Move(Point(Random(GetClientBounds().Expand(150).X1, GetClientBounds().Expand(150).X2), Random(GetClientBounds().Expand(150).Y1, GetClientBounds().Expand(150).Y2)));
+        1: ASyncMouse.Move(SRL.RandomPoint(GetClientBounds().Expand(150)));
+        2: HoverMSTile(ERSMinimapDot.ITEM);
+        3: HoverMSTile(ERSMinimapDot.NPC);
+        4: HoverMSTile(ERSMinimapDot.PLAYER);
+        end;
+          wait(300, 900);
+            ASyncMouse.WaitMoving;//Collapse dual thread's for accurate right-click
+          if MainScreen.GetUpText() <> ('Walk here') then
+          if SRL.Dice(50) then
+            begin
+                Mouse.Click(mouse_Right);
+                  Wait(700, 3000, wdLeft);//We may have right-clicked on an ITEM, PLAYER, or NPC so let's examine the dialog
+                ChooseOption.Close();
+          end else
+          if SRL.Dice(25) then
+              begin
+                Mouse.Click(mouse_Right);
+                  Wait(200, 1000, wdLeft);//Right-click was at unspectacular point, no need to look into the details
+                ChooseOption.Close();
+              end;
+      end;
+    end;
+  end;
 
 // SelectHelper function used by object option selection functions.
 function TWaspObject._SelectHelper(Action: TStringArray): Boolean;

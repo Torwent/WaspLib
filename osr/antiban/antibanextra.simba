@@ -1,0 +1,100 @@
+{$DEFINE WL_ANTIBANEXTRA_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+
+//Antiban overrides:
+
+//Makes inventory patterns more common to each player based on their BioHash.
+function TRSInventory.RandomPattern: TIntegerArray; override;
+var
+  Patterns: T2DIntegerArray;
+  RandomCase: Double;
+begin
+
+  Patterns := [
+    DROP_PATTERN_SNAKE, DROP_PATTERN_SPIRAL,
+    DROP_PATTERN_REGULAR, DROP_PATTERN_TOPDOWN,
+    DROP_PATTERN_SNAKE_R, DROP_PATTERN_TOPDOWN_R
+  ];
+
+  RandomCase := Antiban.GetUniqueNumber(Random(0, High(Patterns)), 0, High(Patterns));
+
+  Result := Patterns[Round(RandomCase)];
+end;
+
+function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+begin
+  if Bank.IsOpen(False) then
+  begin
+    if (Tab = ERSGameTab.INVENTORY) then
+      Exit(True);
+
+    Bank.Close(BioHash);
+  end;
+
+  Result := inherited();
+end;
+
+
+function TRSCollectBox.Close(Chance: Double = BioHash): Boolean; overload;
+var
+  PressEscape: Boolean;
+begin
+  if Chance = BioHash then
+    PressEscape := Antiban.BioDice
+  else
+    PressEscape := SRL.Dice(Chance);
+
+  Result := Self.Close(PressEscape);
+end;
+
+function TRSGrandExchange.Close(Chance: Double): Boolean; overload;
+var
+  PressEscape: Boolean;
+begin
+  if Chance = BioHash then
+    PressEscape := Antiban.BioDice
+  else
+    PressEscape := SRL.Dice(Chance);
+
+  Result := Self.Close(PressEscape);
+end;
+
+
+function TRSChat.ClickOption(Text: String; Chance: Double; Colors: TIntegerArray = [CHAT_COLOR_BLACK, CHAT_COLOR_WHITE]): Boolean; overload;
+var
+  UseKeyboard: Boolean;
+begin
+  if Chance = BioHash then
+    UseKeyboard := Antiban.BioDice
+  else
+    UseKeyboard := SRL.Dice(Chance);
+
+  Result := Self.ClickOption(Text, UseKeyboard, Colors);
+end;
+
+function TRSChat.HandleLevelUp(Chance: Double = BioHash): Boolean; overload;
+var
+  UseKeyboard: Boolean;
+begin
+  if Chance = BioHash then
+    UseKeyboard := Antiban.BioDice
+  else
+    UseKeyboard := SRL.Dice(Chance);
+
+  Result := Self.HandleLevelUp(UseKeyboard);
+end;
+
+function TRSChat.ClickContinue(Chance: Double): Boolean; overload;
+var
+  UseKeyboard: Boolean;
+begin
+  if Chance = BioHash then
+    UseKeyboard := Antiban.BioDice
+  else
+    UseKeyboard := SRL.Dice(Chance);
+
+  Result := Self.ClickContinue(UseKeyboard);
+end;

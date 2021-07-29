@@ -1,0 +1,120 @@
+{$DEFINE WL_BIOMETRICS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+var
+  BioHash: Extended;
+
+// This biometrics "system" are straight out of older SRL versions.
+procedure TAntiban.SetupBiometrics;
+var
+  h, i: UInt32;
+  k: String;
+begin
+  if (Length(Login.Players) = 0) or (BioHash <> 0) then
+    Exit;
+
+  k := Login.GetPlayer.User;
+  h := $811C9DC5;
+  for i:=1 to Length(k) do
+    h := (h * $1000193) xor Ord(k[i]);
+
+  BioHash   := h / $FFFFFFFF;
+end;
+
+//Influence a number with the player BioHash.
+function Antiban.GetUniqueNumber(Input: Integer): Extended;
+var
+  RandomInfluence: Extended;
+begin
+  RandomInfluence := (Random + BioHash) * BioHash * BioHash;
+
+  Result := Input * RandomInfluence;
+end;
+
+(*
+  Influence a number with the player BioHash and sum something to it.
+  In other words Sum is the very minimum number you will get.
+  This is useful to withdraw random amounts of items for example when you need
+  at the very least a certain amount.
+
+  Let's say you need at to draw 3 logs but you don't mind to withdraw up to
+  8 or 9.
+  You could do:
+  Antiban.GetUniqueNumber(5, 3);
+
+  You will get a number that is at the very least 3.
+*)
+function TAntiban.GetUniqueNumber(Input, Sum: Integer): Extended; overload;
+var
+  RandomInfluence: Extended;
+begin
+  RandomInfluence := (Random + BioHash) * BioHash * BioHash;
+
+  Result := Input * RandomInfluence + Sum;
+end;
+
+//Influence a number with the player BioHash.
+//If the result is lower than Min you will get Min if it's higher than Max you will get Max.
+function TAntiban.GetUniqueNumber(Input, Min, Max: Integer): Extended; overload;
+var
+  RandomInfluence: Extended;
+begin
+  RandomInfluence := (Random + BioHash) * BioHash * BioHash;
+
+  Result := Input * RandomInfluence;
+
+  if Result < Min then Result := Min
+  else if Result > Max then Result := Max;
+end;
+
+
+//Tools to test TAntiban.GetUniqueNumber
+function TAntiban.GetUniqueAverage(Input, Iterations: Integer): Extended;
+var
+  RandomCases: TExtendedArray;
+begin
+  for 1 to Iterations do
+    RandomCases += Self.GetUniqueNumber(Input);
+
+  Result := RandomCases.Mean;
+end;
+
+function TAntiban.GetUniqueAverage(Input, Sum, Iterations: Integer): Extended; overload;
+var
+  RandomCases: TExtendedArray;
+begin
+  for 1 to Iterations do
+    RandomCases += Self.GetUniqueNumber(Input, Sum);
+
+  Result := RandomCases.Mean;
+end;
+
+function TAntiban.GetUniqueAverage(Input, Min, Max, Iterations: Integer): Extended; overload;
+var
+  RandomCases: TExtendedArray;
+begin
+  for 1 to Iterations do
+    RandomCases += Self.GetUniqueNumber(Input, Min, Max);
+
+  Result := RandomCases.Mean;
+end;
+
+
+//Probability based on player's BioHash. Useful for close with escape, etc.
+function TAntiban.BioDice: Boolean;
+begin
+  case BioHash of
+    0.00..0.15: Result := False;
+    0.15..0.50: Result := SRL.Dice(BioHash * 90);
+    0.50..0.80: Result := SRL.Dice(BioHash * 110);
+    else        Result := True;
+  end;
+end;
+
+function TAntiban.InvertedBioDice: Boolean;
+begin
+  Result := not Self.BioDice;
+end;
+

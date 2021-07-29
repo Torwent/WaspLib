@@ -43,7 +43,11 @@ begin
   IsSetup := True;
 
   {$IFDEF SRL_USE_REMOTEINPUT}
-  if RemoteInputEnabled then RSClient.RemoteInput.Setup();
+  if RemoteInputEnabled then
+  begin
+    RSClient.RemoteInput.Setup;
+    ProgressReport.Setup;
+  end;
   {$ENDIF}
 
   Antiban.Setup;
@@ -68,8 +72,21 @@ end;
 
 procedure TBaseScript.ProcessWhileWaiting;
 var
-  TitleStr, ActionStr, RunTimeStr: String;
-  ActionsStr, ActionHourStr, ProfitStr, ProfitHourStr, AccoundIDStr: String;
+  TitleStr: String;
+  RunTimeStr: String;
+  ActionHourStr: String;
+  ProfitStr: String;
+  ProfitHourStr: String;
+
+  TitleStrPad: String;
+  ActionStrPad: String;
+  RunTimeStrPad: String;
+  ActionsStrPad: String;
+  ActionHourStrPad: String;
+  ProfitStrPad: String;
+  ProfitHourStrPad: String;
+
+  AccoundIDStr: String;
   TitleLength: Int32;
   ElapsedTime: UInt64;
 begin
@@ -80,24 +97,36 @@ begin
     ClearDebug;
     ElapsedTime := TimeRunning.ElapsedTime;
 
-    TitleStr    := Name + ' ' + Version;
+    TitleStr := Name + ' ' + Version;
+    ProfitStr     := SRL.FormatNumber(TotalProfit);
+    RunTimeStr    := SRL.MsToTime(ElapsedTime, Time_Short);
+    ProfitHourStr := SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
+    ActionHourStr := ToStr(NumberPerHour(TotalActions, ElapsedTime));
+
+    {$IFDEF SRL_USE_REMOTEINPUT}
+    if RemoteInputEnabled then
+      ProgressReport.Update([TitleStr, Action, ToStr(TotalActions), ProfitStr,
+                             ActionHourStr, RunTimeStr, ProfitHourStr]);
+    {$ENDIF}
+
+
     TitleLength := TitleStr.Len;
-    TitleStr    := '+' + PadL( ('|  ' + TitleStr + '  |'), 40, '=');
-    TitleStr    := PadR(TitleStr, 80 - TitleLength, '=') + '+';
+    TitleStrPad    := '+' + PadL( ('|  ' + TitleStr + '  |'), 40, '=');
+    TitleStrPad    := PadR(TitleStrPad, 80 - TitleLength, '=') + '+';
 
-    TitleLength   := TitleStr.Len;
-    ActionStr     := PadR((' Action        : ' + Action), Round(TitleLength/2));
-    RunTimeStr    :=       ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
-    ActionsStr    := PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2));
-    ActionHourStr :=       ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime));
-    ProfitStr     := PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(TitleLength/2));
-    ProfitHourStr :=       ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
-    AccoundIDStr  :=       ' BioHash       : ' + ToStr(BioHash);
+    TitleLength   := TitleStrPad.Len;
+    ActionStrPad     := PadR((' Action        : ' + Action), Round(TitleLength/2));
+    RunTimeStrPad    :=       ' Runtime       : ' + RunTimeStr;
+    ActionsStrPad    := PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2));
+    ActionHourStrPad :=       ' Actions/Hour  : ' + ActionHourStr;
+    ProfitStrPad     := PadR((' Total Profit  : ' + ProfitStr), Round(TitleLength/2));
+    ProfitHourStrPad :=       ' Profit/Hour   : ' + ProfitHourStr;
+    AccoundIDStr  :=          ' BioHash       : ' + ToStr(BioHash);
 
-    WriteLn(TitleStr);
-    Writeln(ActionStr, RunTimeStr);
-    Writeln(ActionsStr, ActionHourStr);
-    Writeln(ProfitStr, ProfitHourStr);
+    WriteLn(TitleStrPad);
+    Writeln(ActionStrPad, RunTimeStrPad);
+    Writeln(ActionsStrPad, ActionHourStrPad);
+    Writeln(ProfitStrPad, ProfitHourStrPad);
     Writeln(AccoundIDStr);
 
     if ExtraInfo.Len > 0 then Writeln(ExtraInfo);

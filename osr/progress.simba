@@ -1,0 +1,88 @@
+{$DEFINE WL_PROGRESS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TWaspProgressReport = record
+    ClientBMP: TMufasaBitmap;
+    BGImg: TMufasaBitmap;
+  end;
+
+
+procedure TWaspProgressReport.Terminate;
+begin
+  BGImg.Clear;
+  BGImg.Free;
+
+  ClientBMP.Clear;
+  ClientBMP.Free; //not sure if it needs to be freed?
+end;
+
+procedure TWaspProgressReport.Setup;
+const
+  BG_PATH = {$MACRO CURRENT_DIRECTORY} + DirectorySeparator;
+begin
+  BGImg.Init;
+  ClientBMP := RSClient.Image;
+
+  BGImg.Clear;
+  ClientBMP.Clear;
+
+  BGImg.LoadFromFile(BG_PATH + 'WaspProgress.png');
+
+  ClientBMP.setFontAntialiasing(True);
+  AddOnTerminate(@Self.Terminate);
+end;
+
+procedure TWaspProgressReport.DrawBackground;
+begin
+  ClientBMP.DrawBitmap(BGImg, [Chat.Bounds.X1, Chat.Bounds.Y1]);
+end;
+
+procedure TWaspProgressReport.DrawProgress(StrArray: TStringArray; FontColor: Int64);
+var
+  P: TPoint;
+begin
+  if Length(StrArray) > 7 then
+    Exit;
+
+  P := [Chat.Bounds.X1, Chat.Bounds.Y1];
+  ClientBMP.setFontSize(19);
+  ClientBMP.DrawText(StrArray[0], [P.X + 208, P.Y + 13], FontColor);
+
+
+  ClientBMP.setFontSize(15);
+
+  FontColor -= $C8D100;
+
+  P := [P.X + 160, P.Y + 47];
+  ClientBMP.DrawText(StrArray[1], P, FontColor);
+
+  P.Y += 19;
+  ClientBMP.DrawText(StrArray[2], P, FontColor);
+
+  P.Y += 19;
+  ClientBMP.DrawText(StrArray[3], P, FontColor);
+
+
+
+  P := [Chat.Bounds.X1 + 410, Chat.Bounds.Y1 + 47];
+  ClientBMP.DrawText(StrArray[4], P, FontColor);
+
+  P.Y += 19;
+  ClientBMP.DrawText(StrArray[5], P, FontColor);
+
+  P.Y += 19;
+  ClientBMP.DrawText(StrArray[6], P, FontColor);
+end;
+
+procedure TWaspProgressReport.Update(StrArray: TStringArray; FontColor: Int64 = $006CFF);
+begin
+  ClientBMP.Clear;
+  Self.DrawBackground;
+  Self.DrawProgress(StrArray, FontColor);
+end;
+
+var
+  ProgressReport: TWaspProgressReport;

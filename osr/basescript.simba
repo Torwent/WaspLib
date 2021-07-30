@@ -46,7 +46,7 @@ begin
   if RemoteInputEnabled then
   begin
     RSClient.RemoteInput.Setup;
-    ProgressReport.Setup;
+    if ProgressReportEnabled then ProgressReport.Setup;
   end;
   {$ENDIF}
 
@@ -72,19 +72,8 @@ end;
 
 procedure TBaseScript.ProcessWhileWaiting;
 var
-  TitleStr: String;
-  RunTimeStr: String;
-  ActionHourStr: String;
-  ProfitStr: String;
-  ProfitHourStr: String;
-
-  TitleStrPad: String;
-  ActionStrPad: String;
-  RunTimeStrPad: String;
-  ActionsStrPad: String;
-  ActionHourStrPad: String;
-  ProfitStrPad: String;
-  ProfitHourStrPad: String;
+  Str: String;
+  ProgressArray: TStringArray;
 
   AccoundIDStr: String;
   TitleLength: Int32;
@@ -97,41 +86,37 @@ begin
     ClearDebug;
     ElapsedTime := TimeRunning.ElapsedTime;
 
-    TitleStr := Name + ' ' + Version;
-    ProfitStr     := SRL.FormatNumber(TotalProfit);
-    RunTimeStr    := SRL.MsToTime(ElapsedTime, Time_Short);
-    ProfitHourStr := SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
-    ActionHourStr := ToStr(NumberPerHour(TotalActions, ElapsedTime));
+    Str := Name + ' ' + Version;
+    TitleLength := Str.Len;
+
+    Str    := PadL((' ' + Str + ' '), 10, ' ');
+    Str    := PadR(Str, 90 - TitleLength, ' ');
+
+    TitleLength   := Str.Len;
+
+    ProgressArray += Str;
+
+    ProgressArray += PadR((' Action        : ' + Action), Round(TitleLength/2), ' ') +
+                           ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
+
+    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime));
+
+    ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(TitleLength/2), ' ') +
+                           ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
+
+    ProgressArray += ' Join WaspBots on Discord: https://discord.gg/Duv2Mhzn9X';
+    ProgressArray +=       ' BioHash       : ' + ToStr(BioHash);
+
+    ProgressArray += ExtraInfo;
 
     {$IFDEF SRL_USE_REMOTEINPUT}
-    if RemoteInputEnabled then
-      ProgressReport.Update([TitleStr, Action, ToStr(TotalActions), ProfitStr,
-                             ActionHourStr, RunTimeStr, ProfitHourStr]);
+    if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+      ProgressReport.Update(ProgressArray);
     {$ENDIF}
 
-
-    TitleLength := TitleStr.Len;
-    TitleStrPad    := '+' + PadL( ('|  ' + TitleStr + '  |'), 40, '=');
-    TitleStrPad    := PadR(TitleStrPad, 80 - TitleLength, '=') + '+';
-
-    TitleLength   := TitleStrPad.Len;
-    ActionStrPad     := PadR((' Action        : ' + Action), Round(TitleLength/2));
-    RunTimeStrPad    :=       ' Runtime       : ' + RunTimeStr;
-    ActionsStrPad    := PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2));
-    ActionHourStrPad :=       ' Actions/Hour  : ' + ActionHourStr;
-    ProfitStrPad     := PadR((' Total Profit  : ' + ProfitStr), Round(TitleLength/2));
-    ProfitHourStrPad :=       ' Profit/Hour   : ' + ProfitHourStr;
-    AccoundIDStr  :=          ' BioHash       : ' + ToStr(BioHash);
-
-    WriteLn(TitleStrPad);
-    Writeln(ActionStrPad, RunTimeStrPad);
-    Writeln(ActionsStrPad, ActionHourStrPad);
-    Writeln(ProfitStrPad, ProfitHourStrPad);
-    Writeln(AccoundIDStr);
-
-    if ExtraInfo.Len > 0 then Writeln(ExtraInfo);
-
-    WriteLn('+', PadR('-', TitleLength - 2, '-'),'+');
+    for Str in ProgressArray do
+      Writeln(Str);
 
     StatsDebugTick := GetTickCount;
   end;

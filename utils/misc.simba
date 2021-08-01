@@ -197,6 +197,90 @@ begin
 end;
 
 
+
+//This probably doesn't belong in TRSWalker lol....
+function PopulateTile(Tile: TPoint; Populate: record N, S, W, E: Int32; end): TPointArray;
+var
+  Idx1, Idx2: Int32;
+begin
+  for Idx1 := 0 to Populate.N do
+  begin
+    for Idx2 := 0 to Populate.W do
+      Result += Tile + [-4 * Idx2, -4 * Idx1];
+
+    for Idx2 := 0 to Populate.E do
+      Result += Tile + [4 * Idx2, -4 * Idx1];
+  end;
+
+  for Idx1 := 0 to Populate.S do
+  begin
+    for Idx2 := 0 to Populate.W do
+      Result += Tile + [-4 * Idx2, 4 * Idx1];
+
+    for Idx2 := 0 to Populate.E do
+      Result += Tile + [4 * Idx2, 4 * Idx1];
+  end;
+
+  Result.ClearDuplicates;
+end;
+
+function PopulateTileArray(TileArray: TPointArray; Populate: record N, S, W, E: Int32; end): TPointArray;
+var
+  Tile: TPoint;
+  ATPA: T2DPointArray;
+begin
+  for Tile in TileArray do
+    ATPA += PopulateTile(Tile, Populate);
+
+  Result := ATPA.Merge;
+  Result.ClearDuplicates;
+end;
+
+
+//Gives you a square with Distance number of tiles from the specified Tile
+function PopulateTile(Tile: TPoint; Distance: Int32): TPointArray; overload;
+begin
+  Result := PopulateTile(Tile, [Distance, Distance, Distance, Distance]);
+end;
+
+//Same as above for multiple tiles.
+function PopulateTileArray(TileArray: TPointArray; Distance: Int32): TPointArray; overload;
+begin
+  Result := PopulateTileArray(TileArray, [Distance, Distance, Distance, Distance]);
+end;
+
+//Gives you an horizontal or vertical line of tiles with the specified Distance.
+function TRSWalker.GetLine(Tile: TPoint; Distance: Int32; YAxis: Boolean): TPointArray;
+var
+  i: Int32;
+  TPA: TPointArray;
+begin
+
+  for i := 0 to Distance do
+  begin
+    if YAxis then
+    begin
+      TPA += [Tile.X, (Tile.Y - (4 * i))];
+      TPA += [Tile.X, (Tile.Y + (4 * i))];
+    end
+    else
+    begin
+      TPA += [(Tile.X - (4 * i)), Tile.Y];
+      TPA += [(Tile.X + (4 * i)), Tile.Y];
+    end
+  end;
+
+  TPA.ClearDuplicates;
+
+  Result := TPA;
+end;
+
+
+
+
+
+
+
 procedure TWaspLib.UpdateClientState;
 begin
   RSClient.DetectClientMode(True);

@@ -2,86 +2,74 @@
 {$I SRL/osr.simba}
 {$I WaspLib/osr.simba}
 
-const
-  USE_KEYBOARD = True;
-  MAP = 'world';
-  SCALE = 9;
-  DEBUG_WALKER = True;
-  OFFSET: TPoint = [0, 0];
+(*
+  Tool to gather tile coordinates. Simply hover the tile you want the coordinate
+  of and click with the mouse middle button.
+  You can record several tiles at once into an array by click several tiles in
+  a row.
+  The Tile or TileArray will be printed everytime you add a tile.
 
-type
-  TScript = Pointer;
+  To reset the array press space bar for a couple of seconds, maybe even
+  a couple of times because Simba is bad at registering user key presses.
+
+  Once the message "Array cleared." shows up you can start again.
+*)
+
+const
+  MAP = 'mainland'; //Map you want to load. Smaller the map the faster it is.
+  SCALE = 9;
 
 var
-  Script: TScript;
   RSW: TRSWalker;
 
-procedure TScript.Init;
+procedure Init;
 begin
-  SRL.Setup;
   RSW.Setup(MAP, True, SCALE);
 end;
 
 
-procedure TScript.Run;
+procedure Run;
 var
   P: TPoint;
+  TPA: TPointArray;
+  Str: String;
 begin
   while True do
   begin
-    P := RSW.GetMyPos;
+    Sleep(10);
 
-    P.X += OFFSET.X;
-    P.Y += OFFSET.Y;
-
-    if USE_KEYBOARD then
+    if Keyboard.IsKeyDown(VK_SPACE) then
     begin
-      if Keyboard.IsKeyDown(VK_LEFT) then
-      begin
-        P.X -= 4;
-        Writeln('[', P.X, ', ', P.Y, '],');
-        if DEBUG_WALKER then
-          RSW.DebugPosition;
-      end
-      else if Keyboard.IsKeyDown(VK_UP) then
-      begin
-        P.Y -= 4;
-        Writeln('[', P.X, ', ', P.Y, '],');
-        if DEBUG_WALKER then
-          RSW.DebugPosition;
-      end
-      else if Keyboard.IsKeyDown(VK_RIGHT) then
-      begin
-        P.X += 4;
-        Writeln('[', P.X, ', ', P.Y, '],');
-        if DEBUG_WALKER then
-          RSW.DebugPosition;
-      end
-      else if Keyboard.IsKeyDown(VK_DOWN) then
-      begin
-        P.Y += 4;
-        Writeln('[', P.X, ', ', P.Y, '],');
-        if DEBUG_WALKER then
-          RSW.DebugPosition;
-      end;
-
-      Wait(1000);
-    end
-
-    else
-    begin
-      Writeln('[', P.X, ', ', P.Y, '];');
-      if DEBUG_WALKER then
-        RSW.DebugPosition;
+      TPA := [];
+      WriteLn 'Array cleared.';
     end;
 
+    if IsMouseButtonDown(MOUSE_MIDDLE) then
+    begin
+      P := (RSW.MSToWorld(Mouse.Position(), 0));
+      TPA += P;
+
+      Debug(@RSW, TPA);
+
+      if Length(TPA) = 1 then
+        WriteLn('[', P.X, ', ', P.Y, '];')
+      else if Length(TPA) > 1 then
+      begin
+        Str := '';
+
+        for P in TPA do
+          Str += ', [' + ToStr(P.X) + ', ' + ToStr(P.Y) + ']';
+        Str := '[' + Str.After(', ') + '];';
+        Writeln(Str);
+      end;
+    end;
   end;
 end;
 
 
 begin
   ClearDebug;
-  Script.Init;
+  Init;
   ClearDebug;
-  Script.Run;
+  Run;
 end.

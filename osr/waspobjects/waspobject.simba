@@ -17,6 +17,7 @@ type
     Walker: PRSWalker;
     TileArray: TPointArray;
     Height: Int32;
+    Size: Int32;
     Finder: TRSObjectFinder;
     UpText: TStringArray;
     Filter: TWaspObjectFilter;
@@ -31,7 +32,6 @@ type
   //TRSMMDots base record for all objects that have a minimap dot.
   TRSMMDot = record(TWaspObject)
     TileRadius: Int32;
-    Size: Int32;
     DotType: ERSMinimapDot;
   end;
 
@@ -73,6 +73,15 @@ procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight: Int32; ObjTileArr
 begin
   Walker := PWalker;
   Height := ObjHeight;
+  Filter.Walker := True;
+  TileArray := ObjTileArray;
+end;
+
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight, ObjSize: Int32; ObjTileArray: TPointArray); overload;
+begin
+  Walker := PWalker;
+  Height := ObjHeight;
+  Size := ObjSize;
   Filter.Walker := True;
   TileArray := ObjTileArray;
 end;
@@ -119,6 +128,7 @@ begin
   DotType := ERSMinimapDot.NPC;
 end;
 
+
 procedure TRSGroundItem.SetupCommon; override;
 begin
   inherited;
@@ -150,6 +160,7 @@ end;
 // help of RSWalker. Good when objects don't move and precision is needed.
 function TRSObject.Find(out FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
 var
+  AdaptedSize: Int32;
   i: Int32;
   TPA: TPointArray;
   ObjFinder: TRSObjectFinder;
@@ -158,11 +169,13 @@ begin
 
   if Filter.Walker then
   begin
-    FloorTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray);
+    AdaptedSize := Size * 4;
+
+    FloorTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, 0, AdaptedSize);
 
     if Height > 0 then
     begin
-      RoofTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, Height);
+      RoofTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, Height, AdaptedSize);
       PolyArray := FloorTiles.GetPolys(RoofTiles);
     end
     else

@@ -20,58 +20,39 @@ begin
   for i:=1 to Length(k) do
     h := (h * $1000193) xor Ord(k[i]);
 
-  BioHash   := h / $FFFFFFFF;
+  BioHash := h / $FFFFFFFF;
 end;
 
-//Influence a number with the player BioHash.
-function Antiban.GetUniqueNumber(Input: Integer): Extended;
-var
-  RandomInfluence: Extended;
-begin
-  RandomInfluence := (Random + BioHash) * BioHash * BioHash;
 
-  Result := Input * RandomInfluence;
+//Get a random multiplier based on the player BioHash.
+function TAntiban.GetInfluencer: Extended;
+begin
+  Result := (Random + BioHash) * BioHash * BioHash;
 end;
 
-(*
-  Influence a number with the player BioHash and sum something to it.
-  In other words Sum is the very minimum number you will get.
-  This is useful to withdraw random amounts of items for example when you need
-  at the very least a certain amount.
-
-  Let's say you need at to draw 3 logs but you don't mind to withdraw up to
-  8 or 9.
-  You could do:
-  Antiban.GetUniqueNumber(5, 3);
-
-  You will get a number that is at the very least 3.
-*)
-function TAntiban.GetUniqueNumber(Input, Sum: Integer): Extended; overload;
-var
-  RandomInfluence: Extended;
+//Influence a number with BioHash.
+function TAntiban.GetUniqueNumber(Input: Extended): Extended;
 begin
-  RandomInfluence := (Random + BioHash) * BioHash * BioHash;
-
-  Result := Input * RandomInfluence + Sum;
+  Result := Input * Self.GetInfluencer;
 end;
 
-//Influence a number with the player BioHash.
-//If the result is lower than Min you will get Min if it's higher than Max you will get Max.
-function TAntiban.GetUniqueNumber(Input, Min, Max: Integer): Extended; overload;
-var
-  RandomInfluence: Extended;
+//Influence a number with BioHash and add Sum to it.
+function TAntiban.GetUniqueNumber(Input, Sum: Extended): Extended; overload;
 begin
-  RandomInfluence := (Random + BioHash) * BioHash * BioHash;
+  Result := Input * Self.GetInfluencer + Sum;
+end;
 
-  Result := Input * RandomInfluence;
-
-  if Result < Min then Result := Min
-  else if Result > Max then Result := Max;
+//Influence a number with BioHash without going below Min or over Max.
+function TAntiban.GetUniqueNumber(Input, Min, Max: Extended): Extended; overload;
+begin
+  repeat
+    Result := Input * Self.GetInfluencer;
+  until (Result >= Min) or (Result <= Max);
 end;
 
 
 //Tools to test TAntiban.GetUniqueNumber
-function TAntiban.GetUniqueAverage(Input, Iterations: Integer): Extended;
+function TAntiban.GetUniqueAverage(Input: Extended; Iterations: Integer): Extended;
 var
   RandomCases: TExtendedArray;
 begin

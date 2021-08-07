@@ -19,6 +19,9 @@ type
     ActionProfit: Int32;
     TotalActions: Int32;
     TotalProfit: Int32;
+
+    TimeLimit: Int64;
+    ActionLimit: Int32;
   end;
 
   TBaseWalkerScript = record(TBaseScript)
@@ -37,8 +40,17 @@ type
   end;
 
 
-procedure TBaseScript.Init; //override me to add more stuff.
+procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to add more stuff.
 begin
+  if MaxActions > -1 then ActionLimit := TotalActions + MaxActions
+  else ActionLimit := -1;
+
+  if MaxTime > -1 then TimeLimit := TimeRunning.ElapsedTime + MaxTime
+  else TimeLimit := -1;
+
+
+  WL.Activity.Init(260000);
+
   if IsSetup then Exit;
   IsSetup := True;
 
@@ -51,8 +63,7 @@ begin
   {$ENDIF}
 
   Antiban.Setup;
-  WL.Activity.Init(260000);
-  TimeRunning.Start;
+
   //override me to add more stuff.
 end;
 
@@ -121,8 +132,15 @@ begin
   end;
 end;
 
+function TBaseScript.ShouldStop: Boolean;
+begin
+  Result := ((ActionLimit > -1) and (TotalActions >= ActionLimit)) or
+            ((TimeLimit > -1) and (TimeRunning.ElapsedTime >= TimeLimit));
+end;
 
-procedure TBaseBankScript.Init; override;//override me to add more stuff.
+
+
+procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;//override me to add more stuff.
 begin
   inherited;
 

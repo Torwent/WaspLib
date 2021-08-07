@@ -8,6 +8,9 @@ const
   CREDENTIALS_FILE = AppPath + 'credentials.simba';
 
 var
+  MaxActions: Int32 := -1;
+  MaxTime:    Int64 := -1;
+
   AntibanEnabled := True; //Enables Most Antiban
   BreaksEnabled  := True; //Enables Short Breaks
   SleepEnabled   := True; //Enables Sleep Breaks
@@ -26,34 +29,43 @@ type
   TScriptConfig = record
     Form: TForm;
 
-    AccountManagerPanel: TPanel;
-    AccountLabel: TLabel;
-    AccountSelector: TLabeledCombobox;
-    AccountAddButton: TButton;
-    AccountSaveButton: TButton;
-    AccountDeleteButton: TButton;
+    AccountManagerPanel:  TPanel;
+    AccountLabel:         TLabel;
+    AccountSelector:      TLabeledCombobox;
+    AccountAddButton:     TButton;
+    AccountSaveButton:    TButton;
+    AccountDeleteButton:  TButton;
 
-    AccountUser: TLabeledEdit;
-    AccountPass: TLabeledEdit;
-    AccountPin: TLabeledEdit;
-    AccountWorlds: TLabeledMemo;
+    AccountUser:          TLabeledEdit;
+    AccountPass:          TLabeledEdit;
+    AccountPin:           TLabeledEdit;
+    AccountWorlds:        TLabeledMemo;
 
-    AntibanPanel: TPanel;
+    AntibanPanel:         TPanel;
     AntibanSettingsLabel: TLabel;
-    AntibanState: TLabeledCheckbox;
-    BreaksState: TLabeledCheckbox;
-    SleepsState: TLabeledCheckbox;
+    AntibanState:         TLabeledCheckbox;
+    BreaksState:          TLabeledCheckbox;
+    SleepsState:          TLabeledCheckbox;
+    AdvancedABButton:     TButton;
+    AdvancedEnabled:      Boolean;
+    ABCameraState:        TLabeledCheckbox;
+    ABMouseState:         TLabeledCheckbox;
+    ABChatState:          TLabeledCheckbox;
+    ABGameTabsState:      TLabeledCheckbox;
+    ABBankState:          TLabeledCheckbox;
 
+    ScriptSettingsPanel:  TPanel;
+    ScriptSettingsLabel:  TLabel;
 
-    ScriptSettingsPanel: TPanel;
-    ScriptSettingsLabel: TLabel;
-    RemoteInputState: TLabeledCheckbox;
-    StartButton: TButton;
+    ActionLimit:          TLabeledEdit;
+    TimeLimit:            TLabeledEdit;
+    RemoteInputState:     TLabeledCheckbox;
+    ProgressReportState:  TLabeledCheckbox;
+    ScriptDebugState:     TLabeledCheckbox;
+    StartButton:          TButton;
 
-    ScriptPanel: TPanel;
+    ScriptPanel:          TPanel;
   end;
-
-
 
 
 function TScriptConfig.BuildCredentials: String;
@@ -258,10 +270,10 @@ begin
   Self.SelectorOnChange(Sender);
 end;
 
-procedure TScriptConfig.BankPinKeyPress(Sender: TObject; var Key: char);
+procedure TScriptConfig.NumberField(Sender: TObject; var Key: char);
 begin
   Writeln(Sender.ToString + ' limiting input to numbers');
-  if not (Key in ['0'..'9', #8, #9]) then Key := #0;
+  if not (Key in ['0'..'9', #8, #9, '-']) then Key := #0;
 end;
 
 procedure TScriptConfig.WorldsKeyPress(Sender: TObject; var Key: char);
@@ -270,236 +282,446 @@ begin
   if not (Key in ['0'..'9', ',', ' ' ,#8, #9]) then Key := #0;
 end;
 
+
+procedure TScriptConfig.UpdateControlPositions;
+begin
+  AdvancedABButton.SetTop(AntibanPanel.getHeight - 35);
+
+  ActionLimit.SetTop(ScriptSettingsPanel.getHeight - 85);
+  TimeLimit.SetTop(ActionLimit.GetTop);
+  RemoteInputState.SetTop(ActionLimit.GetTop + ActionLimit.GetHeight + 10);
+  ProgressReportState.SetTop(RemoteInputState.GetTop);
+  ScriptDebugState.SetTop(RemoteInputState.GetTop);
+  StartButton.SetTop(ScriptSettingsPanel.getHeight - 35);
+end;
+
+procedure TScriptConfig.UpdateFormSize(Width, Height: Int32);
+begin
+  Form.setWidth(Width);
+  AccountManagerPanel.setLeft(0);
+  AccountManagerPanel.setWidth(Width);
+  AntibanPanel.setLeft(0);
+  AntibanPanel.setWidth(Round(Form.getWidth/4));
+  ScriptSettingsPanel.SetLeft(AntibanPanel.getLeft + AntibanPanel.getWidth);
+  ScriptSettingsPanel.setWidth(Form.getWidth - AntibanPanel.getWidth);
+
+  Form.SetHeight(Height);
+  AccountManagerPanel.SetTop(0);
+  AccountManagerPanel.SetHeight(200);
+  AntibanPanel.SetTop(AccountManagerPanel.GetTop + AccountManagerPanel.getHeight);
+  AntibanPanel.SetHeight(Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight));
+  ScriptSettingsPanel.SetTop(AntibanPanel.GetTop);
+  ScriptSettingsPanel.SetHeight(Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight));
+
+  Self.UpdateControlPositions;
+end;
+
+
+procedure TScriptConfig.ShowAdvanced(Sender: TObject);
+begin
+  Writeln(ToStr(Sender) + ' was clicked.');
+  AdvancedEnabled := not AdvancedEnabled;
+
+  ABCameraState.SetVisible(AdvancedEnabled);
+  ABMouseState.SetVisible(AdvancedEnabled);
+  ABChatState.SetVisible(AdvancedEnabled);
+  ABGameTabsState.SetVisible(AdvancedEnabled);
+  ABBankState.SetVisible(AdvancedEnabled);
+
+  if AdvancedEnabled then
+  begin
+    Self.UpdateFormSize(Form.getWidth, Form.getHeight + 150);
+    AdvancedABButton.SetCaption('Show less');
+  end
+  else
+  begin
+    Self.UpdateFormSize(Form.getWidth, Form.getHeight - 150);
+    AdvancedABButton.SetCaption('Show more');
+  end;
+
+end;
+
+
+procedure TScriptConfig.RemoteInputOnChange(Sender: TObject);
+var
+  Checked: Boolean;
+begin
+  Writeln(ToStr(Sender) + ' was changed.');
+
+  Checked := RemoteInputState.Checkbox.getState = cbChecked;
+
+  ProgressReportState.Checkbox.SetEnabled(Checked);
+  ScriptDebugState.Checkbox.SetEnabled(Checked);
+end;
+
+procedure TScriptConfig.DebugOnChange(Sender: TObject);
+begin
+  Writeln(ToStr(Sender) + ' was changed.');
+
+  ProgressReportState.Checkbox.SetEnabled(ScriptDebugState.Checkbox.getState <> cbChecked);
+end;
+
+
 procedure TScriptConfig.Setup; //override me to add stuff!
 begin
 
-  with Self.Form do
+
+  with Form do
   begin
-    Self.Form.Init(nil);
+    Form.Init(nil);
     SetCaption('Script Configuration');
-    SetHeight(375);
-    SetWidth(590);
+    SetWidth(700);
+    SetHeight(400);
     SetPosition(poScreenCenter);
   end;
 
-
-  //Account Manager
-  with AccountManagerPanel do
+  //Setup account manager
   begin
-    Init(Self.Form);
-    SetParent(Self.Form);
-    SetLeft(0);
-    SetTop(0);
-    setHeight(200);
-    setWidth(Self.Form.getWidth);
+    with AccountManagerPanel do
+    begin
+      Init(Form);
+      SetParent(Form);
+      SetLeft(0);
+      SetTop(0);
+      setHeight(200);
+      setWidth(Form.getWidth);
+    end;
+
+    with AccountLabel do
+    begin
+      Init(AccountManagerPanel);
+      SetParent(AccountManagerPanel);
+      SetCaption('Account Manager');
+      SetLeft(20);
+      SetTop(5);
+      SetWidth(150);
+      GetFont().SetSize(12);
+    end;
+
+    with AccountSelector do
+    begin
+      Init(AccountManagerPanel);
+      SetCaption('Current account:');
+      SetLeft(AccountLabel.getLeft);
+      SetTop(AccountLabel.GetTop + AccountLabel.getHeight + 5);
+      Combobox.setStyle(csDropDownList);
+      SetWidth(250);
+
+      Combobox.SetOnChange(@Self.SelectorOnChange);
+    end;
+      Self.ReloadSelector(AccountSelector.Combobox);
+
+    with AccountUser do
+    begin
+      Init(AccountManagerPanel);
+      SetCaption('Username:');
+      SetLeft(AccountSelector.GetLeft);
+      SetTop(AccountSelector.GetTop + AccountSelector.GetHeight -20);
+      SetWidth(AccountSelector.GetWidth);
+    end;
+
+    with AccountPass do
+    begin
+      Init(AccountManagerPanel);
+      SetCaption('Password:');
+      SetLeft(AccountUser.GetLeft);
+      SetTop(AccountUser.GetTop + AccountUser.GetHeight + 5);
+      SetWidth(150);
+      Edit.setPasswordChar('*');
+    end;
+
+    with AccountPin do
+    begin
+      Init(AccountManagerPanel);
+      SetCaption('Bank pin:');
+      SetLeft(AccountPass.GetLeft + AccountPass.GetWidth + 10);
+      SetTop(AccountPass.GetTop);
+      SetWidth((AccountSelector.GetLeft + AccountSelector.GetWidth) - GetLeft);
+      Edit.setPasswordChar('*');
+      Edit.setMaxLength(4);
+      Edit.setOnKeyPress(@Self.NumberField);
+    end;
+
+    with AccountWorlds do
+    begin
+      Init(AccountManagerPanel);
+      SetCaption('Worlds (separated by commas):');
+      SetLeft(AccountSelector.GetLeft + AccountSelector.GetWidth + 25);
+      SetTop(AccountSelector.GetTop);
+      SetHeight(AccountUser.GetTop - 3);
+      SetWidth(AccountUser.GetWidth);
+
+      Memo.setOnKeyPress(@Self.WorldsKeyPress);
+    end;
+
+
+    with AccountSaveButton do
+    begin
+      Init(AccountManagerPanel);
+      SetParent(AccountManagerPanel);
+      SetCaption('Save');
+      SetLeft(AccountWorlds.GetLeft + 40);
+      SetTop(AccountWorlds.GetTop + AccountWorlds.GetHeight + 5);
+      SetWidth(50);
+
+      setOnClick(@Self.OnSaveClick);
+    end;
+
+    with AccountAddButton do
+    begin
+      Init(AccountManagerPanel);
+      SetParent(AccountManagerPanel);
+      SetCaption('Add');
+      SetLeft(AccountSaveButton.getLeft + AccountSaveButton.getWidth + 5);
+      SetTop(AccountSaveButton.GetTop);
+      SetWidth(50);
+
+      setOnClick(@Self.OnAddClick);
+    end;
+
+    with AccountDeleteButton do
+    begin
+      Init(AccountManagerPanel);
+      SetParent(AccountManagerPanel);
+      SetCaption('Delete');
+      SetLeft(AccountAddButton.getLeft + AccountAddButton.getWidth + 5);
+      SetTop(AccountAddButton.GetTop);
+      SetWidth(50);
+
+      setOnClick(@Self.OnDeleteClick);
+    end;
   end;
 
-  with AccountLabel do
+  //Setup antiban panel
   begin
-    Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
-    SetCaption('Account Manager');
-    SetLeft(20);
-    SetTop(5);
-    SetWidth(150);
-    GetFont().SetSize(12);
+    with AntibanPanel do
+    begin
+      Init(Form);
+      SetParent(Form);
+      SetLeft(0);
+      SetTop(AccountManagerPanel.GetTop + AccountManagerPanel.getHeight);
+      SetHeight(Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight));
+      SetWidth(Round(Form.getWidth/4));
+    end;
+
+    with AntibanSettingsLabel do
+    begin
+      Init(AntibanPanel);
+      SetParent(AntibanPanel);
+      SetCaption('Antiban Settings');
+      SetLeft(20);
+      SetTop(5);
+      SetWidth(150);
+      SetHeight(30);
+      GetFont().SetSize(12);
+    end;
+
+    with AntibanState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Antiban:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(AntibanSettingsLabel.getTop + AntibanSettingsLabel.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(AntibanEnabled);
+    end;
+
+    with BreaksState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Short breaks:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(AntibanState.getTop + AntibanState.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(BreaksEnabled);
+    end;
+
+    with SleepsState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Sleep breaks:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(BreaksState.getTop + BreaksState.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(SleepEnabled);
+    end;
+
+
+    with AdvancedABButton do
+    begin
+      Init(AntibanPanel);
+      SetParent(AntibanPanel);
+      SetCaption('Show more');
+      SetLeft(AntibanPanel.getWidth - 155);
+      SetTop(AntibanPanel.getHeight - 35);
+      SetWidth(100);
+      SetHeight(30);
+      setOnClick(@Self.ShowAdvanced);
+    end;
+
+    AdvancedEnabled := False;
+
+    //Advanced antiban
+    with ABCameraState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Camera:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(SleepsState.getTop + SleepsState.getHeight + 35);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ABCamera);
+      SetVisible(False);
+    end;
+
+    with ABMouseState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Mouse:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(ABCameraState.getTop + ABCameraState.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ABMouse);
+      SetVisible(False);
+    end;
+
+    with ABChatState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Chat:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(ABMouseState.getTop + ABMouseState.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ABChat);
+      SetVisible(False);
+    end;
+
+    with ABGameTabsState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Gametabs:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(ABChatState.getTop + ABChatState.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ABGameTabs);
+      Title.setVisible(False);
+      Checkbox.setVisible(False);
+    end;
+
+    with ABBankState do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Bank:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(ABGameTabsState.getTop + ABGameTabsState.getHeight + 15);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ABBank);
+      SetVisible(False);
+    end;
   end;
 
-  with AccountSelector do
+  //Setup script settings
   begin
-    Init(AccountManagerPanel);
-    SetCaption('Current account:');
-    SetLeft(AccountLabel.getLeft);
-    SetTop(AccountLabel.GetTop + AccountLabel.getHeight + 5);
-    Combobox.setStyle(csDropDownList);
-    SetWidth(250);
+    with ScriptSettingsPanel do
+    begin
+      Init(Form);
+      SetParent(Form);
+      SetLeft(AntibanPanel.getLeft + AntibanPanel.getWidth);
+      SetTop(AntibanPanel.getTop);
+      SetHeight(Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight));
+      SetWidth(Form.getWidth - AntibanPanel.getWidth);
+    end;
 
-    Combobox.SetOnChange(@Self.SelectorOnChange);
-  end;
-    Self.ReloadSelector(AccountSelector.Combobox);
-
-  with AccountUser do
-  begin
-    Init(AccountManagerPanel);
-    SetCaption('Username:');
-    SetLeft(AccountSelector.GetLeft);
-    SetTop(AccountSelector.GetTop + AccountSelector.GetHeight -20);
-    SetWidth(AccountSelector.GetWidth);
-  end;
-
-  with AccountPass do
-  begin
-    Init(AccountManagerPanel);
-    SetCaption('Password:');
-    SetLeft(AccountUser.GetLeft);
-    SetTop(AccountUser.GetTop + AccountUser.GetHeight + 5);
-    SetWidth(150);
-    Edit.setPasswordChar('*');
-  end;
-
-  with AccountPin do
-  begin
-    Init(AccountManagerPanel);
-    SetCaption('Bank pin:');
-    SetLeft(AccountPass.GetLeft + AccountPass.GetWidth + 10);
-    SetTop(AccountPass.GetTop);
-    SetWidth((AccountSelector.GetLeft + AccountSelector.GetWidth) - GetLeft);
-    Edit.setPasswordChar('*');
-    Edit.setMaxLength(4);
-    Edit.setOnKeyPress(@Self.BankPinKeyPress);
-  end;
-
-  with AccountWorlds do
-  begin
-    Init(AccountManagerPanel);
-    SetCaption('Worlds (separated by commas):');
-    SetLeft(AccountSelector.GetLeft + AccountSelector.GetWidth + 25);
-    SetTop(AccountSelector.GetTop);
-    SetHeight(AccountUser.GetTop - 3);
-    SetWidth(AccountUser.GetWidth);
-
-    Memo.setOnKeyPress(@Self.WorldsKeyPress);
-  end;
+    with ScriptSettingsLabel do
+    begin
+      Init(ScriptSettingsPanel);
+      SetParent(ScriptSettingsPanel);
+      SetCaption('Script Settings');
+      SetLeft(20);
+      SetTop(5);
+      SetWidth(150);
+      SetHeight(30);
+      GetFont().SetSize(12);
+    end;
 
 
-  with AccountSaveButton do
-  begin
-    Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
-    SetCaption('Save');
-    SetLeft(AccountWorlds.GetLeft + 40);
-    SetTop(AccountWorlds.GetTop + AccountWorlds.GetHeight + 5);
-    SetWidth(50);
+    with ActionLimit do
+    begin
+      Init(ScriptSettingsPanel);
+      SetCaption('Stop after (number of actions):');
+      SetLeft(ScriptSettingsLabel.getLeft + 5);
+      SetTop(ScriptSettingsPanel.getHeight - 85);
+      SetWidth(165);
+      SetText(ToStr(MaxActions));
+      Edit.setOnKeyPress(@Self.NumberField);
+    end;
 
-    setOnClick(@Self.OnSaveClick);
-  end;
+    with TimeLimit do
+    begin
+      Init(ScriptSettingsPanel);
+      SetCaption('Stop after (time in minutes):');
+      SetLeft(ActionLimit.getLeft  + ActionLimit.GetWidth + 55);
+      SetTop(ActionLimit.GetTop);
+      SetWidth(150);
+      SetText(ToStr(MaxTime));
+      Edit.setOnKeyPress(@Self.NumberField);
+    end;
 
-  with AccountAddButton do
-  begin
-    Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
-    SetCaption('Add');
-    SetLeft(AccountSaveButton.getLeft + AccountSaveButton.getWidth + 5);
-    SetTop(AccountSaveButton.GetTop);
-    SetWidth(50);
 
-    setOnClick(@Self.OnAddClick);
-  end;
+    with RemoteInputState do
+    begin
+      Init(ScriptSettingsPanel);
+      SetCaption('Remote Input:');
+      SetLeft(ScriptSettingsLabel.getLeft + 5);
+      SetTop(ActionLimit.GetTop + ActionLimit.GetHeight + 10);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(RemoteInputEnabled);
+      Checkbox.setOnChange(@Self.RemoteInputOnChange);
+    end;
 
-  with AccountDeleteButton do
-  begin
-    Init(AccountManagerPanel);
-    SetParent(AccountManagerPanel);
-    SetCaption('Delete');
-    SetLeft(AccountAddButton.getLeft + AccountAddButton.getWidth + 5);
-    SetTop(AccountAddButton.GetTop);
-    SetWidth(50);
+    with ProgressReportState do
+    begin
+      Init(ScriptSettingsPanel);
+      SetCaption('Progress report:');
+      SetLeft(RemoteInputState.getLeft + RemoteInputState.GetWidth - 25);
+      SetTop(RemoteInputState.GetTop);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ProgressReportEnabled);
+    end;
 
-    setOnClick(@Self.OnDeleteClick);
-  end;
+    with ScriptDebugState do
+    begin
+      Init(ScriptSettingsPanel);
+      SetCaption('Debug script:');
+      SetLeft(ProgressReportState.GetLeft + ProgressReportState.GetWidth - 25);
+      SetTop(RemoteInputState.GetTop);
+      SetWidth(50);
+      SetHeight(10);
+      SetEnabled(ScriptDebugEnabled);
+      Checkbox.setOnChange(@Self.DebugOnChange);
+    end;
 
 
 
-  //Antiban
-  with AntibanPanel do
-  begin
-    Init(Self.Form);
-    SetParent(Self.Form);
-    SetLeft(0);
-    SetTop(AccountManagerPanel.GetTop + AccountManagerPanel.getHeight + 5);
-    setHeight(Self.Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight) - 5);
-    setWidth(200);
-  end;
-
-  with AntibanSettingsLabel do
-  begin
-    Init(AntibanPanel);
-    SetParent(AntibanPanel);
-    SetCaption('Antiban Settings');
-    SetLeft(20);
-    SetTop(5);
-    SetWidth(150);
-    SetHeight(30);
-    GetFont().SetSize(12);
-  end;
-
-  with AntibanState do
-  begin
-    Init(AntibanPanel);
-    SetCaption('Antiban:');
-    SetLeft(AntibanSettingsLabel.getLeft + 5);
-    SetTop(AntibanSettingsLabel.getTop + AntibanSettingsLabel.getHeight + 15);
-    SetWidth(50);
-    SetHeight(10);
-    SetEnabled(AntibanEnabled);
-  end;
-
-  with BreaksState do
-  begin
-    Init(AntibanPanel);
-    SetCaption('Short breaks:');
-    SetLeft(AntibanSettingsLabel.getLeft + 5);
-    SetTop(AntibanState.getTop + AntibanState.getHeight + 15);
-    SetWidth(50);
-    SetHeight(10);
-    SetEnabled(BreaksEnabled);
-  end;
-
-  with SleepsState do
-  begin
-    Init(AntibanPanel);
-    SetCaption('Sleep breaks:');
-    SetLeft(AntibanSettingsLabel.getLeft + 5);
-    SetTop(BreaksState.getTop + BreaksState.getHeight + 15);
-    SetWidth(50);
-    SetHeight(10);
-    SetEnabled(SleepEnabled);
-  end;
-
-
-  //Script settings
-  with ScriptSettingsPanel do
-  begin
-    Init(Self.Form);
-    SetParent(Self.Form);
-    SetLeft(AntibanPanel.getLeft + AntibanPanel.getWidth + 5);
-    SetTop(AntibanPanel.getTop);
-    setHeight(Self.Form.getHeight - (AccountManagerPanel.getTop + AccountManagerPanel.getHeight) - 5);
-    setWidth(Self.Form.getWidth - AntibanPanel.getWidth - 5);
-  end;
-
-  with ScriptSettingsLabel do
-  begin
-    Init(ScriptSettingsPanel);
-    SetParent(ScriptSettingsPanel);
-    SetCaption('Script Settings');
-    SetLeft(20);
-    SetTop(5);
-    SetWidth(150);
-    SetHeight(30);
-    GetFont().SetSize(12);
-  end;
-
-  with RemoteInputState do
-  begin
-    Init(ScriptSettingsPanel);
-    SetCaption('Remote Input:');
-    SetLeft(ScriptSettingsLabel.getLeft + 5);
-    SetTop(ScriptSettingsPanel.getHeight - 35);
-    SetWidth(50);
-    SetHeight(10);
-    SetEnabled(RemoteInputEnabled);
-  end;
-
-  with StartButton do
-  begin
-    Init(ScriptSettingsPanel);
-    SetParent(ScriptSettingsPanel);
-    SetCaption('Start');
-    SetLeft(ScriptSettingsPanel.getWidth - 55);
-    SetTop(ScriptSettingsPanel.getHeight - 35);
-    SetWidth(50);
-    SetHeight(30);
+    with StartButton do
+    begin
+      Init(ScriptSettingsPanel);
+      SetParent(ScriptSettingsPanel);
+      SetCaption('Start');
+      SetLeft(ScriptSettingsPanel.getWidth - 55);
+      SetTop(ScriptSettingsPanel.getHeight - 35);
+      SetWidth(50);
+      SetHeight(30);
+    end;
   end;
 
   //override me to add stuff!
@@ -507,12 +729,27 @@ end;
 
 procedure TScriptConfig.Init(Sender: TObject); //override me to add stuff!
 begin
-  Writeln(Sender.ToString + ' was click. Form will now close.');
+  Writeln(Sender.ToString + ' was clicked. Form will now be hidden.');
 
   AntibanEnabled := AntibanState.Checkbox.getState = cbChecked;
   BreaksEnabled  := BreaksState.Checkbox.getState = cbChecked;
   SleepEnabled   := SleepsState.Checkbox.getState = cbChecked;
-  RemoteInputEnabled := RemoteInputState.Checkbox.getState = cbChecked;
+
+  ABCamera   := ABCameraState.Checkbox.getState = cbChecked;
+  ABMouse    := ABMouseState.Checkbox.getState = cbChecked;
+  ABChat     := ABChatState.Checkbox.getState = cbChecked;
+  ABGameTabs := ABGameTabsState.Checkbox.getState = cbChecked;
+  ABBank     := ABBankState.Checkbox.getState = cbChecked;
+
+
+  RemoteInputEnabled    := RemoteInputState.Checkbox.getState = cbChecked;
+  ProgressReportEnabled := (ProgressReportState.Checkbox.getState = cbChecked) and
+                           (ScriptDebugState.Checkbox.getState <> cbChecked);
+  ScriptDebugEnabled    := ScriptDebugState.Checkbox.getState = cbChecked;
+
+  MaxActions := StrToInt(Self.ActionLimit.GetText);
+  if StrToInt64(TimeLimit.Edit.GetText) > 0 then
+    MaxTime := StrToInt64(TimeLimit.Edit.GetText) * 60 * 1000;
 
   Form.Close;
   Writeln('Script starting...');
@@ -529,3 +766,5 @@ begin
     Writeln(GetExceptionMessage);
   end;
 end;
+
+

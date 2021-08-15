@@ -40,7 +40,7 @@ def generate_index_rst(TOC):
       Generates the index.rst file 
       Builds a table of contents for every seperate folder
     '''
-    index = 'Welcome to %s documentation!\n===============================\n\n' %  (DOCNAME,)
+    index = 'Welcome to %s documentation!\n=================================\n\n' %  (DOCNAME,)
     
     for dir,value in TOC:
       # print('Linking: ' + dir)

@@ -1,12 +1,32 @@
+(*
+Biometrics
+==========
+Methods related to biometrics that make your account behave in a unique way.
+*)
+
 {$DEFINE WL_BIOMETRICS_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+(*
+var BioHash
+~~~~~~~~~~~
+  Global BioHash variable.
+  BioHash is sort of a unique ID of each account and can be used to influence several things.
+*)
+
 var
   BioHash: Extended;
 
-// This biometrics "system" are straight out of older SRL versions.
+(*
+Antiban.SetupBiometrics
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TAntiban.SetupBiometrics;
+
+This comes straight from older SRL versions.
+This basically sets up our BioHash which is a hash of the current player login username. Because usernames are unique, so will the BioHash.
+*)
 procedure TAntiban.SetupBiometrics;
 var
   h, i: UInt32;
@@ -24,34 +44,77 @@ begin
 end;
 
 
-//Get a random multiplier based on the player BioHash.
+(*
+Antiban.GetInfluencer
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.GetInfluencer: Extended;
+
+This generates a random number that is influenced by BioHash.
+There are times you will not want to use BioHash itself because it's value is static, this function let's you get a number that is random but heavily influenced by BioHash.
+
+Example
+-------
+
+  Wait(Round(3000 * Antiban.GetInfluencer)));
+*)
 function TAntiban.GetInfluencer: Extended;
 begin
   Result := (Random + BioHash) * BioHash * BioHash;
 end;
 
-//Influence a number with BioHash.
+(*
+Antiban.GetUniqueNumber
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TAntiban.GetUniqueNumber(Input: Extended): Extended;
+  function TAntiban.GetUniqueNumber(Input, Sum: Extended): Extended; overload;
+  function TAntiban.GetUniqueNumber(Input, Min, Max: Extended): Extended; overload;
+
+This generates a unique number based on your **Input**.
+The overloaded functions allow you to use some extra parameters for this like:
+  Sum an amount to the result, so **Sum** will always be the minimum value you get.
+  Min and Max cap. The number generated will be between **Min** and **Max**.
+
+Example
+-------
+
+  FoodAmount := Antiban.GetUniqueNumber(7, 3, 15);
+*)
 function TAntiban.GetUniqueNumber(Input: Extended): Extended;
 begin
   Result := Input * Self.GetInfluencer;
 end;
 
-//Influence a number with BioHash and add Sum to it.
 function TAntiban.GetUniqueNumber(Input, Sum: Extended): Extended; overload;
 begin
   Result := Input * Self.GetInfluencer + Sum;
 end;
 
-//Influence a number with BioHash without going below Min or over Max.
 function TAntiban.GetUniqueNumber(Input, Min, Max: Extended): Extended; overload;
 begin
   repeat
     Result := Input * Self.GetInfluencer;
-  until (Result >= Min) or (Result <= Max);
+  until (Result >= Min) and (Result <= Max);
 end;
 
 
-//Tools to test TAntiban.GetUniqueNumber
+(*
+Antiban.GetUniqueAverage
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TAntiban.GetUniqueAverage(Input: Extended; Iterations: Integer): Extended;
+  function TAntiban.GetUniqueAverage(Input, Sum: Extended; Iterations: Integer): Extended; overload;
+  function TAntiban.GetUniqueAverage(Input, Min, Max: Extended; Iterations: Integer): Extended; overload;
+
+Functions to test **Antiban.GetUniqueNumber**.
+It will run Antiban.GetUniqueNumber for how many **Iterations** you specify and average the results out.
+Useful to know more or less what result to expect from your input.
+
+Example
+-------
+
+  WriteLn Antiban.GetUniqueAverage(7, 3, 15, 500);
+*)
 function TAntiban.GetUniqueAverage(Input: Extended; Iterations: Integer): Extended;
 var
   RandomCases: TExtendedArray;
@@ -83,7 +146,21 @@ begin
 end;
 
 
-//Probability based on player's BioHash. Useful for close with escape, etc.
+(*
+Antiban.BioDice
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.BioDice: Boolean;
+
+Throws a **SRL.Dice** heavily skewed in certain directions depending on your BioHash.
+BioHashes smaller than **0.15** will always return **False**.
+BioHashes bigger than **0.80** will always return **True**.
+BioHashes between 0.15 and 0.80 will randomly return True or False with true being more probable for higher BioHashes.
+
+Example
+-------
+
+  UseBankEarly := Antiban.BioDice;
+*)
 function TAntiban.BioDice: Boolean;
 begin
   case BioHash of
@@ -94,6 +171,13 @@ begin
   end;
 end;
 
+(*
+Antiban.InvertedBioDice
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.InvertedBioDice: Boolean;
+
+Inverted **Antiban.BioDice**.
+*)
 function TAntiban.InvertedBioDice: Boolean;
 begin
   Result := not Self.BioDice;

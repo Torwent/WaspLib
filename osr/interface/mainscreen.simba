@@ -1,9 +1,21 @@
+(*
+MainScreen
+====
+Methods to interact with the MainScreen.
+*)
+
 {$DEFINE WL_MAINSCREEN_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-//I'm not sure if this is a good name, but this removed any size limit set in a finder.
+(*
+ObjectFinder.Unlimit
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSObjectFinder.Unlimit;
+
+Resets ObjectFinder size limits
+*)
 procedure TRSObjectFinder.Unlimit;
 begin
   Self.MinLongSide := 0;
@@ -12,6 +24,13 @@ begin
   Self.MaxShortSide := 0;
 end;
 
+(*
+ObjectFinder.Unlimited
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSObjectFinder.Unlimited: TRSObjectFinder;
+
+Returns a copy of the ObjectFinder with the size limits removed.
+*)
 function TRSObjectFinder.Unlimited: TRSObjectFinder;
 begin
   Result := Self;
@@ -22,7 +41,23 @@ begin
 end;
 
 
-//Checks if a point is visible
+(*
+MainScreen.IsVisible
+~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TRSMainScreen.IsVisible(P: TPoint): Boolean; override;
+  function TRSMainScreen.IsVisible(TPA: TPointArray): Boolean; overload;
+  function TRSMainScreen.IsVisible(B: TBox): Boolean; overload;
+  function TRSMainScreen.IsVisible(Rect: TRectangle): Boolean; overload;
+
+Checks if the given TPoint, TPointArray, TBox or TRectangle is visible in the MainScreen.
+It will return true if it's not behind an interface otherwise returns false.
+
+Example
+-------
+
+  Writeln MainScreen.IsVisible(P);
+*)
 function TRSMainScreen.IsVisible(P: TPoint): Boolean; override;
 begin
   Result := Self.Bounds.Contains(P);
@@ -47,7 +82,6 @@ begin
   end;
 end;
 
-//Checks if a TPA is visible
 function TRSMainScreen.IsVisible(TPA: TPointArray): Boolean; overload;
 begin
   Result := Self.Bounds.Contains(TPA);
@@ -72,7 +106,6 @@ begin
   end;
 end;
 
-//Checks if a Box is visible
 function TRSMainScreen.IsVisible(B: TBox): Boolean; overload;
 begin
   Result := Self.Bounds.Contains(B);
@@ -97,7 +130,6 @@ begin
   end;
 end;
 
-//Checks if a Rect is visible
 function TRSMainScreen.IsVisible(Rect: TRectangle): Boolean; overload;
 begin
   Result := Self.Bounds.Contains(Rect);
@@ -122,7 +154,13 @@ begin
   end;
 end;
 
+(*
+MainScreen.GetAdjacentTiles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMainScreen.GetAdjacentTiles: TRectArray;
 
+Returns the 4 tiles adjacent to the player in form of a TRectArray.
+*)
 function TRSMainScreen.GetAdjacentTiles: TRectArray;
 var
   Tiles: TPointArray;
@@ -140,24 +178,44 @@ begin
     Result += Minimap.StaticToMsRect(Tile, 0);
 end;
 
+(*
+MainScreen.DebugAdjacentTiles
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMainScreen.DebugAdjacentTiles;
+
+Debugs MainScreen.GetAdjacentTiles.
+
+Example
+-------
+
+  MainScreen.DebugAdjacentTiles;
+*)
 procedure TRSMainScreen.DebugAdjacentTiles;
 var
   Bitmap: TMufasaBitmap;
-  Rects: array of TRectangle;
   Rect: TRectangle;
 begin
-
-  Rects := Self.GetAdjacentTiles;
-
   Bitmap.FromClient;
 
-  for Rect in Rects do
+  for Rect in Self.GetAdjacentTiles do
     Bitmap.DrawRect(Rect, $ffffff);
 
   ShowBitmap(Bitmap);
   Bitmap.Free;
 end;
 
+(*
+MainScreen.InMultiCombat
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMainScreen.InMultiCombat: Boolean;
+
+Returns true if we are in multi combat false if not.
+
+Example
+-------
+
+  Writeln MainScreen.InMultiCombat;
+*)
 function TRSMainScreen.InMultiCombat: Boolean;
 var
   B: TBox;
@@ -179,4 +237,40 @@ begin
   end;
 
   Result := (SRL.CountColor(CTS0(4902655, 0), B) > 0) and (SRL.CountColor(CTS0(19109, 0), B) > 0);
+end;
+
+(*
+MainScreen.HasGrave
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMainScreen.HasGrave: Boolean;
+
+Returns true if we died and there's a grave available somewhere, false otherwise.
+
+Example
+-------
+
+  Writeln MainScreen.HasGrave;
+*)
+function TRSMainScreen.HasGrave: Boolean;
+var
+  A: TPoint;
+  B: TBox;
+begin
+  case RSClient.Mode of
+    ERSClientMode.FIXED:
+      begin
+        B := InterfaceArea.Bounds;
+        B.X1 := B.X2 - 30;
+        B.Y1 := B.Y2 - 30;
+      end;
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        A := Minimap.Center();
+        B.X1 := A.X - 20;
+        B.X2 := A.X;
+        B.Y1 := A.Y + 80;
+        B.Y2 := A.Y + 100;
+      end;
+  end;
+  Result :=  (Round(SRL.CountColor(CTS0(11448498, 0), B) / SRL.CountColor(CTS0(4013888, 0), B)) >= 4);
 end;

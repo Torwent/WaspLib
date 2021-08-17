@@ -17,7 +17,10 @@ type
     Walker: PRSWalker;
     TileArray: TPointArray;
     Height: Int32;
-    Size: Int32;
+    Size: record
+      Vertical: Int32;
+      Horizontal: Int32;
+    end;
     Finder: TRSObjectFinder;
     UpText: TStringArray;
     Filter: TWaspObjectFilter;
@@ -61,7 +64,7 @@ type
 
 procedure TWaspObject.SetupCommon;
 begin
-  Size := 1;
+  Size := [1, 1];
   Finder.ClusterDistance := 3;
   Finder.Erode := 2;
   Finder.Grow := 4;
@@ -80,24 +83,24 @@ begin
   TileArray := ObjTileArray;
 end;
 
-procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight: Int32; ObjTileArray: TPointArray; Populate: record N, S, W, E: Int32; end); overload;
-begin
-  Walker := PWalker;
-  Height := ObjHeight;
-  Filter.Walker := True;
-
-  TileArray := PopulateTileArray(ObjTileArray, Populate);
-end;
-
 procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight, ObjSize: Int32; ObjTileArray: TPointArray); overload;
 begin
   Walker := PWalker;
   Height := ObjHeight;
-  Size := ObjSize;
+  Size.Vertical := ObjSize;
+  Size.Horizontal := ObjSize;
   Filter.Walker := True;
   TileArray := ObjTileArray;
 end;
 
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight: Int32; Expand: record Vertical, Horizontal: Int32; end; ObjTileArray: TPointArray); overload;
+begin
+  Walker := PWalker;
+  Height := ObjHeight;
+  Size := Expand;
+  Filter.Walker := True;
+  TileArray := ObjTileArray;
+end;
 
 
 procedure TRSMMDot.SetupCommon; override;
@@ -121,7 +124,8 @@ procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius, DotHeight, DotSize: I
 begin
   Walker := PWalker;
   Height := DotHeight;
-  Size := DotSize;
+  Size.Vertical := DotSize;
+  Size.Horizontal := DotSize;
   TileRadius := Radius;
   Filter.Walker := True;
   TileArray := ObjTileArray;
@@ -177,11 +181,11 @@ begin
 
   if Filter.Walker then
   begin
-    FloorTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, 0, 0, 0, Size);
+    FloorTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, 0, 0, 0, Size.Vertical, Size.Horizontal);
 
     if Height > 0 then
     begin
-      RoofTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, Height, 0, 0, Size);
+      RoofTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, Height, 0, 0, Size.Vertical, Size.Horizontal);
       PolyArray := FloorTiles.GetPolys(RoofTiles);
     end
     else
@@ -232,7 +236,7 @@ begin
 
   if Filter.Walker then
   begin
-    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height, Size);
+    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height, Size.Vertical, Size.Horizontal);
 
     if PolyArray = [] then
       Exit(False);
@@ -277,7 +281,7 @@ begin
 
   if Filter.Walker then
   begin
-    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height, Size);
+    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height, Size.Vertical, Size.Horizontal);
 
     if PolyArray = [] then
       Exit(False);
@@ -322,11 +326,11 @@ begin
       Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
       Dots := Minimap.GetDotArrayInRadiuses(DotType, MMPoints, TileRadius);
       Tiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, MMPoints, 0, 0, 0, 0);
-      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, Size);
+      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, Size.Vertical, Size.Horizontal);
 
       if Height > 0 then
       begin
-        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, Size);
+        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, Size.Vertical, Size.Horizontal);
         PolyArray := FloorTiles.GetPolys(RoofTiles);
       end
       else
@@ -339,12 +343,12 @@ begin
       Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
 
       Tiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, MMPoints, 0, 0, 0, 0);
-      FloorTiles := Minimap.GetTileArrayMS(MMPoints, 0, (Size * TileRadius));
+      FloorTiles := Minimap.GetTileArrayMS(MMPoints, 0, (Round((Size.Vertical + Size.Horizontal)/2) * TileRadius));
 
 
       if Height > 0 then
       begin
-        RoofTiles := Minimap.GetTileArrayMS(MMPoints, Height, (Size * TileRadius));
+        RoofTiles := Minimap.GetTileArrayMS(MMPoints, Height, (Round((Size.Vertical + Size.Horizontal)/2) * TileRadius));
         PolyArray := FloorTiles.GetPolys(RoofTiles);
       end
       else
@@ -354,11 +358,11 @@ begin
     else if Filter.MinimapDot then
     begin
       Dots := Minimap.GetDots(DotType);
-      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, Size);
+      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, Size.Vertical, Size.Horizontal);
 
       if Height > 0 then
       begin
-        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, Size);
+        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, Size.Vertical, Size.Horizontal);
         PolyArray := FloorTiles.GetPolys(RoofTiles);
       end
       else
@@ -413,17 +417,17 @@ begin
     begin
       Dots := Minimap.GetDotArrayInRadiuses(DotType,
                       Walker^.WorldToMM(TileArray), TileRadius);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
     end
 
     else if Filter.Walker then
       PolyArray := Minimap.GetTileArrayPolys(
-                      Walker^.WorldToMM(TileArray), Height, Size * TileRadius)
+                      Walker^.WorldToMM(TileArray), Height, Round((Size.Vertical + Size.Horizontal)/2) * TileRadius)
 
     else if Filter.MinimapDot then
     begin
       Dots := Minimap.GetDots(DotType);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
     end;
 
     if PolyArray = [] then
@@ -474,17 +478,17 @@ begin
     begin
       Dots := Minimap.GetDotArrayInRadiuses(DotType,
                       Walker^.WorldToMM(TileArray), TileRadius);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
     end
 
     else if Filter.Walker then
       PolyArray := Minimap.GetTileArrayPolys(Walker^.WorldToMM(TileArray),
-                                             Height, Size * TileRadius)
+                                             Height, Round((Size.Vertical + Size.Horizontal)/2) * TileRadius)
 
     else if Filter.MinimapDot then
     begin
       Dots := Minimap.GetDots(DotType);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size);
+      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
     end;
 
     if PolyArray = [] then

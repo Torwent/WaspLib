@@ -1,11 +1,86 @@
+(*
+TWaspObject
+===========
+Methods to handle TWaspObjects.
+TWaspObjects can be anything that have a shape in the mainscreen.
+They are divided in 2 main categories and one of them in 3 sub-categories:
+  - RSObjects
+  - MMDots:
+    -RSNPCs
+    -RSGroundItems
+    -RSPlayers
+*)
+
 {$DEFINE WL_WASPOBJECT_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+
+(*
+type TRSObjectSize
+~~~~~~~~~~~~~~~~~~~~
+
+TRSObjectSize is the record used in **TRSObjectShape.Size**.
+
+* **TRSObjectSize.Length**
+
+  Length the size of the WaspObject from north to south.
+  Length should be the number of tiles that the WaspObject takes in this axis.
+
+* **TRSObjectSize.Width**
+
+  Width the size of the WaspObject from west to east.
+  Width should be the number of tiles that the WaspObject takes in this axis.
+
+* **TRSObjectSize.Height**
+
+  Height the size of the WaspObject from in the floor to it's top.
+  There's no proper way to measure Height and the value has to be guessed, for reference, a player's or a human NPC height is roughly **6**.
+
+type TRSObjectShape
+~~~~~~~~~~~~~~~~~~~
+
+TRSObjectShape is the record used in **TWaspObject.ShapeArray** which is an array of TRSObjectShape.
+This record holds information about the shape of a TWaspObject
+
+* **TRSObjectShape.TileArray**
+
+  TileArray is a TPointArray holding the tiles of a TWaspObject with **specific Size**. Multiple sized TWaspObjects, e.g. TWaspObjects that are oriented differently throught runescape should be set separately in **TWaspObject.ShapeArray**.
+
+* **TRSObjectShape.Size**
+
+  Size is a TRSObjectSize holding the information about the size and orientation of a TWaspObject. Multiple sized TWaspObjects, e.g. TWaspObjects that are oriented differently throught runescape should be set separately in **TWaspObject.ShapeArray**.
+
+type TRSObjectFilter
+~~~~~~~~~~~~~~~~~~~~
+
+TRSObjectFilter is the record used in **TWaspObject.Filter**. This record is used to enable or disable functionality from TWaspObjects.
+
+    MinimapDot: Boolean;
+    Finder: Boolean;
+    UpText: Boolean;
+
+* **TRSObjectShape.Walker**
+
+  Walker enables/disables TRSWalker for the given TWaspObject.
+  When enabled TWaspObjects will use TRSWalker to get the TWaspObject tiles and will then search those tiles for the TWaspObject.
+  It's the most accurate way to use TWaspObject but also the slowest. In cases TRSWalker is not needed, it should be disabled for maximum performance.
+
+  Usage
+  -----
+  .. pascal::
+
+     WaspObject.Filter.Walker := False;
+*)
 type
-  //TWaspObjectFilter is used to enable/disable certain functionality of TWaspObjects
-  TWaspObjectFilter = record
+
+  TRSObjectShape = record
+    TileArray: TPointArray;
+    TileVector: Vector3;
+  end;
+
+  TRSObjectFilter = record
     Walker: Boolean;
     MinimapDot: Boolean;
     Finder: Boolean;
@@ -15,15 +90,11 @@ type
   //TWaspObject base record for TRSObjects and TRSMMDots
   TWaspObject = record
     Walker: PRSWalker;
+    ShapeArray: array of TRSObjectShape;
     TileArray: TPointArray;
-    Height: Int32;
-    Size: record
-      Vertical: Int32;
-      Horizontal: Int32;
-    end;
     Finder: TRSObjectFinder;
     UpText: TStringArray;
-    Filter: TWaspObjectFilter;
+    Filter: TRSObjectFilter;
   end;
 
   //TRSObjects
@@ -62,9 +133,13 @@ type
   PRSPlayerArray = array of PRSPlayer;
 
 
+function MakeShape(TileVector: Vector3; TileArray: TPointArray): TRSObjectShape;
+begin
+  Result := [TileArray, TileVector];
+end;
+
 procedure TWaspObject.SetupCommon;
 begin
-  Size := [1, 1];
   Finder.ClusterDistance := 3;
   Finder.Erode := 2;
   Finder.Grow := 4;
@@ -73,33 +148,40 @@ begin
   Filter.UpText := True;
 end;
 
-
-
-procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight: Int32; ObjTileArray: TPointArray); overload;
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; Height: Int32; ObjTileArray: TPointArray); overload;
 begin
   Walker := PWalker;
-  Height := ObjHeight;
+
+  ShapeArray := [[ObjTileArray, [1, 1, Height]]];
   Filter.Walker := True;
-  TileArray := ObjTileArray;
 end;
 
-procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight, ObjSize: Int32; ObjTileArray: TPointArray); overload;
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; Size, Height: Int32; ObjTileArray: TPointArray); overload;
 begin
   Walker := PWalker;
-  Height := ObjHeight;
-  Size.Vertical := ObjSize;
-  Size.Horizontal := ObjSize;
-  Filter.Walker := True;
   TileArray := ObjTileArray;
+  ShapeArray := [[ObjTileArray, [Size, Size, Height]]];
+  Filter.Walker := True;
 end;
 
-procedure TRSObject.SetupCommon(PWalker: PRSWalker; ObjHeight: Int32; Expand: record Vertical, Horizontal: Int32; end; ObjTileArray: TPointArray); overload;
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; TileVector: Vector3; ObjTileArray: TPointArray); overload;
 begin
   Walker := PWalker;
-  Height := ObjHeight;
-  Size := Expand;
-  Filter.Walker := True;
   TileArray := ObjTileArray;
+  ShapeArray := [[ObjTileArray, TileVector]];
+  Filter.Walker := True;
+end;
+
+procedure TRSObject.SetupCommon(PWalker: PRSWalker; Shapes: array of TRSObjectShape); overload;
+var
+  i: Int32;
+begin
+  Walker := PWalker;
+  ShapeArray := Shapes;
+  Filter.Walker := True;
+
+  for i := 0 to High(Shapes) do
+    TileArray.Combine(Shapes[i].TileArray);
 end;
 
 
@@ -107,28 +189,48 @@ procedure TRSMMDot.SetupCommon; override;
 begin
   inherited;
 
-  Height := 6;
+  ShapeArray := [[[], [1, 1, 6]]];
   Filter.MinimapDot := True;
 end;
 
-procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius, DotHeight: Int32; ObjTileArray: TPointArray); overload;
+procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius, Height: Int32; ObjTileArray: TPointArray); overload;
 begin
   Walker := PWalker;
-  Height := DotHeight;
+  TileArray := ObjTileArray;
+  ShapeArray := [[ObjTileArray, [1, 1, Height]]];
   TileRadius := Radius;
   Filter.Walker := True;
-  TileArray := ObjTileArray;
 end;
 
-procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius, DotHeight, DotSize: Int32; ObjTileArray: TPointArray); overload;
+procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius, Size, Height: Int32; ObjTileArray: TPointArray); overload;
 begin
   Walker := PWalker;
-  Height := DotHeight;
-  Size.Vertical := DotSize;
-  Size.Horizontal := DotSize;
+  TileArray := ObjTileArray;
+  ShapeArray := [[ObjTileArray, [Size, Size, Height]]];
   TileRadius := Radius;
   Filter.Walker := True;
+end;
+
+procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius: Int32; TileVector: Vector3; ObjTileArray: TPointArray); overload;
+begin
+  Walker := PWalker;
   TileArray := ObjTileArray;
+  ShapeArray := [[ObjTileArray, TileVector]];
+  TileRadius := Radius;
+  Filter.Walker := True;
+end;
+
+procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius: Int32; Shapes: array of TRSObjectShape); overload;
+var
+  i: Int32;
+begin
+  Walker := PWalker;
+  ShapeArray := Shapes;
+  TileRadius := Radius;
+  Filter.Walker := True;
+
+  for i := 0 to High(Shapes) do
+    TileArray.Combine(Shapes[i].TileArray);
 end;
 
 
@@ -145,7 +247,7 @@ procedure TRSGroundItem.SetupCommon; override;
 begin
   inherited;
 
-  Height := 1;
+  ShapeArray := [[[], [1, 1, 1]]];
   DotType := ERSMinimapDot.ITEM;
 end;
 
@@ -169,57 +271,213 @@ end;
 
 
 
-// Searches for an object with ObjectFinder in the MainScreen with the
-// help of RSWalker. Good when objects don't move and precision is needed.
-function TRSObject.Find(out FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
+
+function TRSObject.GetPolys(out FloorTiles, RoofTiles: TRectArray): TPolyArray;
+var
+  Me: TPoint := Walker^.GetMyPos;
+  i: Int32;
+begin
+  for i := 0 to High(ShapeArray) do
+  begin
+    FloorTiles.Extend(Walker^.GetTileArrayMS(
+          Me, ShapeArray[i].TileArray,
+          [ShapeArray[i].TileVector.X, ShapeArray[i].TileVector.Y, 0]));
+
+    if ShapeArray[i].TileVector.Z > 0 then
+    begin
+      RoofTiles.Extend(Walker^.GetTileArrayMS(
+          Me, ShapeArray[i].TileArray, ShapeArray[i].TileVector));
+
+      Result := FloorTiles.GetPolys(RoofTiles);
+    end
+    else
+      Result := FloorTiles.GetPolys;
+  end;
+end;
+
+function TRSObject.GetPolys: TPolyArray; overload;
+var
+  i, x: Int32;
+  APA: array of TPolyArray;
+begin
+  for i := 0 to High(ShapeArray) do
+    APA += Walker^.GetTileArrayPolys(Walker^.GetMyPos, ShapeArray[i].TileArray,
+                                      ShapeArray[i].TileVector, [0, 0]);
+  for i := 0 to High(APA) do
+    for x := 0 to High(APA[i]) do
+      Result += APA[i][x];
+end;
+
+
+
+function TRSMMDot._GetWMMPolys(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray;
+begin
+    MMPoints := Walker^.WorldToMM(ShapeArray[0].TileArray);
+    Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
+    Dots := Minimap.GetDotArrayInRadiuses(DotType, MMPoints, TileRadius);
+
+    Tiles := Walker^.GetTileArrayMS(
+                     MMPoints, [ShapeArray[0].TileVector.X, ShapeArray[0].TileVector.Y, 0]);
+
+    FloorTiles := Minimap.GetTileArrayMS(Dots, ShapeArray[0].TileVector, [-2, -2]);
+
+    if ShapeArray[0].TileVector.Z > 0 then
+    begin
+      RoofTiles := Minimap.GetTileArrayMS(Dots, ShapeArray[0].TileVector, [-2, -2]);
+      Result := FloorTiles.GetPolys(RoofTiles);
+    end
+    else
+      Result := FloorTiles.GetPolys;
+end;
+
+function TRSMMDot._GetWPolys(out FloorTiles, RoofTiles: TRectArray): TPolyArray;
+var
+  Me: TPoint := Walker^.GetMyPos;
+begin
+  FloorTiles := Walker^.GetTileArrayMS(Me, ShapeArray[0].TileArray,
+                        [ShapeArray[0].TileVector.X, ShapeArray[0].TileVector.Y, 0], [0, 0]);
+
+  if ShapeArray[0].TileVector.Z > 0 then
+  begin
+    RoofTiles := Walker^.GetTileArrayMS(Me, ShapeArray[0].TileArray,
+                                        ShapeArray[0].TileVector, [0, 0]);
+
+    Result := FloorTiles.GetPolys(RoofTiles);
+  end
+  else
+    Result := FloorTiles.GetPolys;
+end;
+
+function TRSMMDot._GetMMPolys(out Dots: TPointArray; out FloorTiles, RoofTiles: TRectArray): TPolyArray;
+begin
+  Dots := Minimap.GetDots(DotType);
+  FloorTiles := Minimap.GetTileArrayMS(Dots,
+                  [ShapeArray[0].TileVector.X, ShapeArray[0].TileVector.Y, 0], [-2, -2]);
+
+  if ShapeArray[0].TileVector.Z > 0 then
+  begin
+    RoofTiles := Minimap.GetTileArrayMS(Dots, ShapeArray[0].TileVector, [-2, -2]);
+    Result := FloorTiles.GetPolys(RoofTiles);
+  end
+  else
+    Result := FloorTiles.GetPolys;
+end;
+
+
+function TRSMMDot.GetPolys(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray; overload;
+begin
+  if Filter.Walker and Filter.MinimapDot then
+    Result := Self._GetWMMPolys(MMPoints, Dots, Radiuses, Tiles, FloorTiles, RoofTiles)
+  else if Filter.Walker then
+    Result := Self._GetWPolys(FloorTiles, RoofTiles)
+  else if Filter.MinimapDot then
+    Result := Self._GetMMPolys(Dots, FloorTiles, RoofTiles);
+end;
+
+function TRSMMDot.GetPolys: TPolyArray; overload;
+var
+  Dots: TPointArray;
+  Expand: Double;
+begin
+  if Filter.Walker and Filter.MinimapDot then
+  begin
+    Dots := Minimap.GetDotArrayInRadiuses(DotType,
+                    Walker^.WorldToMM(ShapeArray[0].TileArray), TileRadius);
+    Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
+  end
+
+  else if Filter.Walker then
+  begin
+    Expand := Round(
+                (ShapeArray[0].TileVector.Y + ShapeArray[0].TileVector.X) / 2) * TileRadius;
+
+    Result := Minimap.GetTileArrayPolys(
+                        Walker^.WorldToMM(ShapeArray[0].TileArray),
+                        [Expand, Expand, ShapeArray[0].TileVector.Z]);
+  end
+
+  else if Filter.MinimapDot then
+  begin
+    Dots := Minimap.GetDots(DotType);
+    Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
+  end;
+end;
+
+
+
+
+function TWaspObject.GetATPA(PolyArray: TPolyArray): T2DPointArray;
 var
   i: Int32;
   TPA: TPointArray;
-  ObjFinder: TRSObjectFinder;
+  UnlimitedFinder: TRSObjectFinder;
+begin
+  if Filter.Finder then
+    UnlimitedFinder := Finder.Unlimited;
+
+  for i := 0 to High(PolyArray) do
+    if MainScreen.IsVisible(PolyArray[i]) then
+    begin
+      if Filter.Finder then
+      begin
+        TPA := MainScreen.FindObject(UnlimitedFinder, PolyArray[i].Bounds).Merge;
+        if TPA <> [] then
+          Result += PolyArray[i].Filter(TPA);
+      end
+      else
+      begin
+        TPA := PolyArray[i].Connect;
+        TPA.Fill;
+        Result += TPA;
+      end;
+    end;
+end;
+
+function TWaspObject.FindATPA(PolyArray: TPolyArray): Boolean;
+var
+  i: Int32;
+  UnlimitedFinder: TRSObjectFinder;
+begin
+  if Filter.Finder then
+    UnlimitedFinder := Finder.Unlimited;
+
+  for i := 0 to High(PolyArray) do
+    if MainScreen.IsVisible(PolyArray[i]) then
+    begin
+      if Filter.Finder then
+      begin
+        if MainScreen.FindObject(UnlimitedFinder, PolyArray[i].Bounds) <> [] then
+          Exit(True);
+      end
+      else
+        Exit(True);
+    end;
+end;
+
+
+
+// Searches for an object with ObjectFinder in the MainScreen with the
+// help of RSWalker. Good when objects don't move and precision is needed.
+function TRSObject.Find(out FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker then
   begin
-    FloorTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, 0, 0, 0, Size.Vertical, Size.Horizontal);
-
-    if Height > 0 then
-    begin
-      RoofTiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, TileArray, Height, 0, 0, Size.Vertical, Size.Horizontal);
-      PolyArray := FloorTiles.GetPolys(RoofTiles);
-    end
-    else
-      PolyArray := FloorTiles.GetPolys;
+    PolyArray := Self.GetPolys(FloorTiles, RoofTiles);
 
     if PolyArray = [] then
       Exit(False);
 
-    if Filter.Finder then ObjFinder := Finder.Unlimited;
-
-    for i := 0 to High(PolyArray) do
-    begin
-      if MainScreen.IsVisible(PolyArray[i]) then
-      begin
-        if Filter.Finder then
-        begin
-          TPA := MainScreen.FindObject(ObjFinder, PolyArray[i].Bounds).Merge;
-          if TPA <> [] then
-            ATPA += PolyArray[i].Filter(TPA);
-        end
-        else
-        begin
-          TPA := PolyArray[i].Connect;
-          TPA.Fill;
-          ATPA += TPA;
-        end;
-      end;
-    end;
+    ATPA := Self.GetATPA(PolyArray);
   end
 
   else if Filter.Finder then
     ATPA := MainScreen.FindObject(Finder);
 
-  if Result := (ATPA <> []) then
+  Result := ATPA <> [];
+
+  if Result then
     ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
@@ -228,45 +486,25 @@ end;
 function TRSObject.Find(out ATPA: T2DPointArray): Boolean; overload;
 var
   PolyArray: TPolyArray;
-  i: Int32;
-  TPA: TPointArray;
-  ObjFinder: TRSObjectFinder;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker then
   begin
-    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height, Size.Vertical, Size.Horizontal);
+    PolyArray := Self.GetPolys;
 
     if PolyArray = [] then
       Exit(False);
 
-    if Filter.Finder then ObjFinder := Finder.Unlimited;
-
-    for i := 0 to High(PolyArray) do
-    begin
-      if MainScreen.IsVisible(PolyArray[i]) then
-      begin
-        if Filter.Finder then
-        begin
-          TPA := MainScreen.FindObject(ObjFinder, PolyArray[i].Bounds).Merge;
-          if TPA <> [] then
-            ATPA += PolyArray[i].Filter(TPA);
-        end
-        else
-        begin
-          TPA := PolyArray[i].Connect;
-          TPA.Fill;
-          ATPA += TPA;
-        end;
-      end;
-    end;
+    ATPA := Self.GetATPA(PolyArray);
   end
 
   else if Filter.Finder then
     ATPA := MainScreen.FindObject(Finder);
 
-  if Result := (ATPA <> []) then
+  Result := ATPA <> [];
+
+  if Result then
     ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
 end;
 
@@ -274,33 +512,17 @@ end;
 function TRSObject.Find: Boolean; overload;
 var
   PolyArray: TPolyArray;
-  i: Int32;
-  ObjFinder: TRSObjectFinder;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker then
   begin
-    PolyArray := Walker^.GetTileArrayPolys(TileArray, Height, Size.Vertical, Size.Horizontal);
+    PolyArray := Self.GetPolys;
 
     if PolyArray = [] then
       Exit(False);
 
-    if Filter.Finder then ObjFinder := Finder.Unlimited;
-
-    for i := 0 to High(PolyArray) do
-    begin
-      if MainScreen.IsVisible(PolyArray[i]) then
-      begin
-        if Filter.Finder then
-        begin
-          if MainScreen.FindObject(ObjFinder, PolyArray[i].Bounds) <> [] then
-            Exit(True);
-        end
-        else
-          Exit(True);
-      end;
-    end;
+    Exit(Self.FindATPA(PolyArray));
   end
 
   else if Filter.Finder then
@@ -310,88 +532,18 @@ end;
 
 //MMDot.Find functions
 function TRSMMDot.Find(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
-var
-  i: Int32;
-  TPA: TPointArray;
-  MMDotFinder: TRSObjectFinder;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker or Filter.MinimapDot then
   begin
-
-    if Filter.Walker and Filter.MinimapDot then
-    begin
-      MMPoints := Walker^.WorldToMM(TileArray);
-      Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
-      Dots := Minimap.GetDotArrayInRadiuses(DotType, MMPoints, TileRadius);
-      Tiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, MMPoints, 0, 0, 0, 0);
-      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, Size.Vertical, Size.Horizontal);
-
-      if Height > 0 then
-      begin
-        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, Size.Vertical, Size.Horizontal);
-        PolyArray := FloorTiles.GetPolys(RoofTiles);
-      end
-      else
-        PolyArray := FloorTiles.GetPolys;
-    end
-
-    else if Filter.Walker then
-    begin
-      MMPoints := Walker^.WorldToMM(TileArray);
-      Radiuses := Minimap.GetRadiuses(MMPoints, TileRadius);
-
-      Tiles := Walker^.GetTileArrayMS(Walker^.GetMyPos, MMPoints, 0, 0, 0, 0);
-      FloorTiles := Minimap.GetTileArrayMS(MMPoints, 0, (Round((Size.Vertical + Size.Horizontal)/2) * TileRadius));
-
-
-      if Height > 0 then
-      begin
-        RoofTiles := Minimap.GetTileArrayMS(MMPoints, Height, (Round((Size.Vertical + Size.Horizontal)/2) * TileRadius));
-        PolyArray := FloorTiles.GetPolys(RoofTiles);
-      end
-      else
-        PolyArray := FloorTiles.GetPolys;
-    end
-
-    else if Filter.MinimapDot then
-    begin
-      Dots := Minimap.GetDots(DotType);
-      FloorTiles := Minimap.GetTileArrayMS(Dots, 0, Size.Vertical, Size.Horizontal);
-
-      if Height > 0 then
-      begin
-        RoofTiles := Minimap.GetTileArrayMS(Dots, Height, Size.Vertical, Size.Horizontal);
-        PolyArray := FloorTiles.GetPolys(RoofTiles);
-      end
-      else
-        PolyArray := FloorTiles.GetPolys;
-    end;
+    PolyArray := Self.GetPolys(MMPoints, Dots, Radiuses,
+                               Tiles, FloorTiles, RoofTiles);
 
     if PolyArray = [] then
       Exit(False);
 
-    if Filter.Finder then MMDotFinder := Finder.Unlimited;
-
-    for i := 0 to High(PolyArray) do
-    begin
-      if MainScreen.IsVisible(PolyArray[i]) then
-      begin
-        if Filter.Finder then
-        begin
-          TPA := MainScreen.FindObject(MMDotFinder, PolyArray[i].Bounds).Merge;
-          if TPA <> [] then
-            ATPA += PolyArray[i].Filter(TPA);
-        end
-        else
-        begin
-          TPA := PolyArray[i].Connect;
-          TPA.Fill;
-          ATPA += TPA;
-        end;
-      end;
-    end;
+    ATPA := Self.GetATPA(PolyArray);
   end
 
   else if Filter.Finder then
@@ -403,56 +555,18 @@ end;
 
 function TRSMMDot.Find(out ATPA: T2DPointArray): Boolean; overload;
 var
-  Dots: TPointArray;
   PolyArray: TPolyArray;
-  i: Int32;
-  TPA: TPointArray;
-  MMDotFinder: TRSObjectFinder;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker or Filter.MinimapDot then
   begin
-    if Filter.Walker and Filter.MinimapDot then
-    begin
-      Dots := Minimap.GetDotArrayInRadiuses(DotType,
-                      Walker^.WorldToMM(TileArray), TileRadius);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
-    end
-
-    else if Filter.Walker then
-      PolyArray := Minimap.GetTileArrayPolys(
-                      Walker^.WorldToMM(TileArray), Height, Round((Size.Vertical + Size.Horizontal)/2) * TileRadius)
-
-    else if Filter.MinimapDot then
-    begin
-      Dots := Minimap.GetDots(DotType);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
-    end;
+    PolyArray := Self.GetPolys;
 
     if PolyArray = [] then
       Exit(False);
 
-    if Filter.Finder then MMDotFinder := Finder.Unlimited;
-
-    for i := 0 to High(PolyArray) do
-    begin
-      if MainScreen.IsVisible(PolyArray[i]) then
-      begin
-        if Filter.Finder then
-        begin
-          TPA := MainScreen.FindObject(MMDotFinder, PolyArray[i].Bounds).Merge;
-          if TPA <> [] then
-            ATPA += PolyArray[i].Filter(TPA);
-        end
-        else
-        begin
-          TPA := PolyArray[i].Connect;
-          TPA.Fill;
-          ATPA += TPA;
-        end;
-      end;
-    end;
+    ATPA := Self.GetATPA(PolyArray);
   end
 
   else if Filter.Finder then
@@ -464,52 +578,18 @@ end;
 
 function TRSMMDot.Find: Boolean; overload;
 var
-  Dots: TPointArray;
   PolyArray: TPolyArray;
-  i: Int32;
-  TPA: TPointArray;
-  MMDotFinder: TRSObjectFinder;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker or Filter.MinimapDot then
   begin
-    if Filter.Walker and Filter.MinimapDot then
-    begin
-      Dots := Minimap.GetDotArrayInRadiuses(DotType,
-                      Walker^.WorldToMM(TileArray), TileRadius);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
-    end
-
-    else if Filter.Walker then
-      PolyArray := Minimap.GetTileArrayPolys(Walker^.WorldToMM(TileArray),
-                                             Height, Round((Size.Vertical + Size.Horizontal)/2) * TileRadius)
-
-    else if Filter.MinimapDot then
-    begin
-      Dots := Minimap.GetDots(DotType);
-      PolyArray := Minimap.GetTileArrayPolys(Dots, Height, Size.Vertical, Size.Horizontal);
-    end;
+    PolyArray := Self.GetPolys;
 
     if PolyArray = [] then
       Exit(False);
 
-    if Filter.Finder then MMDotFinder := Finder.Unlimited;
-
-    for i := 0 to High(PolyArray) do
-    begin
-      if MainScreen.IsVisible(PolyArray[i]) then
-      begin
-        if Filter.Finder then
-        begin
-          TPA := MainScreen.FindObject(MMDotFinder, PolyArray[i].Bounds).Merge;
-          if TPA <> [] then
-            Exit(True);
-        end
-        else
-          Exit(True);
-      end;
-    end;
+    Exit(Self.FindATPA(PolyArray));
   end
 
   else if Filter.Finder then

@@ -200,6 +200,24 @@ begin
 end;
 
 (*
+Minimap.OnGroundLevel
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.OnGroundLevel;
+
+**Minimap.OnGroundLevel** returns true if we are likely to be on the ground level.
+This works by counting the amount of black in the minimap and might give false positives/negatives if there's more than 3500 black pixels on the minimap.
+Example
+-------
+
+  WriteLn Minimap.OnGroundLevel;
+*)
+function TRSMinimap.OnGroundLevel: Boolean;
+begin
+  Result := SRL.CountColor(0, Minimap.Bounds) > 3500;
+end;
+
+
+(*
 Minimap.InPOH
 ~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TRSMinimap.InPOH;
@@ -216,14 +234,25 @@ Example
 function TRSMinimap.InPOH: Boolean;
 var
   TPA: TPointArray;
+  ColorArray: TIntegerArray;
+  BlackAmount: Int32;
   ColorAmount: Int32;
 begin
   TPA := Self.GetPolygon.Connect;
   TPA.Fill;
+  TPA := TPA.Erode(10);
 
-  ColorAmount := Length(GetColors(TPA, True));
-  Result := (ColorAmount > 3) and (ColorAmount < 40); //I'm not sure if 50 is too generous.
+  ColorArray := GetColors(TPA);
+  BlackAmount := Length(ColorArray.FindAll(0));
+
+  ClearSameIntegers(ColorArray);
+
+  ColorAmount := Length(ColorArray);
+  Result := (ColorAmount > 3) and (ColorAmount < 25) and (BlackAmount < 3500);
 end;
+
+
+
 
 
 

@@ -1,5 +1,5 @@
 (*
-TWaspObject
+WaspObjects
 ===========
 Methods to handle TWaspObjects.
 TWaspObjects can be anything that have a shape in the mainscreen.
@@ -16,7 +16,7 @@ They are divided in 2 main categories and one of them in 3 sub-categories:
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-
+type
 (*
 type TRSObjectShape
 ~~~~~~~~~~~~~~~~~~~
@@ -36,7 +36,14 @@ This record holds information about the shape of a TWaspObject
     - **X** ( Number of tiles the TWaspObject takes from **West** to **East** )
     - **Y** ( Number of tiles the TWaspObject takes from **North** to **South** )
     - **Z** ( Height of the TWaspObject from the **Floor** to it's **Top**. This value cannot be measured and has to be guessed by trial and error, for reference, a Player or a human NPC height is about **6** )
+*)
 
+  TRSObjectShape = record
+    TileArray: TPointArray;
+    TileVector: Vector3;
+  end;
+
+(*
 type TRSObjectFilter
 ~~~~~~~~~~~~~~~~~~~~
 
@@ -58,11 +65,6 @@ TRSObjectFilter is the record used in **TWaspObject.Filter**. This record is use
 
      WaspObject.Filter.Walker := False;
 *)
-type
-  TRSObjectShape = record
-    TileArray: TPointArray;
-    TileVector: Vector3;
-  end;
 
   TRSObjectFilter = record
     Walker: Boolean;
@@ -71,7 +73,63 @@ type
     UpText: Boolean;
   end;
 
-  //TWaspObject base record for TRSObjects and TRSMMDots
+(*
+type TWaspObject
+~~~~~~~~~~~~~~~~~~~~
+
+TWaspObject is the base record used by **TRSObjects and TRSMMDots**.
+
+* **TWaspObject.Walker**
+
+  Variable holding a **PRSWalker** pointer.
+
+  Usage
+  -----
+  .. pascal::
+
+     WaspObject.Walker := @RSW;
+
+* **TWaspObject.ShapeArray**
+
+  ShapeArray holds an array of **TRSObjectShape**.
+  You can add as many TRSObjectShape as you want but in reality you should never need more than 2 shapes, one for vertical (north/south) oriented objects and another for horizontal (west/east) oriented ones.
+
+* **TWaspObject.TileArray**
+
+  TileArray holds a **TPointArray**.
+  This array should contain all the TPoints stores in every TRSObjectShape.TileArray in TWaspObject.ShapeArray.
+  This variable exists so Walker can refer to the TWaspObject location.
+
+  Setup example
+  -------------
+  .. pascal::
+
+     for i := 0 to High(ShapeArray) do
+       TileArray.Extend(ShapeArray[i].TileArray);
+
+* **TWaspObject.Finder**
+
+  Finder holds a **TRSObjectFinder**.
+  It is used to find the TWaspObject on the mainscreen.
+  For more information refer to: https://ollydev.github.io/SRL-Development/mainscreen.html#type-trsobjectfinder
+
+* **TWaspObject.UpText**
+
+  UpText holds a **TStringArray** with strings of the TWaspObject up text.
+
+  Usage
+  -----
+  .. pascal::
+
+     WaspObject.UpText := ['Banker'];
+     Writeln MainScreen.IsUpText(WaspObject.UpText);
+
+* **TWaspObject.Filter**
+
+  Filter holds a **TRSObjectFilter**.
+  For more information: https://torwent.github.io/WaspLib/waspobject.html#type-trsobjectfilter
+*)
+
   TWaspObject = record
     Walker: PRSWalker;
     ShapeArray: array of TRSObjectShape;
@@ -81,25 +139,42 @@ type
     Filter: TRSObjectFilter;
   end;
 
-  //TRSObjects
+(*
+type TRSObject
+~~~~~~~~~~~~~~~~~~~~
+
+TRSObject is a **TWaspObject** specific for objects that do not have a minimap dot.
+They can be used for objects with a minimap dot that do not move but **TRSMMDot** gives you more flexibility for those.
+*)
+
   TRSObject = type TWaspObject;
   TRSObjectArray = array of TRSObject;
   PRSObject = ^TRSObject;
   PRSObjectArray = array of PRSObject;
 
-  //TRSMMDots base record for all objects that have a minimap dot.
+(*
+type TRSMMDot
+~~~~~~~~~~~~~~~~~~~~
+
+TRSMMDot is a **TWaspObject** specific for objects that have a minimap dot.
+There's 3 types of TRSMMDot:
+  - TRSNPC
+  - TRSGroundItem
+  - TRSPlayer
+
+Each one made to handle each type of TRSMMDot.
+*)
+
   TRSMMDot = record(TWaspObject)
     TileRadius: Int32;
     DotType: ERSMinimapDot;
   end;
 
-  //RSNPCs
   TRSNPC = type TRSMMDot;
   TRSNPCArray = array of TRSNPC;
   PRSNPC = ^TRSNPC;
   PRSNPCArray = array of PRSNPC;
 
-  //RSGroundItems
   TRSGroundItem = record(TRSMMDot)
     Item: TRSItem;
     Value: Int32;
@@ -110,7 +185,6 @@ type
   PRSGroundItem = ^TRSGroundItem;
   PRSGroundItemArray = array of PRSGroundItem;
 
-  //RSPlayers
   TRSPlayer = type TRSMMDot;
   TRSPlayerArray = array of TRSPlayer;
   PRSPlayer = ^TRSPlayer;

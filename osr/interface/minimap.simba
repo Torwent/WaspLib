@@ -4,7 +4,6 @@ Minimap
 Methods to handle Minimap. Extends SRL's Minimap.
 *)
 
-
 {$DEFINE WL_MINIMAP_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
@@ -62,22 +61,71 @@ begin
   Result := OCR.RecognizeNumber([Orb.X-35, Orb.Y-1, Orb.X-15, Orb.Y+9], TOCRShadowRule.Create(), RS_FONT_PLAIN_11);
 end;
 
+(*
+Minimap.GetSpecLevel
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.GetSpecLevel;
+
+**Minimap.GetSpecLevel** is used to retrieve the special attack level from the minimap orb.
+
+Example
+-------
+
+  Writeln Minimap.GetSpecLevel;
+*)
 function TRSMinimap.GetSpecLevel: Int32;
 begin
   Result := Self.GetOrbLevel(Self.GetSpecAttackCircle);
 end;
 
+(*
+Minimap.IsSpecEnabled
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.IsSpecEnabled;
+
+**Minimap.IsSpecEnabled** returns true if the special attack is enabled.
+
+Example
+-------
+
+  Writeln Minimap.IsSpecEnabled;
+*)
 function TRSMinimap.IsSpecEnabled: Boolean;
 begin
   Result := SRL.CountColor(CTS2(8682326, 16, 0.03, 1.15), Self.GetSpecAttackCircle.Bounds) > 1;
 end;
 
+(*
+Minimap.IsSpecWeapon
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.IsSpecWeapon;
+
+**Minimap.IsSpecWeapon** returns true if the current weapon has a special attack.
+Returns false if the special attack level is at 0 or if the weapon doesn't have a special attack.
+
+Example
+-------
+
+  Writeln Minimap.IsSpecWeapon;
+*)
 function TRSMinimap.IsSpecWeapon: Boolean;
 begin
   Result := ((SRL.CountColor(CTS2(8480786, 19, 0.05, 1.36), Self.GetSpecAttackCircle.Bounds) > 0) or
             Self.IsSpecEnabled);
 end;
 
+(*
+Minimap.EnableSpec
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.EnableSpec(MinSpec: Int32): Boolean;
+
+**Minimap.EnableSpec** attempts to enable the special attack if we have at leas **MinSpec** special attack level.
+
+Example
+-------
+
+  Minimap.EnableSpec(25);
+*)
 function TRSMinimap.EnableSpec(MinSpec: Int32): Boolean;
 var
   T: UInt64;
@@ -101,6 +149,18 @@ begin
   end;
 end;
 
+(*
+Minimap.DisableSpec
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.DisableSpec;
+
+**Minimap.DisableSpec** attempts to disable the special attack.
+
+Example
+-------
+
+  Minimap.DisableSpec;
+*)
 function TRSMinimap.DisableSpec: Boolean;
 var
   T: UInt64;
@@ -122,13 +182,49 @@ begin
   end;
 end;
 
+(*
+Minimap.HasStamina
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.HasStamina;
 
+**Minimap.HasStamina** returns true if we are stamina boosted.
+
+Example
+-------
+
+  WriteLn Minimap.HasStamina;
+*)
 function TRSMinimap.HasStamina: Boolean;
 begin
   Result := SRL.CountColor(CTS0(2709951, 38), Self.GetRunCircle.Bounds) > 0;
 end;
 
+(*
+Minimap.InPOH
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMinimap.InPOH;
 
+**Minimap.InPOH** returns true if we are in a POH.
+This might give false positives if you are upstairs or in a place with few colors on the minimap.
+It might also give false negatives if the POH is crowded.
+
+Example
+-------
+
+  WriteLn Minimap.InPOH;
+*)
+function TRSMinimap.InPOH: Boolean;
+var
+  TPA: TPointArray;
+  ColorAmount: Int32;
+begin
+  TPA := Self.GetPolygon.Connect;
+  TPA.Fill;
+
+  ColorAmount := Length(GetColors(TPA, True));
+  Writeln ColorAmount;
+  Result := (ColorAmount > 3) and (ColorAmount < 40); //I'm not sure if 50 is too generous.
+end;
 
 
 

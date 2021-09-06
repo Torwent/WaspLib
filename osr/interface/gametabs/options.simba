@@ -27,6 +27,74 @@ begin
 end;
 
 
+function TRSOptions.GetBrightnessSliderBounds: TBox;
+begin
+  Result.X1 := Self.X1 + 53;
+  Result.Y1 := Self.Y1 + 76;
+  Result.X2 := Result.X1 + 102;
+  Result.Y2 := Result.Y1 + 9;
+end;
+
+function TRSOptions.FindBrightnessSlider(var P: TPoint): Boolean;
+var
+  TPA: TPointArray;
+begin
+  Result := SRL.FindColors(TPA, CTS0(2040359), Self.GetBrightnessSliderBounds.Expand(10)) > 0;
+  if Result then
+    P := TPA.Mean();
+end;
+
+function TRSOptions.GetBrightnessLevel: Int32;
+var
+  Slider: TPoint;
+  B: TBox;
+begin
+  Result := -1;
+
+  if Self.Open and Self.OpenTab(ERSOptionsTab.DISPLAY) then
+  begin
+    B := Self.GetBrightnessSliderBounds();
+    if Self.FindBrightnessSlider(Slider) then
+      Result := Round((Slider.X - B.X1) * 100 / (B.Width - 1))
+  end;
+  if Result >= 98 then Result := 100;
+end;
+
+function TRSOptions.SetBrightnessLevel(Level: Int32): Boolean;
+var
+  CurrentLevel: Int32;
+  Slider: TPoint;
+  SliderBounds: TBox;
+  Destination: TPoint;
+begin
+  CurrentLevel := Self.GetBrightnessLevel;
+  if (CurrentLevel = Level) then
+    Exit(True);
+
+  SliderBounds := Self.GetBrightnessSliderBounds;
+
+  if Self.FindBrightnessSlider(Slider) then
+  begin
+    Destination.X := SliderBounds.X1 + Round((Level * (SliderBounds.Width - 1) / 100)) + 1;
+    Destination.Y := Random(SliderBounds.Y1, SliderBounds.Y2);
+
+    // Move slider away so we can click on destination
+    if Distance(Slider, Destination) <= 12 then
+    begin
+      if CurrentLevel+20 < 100 then
+        Self.SetBrightnessLevel(CurrentLevel + Random(20,40))
+      else
+        Self.SetBrightnessLevel(CurrentLevel - Random(20,40));
+    end;
+
+    Mouse.Click(Destination, MOUSE_LEFT);
+  end;
+
+  Result := WaitUntil(Self.GetBrightnessLevel = Level, SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+
+
 procedure TRSOptions.RenderSelf;
 begin
   if SRL.CountColor(CHAT_COLOR_BLUE, Chat.GetLineBoxes[CHAT_INPUT_LINE]) > 14 then

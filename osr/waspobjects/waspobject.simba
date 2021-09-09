@@ -139,6 +139,9 @@ TWaspObject is the base record used by **TRSObjects and TRSMMDots**.
     Filter: TRSObjectFilter;
   end;
 
+  TWaspObjectArray = array of TWaspObject;
+  PWaspObject = ^TWaspObject;
+  PWaspObjectArray = array of PWaspObject;
 (*
 type TRSObject
 ~~~~~~~~~~~~~~~~~~~~
@@ -1251,6 +1254,7 @@ end;
 
 var
   CurrentBank: PRSObject;
+  CurrentBanker: PRSNPC;
 
 //Extra bank opening methods using TRSObjects
 function TRSBank.Hover(RSObject: PRSObject = CurrentBank): Boolean; overload;
@@ -1266,21 +1270,12 @@ begin
     else MainScreen.CloseInterface;
   end;
 
-  if RSObject^.Click then
+  if RSObject^.Click or
+     (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E'])) then
   begin
     Minimap.WaitMoving;
     Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
                          SRL.TruncatedGauss(50, 1500), 3000);
-  end
-  else if MainScreen.IsUpText('Banker') then
-  begin
-    ChooseOption.Open;
-    if ChooseOption.Select('Bank Banker') then
-    begin
-      Minimap.WaitMoving;
-      Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
-                           SRL.TruncatedGauss(50, 1500), 3000);
-    end;
   end;
 end;
 
@@ -1297,23 +1292,59 @@ begin
     else MainScreen.CloseInterface;
   end;
 
-  if RSObject^.WalkClick then
+  if RSObject^.WalkClick or
+     (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E'])) then
   begin
     Minimap.WaitMoving;
     Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
                          SRL.TruncatedGauss(50, 1500), 3000);
-  end
-  else if MainScreen.IsUpText('Banker') then
-  begin
-    ChooseOption.Open;
-    if ChooseOption.Select('Bank Banker') then
-    begin
-      Minimap.WaitMoving;
-      Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
-                           SRL.TruncatedGauss(50, 1500), 3000);
-    end;
   end;
 end;
+
+
+//Extra bank opening methods using TRSNPCs
+function TRSBank.Hover(RSNPC: PRSNPC = CurrentBanker): Boolean; overload;
+begin
+  Result := RSNPC^.Hover;
+end;
+
+function TRSBank.Open(RSNPC: PRSNPC = CurrentBanker): Boolean; overload;
+begin
+  if MainScreen.HasInterface then
+  begin
+    if (Self.IsOpen or BankPin.IsOpen) then Exit(True)
+    else MainScreen.CloseInterface;
+  end;
+
+  if RSNPC^.SelectOption(['Bank B', 'Bank E']) then
+  begin
+    Minimap.WaitMoving;
+    Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
+                         SRL.TruncatedGauss(50, 1500), 3000);
+  end;
+end;
+
+function TRSBank.WalkHover(RSNPC: PRSNPC = CurrentBanker): Boolean; overload;
+begin
+  Result := RSNPC^.WalkHover;
+end;
+
+function TRSBank.WalkOpen(RSNPC: PRSNPC = CurrentBanker): Boolean; overload;
+begin
+  if MainScreen.HasInterface then
+  begin
+    if (Self.IsOpen or BankPin.IsOpen) then Exit(True)
+    else MainScreen.CloseInterface;
+  end;
+
+  if RSNPC^.WalkSelectOption(['Bank B', 'Bank E']) then
+  begin
+    Minimap.WaitMoving;
+    Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
+                         SRL.TruncatedGauss(50, 1500), 3000);
+  end;
+end;
+
 
 
 var

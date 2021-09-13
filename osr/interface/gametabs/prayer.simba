@@ -1,0 +1,165 @@
+{$DEFINE WL_PRAYER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  ERSPrayerArray = array of ERSPrayer;
+
+const
+  RANGED_PRAYERS: ERSPrayerArray = [
+    ERSPrayer.RIGOUR,
+    ERSPrayer.EAGLE_EYE,
+    ERSPrayer.HAWK_EYE,
+    ERSPrayer.SHARP_EYE
+  ];
+
+  MELEE_PRAYERS: ERSPrayerArray = [
+    ERSPrayer.PIETY,
+    ERSPrayer.CHIVALRY,
+    ERSPrayer.INCREDIBLE_REFLEXES,
+    ERSPrayer.ULTIMATE_STRENGTH,
+    ERSPrayer.IMPROVED_REFLEXES,
+    ERSPrayer.SUPERHUMAN_STRENGTH,
+    ERSPrayer.CLARITY_OF_THOUGHT,
+    ERSPrayer.BURST_OF_STRENGTH
+  ];
+
+  MAGIC_PRAYERS: ERSPrayerArray = [
+    ERSPrayer.AUGURY,
+    ERSPrayer.MYSTIC_MIGHT,
+    ERSPrayer.MYSTIC_LORE,
+    ERSPrayer.MYSTIC_WILL
+  ];
+
+
+var
+  QuickPrayersSet: Boolean;
+
+
+function ERSPrayerArray.Find(const Value: ERSPrayer): Integer; constref;
+begin
+  for Result := 0 to High(Self) do
+    if (Value = Self[Result]) then
+      Exit;
+
+  Result := -1;
+end;
+
+function TRSPrayer.HasProperPrayers: Boolean;
+var
+  Prayer: ERSPrayer;
+  ActivePrayers: ERSPrayerArray;
+begin
+  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatStyle.GetCombatType;
+
+  ActivePrayers := Self.GetActivePrayers;
+
+  case CombatStyle.CombatType of
+    COMBAT_RANGED:
+      for Prayer in RANGED_PRAYERS do
+         if ActivePrayers.Find(Prayer) > -1 then
+           Exit(True);
+
+    COMBAT_MELEE:
+      for Prayer in MELEE_PRAYERS do
+         if ActivePrayers.Find(Prayer) > -1 then
+           Exit(True);
+
+    COMBAT_MAGIC:
+      for Prayer in MAGIC_PRAYERS do
+         if ActivePrayers.Find(Prayer) > -1 then
+           Exit(True);
+  end;
+end;
+
+function TRSPrayer.FixPrayers: Boolean;
+var
+  i: Int32;
+begin
+  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatStyle.GetCombatType;
+
+  case CombatStyle.CombatType of
+    COMBAT_RANGED:
+      for i := 0 to Ord(High(RANGED_PRAYERS)) do
+        if Self.ActivatePrayer(RANGED_PRAYERS[i]) then
+          Exit(True);
+
+    COMBAT_MELEE:
+        for i := 0 to Ord(High(MELEE_PRAYERS)) do
+        begin
+          if i > 1 then
+          begin
+            if Self.ActivatePrayer([MELEE_PRAYERS[i], MELEE_PRAYERS[i + 1]]) then
+              Exit(True);
+
+            i += 1;
+          end
+          else if Self.ActivatePrayer(MELEE_PRAYERS[i]) then
+            Exit(True);
+        end;
+
+    COMBAT_MAGIC:
+      for i := 0 to Ord(High(MAGIC_PRAYERS)) do
+        if Self.ActivatePrayer(MAGIC_PRAYERS[i]) then
+          Exit(True);
+  end;
+end;
+
+function TRSQuickPrayer.SelectBestPrayers: Boolean;
+var
+  i: Int32;
+begin
+  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatStyle.GetCombatType;
+
+  if not Self.Open then
+    Exit;
+
+  case CombatStyle.CombatType of
+    COMBAT_RANGED:
+      for i := 0 to High(RANGED_PRAYERS) do
+        if Self.SelectPrayer(RANGED_PRAYERS[i]) then
+          Exit(True);
+
+    COMBAT_MELEE:
+        for i := 0 to High(MELEE_PRAYERS) do
+        begin
+          if i > 1 then
+          begin
+            if Self.SelectPrayer([MELEE_PRAYERS[i], MELEE_PRAYERS[i + 1]]) then
+              Exit(True);
+
+            i += 1;
+          end
+          else if Self.SelectPrayer(MELEE_PRAYERS[i]) then
+            Exit(True);
+        end;
+
+    COMBAT_MAGIC:
+      for i := 0 to High(MAGIC_PRAYERS) do
+        if Self.SelectPrayer(MAGIC_PRAYERS[i]) then
+          Exit(True);
+  end;
+end;
+
+
+function TRSMinimap.EnablePrayer: Boolean; override;
+begin
+  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatStyle.GetCombatType;
+
+  Result := inherited;
+
+  if Result then
+  begin
+    if not Prayer.Open and Prayer.HasProperPrayers then
+      Exit;
+
+    Prayer.FixPrayers;
+
+    QuickPrayer.SelectBestPrayers;
+  end;
+end;

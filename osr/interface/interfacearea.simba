@@ -3,6 +3,9 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+var
+  EscapeCloseEnabled: Boolean;
+
 //Get buttons on any interface
 function TRSMainScreen.GetButton: TRSButton;
 var
@@ -38,12 +41,10 @@ begin
   Result := CloseButton <> [];
 
   if Result then
-  begin
-    case PressEscape of
+    case (PressEscape and EscapeCloseEnabled) of
       False: CloseButton.Click;
       True:  Keyboard.PressKey(VK_ESCAPE);
     end;
-  end;
 end;
 
 
@@ -53,7 +54,11 @@ begin
   if not MainScreen.HasInterface then
     Exit(True);
 
-  Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not MainScreen.HasInterface, SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+  if Self.ClickCloseButton(PressEscape) then
+    Result := WaitUntil(not MainScreen.HasInterface, SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+
+  if (not Result and (PressEscape and EscapeCloseEnabled)) then
+    EscapeCloseEnabled := False;
 end;
 
 function TRSMainScreen.CloseInterface(Chance: Double = BioHash): Boolean; overload;
@@ -68,3 +73,9 @@ begin
   Result := Self.CloseInterface(PressEscape);
 end;
 
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  EscapeCloseEnabled := True;
+end;

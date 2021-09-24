@@ -47,23 +47,24 @@ function TRSInventory.SetSelectedSlot(Slot: Int32): Boolean; override;
 var
   Selected: Int32;
 begin
-  Selected := Self.GetSelectedSlot();
+  Selected := Self.GetSelectedSlot;
   if (Selected = Slot) then
     Exit(True);
 
   if (Selected > -1) then
     Mouse.Click(Self.GetSlotBox(Selected), MOUSE_LEFT);
+
   if (Slot > -1) then
   begin
     Mouse.Move(Self.GetSlotBox(Slot));
     if MainScreen.IsUpText('Use') then
       Mouse.Click(MOUSE_LEFT)
-    else if ChooseOption.Open() then
+    else if ChooseOption.Open then
       if not ChooseOption.Select('Use') then
         Exit(False);
   end;
   
-  Result := WaitUntil(Self.GetSelectedSlot() = Slot, 50, SRL.TruncatedGauss(1000, 2000));
+  Result := WaitUntil(Self.GetSelectedSlot = Slot, 50, SRL.TruncatedGauss(1000, 2000));
 end;
 
 function TRSInventory.SetSelectedItem(Item: TRSItem): Boolean;
@@ -75,8 +76,21 @@ begin
 end;
 
 
+function TRSInventory.Use(Slot, OtherSlot: Int32): Boolean; override;
+var
+  B: TBox := Self.GetSlotBox(OtherSlot);
+begin
+  if B = [] then
+    Exit;
 
-function TRSInventory.GetUsedSlots(): TIntegerArray;
+  if Result := Self.SetSelectedSlot(Slot) then
+  begin
+    Wait(0, 1000, wdLeft);
+    Mouse.Click(B, MOUSE_LEFT);
+  end;
+end;
+
+function TRSInventory.GetUsedSlots: TIntegerArray;
 var
   i: Int32;
 begin
@@ -85,7 +99,7 @@ begin
       Result += i;
 end;
 
-function TRSInventory.GetEmptySlots(): TIntegerArray;
+function TRSInventory.GetEmptySlots: TIntegerArray;
 var
   i: Int32;
 begin
@@ -94,19 +108,19 @@ begin
       Result += i;
 end;
 
-function TRSInventory.CountEmptySlots(): Int32;
+function TRSInventory.CountEmptySlots: Int32;
 begin
-  Result := 28 - Self.Count();
+  Result := 28 - Self.Count;
 end;
 
 function TRSInventory.HasSpace(SlotsNeeded: Int32 = 1): Boolean;
 begin
-  Result := SlotsNeeded <= Self.CountEmptySlots();
+  Result := SlotsNeeded <= Self.CountEmptySlots;
 end;
 
 procedure TRSInventory.MouseSlot(Slot: Int32; Button: Integer = MOUSE_MOVE);
 begin
-  if not Self.Open() then
+  if not Self.Open then
     Exit;
 
   Mouse.Move(Self.GetSlotBox(Slot));

@@ -35,60 +35,72 @@ end;
 
 function TRSOptions.GetBrightnessSliderBounds: TBox;
 begin
-  Result.X1 := Self.X1 + 53;
+  Result.X1 := Self.X1 + 50;
   Result.Y1 := Self.Y1 + 76;
-  Result.X2 := Result.X1 + 102;
+  Result.X2 := Result.X1 + 110;
   Result.Y2 := Result.Y1 + 9;
 end;
 
-function TRSOptions.FindBrightnessSlider(var P: TPoint): Boolean;
+
+function TRSOptions.FindBrightnessSlider(var P: TPoint; B: TBox): Boolean;
 var
   TPA: TPointArray;
 begin
-  Result := SRL.FindColors(TPA, CTS0(2040359), Self.GetBrightnessSliderBounds.Expand(10)) > 0;
+  Result := SRL.FindColors(TPA, CTS0(2040359), B.Expand(10)) > 0;
   if Result then
-    P := TPA.Mean();
+    P := TPA.Mean;
 end;
 
-function TRSOptions.GetBrightnessLevel: Int32;
+function TRSOptions.FindBrightnessSlider(var P: TPoint): Boolean; overload;
+begin
+  Result := Self.FindBrightnessSlider(P, Self.GetBrightnessSliderBounds);
+end;
+
+
+function TRSOptions.GetBrightnessLevel(B: TBox): Int32;
 var
   Slider: TPoint;
-  B: TBox;
+  SliderB: TBox;
 begin
   Result := -1;
-
+  SliderB := B;
   if Self.Open and Self.OpenTab(ERSOptionsTab.DISPLAY) then
   begin
-    B := Self.GetBrightnessSliderBounds();
-    if Self.FindBrightnessSlider(Slider) then
+    B.X1 += 7;
+    B.X2 -= 7;
+    if Self.FindBrightnessSlider(Slider, SliderB) then
       Result := Round((Slider.X - B.X1) * 100 / (B.Width - 1))
   end;
-
-  if Result >= 98 then Result := 100; //This is a lazy patch. I'll fix it someday.
 end;
+
+function TRSOptions.GetBrightnessLevel: Int32; overload;
+begin
+  Result := Self.GetBrightnessLevel(Self.GetBrightnessSliderBounds);
+end;
+
 
 function TRSOptions.SetBrightnessLevel(Level: Int32): Boolean;
 var
   CurrentLevel: Int32;
   Slider: TPoint;
-  SliderBounds: TBox;
+  SliderB: TBox;
   Destination: TPoint;
 begin
-  CurrentLevel := Self.GetBrightnessLevel;
+  SliderB := Self.GetBrightnessSliderBounds;
+  CurrentLevel := Self.GetBrightnessLevel(SliderB);
+
   if (CurrentLevel = Level) then
     Exit(True);
 
-  SliderBounds := Self.GetBrightnessSliderBounds;
-
-  if Self.FindBrightnessSlider(Slider) then
+  if Self.FindBrightnessSlider(Slider, SliderB) then
   begin
-    Destination.X := SliderBounds.X1 + Round((Level * (SliderBounds.Width - 1) / 100)) + 1;
-    Destination.Y := Random(SliderBounds.Y1, SliderBounds.Y2);
+    Destination.X := SliderB.X1 + Round((Level * (SliderB.Width - 1) / 100)) + 1;
+    Destination.Y := Random(SliderB.Y1, SliderB.Y2);
 
     // Move slider away so we can click on destination
     if Distance(Slider, Destination) <= 12 then
     begin
-      if CurrentLevel+20 < 100 then
+      if (CurrentLevel + 20) < 100 then
         Self.SetBrightnessLevel(CurrentLevel + Random(20,40))
       else
         Self.SetBrightnessLevel(CurrentLevel - Random(20,40));
@@ -97,7 +109,7 @@ begin
     Mouse.Click(Destination, MOUSE_LEFT);
   end;
 
-  Result := WaitUntil(Self.GetBrightnessLevel = Level, SRL.TruncatedGauss(50, 1500), 3000);
+  Result := WaitUntil(Self.GetBrightnessLevel(SliderB) = Level, SRL.TruncatedGauss(50, 1500), 3000);
 end;
 
 

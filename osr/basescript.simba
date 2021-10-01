@@ -1,9 +1,36 @@
+(*
+BaseScript
+==========
+BaseScript and it's derivants are template records to be used in scripts.
+They also contain template functions and procedures that can be used as is or overriden with
+"inherited" to add functionality.
+*)
+
 {$DEFINE WL_BASESCRIPT_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
 type
+(*
+type TBaseScript
+~~~~~~~~~~~~~~~~
+Record that holds common variables for most basic scripts.
+The variables that are part of **TBaseScript** are the following:
+ - **Name**: String that holds the script name to be displayed in the log and on screen progress report.
+ - **Version**: String that holds the script version to be displayed in the log and on screen progress report.
+ - **IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
+ - **TimeRunning**: TStopwatch variable that holds how long our **TBaseScript** has been running.
+ - **StatsDebugTick**: Integer variabled used to register the last tick we printed a progress report.
+ - **Action**: String variable used to print in Simba output or on screen progress report the current action the script is performing.
+ - **PreviousAction**: String variable used to register the previous action. This is used to avoid spamming the logs.
+ - **ExtraInfo**: String variable we can use to print extra information in Simba output or in on screen progress report. E.G. current state of variables.
+ - **ActionProfit**: Integer that holds information on how much profit (positive or negative) our script makes per action performed.
+ - **TotalActions**: Integer used to count how many actions our script has done.
+ - **TotalProfit**:  Integer that holds the total profit our script has done.
+ - **TimeLimit**: Integer variable to set a time limit for our script in milliseconds before ending the current script.
+ - **ActionLimit**: Integer variable to set total action limit before ending the script.
+*)
   TBaseScript = record
     Name: String;
     Version: String;
@@ -11,7 +38,7 @@ type
     IsSetup: Boolean;
 
     TimeRunning: TStopwatch;
-    StatsDebugTick: Int64;
+    StatsDebugTick: UInt64;
 
     Action: String;
     PreviousAction: String;
@@ -26,18 +53,41 @@ type
     ActionLimit: Int32;
   end;
 
+(*
+type TBaseWalkerScript
+~~~~~~~~~~~~~~~~
+Record that holds common variables for most scripts that use walker.
+This record inherits from **TBaseScript** and has all of it's variables too.
+The extra variables that are part of **TBaseWalkerScript** are:
+ - **RSW**: TRSWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
+*)
   TBaseWalkerScript = record(TBaseScript)
     RSW: TRSWalker;
   end;
 
+(*
+type TBaseBankScript
+~~~~~~~~~~~~~~~~
+Record that holds common variables for most scripts that use a bank.
+This record inherits from **TBaseWalkerScript** and has all of it's variables as well as **TBaseScript's**.
+The extra variables that are part of **TBaseBankScript** are:
+ - **ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
+ - **ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
+ - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
+ - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
+ - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
+ - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
+ - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
+ - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
+*)
   TBaseBankScript = record(TBaseWalkerScript)
-    ScriptBank:   PRSObject;    //Current bank for the script.
-    ScriptBanker: PRSNPC;       //Current banker npc for the script.
+    ScriptBank:   PRSObject;
+    ScriptBanker: PRSNPC;
 
-    BankTab: Int32;           //BankTab cache.
+    BankTab: Int32;
 
-    ItemLeftAmount: Int32;         //Used to cache items left to make/build/whatever to pre-hover the bank.
-    HoveringBank: Boolean;    //Used to cache uptext result.
+    ItemLeftAmount: Int32;
+    HoveringBank: Boolean;
     BankEmpty: Boolean;       //Used to cache if Bank doesn't have more of a certain item.
     CollectEmpty: Boolean;    //Used to cache if CollectBox doesn't have more of a certain item.
     CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
@@ -335,4 +385,440 @@ begin
     Bitmap.Clear;
 
   inherited(Bitmap);
+end;
+
+type
+  TCombatHandler = record
+    EnemyNPC: PRSNPC;
+    InCombatTimer: TCountDown;
+    CombatStyle: TRSCombatStyle;
+
+    ManageWeapons: Boolean;
+
+    Weapon: TRSItem;
+    Shield: TRSItem;
+    SpecWeapon: TRSItem;
+
+    WeaponSpec: Int32;
+    WeaponIsSetup: Boolean;
+
+    QuickPrayerIsSetup: Boolean;
+    IsSetup: Boolean;
+  end;
+
+
+procedure TCombatHandler.Setup(Timer: Int64 = 4000);
+begin
+  if IsSetup then
+    Exit;
+
+  InCombatTimer.Setup(Timer);
+  ManageWeapons := False;
+
+  IsSetup := True;
+end;
+
+procedure TCombatHandler.Setup(NPC: PRSNPC; Timer: Int64 = 4000); overload;
+begin
+  if IsSetup then
+    Exit;
+
+  InCombatTimer.Setup(Timer);
+  EnemyNPC := NPC;
+  ManageWeapons := False;
+
+  IsSetup := True;
+end;
+
+
+procedure TCombatHandler.SetupWeapons;
+var
+  Weapons: TRSItemArray;
+  Shields: TRSItemArray;
+  SpecWeapons: TRSItemArray;
+begin
+  if WeaponIsSetup then
+    Exit;
+
+  Weapons := ['Ghrazi rapier', 'Blade of saeldor (c)', 'Inquisitor''s mace',
+              'Toktz-xil-ak', 'Abyssal whip', 'Abyssal bludgeon',
+              'Abyssal dagger', 'Abyssal dagger (p++)', 'Saradomin sword',
+              'Dragon scimitar', 'Dragon sword', 'Dragon longsword',
+              'Dharok''s greataxe', 'Bow of faerdhinen (c)',
+              'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
+              'Dragon hunter crossbow', 'Dragon crossbow', 'Rune crossbow',
+              'Adamant dart', 'Mithril dart', 'Null'];
+
+  Shields := ['Avernic defender', 'Dragon defender', 'Rune defender',
+              'Adamant defender', 'Mithril defender', 'Black defender',
+              'Steel defender', 'Iron defender', 'Bronze defender',
+              'Dragonfire shield', 'Toktz-ket-xil', 'Twisted buckler',
+              'Dragonfire ward', 'Odium ward', 'Book of law',
+              'Book of darkness', 'Unholy book', 'Book of war', 'Null'];
+
+  SpecWeapons := ['Dragon claws', 'Granite maul', 'Abyssal dagger',
+                  'Abyssal dagger (p++)', 'Dragon dagger', 'Dragon dagger(p++)',
+                  'Dragon sword', 'Dragon longsword',
+                  'Magic shortbow (i)', 'Dragon crossbow', 'Null'];
+
+  for Weapon in Weapons do
+    if (Weapon = 'Null') or Equipment.FindItem(Weapon) then Break;
+
+  for Shield in Shields do
+    if (Shield = 'Null') or Equipment.FindItem(Shield) then Break;
+
+  for SpecWeapon in SpecWeapons do
+    if (SpecWeapon = 'Null') or Inventory.FindItem(SpecWeapon) then Break;
+
+  case SpecWeapon of
+    'Dragon claws':         WeaponSpec := 50;
+    'Granite maul':         WeaponSpec := 50;
+    'Abyssal dagger':       WeaponSpec := 50;
+    'Abyssal dagger (p++)': WeaponSpec := 50;
+    'Dragon dagger':        WeaponSpec := 25;
+    'Dragon dagger(p++)':   WeaponSpec := 25;
+    'Magic shortbow (i)':   WeaponSpec := 50;
+    'Dragon crossbow':      WeaponSpec := 60;
+    'Dragon sword':         WeaponSpec := 40;
+    'Dragon longsword':     WeaponSpec := 25;
+    else
+    begin
+      case Weapon of
+        'Abyssal bludgeon':     WeaponSpec := 50;
+        'Abyssal dagger':       WeaponSpec := 50;
+        'Abyssal dagger (p++)': WeaponSpec := 50;
+        'Saradomin sword':      WeaponSpec := 100;
+        'Dragon scimitar':      WeaponSpec := 55;
+        'Magic shortbow (i)':   WeaponSpec := 50;
+        'Armadyl crossbow':     WeaponSpec := 50;
+        'Dragon crossbow':      WeaponSpec := 60;
+        'Dragon sword':         WeaponSpec := 40;
+        'Dragon longsword':     WeaponSpec := 25;
+        else
+          WeaponSpec := 200; //never spec
+      end;
+
+      if WeaponSpec < 200 then
+        SpecWeapon := Weapon;
+    end;
+  end;
+
+  WeaponIsSetup := (Weapon <> 'Null') or (Shield <> 'Null') or (SpecWeapon <> 'Null');
+end;
+
+
+procedure TCombatHandler.Setup(Manage: Boolean; NPC: PRSNPC; Timer: Int64 = 4000); overload;
+begin
+  if IsSetup then
+    Exit;
+
+  InCombatTimer.Setup(Timer);
+  EnemyNPC := NPC;
+
+  if ManageWeapons := Manage then
+    Self.SetupWeapons;
+
+  IsSetup := True;
+end;
+
+
+function TCombatHandler.AttackNPC: Boolean;
+begin
+  if EnemyNPC^.SelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving;
+    Result := MainScreen.WaitInCombat(5000);
+  end;
+
+  if Result then InCombatTimer.Restart(Random(0, 3000));
+end;
+
+function TCombatHandler.WalkAttackNPC: Boolean;
+begin
+  if EnemyNPC^.WalkSelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving;
+    Result := MainScreen.WaitInCombat(5000);
+  end;
+
+  if Result then InCombatTimer.Restart(Random(0, 3000));
+end;
+
+
+function TCombatHandler.CanSpec: Boolean;
+begin
+  if ManageWeapons and not WeaponIsSetup then
+  begin
+    Self.SetupWeapons;
+    if not WeaponIsSetup then
+      Exit;
+  end;
+
+  Result := (Minimap.GetSpecLevel >= WeaponSpec) and
+            ((SpecWeapon = Weapon) or Inventory.FindItem(Weapon) or
+            (Inventory.FindItem(SpecWeapon) and Inventory.HasSpace(1)));
+end;
+
+function TCombatHandler.DoSpec: Boolean;
+begin
+  if ManageWeapons and not WeaponIsSetup then
+  begin
+    Self.SetupWeapons;
+    if not WeaponIsSetup then
+      Exit;
+  end;
+
+  if (SpecWeapon <> Weapon) and Inventory.ClickItem(SpecWeapon) then
+    if not WaitUntil(Inventory.FindItem(Weapon), 100, 4000) then
+      Exit;
+
+  Result := Minimap.EnableSpec(WeaponSpec);
+  if (SpecWeapon = 'Granite maul') then Result := True;
+
+  if Result and (SpecWeapon <> 'Granite maul') then
+    Wait(300, 400)
+  else
+    Wait(50, 100);
+end;
+
+
+function TCombatHandler.NeedRegear: Boolean;
+begin
+  if not ManageWeapons or not WeaponIsSetup then
+    Exit;
+
+  Result := ((Weapon <> 'Null') and Inventory.FindItem(Weapon)) or
+            ((Shield <> 'Null') and Inventory.FindItem(Shield));
+end;
+
+function TCombatHandler.ReGear: Boolean;
+begin
+  if not ManageWeapons or not WeaponIsSetup then
+    Exit;
+
+  if (Weapon <> 'Null') then
+    Inventory.ClickItem(Weapon);
+  if (Shield <> 'Null') then
+    Inventory.ClickItem(Shield);
+
+  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
+end;
+
+
+var
+  CombatHandler: TCombatHandler;
+
+function TRSXPDrop.FindDrop: Boolean; override;
+begin
+  Result := inherited;
+
+  if CombatHandler.IsSetup and Result then
+    CombatHandler.InCombatTimer.Restart(Random(0, 3000));
+end;
+
+function TRSMainScreen.FindHitsplats: TRSHitsplatArray; override;
+begin
+  Result := Self.FindHitsplats(Self.Bounds);
+
+  if CombatHandler.IsSetup and (Result <> []) then
+    CombatHandler.InCombatTimer.Restart(Random(0, 3000));
+end;
+
+
+
+
+
+
+
+type
+  TFoodHandler = record
+    Food: TRSFoodArray;
+    ItemArray: TRSItemArray;
+
+    BankTab: Int32;
+    FoodAmount: Int32;
+
+    IsSetup: Boolean;
+  end;
+
+function TFoodHandler.FindBankFood: TRSFoodArray;
+var
+  i: Int32;
+  F: TRSFood;
+  Item: TRSItem;
+begin
+  for Item in ValidFoodArray do
+    if Bank.FindItem(Item) then
+    begin
+      F.Item := Item;
+      F.Setup;
+
+      Result += F;
+
+      BankTab := Bank.GetCurrentTab;
+
+      while True do
+      begin
+        if F.LeftOver = 'Null' then
+          Exit;
+
+        i := ValidFoodArray.Find(F.LeftOver);
+        F := [];
+        F.Item := ValidFoodArray[i];
+        F.Setup;
+
+        Result += F;
+      end;
+    end;
+end;
+
+function TFoodHandler.FindInvFood: TRSFoodArray;
+var
+  i: Int32;
+  F: TRSFood;
+  Item: TRSItem;
+begin
+  for Item in ValidFoodArray do
+    if Inventory.FindItem(Item) then
+    begin
+      F.Item := Item;
+      F.Setup;
+
+      Result += F;
+
+      while True do
+      begin
+        if F.LeftOver = 'Null' then
+          Exit;
+
+        i := ValidFoodArray.Find(F.LeftOver);
+        F := [];
+        F.Item := ValidFoodArray[i];
+        F.Setup;
+
+        Result += F;
+      end;
+    end;
+end;
+
+
+procedure TFoodHandler.Setup;
+var
+  F: TRSFood;
+begin
+  if IsSetup then
+    Exit;
+  if Inventory.Open then
+    Food := Self.FindInvFood;
+
+  if (Food = []) and Bank.IsOpen then
+    Food := Self.FindBankFood;
+
+  for F in Food do
+    ItemArray += F.Item;
+
+  BankTab := -1;
+
+  IsSetup := Food <> [];
+end;
+
+
+var
+  FoodHandler: TFoodHandler;
+
+function TRSInventory.FindFood: Boolean;
+begin
+  if not FoodHandler.IsSetup then
+  begin
+    FoodHandler.Setup;
+    if not FoodHandler.IsSetup then
+      Exit;
+  end;
+
+  Result := Self.FindItems(FoodHandler.ItemArray);
+end;
+
+function TRSInventory.FindFood(out Slots: TIntegerArray): Boolean; overload;
+begin
+  if not FoodHandler.IsSetup then
+  begin
+    FoodHandler.Setup;
+    if not FoodHandler.IsSetup then
+      Exit;
+  end;
+
+  Result := Self.FindItems(FoodHandler.ItemArray, Slots);
+end;
+
+
+function TRSInventory.EatFood: Boolean;
+var
+  Slots: TIntegerArray;
+begin
+  if not Self.FindFood(Slots) then
+    Exit;
+
+  Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+end;
+
+function TRSInventory.EatFood(out Slots: TIntegerArray): Boolean; overload;
+begin
+  if Slots = [] then
+    Exit;
+
+  Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+  Slots := [];
+end;
+
+
+function TRSInventory.CountFood: Int32;
+var
+  Slots: TIntegerArray;
+begin
+  Self.FindFood(Slots);
+
+  Result := Length(Slots);
+end;
+
+function TRSInventory.HasEnoughFood: Boolean;
+begin
+  Result := Self.CountFood >= FoodHandler.FoodAmount;
+end;
+
+
+
+function TRSBank.FindFood: Boolean;
+begin
+  if not FoodHandler.IsSetup then
+  begin
+    FoodHandler.Setup;
+    if not FoodHandler.IsSetup then
+      Exit;
+  end;
+
+  if FoodHandler.BankTab = -1 then
+    FoodHandler.BankTab := Bank.GetCurrentTab;
+
+  Result := Self.FindItems(FoodHandler.ItemArray);
+end;
+
+function TRSBank.WithdrawFood: Boolean;
+var
+  FoodCount: Int32;
+  WithdrawAmount: Int32;
+begin
+  if not Self.FindFood and not FoodHandler.IsSetup then
+    Exit;
+
+  FoodCount := Inventory.CountFood;
+
+  case FoodHandler.FoodAmount of
+    BANK_WITHDRAW_ALL: WithdrawAmount := BANK_WITHDRAW_ALL;
+    BANK_WITHDRAW_ALL_BUT_ONE: WithdrawAmount := BANK_WITHDRAW_ALL_BUT_ONE;
+    else WithdrawAmount := FoodHandler.FoodAmount - FoodCount;
+  end;
+
+  Bank.WithdrawItem(FoodHandler.BankTab, [FoodHandler.ItemArray[0], WithdrawAmount, False], False);
+
+  Result := Inventory.CountFood >= FoodCount;
 end;

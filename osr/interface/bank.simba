@@ -27,6 +27,34 @@ begin
 end;
 
 
+function TRSBank.FindItems(Items: TRSItemArray): Boolean;
+var
+  Item: TRSItem;
+begin
+  for Item in Items do
+    if Self.FindItem(Item) then
+      Exit(True);
+end;
+
+function TRSBank.FindItems(Items: TRSItemArray; out Bounds: TBox): Boolean; overload
+var
+  Item: TRSItem;
+begin
+  for Item in Items do
+    if Self.FindItem(Item, Bounds) then
+      Exit(True);
+end;
+
+
+
+function TRSBank.CountSlotStack(Slot: Int32): Int32;
+begin
+  Result := -1;
+  Result := SRL.GetItemAmount(Self.GetSlotBoxes[Slot]);
+end;
+
+
+
 function TRSBank._SimplifyItemName(Item: TRSItem): String;
 var
   ItemStr: String := ToStr(Item);
@@ -97,6 +125,22 @@ begin
     Self.OpenTab(Result);
 end;
 
+
+function TRSBank.WithdrawSlot(Tab: Int32; Item: TRSBankWithdrawSlot; UseQuantityButtons: Boolean): Boolean; overload;
+var
+  ItemCount: Int32;
+begin
+  if not Self.IsOpen or (Tab = -1) then
+    Exit;
+
+  Self.OpenTab(Tab);
+
+  ItemCount := Self.CountSlotStack(Item.Slot);
+  if Self.WithdrawSlot(Item, UseQuantityButtons) then
+    Result := WaitUntil(Self.CountSlotStack(Item.Slot) < ItemCount, 100, 2000);
+end;
+
+
 function TRSBank.WithdrawItem(out Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
 var
   ItemCount: Int32;
@@ -120,7 +164,7 @@ begin
 
   ItemCount := Self.CountItemStack(Item.Item);
   if Self.WithdrawItem(Item, UseQuantityButtons) then
-    Result := WaitUntil((Self.CountItemStack(Item.Item) < ItemCount), 100, 2000);
+    Result := WaitUntil(Self.CountItemStack(Item.Item) < ItemCount, 100, 2000);
 end;
 
 function TRSBank.WithdrawItems(Tab: Int32; Items: array of TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean;

@@ -32,11 +32,6 @@ const
     ERSPrayer.MYSTIC_WILL
   ];
 
-
-var
-  QuickPrayerIsSetup: Boolean;
-
-
 function ERSPrayerArray.Find(const Value: ERSPrayer): Integer; constref;
 begin
   for Result := 0 to High(Self) do
@@ -51,12 +46,12 @@ var
   Prayer: ERSPrayer;
   ActivePrayers: ERSPrayerArray;
 begin
-  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
-    CombatStyle.GetCombatType;
+  if CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatHandler.CombatStyle.GetCombatType;
 
   ActivePrayers := Self.GetActivePrayers;
 
-  case CombatStyle.CombatType of
+  case CombatHandler.CombatStyle.CombatType of
     COMBAT_RANGED:
       for Prayer in RANGED_PRAYERS do
          if ActivePrayers.Find(Prayer) > -1 then
@@ -78,10 +73,10 @@ function TRSPrayer.FixPrayers: Boolean;
 var
   i: Int32;
 begin
-  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
-    CombatStyle.GetCombatType;
+  if CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatHandler.CombatStyle.GetCombatType;
 
-  case CombatStyle.CombatType of
+  case CombatHandler.CombatStyle.CombatType of
     COMBAT_RANGED:
       for i := 0 to Ord(High(RANGED_PRAYERS)) do
         if Self.ActivatePrayer(RANGED_PRAYERS[i]) then
@@ -112,13 +107,13 @@ function TRSQuickPrayer.SelectBestPrayers: Boolean;
 var
   i: Int32;
 begin
-  if CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
-    CombatStyle.GetCombatType;
+  if CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatHandler.CombatStyle.GetCombatType;
 
   if not Self.Open then
     Exit;
 
-  case CombatStyle.CombatType of
+  case CombatHandler.CombatStyle.CombatType of
     COMBAT_RANGED:
       for i := 0 to High(RANGED_PRAYERS) do
         if Result := Self.SelectPrayer(RANGED_PRAYERS[i]) then
@@ -147,26 +142,28 @@ begin
   Self.Close;
 end;
 
+
 function TRSMinimap.EnablePrayer(CheckPrayers: Boolean): Boolean; overload;
 begin
-  if CheckPrayers and (CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN) then
-    CombatStyle.GetCombatType;
+  if CheckPrayers and (CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN) then
+    CombatHandler.CombatStyle.GetCombatType;
 
   Result := Self.EnablePrayer;
 
   if Result and CheckPrayers then
   begin
-    if QuickPrayerIsSetup or not Prayer.Open then
+    if CombatHandler.QuickPrayerIsSetup or not Prayer.Open then
       Exit;
 
     if Prayer.HasProperPrayers then
     begin
-      QuickPrayerIsSetup := True;
+      CombatHandler.QuickPrayerIsSetup := True;
       Exit;
     end;
 
     Prayer.FixPrayers;
 
-    QuickPrayerIsSetup := QuickPrayer.SelectBestPrayers;
+    CombatHandler.QuickPrayerIsSetup := QuickPrayer.SelectBestPrayers;
   end;
 end;
+

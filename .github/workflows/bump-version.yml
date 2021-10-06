@@ -11,29 +11,39 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v2.2.0
+                    
+    - name: Conventional Changelog Action
+      id: changelog
+      uses: TriPSs/conventional-changelog-action@v3.8.0
       with:
-        fetch-depth: '0'
-    
-    - name: Bump version and push tag
-      id: tag
-      uses: torwent/github-tag-action@master
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        WITH_V: true    
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        git-message: 'chore(release): {version}'
+        preset: 'angular'
+        tag-prefix: 'v'
+        output-file: 'CHANGELOG.md'
+        skip-version-file: 'true'
+        skip-on-empty: 'true'
+        skip-commit: 'false'
     
     - name: Write version.txt file
+      if: ${{ steps.changelog.outputs.skipped == 'false' }}
       shell: bash
-      run: echo ${{ steps.tag.outputs.new_tag }} > version.txt
+      run: echo ${{ steps.changelog.outputs.tag }} > version.txt
       
     - name: Update version file
       uses: test-room-7/action-update-file@v1
+      if: ${{ steps.changelog.outputs.skipped == 'false' }}
       with:
         file-path: version.txt
         commit-msg: Bump version.txt and CHANGELOG.md
         github-token: ${{ secrets.GITHUB_TOKEN }}
-
-    - name: Release action
-      uses: ncipollo/release-action@v1
+    
+    - name: Create Release
+      uses: actions/create-release@v1
+      if: ${{ steps.changelog.outputs.skipped == 'false' }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
-        tag: ${{ steps.tag.outputs.new_tag }}
-        token: ${{ secrets.GITHUB_TOKEN }}
+        tag_name: ${{ steps.changelog.outputs.tag }}
+        release_name: ${{ steps.changelog.outputs.tag }}
+        body: ${{ steps.changelog.outputs.clean_changelog }}

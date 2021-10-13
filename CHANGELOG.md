@@ -1,3 +1,12 @@
+## [2.24.1](https://github.com/Torwent/WaspLib/compare/v2.24.0...v2.24.1) (2021-10-13)
+
+
+### Bug Fixes
+
+* **Changelog:** typo in github action ([e9ca3df](https://github.com/Torwent/WaspLib/commit/e9ca3df2eafa006bc3553f3fd0cc1d5c0082f0a8))
+
+
+
 # [2.24.0](https://github.com/Torwent/WaspLib/compare/v2.23.0...v2.24.0) (2021-10-13)
 
 
@@ -37,15 +46,6 @@
 ### Features
 
 * **RSObjects:** Piscarilius bank added ([abc665f](https://github.com/Torwent/WaspLib/commit/abc665fb8f4479b64c4a1f2b8b6fc231cd0eedb8))
-
-
-
-## [2.21.1](https://github.com/Torwent/WaspLib/compare/v2.21.0...v2.21.1) (2021-10-13)
-
-
-### Bug Fixes
-
-* **RSObjects:** Fixed rogues den fire coordinates. ([bd5ed97](https://github.com/Torwent/WaspLib/commit/bd5ed97d71b2059b152d973437ee2bd9a878a5d4))
 
 
 

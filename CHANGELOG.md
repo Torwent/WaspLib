@@ -1,3 +1,12 @@
+## [2.21.1](https://github.com/Torwent/WaspLib/compare/v2.21.0...v2.21.1) (2021-10-13)
+
+
+### Bug Fixes
+
+* **RSObjects:** Fixed rogues den fire coordinates. ([bd5ed97](https://github.com/Torwent/WaspLib/commit/bd5ed97d71b2059b152d973437ee2bd9a878a5d4))
+
+
+
 # [2.21.0](https://github.com/Torwent/WaspLib/compare/v2.20.0...v2.21.0) (2021-10-06)
 
 
@@ -26,10 +35,6 @@
 
 
 # [2.18.0](https://github.com/Torwent/WaspLib/compare/v2.17.0...v2.18.0) (2021-10-04)
-
-
-
-# [2.17.0](https://github.com/Torwent/WaspLib/compare/v2.16.0...v2.17.0) (2021-10-01)
 
 
 

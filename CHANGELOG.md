@@ -1,3 +1,12 @@
+## [2.24.2](https://github.com/Torwent/WaspLib/compare/v2.24.1...v2.24.2) (2021-10-13)
+
+
+### Bug Fixes
+
+* **Changelog:** Fixed the changelog to discord hook ([3f384b7](https://github.com/Torwent/WaspLib/commit/3f384b787621089ba2a673da07b7f07354719433))
+
+
+
 ## [2.24.1](https://github.com/Torwent/WaspLib/compare/v2.24.0...v2.24.1) (2021-10-13)
 
 
@@ -31,21 +40,6 @@
 ### Bug Fixes
 
 * **RSAction:** Fix swamp fishing ([77479e3](https://github.com/Torwent/WaspLib/commit/77479e3164e1d5437e9f219e2b7ef5d5eb8abc91))
-
-
-
-# [2.22.0](https://github.com/Torwent/WaspLib/compare/v2.21.1...v2.22.0) (2021-10-13)
-
-
-### Bug Fixes
-
-* **MM2MS:** Issues with my overloads were fixed. ([e15d824](https://github.com/Torwent/WaspLib/commit/e15d824cf0bd6562f8bf628338b3ebd70232a8c3))
-* **RSAction:** Attempt to fix swamp fishing ([e0362c0](https://github.com/Torwent/WaspLib/commit/e0362c0767f62816f67064089834462fb84ca761))
-
-
-### Features
-
-* **RSObjects:** Piscarilius bank added ([abc665f](https://github.com/Torwent/WaspLib/commit/abc665fb8f4479b64c4a1f2b8b6fc231cd0eedb8))
 
 
 

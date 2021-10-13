@@ -1,3 +1,12 @@
+## [2.22.1](https://github.com/Torwent/WaspLib/compare/v2.22.0...v2.22.1) (2021-10-13)
+
+
+### Bug Fixes
+
+* **RSAction:** Fix swamp fishing ([77479e3](https://github.com/Torwent/WaspLib/commit/77479e3164e1d5437e9f219e2b7ef5d5eb8abc91))
+
+
+
 # [2.22.0](https://github.com/Torwent/WaspLib/compare/v2.21.1...v2.22.0) (2021-10-13)
 
 
@@ -42,10 +51,6 @@
 ### Features
 
 * new changelog generation ([9a25f61](https://github.com/Torwent/WaspLib/commit/9a25f61904c93f4b37c38b718e645c3969b5f4b0))
-
-
-
-# [2.19.0](https://github.com/Torwent/WaspLib/compare/v2.18.0...v2.19.0) (2021-10-04)
 
 
 

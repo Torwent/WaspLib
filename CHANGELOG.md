@@ -1,3 +1,18 @@
+# [2.22.0](https://github.com/Torwent/WaspLib/compare/v2.21.1...v2.22.0) (2021-10-13)
+
+
+### Bug Fixes
+
+* **MM2MS:** Issues with my overloads were fixed. ([e15d824](https://github.com/Torwent/WaspLib/commit/e15d824cf0bd6562f8bf628338b3ebd70232a8c3))
+* **RSAction:** Attempt to fix swamp fishing ([e0362c0](https://github.com/Torwent/WaspLib/commit/e0362c0767f62816f67064089834462fb84ca761))
+
+
+### Features
+
+* **RSObjects:** Piscarilius bank added ([abc665f](https://github.com/Torwent/WaspLib/commit/abc665fb8f4479b64c4a1f2b8b6fc231cd0eedb8))
+
+
+
 ## [2.21.1](https://github.com/Torwent/WaspLib/compare/v2.21.0...v2.21.1) (2021-10-13)
 
 
@@ -31,10 +46,6 @@
 
 
 # [2.19.0](https://github.com/Torwent/WaspLib/compare/v2.18.0...v2.19.0) (2021-10-04)
-
-
-
-# [2.18.0](https://github.com/Torwent/WaspLib/compare/v2.17.0...v2.18.0) (2021-10-04)
 
 
 

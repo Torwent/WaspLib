@@ -1,3 +1,12 @@
+# [2.25.0](https://github.com/Torwent/WaspLib/compare/v2.24.2...v2.25.0) (2021-10-13)
+
+
+### Features
+
+* **DropDown:** DropDowns are now fully working ([dc6886e](https://github.com/Torwent/WaspLib/commit/dc6886e07b9e713c11eccbbdbb9952fa59512dc6))
+
+
+
 ## [2.24.2](https://github.com/Torwent/WaspLib/compare/v2.24.1...v2.24.2) (2021-10-13)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **Changelog:** Changelog will now be sent to discord. ([75df8fa](https://github.com/Torwent/WaspLib/commit/75df8fa7d58dd15992ab91245c77fd7916739cc6))
-
-
-
-## [2.22.1](https://github.com/Torwent/WaspLib/compare/v2.22.0...v2.22.1) (2021-10-13)
-
-
-### Bug Fixes
-
-* **RSAction:** Fix swamp fishing ([77479e3](https://github.com/Torwent/WaspLib/commit/77479e3164e1d5437e9f219e2b7ef5d5eb8abc91))
 
 
 

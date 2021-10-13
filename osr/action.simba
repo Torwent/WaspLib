@@ -143,42 +143,6 @@ begin
   if FinalTPA = [] then
     Exit;
 
-  Result := True;
-
-  FinalTPA.ClearDuplicates;
-  FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
-
-  FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
-
-  ATPA := FinalTPA.Cluster(10);
-  ATPA.FilterSize(12, __GT__);
-end;
-
-function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
-var
-  FinalTPA, TPA: TPointArray;
-  ATPA: T2DPointArray;
-  t: TCountDown;
-  SpotColor: TCTS2Color;
-begin
-  if SRL.FindColors(TPA, CTS0(12161149, 25), Minimap.Bounds) > 50 then
-    SpotColor := CTS2(8875103, 16, 0.2, 0.7)
-  else if SRL.FindColors(TPA, CTS0(6189676, 15), Minimap.Bounds) > 50 then
-    SpotColor := CTS2(7771538, 10, 0.23, 0.34);
-
-  t.Init(ScanTime);
-
-  while not t.IsFinished do
-  begin
-    SRL.FindColors(TPA, SpotColor, MainScreen.Bounds);
-    FinalTPA += TPA.Edges;
-  end;
-
-  MainScreen.Filter(FinalTPA);
-
-  if FinalTPA = [] then
-    Exit;
-
   FinalTPA.ClearDuplicates;
   if SpotColor = CTS2(8875103, 16, 0.2, 0.7) then
     FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
@@ -186,9 +150,16 @@ begin
   FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
 
   ATPA := FinalTPA.Cluster(10);
-  ATPA.FilterSize(15, __GT__);
+  ATPA.FilterSize(12, __GT__);
 
   Result := ATPA <> [];
+end;
+
+function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
+var
+  ATPA: T2DPointArray;
+begin
+  Result := Self.FindFishSpot(ATPA, ScanTime);
 end;
 
 
@@ -250,8 +221,6 @@ begin
     Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
     Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
   end;
-
-  Debug(Rect2);
 
   if SRL.FindColors(TPA1, CTS2(10036, 7, 0.13, 0.01), Rect1.Bounds.Expand(2)) > 5 then
     Result := SRL.FindColors(TPA2, CTS2(10036, 7, 0.13, 0.01), Rect2.Bounds.Expand(2)) > 2;
@@ -316,6 +285,7 @@ var
 begin
   if not Self.FindFishSpot(ATPA, 250) then
     Exit;
+
   Result := Self.ClickObject('Fishing spot', ATPA);
 end;
 

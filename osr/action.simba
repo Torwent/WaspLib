@@ -118,18 +118,27 @@ begin
   end;
 end;
 
+
 function TRSAction.FindFishSpot(out ATPA: T2DPointArray; ScanTime: Int32 = 250): Boolean;
 var
   FinalTPA, TPA: TPointArray;
   t: TCountDown;
+  SpotColor: TCTS2Color;
 begin
+  if SRL.FindColors(TPA, CTS0(12161149, 25), Minimap.Bounds) > 50 then
+    SpotColor := CTS2(8875103, 16, 0.2, 0.7)
+  else if SRL.FindColors(TPA, CTS0(6189676, 15), Minimap.Bounds) > 50 then
+    SpotColor := CTS2(7771538, 10, 0.23, 0.34);
+
   t.Init(ScanTime);
 
   while not t.IsFinished do
   begin
-    SRL.FindColors(TPA, CTS2(8875103, 16, 0.2, 0.7), InterfaceArea.Bounds);
-    FinalTPA += TPA.Edges();
+    SRL.FindColors(TPA, SpotColor, MainScreen.Bounds);
+    FinalTPA += TPA.Edges;
   end;
+
+  MainScreen.Filter(FinalTPA);
 
   if FinalTPA = [] then
     Exit;
@@ -137,7 +146,7 @@ begin
   Result := True;
 
   FinalTPA.ClearDuplicates;
-  FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges());
+  FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
 
   FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
 
@@ -150,28 +159,38 @@ var
   FinalTPA, TPA: TPointArray;
   ATPA: T2DPointArray;
   t: TCountDown;
+  SpotColor: TCTS2Color;
 begin
+  if SRL.FindColors(TPA, CTS0(12161149, 25), Minimap.Bounds) > 50 then
+    SpotColor := CTS2(8875103, 16, 0.2, 0.7)
+  else if SRL.FindColors(TPA, CTS0(6189676, 15), Minimap.Bounds) > 50 then
+    SpotColor := CTS2(7771538, 10, 0.23, 0.34);
+
   t.Init(ScanTime);
 
   while not t.IsFinished do
   begin
-    SRL.FindColors(TPA, CTS2(8875103, 16, 0.2, 0.7), InterfaceArea.Bounds);
-    FinalTPA += TPA.Edges();
+    SRL.FindColors(TPA, SpotColor, MainScreen.Bounds);
+    FinalTPA += TPA.Edges;
   end;
+
+  MainScreen.Filter(FinalTPA);
 
   if FinalTPA = [] then
     Exit;
 
   FinalTPA.ClearDuplicates;
-  FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges());
+  if SpotColor = CTS2(8875103, 16, 0.2, 0.7) then
+    FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
 
   FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
 
   ATPA := FinalTPA.Cluster(10);
-  ATPA.FilterSize(12, __GT__);
+  ATPA.FilterSize(15, __GT__);
 
   Result := ATPA <> [];
 end;
+
 
 function TRSAction.GetFaceableTiles: TPointArray;
 begin
@@ -192,7 +211,9 @@ var
 begin
   Result := -1;
 
-  SRL.FindColors(Water, CTS0(12161149), Minimap.Bounds);
+  SRL.FindColors(Water, CTS0(12161149, 25), Minimap.Bounds);
+  if Water = [] then
+    SRL.FindColors(Water, CTS0(6189676, 7), Minimap.Bounds);
 
   for i := 0 to High(FaceableTiles) do
     if Water.Find(FaceableTiles[i]) <> -1 then
@@ -200,11 +221,12 @@ begin
 end;
 
 
-function TRSAction.IsFishing(): Boolean;
+function TRSAction.IsFishing: Boolean;
 var
   Direction: Int32 := Self.FindWaterDirection;
   Rect1, Rect2: TRectangle;
   TPA1, TPA2: TPointArray;
+  ColorCount: Int32;
 begin
   if Direction = -1 then
     Exit
@@ -229,8 +251,10 @@ begin
     Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
   end;
 
-  if SRL.FindColors(TPA1, CTS2(6694,10), Rect1.Bounds) > 12 then
-    Result := SRL.FindColors(TPA2, CTS2(6694,10), Rect2.Bounds) > 3;
+  Debug(Rect2);
+
+  if SRL.FindColors(TPA1, CTS2(10036, 7, 0.13, 0.01), Rect1.Bounds.Expand(2)) > 5 then
+    Result := SRL.FindColors(TPA2, CTS2(10036, 7, 0.13, 0.01), Rect2.Bounds.Expand(2)) > 2;
 end;
 
 

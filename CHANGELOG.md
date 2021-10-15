@@ -1,3 +1,12 @@
+# [2.28.0](https://github.com/Torwent/WaspLib/compare/v2.27.0...v2.28.0) (2021-10-15)
+
+
+### Features
+
+* **RSAction:** Expanded AlchItemArray. ([42532a4](https://github.com/Torwent/WaspLib/commit/42532a4c671d1dda7ecda235bf8bf5e69851e429))
+
+
+
 # [2.27.0](https://github.com/Torwent/WaspLib/compare/v2.26.0...v2.27.0) (2021-10-15)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * **Changelog:** Fixed the changelog to discord hook ([3f384b7](https://github.com/Torwent/WaspLib/commit/3f384b787621089ba2a673da07b7f07354719433))
-
-
-
-## [2.24.1](https://github.com/Torwent/WaspLib/compare/v2.24.0...v2.24.1) (2021-10-13)
-
-
-### Bug Fixes
-
-* **Changelog:** typo in github action ([e9ca3df](https://github.com/Torwent/WaspLib/commit/e9ca3df2eafa006bc3553f3fd0cc1d5c0082f0a8))
 
 
 

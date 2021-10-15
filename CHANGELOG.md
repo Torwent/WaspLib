@@ -1,3 +1,19 @@
+# [2.26.0](https://github.com/Torwent/WaspLib/compare/v2.25.0...v2.26.0) (2021-10-15)
+
+
+### Bug Fixes
+
+* **DropDown:** Now properly detects if the dropdown is open. ([af38075](https://github.com/Torwent/WaspLib/commit/af3807554ebf3f31f8c7e04acef97e18a3bb05ea))
+* README.md discord link ([86c9491](https://github.com/Torwent/WaspLib/commit/86c9491fc0bb7daf1d582d358b02d1a5bf2e7bb6))
+* Update discord link. ([8bf4278](https://github.com/Torwent/WaspLib/commit/8bf4278c6cb464f843c75f44bc85513b4fb80062))
+
+
+### Features
+
+* **Options:** New methosd to handle Player and NPC attack options. ([3e32566](https://github.com/Torwent/WaspLib/commit/3e325661926892360ec196fb35afb45c5a77030d))
+
+
+
 # [2.25.0](https://github.com/Torwent/WaspLib/compare/v2.24.2...v2.25.0) (2021-10-13)
 
 
@@ -31,15 +47,6 @@
 ### Features
 
 * **Interface:** Improvements to drop downs. ([04b4841](https://github.com/Torwent/WaspLib/commit/04b484175300d95719429a2e9fc175beea99be3a))
-
-
-
-# [2.23.0](https://github.com/Torwent/WaspLib/compare/v2.22.1...v2.23.0) (2021-10-13)
-
-
-### Features
-
-* **Changelog:** Changelog will now be sent to discord. ([75df8fa](https://github.com/Torwent/WaspLib/commit/75df8fa7d58dd15992ab91245c77fd7916739cc6))
 
 
 

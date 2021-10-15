@@ -1,3 +1,12 @@
+## [2.28.1](https://github.com/Torwent/WaspLib/compare/v2.28.0...v2.28.1) (2021-10-15)
+
+
+### Bug Fixes
+
+* **RSObjects:** YewTrees don't use multiple tiles anymore ([a91ed16](https://github.com/Torwent/WaspLib/commit/a91ed1665ebc013c4b01c7b76c56098d39b64c05))
+
+
+
 # [2.28.0](https://github.com/Torwent/WaspLib/compare/v2.27.0...v2.28.0) (2021-10-15)
 
 
@@ -38,15 +47,6 @@
 ### Features
 
 * **DropDown:** DropDowns are now fully working ([dc6886e](https://github.com/Torwent/WaspLib/commit/dc6886e07b9e713c11eccbbdbb9952fa59512dc6))
-
-
-
-## [2.24.2](https://github.com/Torwent/WaspLib/compare/v2.24.1...v2.24.2) (2021-10-13)
-
-
-### Bug Fixes
-
-* **Changelog:** Fixed the changelog to discord hook ([3f384b7](https://github.com/Torwent/WaspLib/commit/3f384b787621089ba2a673da07b7f07354719433))
 
 
 

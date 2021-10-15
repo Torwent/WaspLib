@@ -1,3 +1,12 @@
+# [2.27.0](https://github.com/Torwent/WaspLib/compare/v2.26.0...v2.27.0) (2021-10-15)
+
+
+### Features
+
+* **RSAction:** AlchList will now be globally available in WaspLib. ([82bea44](https://github.com/Torwent/WaspLib/commit/82bea448631a109c39ba58b3dc889015d3a2fb41))
+
+
+
 # [2.26.0](https://github.com/Torwent/WaspLib/compare/v2.25.0...v2.26.0) (2021-10-15)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * **Changelog:** typo in github action ([e9ca3df](https://github.com/Torwent/WaspLib/commit/e9ca3df2eafa006bc3553f3fd0cc1d5c0082f0a8))
-
-
-
-# [2.24.0](https://github.com/Torwent/WaspLib/compare/v2.23.0...v2.24.0) (2021-10-13)
-
-
-### Features
-
-* **Interface:** Improvements to drop downs. ([04b4841](https://github.com/Torwent/WaspLib/commit/04b484175300d95719429a2e9fc175beea99be3a))
 
 
 

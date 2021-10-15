@@ -197,7 +197,7 @@ begin
      (SRL.FindColors(TPA, COLOR, BDown) = 0) then
     Exit;
 
-  Result := TPA <> [];
+  Result := (TPA <> []) and (TPA.Bounds.Height > 18);
 end;
 
 function TRSDropDown.IsOpen: Boolean; constref; overload;
@@ -251,7 +251,8 @@ begin
   if Self.Open(TPA) then
   begin
     Box := TPA.Bounds;
-    if (Bounds.Height < 17) then
+
+    if (Bounds.Height < 18) then
       Exit;
 
     Box.Y1 += 1;
@@ -298,27 +299,21 @@ var
   Choices: TRSChooseOption_OptionArray;
   I, J: Int32;
 begin
-  if Self.Open then
+  Choices := Self.GetOptions;
+
+  for I := 0 to High(Choices) do
+    for J := 0 to High(Text) do
+      if (CaseSensitive and (Text[J] in Choices[I].Text)) or ((not CaseSensitive) and (Lowercase(Text[J]) in Lowercase(Choices[I].Text))) then
+      begin
+        Self.Select(Choices[I], MouseAction);
+
+        Exit(True);
+      end;
+
+  if CloseIfNotFound then
   begin
-    Wait(0, 1000, wdLeft);
-
-    Choices := Self.GetOptions;
-
-    for I := 0 to High(Choices) do
-      for J := 0 to High(Text) do
-        if (CaseSensitive and (Text[J] in Choices[I].Text)) or ((not CaseSensitive) and (Lowercase(Text[J]) in Lowercase(Choices[I].Text))) then
-        begin
-          Self.Select(Choices[I], MouseAction);
-
-          Exit(True);
-        end;
-
-    if CloseIfNotFound then
-    begin
-      WaitEx(500, 250);
-
-      Self.Close;
-    end;
+    WaitEx(500, 250);
+    Self.Close;
   end;
 end;
 
@@ -331,14 +326,23 @@ end;
 
 procedure TMufasaBitmap.DrawDropDowns(DropDowns: TRSDropDownArray);
 var
-  I: Int32;
+  i: int32;
+  Option: TRSDropDown_Option;
+  OptionArray: TRSDropDown_OptionArray;
 begin
-  for I := 0 to High(DropDowns) do
+  for i := 0 to High(DropDowns) do
   begin
     Self.SetFontSize(20);
     Self.SetFontAntialiasing(False);
-    Self.DrawBox(DropDowns[I].Bounds, $FFFFFF);
-    Self.DrawText(ToStr(DropDowns[I].Index), DropDowns[I].Bounds, True, $00FF00);
+    Self.DrawBox(DropDowns[i].Bounds, $FFFFFF);
+    Self.DrawText(ToStr(DropDowns[i].index), DropDowns[i].Bounds, True, $00FF00);
+
+    if DropDowns[i].IsOpen then
+    begin
+      OptionArray := DropDowns[i].GetOptions;
+      for Option in OptionArray do
+        Self.DrawBox(Option.Bounds, $00FFFF);
+    end;
   end;
 end;
 

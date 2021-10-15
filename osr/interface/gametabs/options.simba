@@ -10,6 +10,14 @@ type
     CLIENT_MODE
   );
 
+  ERSAttackOption = (
+    DEPENDS_ON_COMBAT,
+    ALWAYS_LEFT_CLICK,
+    ALWAYS_RIGHT_CLICK,
+    HIDDEN,
+    RIGHT_CLICK_CLAN
+  );
+
 function TRSOptions.LeaveHouse: Boolean;
 begin
   if not Self.OpenHouseOptions then
@@ -143,12 +151,64 @@ begin
     end;
 end;
 
-procedure TRSOptions.Draw(Bitmap: TMufasaBitmap); override;
-begin
-  inherited;
 
-  Bitmap.DrawDropDowns(Self.GetDropDowns);
+function TRSOptions.GetAttackOption(DropDown: ERSOptionsDropDown): ERSAttackOption;
+var
+  AttOptionStr: String;
+begin
+  if not Self.Open and not Self.OpenTab(ERSOptionsTab.CONTROLS) then
+    Exit;
+
+  AttOptionStr := Self.GetDropDown(DropDown).GetText.Lower;
+
+  if 'depends' in AttOptionStr then
+    Exit(ERSAttackOption.DEPENDS_ON_COMBAT)
+  else if 'left' in AttOptionStr then
+    Exit(ERSAttackOption.ALWAYS_LEFT_CLICK)
+  else if 'right' in AttOptionStr then
+    Exit(ERSAttackOption.ALWAYS_RIGHT_CLICK)
+  else if 'hidden' in AttOptionStr then
+    Exit(ERSAttackOption.HIDDEN)
+  else if 'clan' in AttOptionStr then
+    Exit(ERSAttackOption.RIGHT_CLICK_CLAN);
 end;
+
+function TRSOptions.GetPlayerAttackOption: ERSAttackOption;
+begin
+  Result := Self.GetAttackOption(ERSOptionsDropDown.PLAYER_ATTACK_OPTIONS);
+end;
+
+function TRSOptions.GetNPCAttackOption: ERSAttackOption;
+begin
+  Result := Self.GetAttackOption(ERSOptionsDropDown.NPC_ATTACK_OPTIONS);
+end;
+
+
+function TRSOptions.SetAttackOption(DropDown: ERSOptionsDropDown; Option: ERSAttackOption): Boolean;
+var
+  Strs: TStringArray;
+begin
+  if not Self.Open and not Self.OpenTab(ERSOptionsTab.CONTROLS) then
+    Exit;
+
+  if Self.GetAttackOption(DropDown) = Option then
+    Exit(True);
+
+  Strs := ['depends', 'left', 'right', 'hidden', 'clan'];
+
+  Result := Self.GetDropDown(DropDown).Select(Strs[Ord(Option)], MOUSE_LEFT, False);
+end;
+
+function TRSOptions.SetPlayerAttackOption(Option: ERSAttackOption): Boolean;
+begin
+  Result := Self.SetAttackOption(ERSOptionsDropDown.PLAYER_ATTACK_OPTIONS, Option);
+end;
+
+function TRSOptions.SetNPCAttackOption(Option: ERSAttackOption): Boolean;
+begin
+  Result := Self.SetAttackOption(ERSOptionsDropDown.NPC_ATTACK_OPTIONS, Option);
+end;
+
 
 
 procedure TRSOptions.RenderSelf;
@@ -161,4 +221,12 @@ end;
 procedure TRSOptions.ToggleRoofs;
 begin
   Keyboard.Send('::toggleroofs', VK_ENTER);
+end;
+
+
+procedure TRSOptions.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Bitmap.DrawDropDowns(Self.GetDropDowns);
 end;

@@ -1,3 +1,13 @@
+## [2.28.2](https://github.com/Torwent/WaspLib/compare/v2.28.1...v2.28.2) (2021-10-16)
+
+
+### Bug Fixes
+
+* **RSAction:** Fix swamp fishing spots. ([86fbd84](https://github.com/Torwent/WaspLib/commit/86fbd84403f95aee1a7493f2c84b88f8700ea1e5))
+* **RSAction:** Removed uneeded variable. ([41eace1](https://github.com/Torwent/WaspLib/commit/41eace10c39d199d9d75ba18bd9b9f2635c0f9d2))
+
+
+
 ## [2.28.1](https://github.com/Torwent/WaspLib/compare/v2.28.0...v2.28.1) (2021-10-15)
 
 
@@ -38,15 +48,6 @@
 ### Features
 
 * **Options:** New methosd to handle Player and NPC attack options. ([3e32566](https://github.com/Torwent/WaspLib/commit/3e325661926892360ec196fb35afb45c5a77030d))
-
-
-
-# [2.25.0](https://github.com/Torwent/WaspLib/compare/v2.24.2...v2.25.0) (2021-10-13)
-
-
-### Features
-
-* **DropDown:** DropDowns are now fully working ([dc6886e](https://github.com/Torwent/WaspLib/commit/dc6886e07b9e713c11eccbbdbb9952fa59512dc6))
 
 
 

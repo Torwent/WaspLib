@@ -1,3 +1,12 @@
+## [2.28.4](https://github.com/Torwent/WaspLib/compare/v2.28.3...v2.28.4) (2021-10-16)
+
+
+### Bug Fixes
+
+* Typo. ([c986144](https://github.com/Torwent/WaspLib/commit/c986144b486f5f3eb2b7b21086890ea4e4bef446))
+
+
+
 ## [2.28.3](https://github.com/Torwent/WaspLib/compare/v2.28.2...v2.28.3) (2021-10-16)
 
 
@@ -32,15 +41,6 @@
 ### Features
 
 * **RSAction:** Expanded AlchItemArray. ([42532a4](https://github.com/Torwent/WaspLib/commit/42532a4c671d1dda7ecda235bf8bf5e69851e429))
-
-
-
-# [2.27.0](https://github.com/Torwent/WaspLib/compare/v2.26.0...v2.27.0) (2021-10-15)
-
-
-### Features
-
-* **RSAction:** AlchList will now be globally available in WaspLib. ([82bea44](https://github.com/Torwent/WaspLib/commit/82bea448631a109c39ba58b3dc889015d3a2fb41))
 
 
 

@@ -1,3 +1,17 @@
+# [2.29.0](https://github.com/Torwent/WaspLib/compare/v2.28.4...v2.29.0) (2021-10-17)
+
+
+### Bug Fixes
+
+* **RSAction:** Fix the alch list ([84d8f3c](https://github.com/Torwent/WaspLib/commit/84d8f3cd206f1ab153dceed3e53c496f5501a3fd))
+
+
+### Features
+
+* **FoodHandler:** now handles multiple dose foods better and fixed some withdraw issues ([a04502a](https://github.com/Torwent/WaspLib/commit/a04502a84a1c2dc7b4e6074101eeca84f3c3c5b4))
+
+
+
 ## [2.28.4](https://github.com/Torwent/WaspLib/compare/v2.28.3...v2.28.4) (2021-10-16)
 
 
@@ -32,15 +46,6 @@
 ### Bug Fixes
 
 * **RSObjects:** YewTrees don't use multiple tiles anymore ([a91ed16](https://github.com/Torwent/WaspLib/commit/a91ed1665ebc013c4b01c7b76c56098d39b64c05))
-
-
-
-# [2.28.0](https://github.com/Torwent/WaspLib/compare/v2.27.0...v2.28.0) (2021-10-15)
-
-
-### Features
-
-* **RSAction:** Expanded AlchItemArray. ([42532a4](https://github.com/Torwent/WaspLib/commit/42532a4c671d1dda7ecda235bf8bf5e69851e429))
 
 
 

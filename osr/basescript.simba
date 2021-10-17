@@ -725,6 +725,8 @@ begin
   if IsSetup then
     Exit;
 
+  BankTab := -1;
+
   if Inventory.Open then
     Food := Self.FindInvFood;
 
@@ -734,12 +736,14 @@ begin
   for F in Food do
     ItemArray += F.Item;
 
-  BankTab := -1;
-
   IsSetup := Food <> [];
 
   if IsSetup then
-    FoodAmount := Round(MinInvHealth / Self.FoodHealthValue);
+    case MinInvHealth of
+      -1:  FoodAmount := BANK_WITHDRAW_ALL;
+      -2:  FoodAmount := BANK_WITHDRAW_ALL_BUT_ONE;
+      else FoodAmount := Round(MinInvHealth / Self.FoodHealthValue);
+    end;
 end;
 
 
@@ -845,29 +849,26 @@ begin
       Exit;
   end;
 
-  if FoodHandler.BankTab = -1 then
-    FoodHandler.BankTab := Bank.GetCurrentTab;
-
   Result := Self.FindItems(FoodHandler.ItemArray);
 end;
 
 function TRSBank.WithdrawFood: Boolean;
 var
-  FoodCount: Int32;
+  HealthCount: Int32;
   WithdrawAmount: Int32;
 begin
   if not Self.FindFood and not FoodHandler.IsSetup then
     Exit;
 
-  FoodCount := Inventory.CountFood;
-
   case FoodHandler.FoodAmount of
     BANK_WITHDRAW_ALL: WithdrawAmount := BANK_WITHDRAW_ALL;
     BANK_WITHDRAW_ALL_BUT_ONE: WithdrawAmount := BANK_WITHDRAW_ALL_BUT_ONE;
-    else WithdrawAmount := FoodHandler.FoodAmount - FoodCount;
+    else
+      WithdrawAmount := Ceil((FoodHandler.MinInvHealth - Inventory.CountHealth) / FoodHandler.Food[0].Heal);
   end;
 
-  Bank.WithdrawItem(FoodHandler.BankTab, [FoodHandler.ItemArray[0], WithdrawAmount, False], False);
+  if WithdrawAmount <> 0 then
+    Bank.WithdrawItem(FoodHandler.BankTab, [FoodHandler.ItemArray[0], WithdrawAmount, False], False);
 
-  Result := Inventory.CountFood >= FoodCount;
+  Result := WaitUntil(Inventory.HasEnoughFood, 100, 3000);
 end;

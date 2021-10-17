@@ -1,3 +1,12 @@
+## [2.29.1](https://github.com/Torwent/WaspLib/compare/v2.29.0...v2.29.1) (2021-10-17)
+
+
+### Bug Fixes
+
+* **FoodHandler:** Fixes and improvements to food handler ([bd77b7a](https://github.com/Torwent/WaspLib/commit/bd77b7af052d2d64cd8831e4c310949027802101))
+
+
+
 # [2.29.0](https://github.com/Torwent/WaspLib/compare/v2.28.4...v2.29.0) (2021-10-17)
 
 
@@ -37,15 +46,6 @@
 
 * **RSAction:** Fix swamp fishing spots. ([86fbd84](https://github.com/Torwent/WaspLib/commit/86fbd84403f95aee1a7493f2c84b88f8700ea1e5))
 * **RSAction:** Removed uneeded variable. ([41eace1](https://github.com/Torwent/WaspLib/commit/41eace10c39d199d9d75ba18bd9b9f2635c0f9d2))
-
-
-
-## [2.28.1](https://github.com/Torwent/WaspLib/compare/v2.28.0...v2.28.1) (2021-10-15)
-
-
-### Bug Fixes
-
-* **RSObjects:** YewTrees don't use multiple tiles anymore ([a91ed16](https://github.com/Torwent/WaspLib/commit/a91ed1665ebc013c4b01c7b76c56098d39b64c05))
 
 
 

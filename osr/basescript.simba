@@ -643,6 +643,7 @@ type
     ItemArray: TRSItemArray;
 
     BankTab: Int32;
+    MinInvHealth: Int32;
     FoodAmount: Int32;
 
     IsSetup: Boolean;
@@ -709,12 +710,21 @@ begin
 end;
 
 
+function TFoodHandler.FoodHealthValue: Int32;
+var
+  F: TRSFood;
+begin
+  for F in Food do
+    Result += F.Heal;
+end;
+
 procedure TFoodHandler.Setup;
 var
   F: TRSFood;
 begin
   if IsSetup then
     Exit;
+
   if Inventory.Open then
     Food := Self.FindInvFood;
 
@@ -727,6 +737,9 @@ begin
   BankTab := -1;
 
   IsSetup := Food <> [];
+
+  if IsSetup then
+    FoodAmount := Round(MinInvHealth / Self.FoodHealthValue);
 end;
 
 
@@ -742,7 +755,7 @@ begin
       Exit;
   end;
 
-  Result := Self.FindItems(FoodHandler.ItemArray);
+  Result := Self.FindItems(FoodHandler.ItemArray.Reversed);
 end;
 
 function TRSInventory.FindFood(out Slots: TIntegerArray): Boolean; overload;
@@ -754,7 +767,7 @@ begin
       Exit;
   end;
 
-  Result := Self.FindItems(FoodHandler.ItemArray, Slots);
+  Result := Self.FindItems(FoodHandler.ItemArray.Reversed, Slots);
 end;
 
 
@@ -787,9 +800,38 @@ begin
   Result := Length(Slots);
 end;
 
+function TRSInventory.CountEachFood: TIntegerArray;
+var
+  Item: TRSItem;
+begin
+  if not FoodHandler.IsSetup then
+  begin
+    FoodHandler.Setup;
+    if not FoodHandler.IsSetup then
+      Exit;
+  end;
+
+  for Item in FoodHandler.ItemArray do
+    Result += Self.CountItem(Item);
+end;
+
+
+function TRSInventory.CountHealth: Int32;
+var
+  FoodAmounts: TIntegerArray;
+  i: Int32;
+begin
+  FoodAmounts := Self.CountEachFood;
+  if FoodAmounts = [] then
+    Exit(0);
+
+  for i in FoodAmounts do
+    Result += FoodHandler.Food[0].Heal * i;
+end;
+
 function TRSInventory.HasEnoughFood: Boolean;
 begin
-  Result := Self.CountFood >= FoodHandler.FoodAmount;
+  Result := Self.CountHealth >= FoodHandler.MinInvHealth;
 end;
 
 

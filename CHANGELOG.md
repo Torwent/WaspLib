@@ -1,3 +1,13 @@
+# [2.32.0](https://github.com/Torwent/WaspLib/compare/v2.31.0...v2.32.0) (2021-10-18)
+
+
+### Features
+
+* **RSMonster:** Added a new record to handle RSMonsters. ([f7d62ff](https://github.com/Torwent/WaspLib/commit/f7d62ff826dc3b7f4c9dc13ceedffd7115ae8d01))
+* **RSMonters:** Added a file store saved RSMonsters. ([0378a6b](https://github.com/Torwent/WaspLib/commit/0378a6b529133324ebd85978b56654782f98a515))
+
+
+
 # [2.31.0](https://github.com/Torwent/WaspLib/compare/v2.30.0...v2.31.0) (2021-10-18)
 
 
@@ -41,15 +51,6 @@
 ### Features
 
 * **FoodHandler:** now handles multiple dose foods better and fixed some withdraw issues ([a04502a](https://github.com/Torwent/WaspLib/commit/a04502a84a1c2dc7b4e6074101eeca84f3c3c5b4))
-
-
-
-## [2.28.4](https://github.com/Torwent/WaspLib/compare/v2.28.3...v2.28.4) (2021-10-16)
-
-
-### Bug Fixes
-
-* Typo. ([c986144](https://github.com/Torwent/WaspLib/commit/c986144b486f5f3eb2b7b21086890ea4e4bef446))
 
 
 

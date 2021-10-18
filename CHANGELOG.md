@@ -1,3 +1,12 @@
+## [2.32.1](https://github.com/Torwent/WaspLib/compare/v2.32.0...v2.32.1) (2021-10-18)
+
+
+### Bug Fixes
+
+* **Minimap:** Minimap.OnGroundLevel now only used the minimap polygon to count black pixels. ([5d94ee7](https://github.com/Torwent/WaspLib/commit/5d94ee7cc3577522b5747088b690fd3a97e0a7f3))
+
+
+
 # [2.32.0](https://github.com/Torwent/WaspLib/compare/v2.31.0...v2.32.0) (2021-10-18)
 
 
@@ -37,20 +46,6 @@
 ### Bug Fixes
 
 * **FoodHandler:** Fixes and improvements to food handler ([bd77b7a](https://github.com/Torwent/WaspLib/commit/bd77b7af052d2d64cd8831e4c310949027802101))
-
-
-
-# [2.29.0](https://github.com/Torwent/WaspLib/compare/v2.28.4...v2.29.0) (2021-10-17)
-
-
-### Bug Fixes
-
-* **RSAction:** Fix the alch list ([84d8f3c](https://github.com/Torwent/WaspLib/commit/84d8f3cd206f1ab153dceed3e53c496f5501a3fd))
-
-
-### Features
-
-* **FoodHandler:** now handles multiple dose foods better and fixed some withdraw issues ([a04502a](https://github.com/Torwent/WaspLib/commit/a04502a84a1c2dc7b4e6074101eeca84f3c3c5b4))
 
 
 

@@ -1,3 +1,17 @@
+# [2.30.0](https://github.com/Torwent/WaspLib/compare/v2.29.1...v2.30.0) (2021-10-18)
+
+
+### Bug Fixes
+
+* **FoodHandler:** Now properly sets up the parent food instead of low doses food. ([18399be](https://github.com/Torwent/WaspLib/commit/18399be49b369834a5063cd5bc66fd30f5798265))
+
+
+### Features
+
+* **Food:** Food now have a parent field ([2f61170](https://github.com/Torwent/WaspLib/commit/2f61170cacf2a1c0df681746989b84c25b65e819))
+
+
+
 ## [2.29.1](https://github.com/Torwent/WaspLib/compare/v2.29.0...v2.29.1) (2021-10-17)
 
 
@@ -36,16 +50,6 @@
 ### Bug Fixes
 
 * **RSAction:** Further improvements to swamp fishing spots. ([46ee09c](https://github.com/Torwent/WaspLib/commit/46ee09cbfbd394ab7db7f0ba7c00da1a69385877))
-
-
-
-## [2.28.2](https://github.com/Torwent/WaspLib/compare/v2.28.1...v2.28.2) (2021-10-16)
-
-
-### Bug Fixes
-
-* **RSAction:** Fix swamp fishing spots. ([86fbd84](https://github.com/Torwent/WaspLib/commit/86fbd84403f95aee1a7493f2c84b88f8700ea1e5))
-* **RSAction:** Removed uneeded variable. ([41eace1](https://github.com/Torwent/WaspLib/commit/41eace10c39d199d9d75ba18bd9b9f2635c0f9d2))
 
 
 

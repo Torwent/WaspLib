@@ -1,3 +1,12 @@
+# [2.31.0](https://github.com/Torwent/WaspLib/compare/v2.30.0...v2.31.0) (2021-10-18)
+
+
+### Features
+
+* **RSAction:** Battlestaves added to the alch list. ([7a60da5](https://github.com/Torwent/WaspLib/commit/7a60da5dd92c738f6c5b18008fb6a783a4302c2a))
+
+
+
 # [2.30.0](https://github.com/Torwent/WaspLib/compare/v2.29.1...v2.30.0) (2021-10-18)
 
 
@@ -41,15 +50,6 @@
 ### Bug Fixes
 
 * Typo. ([c986144](https://github.com/Torwent/WaspLib/commit/c986144b486f5f3eb2b7b21086890ea4e4bef446))
-
-
-
-## [2.28.3](https://github.com/Torwent/WaspLib/compare/v2.28.2...v2.28.3) (2021-10-16)
-
-
-### Bug Fixes
-
-* **RSAction:** Further improvements to swamp fishing spots. ([46ee09c](https://github.com/Torwent/WaspLib/commit/46ee09cbfbd394ab7db7f0ba7c00da1a69385877))
 
 
 

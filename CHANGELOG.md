@@ -1,3 +1,17 @@
+## [2.32.2](https://github.com/Torwent/WaspLib/compare/v2.32.1...v2.32.2) (2021-10-19)
+
+
+### Bug Fixes
+
+* **Minimap:** forgot to exit true here. ([be67234](https://github.com/Torwent/WaspLib/commit/be67234e0ce86e585844c12e1f96c763c00d21bc))
+
+
+### Performance Improvements
+
+* **Bank:** Improved DepositItemArray ([5f48266](https://github.com/Torwent/WaspLib/commit/5f4826693504fc51f2631a249e1fd4747590b059))
+
+
+
 ## [2.32.1](https://github.com/Torwent/WaspLib/compare/v2.32.0...v2.32.1) (2021-10-18)
 
 
@@ -37,15 +51,6 @@
 ### Features
 
 * **Food:** Food now have a parent field ([2f61170](https://github.com/Torwent/WaspLib/commit/2f61170cacf2a1c0df681746989b84c25b65e819))
-
-
-
-## [2.29.1](https://github.com/Torwent/WaspLib/compare/v2.29.0...v2.29.1) (2021-10-17)
-
-
-### Bug Fixes
-
-* **FoodHandler:** Fixes and improvements to food handler ([bd77b7a](https://github.com/Torwent/WaspLib/commit/bd77b7af052d2d64cd8831e4c310949027802101))
 
 
 

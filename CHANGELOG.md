@@ -1,3 +1,12 @@
+## [2.32.3](https://github.com/Torwent/WaspLib/compare/v2.32.2...v2.32.3) (2021-10-19)
+
+
+### Bug Fixes
+
+* **rsaction:** more fishing tweaks. ([3361667](https://github.com/Torwent/WaspLib/commit/3361667551ed82438f41d7ac0c43cbe7f9aaa3b8))
+
+
+
 ## [2.32.2](https://github.com/Torwent/WaspLib/compare/v2.32.1...v2.32.2) (2021-10-19)
 
 
@@ -37,20 +46,6 @@
 ### Features
 
 * **RSAction:** Battlestaves added to the alch list. ([7a60da5](https://github.com/Torwent/WaspLib/commit/7a60da5dd92c738f6c5b18008fb6a783a4302c2a))
-
-
-
-# [2.30.0](https://github.com/Torwent/WaspLib/compare/v2.29.1...v2.30.0) (2021-10-18)
-
-
-### Bug Fixes
-
-* **FoodHandler:** Now properly sets up the parent food instead of low doses food. ([18399be](https://github.com/Torwent/WaspLib/commit/18399be49b369834a5063cd5bc66fd30f5798265))
-
-
-### Features
-
-* **Food:** Food now have a parent field ([2f61170](https://github.com/Torwent/WaspLib/commit/2f61170cacf2a1c0df681746989b84c25b65e819))
 
 
 

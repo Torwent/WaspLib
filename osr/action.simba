@@ -280,7 +280,11 @@ begin
   if SRL.FindColors(TPA, CTS0(12161149, 25), Minimap.Bounds) > 500 then
     SpotColor := CTS2(8875103, 16, 0.2, 0.7)
   else if SRL.FindColors(TPA, CTS0(4741200, 7), Minimap.Bounds) > 500 then
-    SpotColor := CTS2(7705231, 10, 0.18, 0.25);
+  begin
+    SpotColor := CTS2(7902610, 8, 0.24, 0.36);
+    if ScanTime <= 850 then
+      ScanTime += 1000;
+  end;
 
   t.Init(ScanTime);
 
@@ -296,7 +300,7 @@ begin
     Exit;
 
   FinalTPA.ClearDuplicates;
-  if SpotColor = CTS2(7705231, 10, 0.18, 0.25) then
+  if SpotColor <> CTS2(7902610, 8, 0.24, 0.36) then
     FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
 
   FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
@@ -305,8 +309,6 @@ begin
   ATPA.FilterSize(12, __GT__);
 
   Result := ATPA <> [];
-
-  if Result then Debug(ATPA);
 end;
 
 function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
@@ -325,6 +327,8 @@ begin
     [Minimap.Center.X, Minimap.Center.Y + 4],
     [Minimap.Center.X, Minimap.Center.Y - 4]
   ];
+
+  Result := Result.Rotate(Minimap.GetCompassAngle(False), Minimap.Center.X, Minimap.Center.Y);
 end;
 
 
@@ -337,8 +341,8 @@ begin
   Result := -1;
 
   SRL.FindColors(Water, CTS0(12161149, 25), Minimap.Bounds);
-  if Water = [] then
-    SRL.FindColors(Water, CTS0(6189676, 7), Minimap.Bounds);
+  if Length(Water) < 1500 then
+    SRL.FindColors(Water, CTS0(5070165, 7), Minimap.Bounds);
 
   for i := 0 to High(FaceableTiles) do
     if Water.Find(FaceableTiles[i]) <> -1 then
@@ -348,31 +352,31 @@ end;
 
 function TRSAction.IsFishing: Boolean;
 var
-  Direction: Int32 := Self.FindWaterDirection;
   Rect1, Rect2: TRectangle;
   TPA1, TPA2: TPointArray;
 begin
-  if Direction = -1 then
-    Exit
-  else if Direction = 0 then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
-  end
-  else if Direction = 1 then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
-  end
-  else if Direction = 2 then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
-  end
-  else if Direction = 3 then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
+  case Self.FindWaterDirection of
+    -1: Exit;
+    0:
+      begin
+        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
+        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
+      end;
+    1:
+      begin
+        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
+        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
+      end;
+    2:
+      begin
+        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
+        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
+      end;
+    3:
+      begin
+        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
+        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
+      end;
   end;
 
   if SRL.FindColors(TPA1, CTS2(10036, 7, 0.13, 0.01), Rect1.Bounds.Expand(2)) > 5 then

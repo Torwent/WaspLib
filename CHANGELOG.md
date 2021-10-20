@@ -1,3 +1,12 @@
+# [2.33.0](https://github.com/Torwent/WaspLib/compare/v2.32.3...v2.33.0) (2021-10-20)
+
+
+### Features
+
+* **rsobjects:** added MLM map and some MLM related RSObjects. ([ddf1394](https://github.com/Torwent/WaspLib/commit/ddf13941f7c4e586b6dd443dc911eb3e0c7d32ef))
+
+
+
 ## [2.32.3](https://github.com/Torwent/WaspLib/compare/v2.32.2...v2.32.3) (2021-10-19)
 
 
@@ -37,15 +46,6 @@
 
 * **RSMonster:** Added a new record to handle RSMonsters. ([f7d62ff](https://github.com/Torwent/WaspLib/commit/f7d62ff826dc3b7f4c9dc13ceedffd7115ae8d01))
 * **RSMonters:** Added a file store saved RSMonsters. ([0378a6b](https://github.com/Torwent/WaspLib/commit/0378a6b529133324ebd85978b56654782f98a515))
-
-
-
-# [2.31.0](https://github.com/Torwent/WaspLib/compare/v2.30.0...v2.31.0) (2021-10-18)
-
-
-### Features
-
-* **RSAction:** Battlestaves added to the alch list. ([7a60da5](https://github.com/Torwent/WaspLib/commit/7a60da5dd92c738f6c5b18008fb6a783a4302c2a))
 
 
 

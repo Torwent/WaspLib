@@ -1,3 +1,13 @@
+## [2.33.1](https://github.com/Torwent/WaspLib/compare/v2.33.0...v2.33.1) (2021-10-22)
+
+
+### Bug Fixes
+
+* **CombatHandler:** Added other versions of the gmaul. ([37fa040](https://github.com/Torwent/WaspLib/commit/37fa04023d1c4570450d58759a4a869ea6668899))
+* **RSAction:** Add more items to the alch list ([3798651](https://github.com/Torwent/WaspLib/commit/3798651900bd04410fd4fbe428f58f8b7f382176))
+
+
+
 # [2.33.0](https://github.com/Torwent/WaspLib/compare/v2.32.3...v2.33.0) (2021-10-20)
 
 
@@ -36,16 +46,6 @@
 ### Bug Fixes
 
 * **Minimap:** Minimap.OnGroundLevel now only used the minimap polygon to count black pixels. ([5d94ee7](https://github.com/Torwent/WaspLib/commit/5d94ee7cc3577522b5747088b690fd3a97e0a7f3))
-
-
-
-# [2.32.0](https://github.com/Torwent/WaspLib/compare/v2.31.0...v2.32.0) (2021-10-18)
-
-
-### Features
-
-* **RSMonster:** Added a new record to handle RSMonsters. ([f7d62ff](https://github.com/Torwent/WaspLib/commit/f7d62ff826dc3b7f4c9dc13ceedffd7115ae8d01))
-* **RSMonters:** Added a file store saved RSMonsters. ([0378a6b](https://github.com/Torwent/WaspLib/commit/0378a6b529133324ebd85978b56654782f98a515))
 
 
 

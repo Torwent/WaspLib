@@ -1,3 +1,12 @@
+## [3.0.1](https://github.com/Torwent/WaspLib/compare/v3.0.0...v3.0.1) (2021-10-29)
+
+
+### Bug Fixes
+
+* A couple of fixes for Depositboxes. ([27d5e7e](https://github.com/Torwent/WaspLib/commit/27d5e7e086b2f0e736390656f1018db7554f704e))
+
+
+
 # [3.0.0](https://github.com/Torwent/WaspLib/compare/v2.33.1...v3.0.0) (2021-10-29)
 
 
@@ -44,20 +53,6 @@
 ### Bug Fixes
 
 * **rsaction:** more fishing tweaks. ([3361667](https://github.com/Torwent/WaspLib/commit/3361667551ed82438f41d7ac0c43cbe7f9aaa3b8))
-
-
-
-## [2.32.2](https://github.com/Torwent/WaspLib/compare/v2.32.1...v2.32.2) (2021-10-19)
-
-
-### Bug Fixes
-
-* **Minimap:** forgot to exit true here. ([be67234](https://github.com/Torwent/WaspLib/commit/be67234e0ce86e585844c12e1f96c763c00d21bc))
-
-
-### Performance Improvements
-
-* **Bank:** Improved DepositItemArray ([5f48266](https://github.com/Torwent/WaspLib/commit/5f4826693504fc51f2631a249e1fd4747590b059))
 
 
 

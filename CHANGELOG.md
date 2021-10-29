@@ -1,3 +1,24 @@
+# [3.0.0](https://github.com/Torwent/WaspLib/compare/v2.33.1...v3.0.0) (2021-10-29)
+
+
+### Bug Fixes
+
+* **Minimap:** Renamed some things to make more sense. ([6dc95f8](https://github.com/Torwent/WaspLib/commit/6dc95f8e69f7ae3ad1f47efe7ba1ade457cb9fc7))
+* **ProgressReport:** Fix Script chainer attempting to double terminate things. ([b22b339](https://github.com/Torwent/WaspLib/commit/b22b339a8e411a2ec0e4fc1615ffd1f86fc6f4e4))
+
+
+### Features
+
+* **RSObjects:** Added some MLM stuff. ([325ebaa](https://github.com/Torwent/WaspLib/commit/325ebaa45466970c8b6aa724da0cf0d1f1acf2d6))
+* **walker:** GetMMPoly ([fb72dbc](https://github.com/Torwent/WaspLib/commit/fb72dbc5883adc44370b3281b722f128980cce84))
+
+
+### BREAKING CHANGES
+
+* **Minimap:** Due to this being mostly lower level functions, renaming them might have broken some scripts!
+
+
+
 ## [2.33.1](https://github.com/Torwent/WaspLib/compare/v2.33.0...v2.33.1) (2021-10-22)
 
 
@@ -37,15 +58,6 @@
 ### Performance Improvements
 
 * **Bank:** Improved DepositItemArray ([5f48266](https://github.com/Torwent/WaspLib/commit/5f4826693504fc51f2631a249e1fd4747590b059))
-
-
-
-## [2.32.1](https://github.com/Torwent/WaspLib/compare/v2.32.0...v2.32.1) (2021-10-18)
-
-
-### Bug Fixes
-
-* **Minimap:** Minimap.OnGroundLevel now only used the minimap polygon to count black pixels. ([5d94ee7](https://github.com/Torwent/WaspLib/commit/5d94ee7cc3577522b5747088b690fd3a97e0a7f3))
 
 
 

@@ -136,7 +136,9 @@ TWaspObject is the base record used by **TRSObjects and TRSMMDots**.
     TileArray: TPointArray;
     Finder: TRSObjectFinder;
     UpText: TStringArray;
+    ActionUpText: TStringArray;
     Filter: TRSObjectFilter;
+    RedClicked: Boolean;
   end;
 
   TWaspObjectArray = array of TWaspObject;
@@ -881,6 +883,207 @@ begin
   end;
 end;
 
+
+function TRSWalker.Click(MinimapPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean; Randomness: Int32): Boolean; overload;
+var
+  P: TPoint;
+  HoveringObject: Boolean;
+begin
+  Result := True;
+
+  if Self.ScreenWalk then
+  begin
+    Mouse.Move(Minimap.PointToMsRect(MinimapPoint).Mean);
+
+    HoveringObject := MainScreen.IsUpText(UpText);
+
+    if not HoveringObject and not MainScreen.IsUpText('Walk here') then
+      Exit(ChooseOption.Select('Walk here'));
+  end else
+  begin
+    P := MinimapPoint.Random(-Randomness, Randomness);
+    while not Minimap.IsPointOn(P) do
+      P := MinimapPoint.Random(-Randomness, Randomness);
+
+    Mouse.Move(P);
+  end;
+
+  Mouse.Click(MOUSE_LEFT);
+
+  // 15% chance of spam clicking
+  if (Randomness > 0) and (Random() < 0.15) then
+    for 0 to Random(3) do
+    begin
+      Mouse.Click(Mouse.Position(), MOUSE_LEFT);
+
+      Wait(0, 150, wdLeft);
+    end;
+
+  RedClicked := Self.ScreenWalk and HoveringObject and MainScreen.DidRedClick;
+end;
+
+function TRSWalker.WalkFinalStep(PlayerPoint, WorldPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32): Boolean; overload;
+var
+  MinimapPoint: TPoint;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, UpText, RedClicked, 0);
+  if Result then
+    Self.WaitMoving(WorldPoint, WaitUntilDistance);
+end;
+
+function TRSWalker.WalkStep(PlayerPoint, WorldPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean): Boolean; overload;
+var
+  MinimapPoint: TPoint;
+  WaitUntilDistance: Int32;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, UpText, RedClicked, Self.ClickRandomness);
+
+  if Result then
+  begin
+    if (Random() < 0.15) then // 15% chance of randomness else mean
+      WaitUntilDistance := Random(Distance(Minimap.Center, MinimapPoint))
+    else
+      WaitUntilDistance := SRL.NormalRange(0, Distance(Minimap.Center, MinimapPoint) + 10);
+
+    Self.WaitMoving(WorldPoint, WaitUntilDistance);
+  end
+end;
+
+function TRSWalker.WalkPath(Path: TPointArray; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32 = 0): Boolean; overload;
+
+  function BuildPath(TPA: TPointArray): TPointArray;
+  var
+    I, J: Int32;
+    Line: TPointArray;
+  begin
+    for I := 1 to High(TPA) do
+    begin
+      Line := TPAFromLine(TPA[I-1], TPA[I]);
+
+      J := 0;
+      while J < High(Line) do
+      begin
+        Result += Line[J];
+
+        Inc(J, Random(5, 15));
+      end;
+    end;
+
+    Result += TPA[High(TPA)];
+  end;
+
+  function AdvancePath(var Index: Int32; PlayerPoint: TPoint): Boolean;
+  var
+    Angle: Double := Minimap.GetCompassAngle(False);
+    Previous: Int32 := Index;
+    Nearest, Furthest: Int32;
+  begin
+    Nearest := Self.Path.Find(Self.Path.Sorted(PlayerPoint)[0]);
+
+    while (Nearest < High(Self.Path)) and (not Self.IsWalkable(Self.Path[Nearest+1], PlayerPoint, Angle)) do
+      Inc(Nearest);
+
+    Furthest := Nearest;
+    while (Furthest < High(Self.Path)) and Self.IsWalkable(Self.Path[Furthest+1], PlayerPoint, Angle) do
+      Inc(Furthest);
+
+    // 15% chance of randomness else furthest
+    Index := Furthest;
+    if Random() < 0.15 then
+      Index := Random(Nearest, Furthest);
+
+    Result := Index > Previous;
+  end;
+
+var
+  PlayerPoint: TPoint;
+  Index, Fails: Int32;
+begin
+  Self.Enabled := True;
+  Self.Path := BuildPath([Self.GetMyPos()] + Path);
+
+  while Self.Enabled and (Fails < 10) do
+  begin
+    PlayerPoint := Self.GetMyPos();
+
+    if AdvancePath(Index, PlayerPoint) then
+      Fails := 0
+    else
+    begin
+      Inc(Fails);
+
+      // Likely haven't moved far enough to advance to next point
+      if (Fails < 5) then
+      begin
+        Wait(300);
+
+        Continue;
+      end;
+
+      if (Fails mod 2 = 0) then
+        Minimap.WaitFlag();
+    end;
+
+    if Index = High(Self.Path) then
+    begin
+      if Self.WalkFinalStep(PlayerPoint, Self.Path[Index], UpText, RedClicked, WaitUntilDistance) then
+        Exit(True);
+    end else
+      Self.WalkStep(PlayerPoint, Self.Path[Index], UpText, RedClicked);
+
+    if RedClicked then
+      Exit(True);
+  end;
+
+  if Fails = 10 then
+    Self.DebugLn('Failed to advance path');
+end;
+
+function TRSWalker.WebWalk(Destination: TPoint; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+var
+  Path: TPointArray;
+begin
+  if not InRange(PathRandomness, 0, 1) then
+    Self.Fatal('TRSWalker.WebWalk `PathRandomness` must be within 0..1');
+
+  Path   := Self.WebGraph.PathBetween(Self.GetMyPos, Destination, PathRandomness);
+  Result := Self.WalkPath(Path, UpText, RedClicked, WaitUntilDistance);
+end;
+
+function TRSWalker.WebWalk(Destination: TPointArray; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+begin
+  Result := Self.WebWalk(Self.GetClosestTile(Destination), UpText, RedClicked, WaitUntilDistance, PathRandomness);
+end;
+
+
 // WalkHoverHelper function used by walking object hovering functions.
 function TRSObject._WalkHoverHelper(Attempts: Int32): Boolean;
 var
@@ -888,16 +1091,25 @@ var
   ATPA: T2DPointArray;
   Points: TPointArray;
   CompassAngle: Double;
+  StrArray: TStringArray;
 begin
   if not Filter.Walker then
     Exit;
+
+  if Filter.UpText then
+  begin
+    if ActionUpText = [] then
+      StrArray := UpText
+    else
+      StrArray := ActionUpText;
+  end;
 
   for Attempt := 0 to Attempts do
   begin
     if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
       Exit(False);
 
-    if Filter.UpText and MainScreen.IsUpText(UpText) then
+    if RedClicked or (Filter.UpText and MainScreen.IsUpText(UpText)) then
       Exit(True);
 
     if Self.Find(ATPA) then
@@ -923,11 +1135,20 @@ begin
     if MainScreen.IsUpText(UpText) then
       Exit(True)
     else if not Walker^.AtTile(TileArray, 50) then
-      Walker^.WebWalk(TileArray, 30, 0.2)
+    begin
+      if Filter.UpText then
+        Walker^.WebWalk(TileArray, StrArray, RedClicked, 30, 0.2)
+      else
+        Walker^.WebWalk(TileArray, 30, 0.2);
+    end
     else if Attempt = (Attempts - 1) then
     begin
-      if not Walker^.AtTile(TileArray, 25) and Walker^.WebWalk(TileArray, 30, 0.2) then
-        Continue;
+      if not Walker^.AtTile(TileArray, 25) then
+      begin
+        if (Filter.UpText and Walker^.WebWalk(TileArray, StrArray, RedClicked, 30, 0.2)) or
+          Walker^.WebWalk(TileArray, 30, 0.2) then
+          Continue;
+      end;
 
       CompassAngle := Minimap.GetCompassAngle;
       CompassAngle += Random(-50, 50);
@@ -1008,9 +1229,18 @@ var
   ATPA: T2DPointArray;
   Points: TPointArray;
   CompassAngle: Double;
+  StrArray: TStringArray;
 begin
   if not Filter.Walker then
     Exit;
+
+  if Filter.UpText then
+  begin
+    if ActionUpText = [] then
+      StrArray := UpText
+    else
+      StrArray := ActionUpText;
+  end;
 
   for Attempt := 0 to Attempts do
   begin
@@ -1043,11 +1273,20 @@ begin
     if MainScreen.IsUpText(UpText) then
       Exit(True)
     else if not Walker^.AtTile(TileArray, 50) then
-      Walker^.WebWalk(TileArray, 30, 0.2)
+    begin
+      if Filter.UpText then
+        Walker^.WebWalk(TileArray, StrArray, RedClicked, 30, 0.2)
+      else
+        Walker^.WebWalk(TileArray, 30, 0.2);
+    end
     else if Attempt = (Attempts - 1) then
     begin
-      if not Walker^.AtTile(TileArray, 25) and Walker^.WebWalk(TileArray, 30, 0.2) then
-        Continue;
+      if not Walker^.AtTile(TileArray, 25) then
+      begin
+        if (Filter.UpText and Walker^.WebWalk(TileArray, StrArray, RedClicked, 30, 0.2)) or
+          Walker^.WebWalk(TileArray, 30, 0.2) then
+          Continue;
+      end;
 
       CompassAngle := Minimap.GetCompassAngle;
       CompassAngle += Random(-50, 50);
@@ -1061,6 +1300,12 @@ end;
 // ClickHelper function used by object clicking functions.
 function TWaspObject._ClickHelper(LeftClick: Boolean): Boolean;
 begin
+  if RedClicked then
+  begin
+    RedClicked := False;
+    Exit(True);
+  end;
+
   if ChooseOption.IsOpen then
   begin
     if Filter.UpText and ChooseOption.Select(UpText) then
@@ -1089,6 +1334,12 @@ end;
 // SelectHelper function used by object option selection functions.
 function TWaspObject._SelectHelper(Action: TStringArray): Boolean;
 begin
+  if RedClicked then
+  begin
+    RedClicked := False;
+    Exit(True);
+  end;
+
   if ChooseOption.IsOpen and ChooseOption.Select(Action) then
     Exit(True);
 
@@ -1156,7 +1407,7 @@ begin
     Exit;
 
   if not Walker^.MakeTileVisible(TileArray) then
-    if not Walker^.WebWalk(TileArray, 30, 0.2) then
+    if not Walker^.WebWalk(TileArray, UpText, RedClicked, 30, 0.2) then
       Exit(False);
 
   Result := Self._WalkHoverHelper(Attempts);
@@ -1172,6 +1423,7 @@ end;
 // Searches for an object with TRSObject.Find and walker, hovers and selects the specified action if found.
 function TRSObject.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
+  ActionUpText := Action;
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);
 end;
@@ -1229,8 +1481,11 @@ begin
     Exit;
 
   if not Walker^.MakeTileVisible(TileArray) then
-    if not Walker^.WebWalk(TileArray, 30, 0.2) then
+  begin
+    if (Filter.UpText and not Walker^.WebWalk(TileArray, UpText, RedClicked, 30, 0.2))or
+      not Walker^.WebWalk(TileArray, 30, 0.2) then
       Exit(False);
+  end;
 
   Result := Self._WalkHoverHelper(Attempts);
 end;
@@ -1245,6 +1500,7 @@ end;
 // Searches for an object with TRSMMDot.Find and walker, hovers and selects the specified action if found.
 function TRSMMDot.WalkSelectOption(Action: TStringArray; Attempts: Int32 = 2): Boolean;
 begin
+  ActionUpText := Action;
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);
 end;

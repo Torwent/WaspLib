@@ -1,3 +1,18 @@
+# [3.1.0](https://github.com/Torwent/WaspLib/compare/v3.0.1...v3.1.0) (2021-11-04)
+
+
+### Bug Fixes
+
+* **WaspGraph:** improvements to the mlm webgraph. ([d57d1a1](https://github.com/Torwent/WaspLib/commit/d57d1a15516e3a64a2cfb55ce964b814a9c759a2))
+* Improvements to MLM ([b2c3d36](https://github.com/Torwent/WaspLib/commit/b2c3d36084470ae77a652531d35528bd982bf540))
+
+
+### Features
+
+* **rsmonsters:** small additions ([47c830c](https://github.com/Torwent/WaspLib/commit/47c830ce0ac9932aabcc3fbf3efc8449402bd870))
+
+
+
 ## [3.0.1](https://github.com/Torwent/WaspLib/compare/v3.0.0...v3.0.1) (2021-10-29)
 
 
@@ -44,15 +59,6 @@
 ### Features
 
 * **rsobjects:** added MLM map and some MLM related RSObjects. ([ddf1394](https://github.com/Torwent/WaspLib/commit/ddf13941f7c4e586b6dd443dc911eb3e0c7d32ef))
-
-
-
-## [2.32.3](https://github.com/Torwent/WaspLib/compare/v2.32.2...v2.32.3) (2021-10-19)
-
-
-### Bug Fixes
-
-* **rsaction:** more fishing tweaks. ([3361667](https://github.com/Torwent/WaspLib/commit/3361667551ed82438f41d7ac0c43cbe7f9aaa3b8))
 
 
 

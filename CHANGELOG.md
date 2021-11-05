@@ -1,3 +1,12 @@
+## [3.1.1](https://github.com/Torwent/WaspLib/compare/v3.1.0...v3.1.1) (2021-11-05)
+
+
+### Bug Fixes
+
+* **mlm:** update webgraph and coordinates ([15d117a](https://github.com/Torwent/WaspLib/commit/15d117acabc6e5c650d2995ef3f33cadf225b4b1))
+
+
+
 # [3.1.0](https://github.com/Torwent/WaspLib/compare/v3.0.1...v3.1.0) (2021-11-04)
 
 
@@ -50,15 +59,6 @@
 
 * **CombatHandler:** Added other versions of the gmaul. ([37fa040](https://github.com/Torwent/WaspLib/commit/37fa04023d1c4570450d58759a4a869ea6668899))
 * **RSAction:** Add more items to the alch list ([3798651](https://github.com/Torwent/WaspLib/commit/3798651900bd04410fd4fbe428f58f8b7f382176))
-
-
-
-# [2.33.0](https://github.com/Torwent/WaspLib/compare/v2.32.3...v2.33.0) (2021-10-20)
-
-
-### Features
-
-* **rsobjects:** added MLM map and some MLM related RSObjects. ([ddf1394](https://github.com/Torwent/WaspLib/commit/ddf13941f7c4e586b6dd443dc911eb3e0c7d32ef))
 
 
 

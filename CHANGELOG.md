@@ -1,3 +1,12 @@
+## [3.1.2](https://github.com/Torwent/WaspLib/compare/v3.1.1...v3.1.2) (2021-11-08)
+
+
+### Bug Fixes
+
+* **rsobjects:** fixed fruit stall coordinates. ([04d24f2](https://github.com/Torwent/WaspLib/commit/04d24f2fa3b125c41c71ef39464f735a6dbad73b))
+
+
+
 ## [3.1.1](https://github.com/Torwent/WaspLib/compare/v3.1.0...v3.1.1) (2021-11-05)
 
 
@@ -49,16 +58,6 @@
 ### BREAKING CHANGES
 
 * **Minimap:** Due to this being mostly lower level functions, renaming them might have broken some scripts!
-
-
-
-## [2.33.1](https://github.com/Torwent/WaspLib/compare/v2.33.0...v2.33.1) (2021-10-22)
-
-
-### Bug Fixes
-
-* **CombatHandler:** Added other versions of the gmaul. ([37fa040](https://github.com/Torwent/WaspLib/commit/37fa04023d1c4570450d58759a4a869ea6668899))
-* **RSAction:** Add more items to the alch list ([3798651](https://github.com/Torwent/WaspLib/commit/3798651900bd04410fd4fbe428f58f8b7f382176))
 
 
 

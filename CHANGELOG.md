@@ -1,3 +1,12 @@
+## [3.2.1](https://github.com/Torwent/WaspLib/compare/v3.2.0...v3.2.1) (2021-11-09)
+
+
+### Bug Fixes
+
+* **waspobject:** improved walking accuracy ([de5b786](https://github.com/Torwent/WaspLib/commit/de5b786d33ecbae451c43b3c1e309b74da842134))
+
+
+
 # [3.2.0](https://github.com/Torwent/WaspLib/compare/v3.1.2...v3.2.0) (2021-11-08)
 
 
@@ -37,15 +46,6 @@
 ### Features
 
 * **rsmonsters:** small additions ([47c830c](https://github.com/Torwent/WaspLib/commit/47c830ce0ac9932aabcc3fbf3efc8449402bd870))
-
-
-
-## [3.0.1](https://github.com/Torwent/WaspLib/compare/v3.0.0...v3.0.1) (2021-10-29)
-
-
-### Bug Fixes
-
-* A couple of fixes for Depositboxes. ([27d5e7e](https://github.com/Torwent/WaspLib/commit/27d5e7e086b2f0e736390656f1018db7554f704e))
 
 
 

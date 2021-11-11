@@ -735,6 +735,15 @@ begin
     Result += F.Heal;
 end;
 
+procedure TFoodHandler.SetupFoodAmount;
+begin
+  case MinInvHealth of
+    -1:  FoodAmount := BANK_WITHDRAW_ALL;
+    -2:  FoodAmount := BANK_WITHDRAW_ALL_BUT_ONE;
+    else FoodAmount := Round(MinInvHealth / Self.FoodHealthValue);
+  end;
+end;
+
 procedure TFoodHandler.Setup;
 var
   F: TRSFood;
@@ -756,11 +765,7 @@ begin
   IsSetup := Food <> [];
 
   if IsSetup then
-    case MinInvHealth of
-      -1:  FoodAmount := BANK_WITHDRAW_ALL;
-      -2:  FoodAmount := BANK_WITHDRAW_ALL_BUT_ONE;
-      else FoodAmount := Round(MinInvHealth / Self.FoodHealthValue);
-    end;
+    Self.SetupFoodAmount;
 end;
 
 
@@ -869,6 +874,16 @@ begin
   Result := Self.FindItems(FoodHandler.ItemArray);
 end;
 
+function TRSBank.WithdrawFoodAmount: Int32;
+begin
+  case FoodHandler.FoodAmount of
+    BANK_WITHDRAW_ALL: Result := BANK_WITHDRAW_ALL;
+    BANK_WITHDRAW_ALL_BUT_ONE: Result := BANK_WITHDRAW_ALL_BUT_ONE;
+    else
+      Result := Ceil((FoodHandler.MinInvHealth - Inventory.CountHealth) / FoodHandler.Food[0].Heal);
+  end;
+end;
+
 function TRSBank.WithdrawFood: Boolean;
 var
   WithdrawAmount: Int32;
@@ -876,12 +891,7 @@ begin
   if not Self.FindFood and not FoodHandler.IsSetup then
     Exit;
 
-  case FoodHandler.FoodAmount of
-    BANK_WITHDRAW_ALL: WithdrawAmount := BANK_WITHDRAW_ALL;
-    BANK_WITHDRAW_ALL_BUT_ONE: WithdrawAmount := BANK_WITHDRAW_ALL_BUT_ONE;
-    else
-      WithdrawAmount := Ceil((FoodHandler.MinInvHealth - Inventory.CountHealth) / FoodHandler.Food[0].Heal);
-  end;
+  WithdrawAmount := Self.WithdrawFoodAmount;
 
   if WithdrawAmount <> 0 then
     Bank.WithdrawItem(FoodHandler.BankTab, [FoodHandler.ItemArray[0], WithdrawAmount, False], False);

@@ -1,3 +1,12 @@
+## [3.2.3](https://github.com/Torwent/WaspLib/compare/v3.2.2...v3.2.3) (2021-11-14)
+
+
+### Bug Fixes
+
+* improvements for zeah rcing ([9bd17ad](https://github.com/Torwent/WaspLib/commit/9bd17ad570e60ebe3f0f873ba5c1d1363cff983c))
+
+
+
 ## [3.2.2](https://github.com/Torwent/WaspLib/compare/v3.2.1...v3.2.2) (2021-11-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsobjects:** fixed fruit stall coordinates. ([04d24f2](https://github.com/Torwent/WaspLib/commit/04d24f2fa3b125c41c71ef39464f735a6dbad73b))
-
-
-
-## [3.1.1](https://github.com/Torwent/WaspLib/compare/v3.1.0...v3.1.1) (2021-11-05)
-
-
-### Bug Fixes
-
-* **mlm:** update webgraph and coordinates ([15d117a](https://github.com/Torwent/WaspLib/commit/15d117acabc6e5c650d2995ef3f33cadf225b4b1))
 
 
 

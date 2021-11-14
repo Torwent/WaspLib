@@ -1,3 +1,13 @@
+## [3.2.5](https://github.com/Torwent/WaspLib/compare/v3.2.4...v3.2.5) (2021-11-14)
+
+
+### Bug Fixes
+
+* **rsaction:** temporary fix to ultra slow edge mainscreen filtering of water ([c2f7041](https://github.com/Torwent/WaspLib/commit/c2f704118de1508826fb85f19e4d4b4f8cfa7cea))
+* update waspbot link ([67ae435](https://github.com/Torwent/WaspLib/commit/67ae43504ee8a5e187dc2a1e173372cd4ff5969b))
+
+
+
 ## [3.2.4](https://github.com/Torwent/WaspLib/compare/v3.2.3...v3.2.4) (2021-11-14)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * **waspobject:** improved walking accuracy ([de5b786](https://github.com/Torwent/WaspLib/commit/de5b786d33ecbae451c43b3c1e309b74da842134))
-
-
-
-# [3.2.0](https://github.com/Torwent/WaspLib/compare/v3.1.2...v3.2.0) (2021-11-08)
-
-
-### Features
-
-* new antiban tasks. ([4ec9270](https://github.com/Torwent/WaspLib/commit/4ec9270d8dfd99fd893ea4b6d23f200652cc8352))
 
 
 

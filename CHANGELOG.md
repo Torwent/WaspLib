@@ -1,3 +1,12 @@
+## [3.2.4](https://github.com/Torwent/WaspLib/compare/v3.2.3...v3.2.4) (2021-11-14)
+
+
+### Bug Fixes
+
+* zeah shortcut coordinates. ([9a246a9](https://github.com/Torwent/WaspLib/commit/9a246a968e1e5419666111fdc28b5995a9a77af0))
+
+
+
 ## [3.2.3](https://github.com/Torwent/WaspLib/compare/v3.2.2...v3.2.3) (2021-11-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * new antiban tasks. ([4ec9270](https://github.com/Torwent/WaspLib/commit/4ec9270d8dfd99fd893ea4b6d23f200652cc8352))
-
-
-
-## [3.1.2](https://github.com/Torwent/WaspLib/compare/v3.1.1...v3.1.2) (2021-11-08)
-
-
-### Bug Fixes
-
-* **rsobjects:** fixed fruit stall coordinates. ([04d24f2](https://github.com/Torwent/WaspLib/commit/04d24f2fa3b125c41c71ef39464f735a6dbad73b))
 
 
 

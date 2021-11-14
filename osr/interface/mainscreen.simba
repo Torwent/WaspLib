@@ -171,12 +171,20 @@ MainScreen.Filter
 Filters the given TPointArray, TBoxArray, TRectArray or TPolyArray and returns only those that are visible in the MainScreen.
 *)
 function TRSMainScreen.Filter(TPA: TPointArray): TPointArray;
-var
-  P: TPoint;
 begin
-  for P in TPA do
-    if Self.IsVisible(P) then
-      Result += P;
+  Result := TPA.FilterBox(Self.Bounds);
+
+  if (Result <> []) and (RSClient.Mode <> ERSClientMode.FIXED) then
+  begin
+    if Self.HasInterface then
+      Result := Result.FilterBox(InterfaceArea.Bounds);
+    if Chat.IsOpen then
+      Result := Result.FilterBox(Chat.Bounds);
+
+    Result := Result.FilterBox(ChatButtons.Bounds);
+    Result := Result.FilterBox(Minimap.Bounds.Expand(50));
+    Result := Result.FilterBox(GameTabs.Bounds);
+  end;
 end;
 
 function TRSMainScreen.Filter(BoxArray: TBoxArray): TBoxArray; overload;
@@ -202,8 +210,7 @@ var
   Poly: TPoly;
 begin
   for Poly in PolyArray do
-    if Self.IsVisible(Poly) then
-      Result += Poly;
+    Result += Self.Filter(Poly);
 end;
 
 

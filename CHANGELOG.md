@@ -1,3 +1,12 @@
+## [3.3.1](https://github.com/Torwent/WaspLib/compare/v3.3.0...v3.3.1) (2021-11-15)
+
+
+### Bug Fixes
+
+* **FoodHandler:** attempt to fix minor issues with EatFood ([7dcf160](https://github.com/Torwent/WaspLib/commit/7dcf1605e66a822e7dd58806a66f26818cb48074))
+
+
+
 # [3.3.0](https://github.com/Torwent/WaspLib/compare/v3.2.5...v3.3.0) (2021-11-15)
 
 
@@ -45,15 +54,6 @@
 ### Bug Fixes
 
 * improvements for zeah rcing ([9bd17ad](https://github.com/Torwent/WaspLib/commit/9bd17ad570e60ebe3f0f873ba5c1d1363cff983c))
-
-
-
-## [3.2.2](https://github.com/Torwent/WaspLib/compare/v3.2.1...v3.2.2) (2021-11-11)
-
-
-### Bug Fixes
-
-* **RSObjects:** Fix master farmers ([d22dbab](https://github.com/Torwent/WaspLib/commit/d22dbab0f02757ee6e1a558c29e04e0bc37d1ff1))
 
 
 

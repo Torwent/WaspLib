@@ -31,8 +31,7 @@ The variables that are part of **TBaseScript** are the following:
  - **TimeLimit**: Integer variable to set a time limit for our script in milliseconds before ending the current script.
  - **ActionLimit**: Integer variable to set total action limit before ending the script.
 *)
-  TBaseScript = record
-    Name: String;
+  TBaseScript = record(TSRLBaseRecord)
     Version: String;
 
     IsSetup: Boolean;
@@ -139,6 +138,25 @@ begin
   end;
 end;
 
+procedure TBaseScript.AddToLog(Text: String);
+var
+  ScriptStr: String;
+  NewFile: Boolean;
+begin
+  GenerateLog(NewFile);
+
+  if NewFile then
+  begin
+    ScriptStr := ToStr(Self);
+    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
+    ScriptStr += STR_NEW_LINE + 'BioHash: ' + ToStr(BioHash);
+    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
+    WriteFileContents(WL.LogFile, ScriptStr, True);
+  end;
+
+  WriteFileContents(WL.LogFile, SRL.TimeStamp + ':[' + Name + ']: ' + Text + STR_NEW_LINE, True);
+end;
+
 procedure TBaseScript.ProcessWhileWaiting;
 var
   Str: String;
@@ -151,6 +169,7 @@ begin
 
   if (GetTickCount - StatsDebugTick) > 1000 then
   begin
+    Self.AddToLog(Action);
     ElapsedTime := TimeRunning.ElapsedTime;
 
     Str := Name;
@@ -203,6 +222,8 @@ begin
   Result := ((ActionLimit > -1) and (TotalActions >= ActionLimit)) or
             ((TimeLimit > -1) and (TimeRunning.ElapsedTime >= TimeLimit));
 end;
+
+
 
 
 procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;//override me to add more stuff.

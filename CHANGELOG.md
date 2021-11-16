@@ -1,3 +1,19 @@
+# [3.4.0](https://github.com/Torwent/WaspLib/compare/v3.3.2...v3.4.0) (2021-11-16)
+
+
+### Bug Fixes
+
+* added a small delay to the initial setup ([6344b85](https://github.com/Torwent/WaspLib/commit/6344b8565b20bde554edbc9401372a2222faf091))
+* bad coordinates ([d7a5369](https://github.com/Torwent/WaspLib/commit/d7a5369cfa5e2108221501b3c2330ae643479d6f))
+
+
+### Features
+
+* **depositbox:** added a bunch of this to deposit box for it to function ([d8a07ff](https://github.com/Torwent/WaspLib/commit/d8a07ffdf06a16a7e17877341301370afc9b2a41))
+* **itemfinder:** wasplib now has an override for itemfinder ([5c6816a](https://github.com/Torwent/WaspLib/commit/5c6816ada7f444fa4b9fbe6cd440890d58b635ab))
+
+
+
 ## [3.3.2](https://github.com/Torwent/WaspLib/compare/v3.3.1...v3.3.2) (2021-11-16)
 
 
@@ -46,15 +62,6 @@
 
 * **rsaction:** temporary fix to ultra slow edge mainscreen filtering of water ([c2f7041](https://github.com/Torwent/WaspLib/commit/c2f704118de1508826fb85f19e4d4b4f8cfa7cea))
 * update waspbot link ([67ae435](https://github.com/Torwent/WaspLib/commit/67ae43504ee8a5e187dc2a1e173372cd4ff5969b))
-
-
-
-## [3.2.4](https://github.com/Torwent/WaspLib/compare/v3.2.3...v3.2.4) (2021-11-14)
-
-
-### Bug Fixes
-
-* zeah shortcut coordinates. ([9a246a9](https://github.com/Torwent/WaspLib/commit/9a246a968e1e5419666111fdc28b5995a9a77af0))
 
 
 

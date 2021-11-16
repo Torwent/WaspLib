@@ -1,3 +1,13 @@
+## [3.3.2](https://github.com/Torwent/WaspLib/compare/v3.3.1...v3.3.2) (2021-11-16)
+
+
+### Bug Fixes
+
+* **basescript:** logs now include the ExtraInfo variable. ([e67aee3](https://github.com/Torwent/WaspLib/commit/e67aee35360841190b2f8ce41c370826b9b94601))
+* **rsobjects:** bad coordinate fixed ([859d5ff](https://github.com/Torwent/WaspLib/commit/859d5ffc36b27dfe373e811aa118a1e92b37474d))
+
+
+
 ## [3.3.1](https://github.com/Torwent/WaspLib/compare/v3.3.0...v3.3.1) (2021-11-15)
 
 
@@ -45,15 +55,6 @@
 ### Bug Fixes
 
 * zeah shortcut coordinates. ([9a246a9](https://github.com/Torwent/WaspLib/commit/9a246a968e1e5419666111fdc28b5995a9a77af0))
-
-
-
-## [3.2.3](https://github.com/Torwent/WaspLib/compare/v3.2.2...v3.2.3) (2021-11-14)
-
-
-### Bug Fixes
-
-* improvements for zeah rcing ([9bd17ad](https://github.com/Torwent/WaspLib/commit/9bd17ad570e60ebe3f0f873ba5c1d1363cff983c))
 
 
 

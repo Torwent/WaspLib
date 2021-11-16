@@ -1,0 +1,86 @@
+{$DEFINE WL_ITEMFINDER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+const
+  WL_ITEM_FINDER_IMAGES_PATH = {$macro CURRENT_DIRECTORY} + '/images/';
+
+
+function TRSItemFinder.GetItemImages(Item: String): array of TMufasaBitmap; override;
+type
+  TMufasaBitmap = TMufasaBitmap;
+
+  function TMufasaBitmap.Equals(Other: TMufasaBitmap): Boolean; override;
+  begin
+    Result := (Self.GetWidth()  = Other.GetWidth()) and
+              (Self.GetHeight() = Other.GetHeight()) and
+              (CompareMem(Self.GetData()^, Other.GetData()^, Self.GetWidth() * Self.GetHeight() * SizeOf(TRGB32)));
+  end;
+
+var
+  FileName: String;
+  Image: TMufasaBitmap;
+  ItemID: Int32;
+  I, J: Int32;
+begin
+  for I := 0 to High(Self.ItemImages) do
+    if (Self.ItemImages[I].Name = Item) then
+    begin
+      Result := Self.ItemImages[I].Images;
+
+      Exit;
+    end;
+
+  for ItemID in GetItemIDs(Item) do
+  begin
+    FileName := ExpandFileName(ITEM_FINDER_IMAGES_PATH + ToStr(ItemID) + '.png');
+
+    if FileExists(FileName) or UnZipOneFile(ITEM_FINDER_IMAGES_ZIP, ExtractFileName(FileName), ITEM_FINDER_IMAGES_PATH) then
+    begin
+      Image.Init(Client.GetMBitmaps());
+      Image.LoadFromFile(FileName);
+      Image.SetName(Item);
+      Image.ReplaceColor(RS_ITEM_SHADOW, 0);
+
+      for J := 0 to High(Result) do
+        if Image.Equals(Result[J]) then
+        begin
+          Image.Free();
+          Image := nil;
+
+          Break;
+        end;
+
+      if (Image <> nil) then
+        Result += Image;
+    end else
+      Self.Fatal('Unknown item: ' + ToStr(ItemID));
+
+    FileName := ExpandFileName(WL_ITEM_FINDER_IMAGES_PATH + ToStr(ItemID) + '.png');
+    if FileExists(FileName) then
+    begin
+      Image.Init(Client.GetMBitmaps());
+      Image.LoadFromFile(FileName);
+      Image.SetName(Item);
+      Image.ReplaceColor(RS_ITEM_SHADOW, 0);
+
+      for J := 0 to High(Result) do
+        if Image.Equals(Result[J]) then
+        begin
+          Image.Free();
+          Image := nil;
+
+          Break;
+        end;
+
+      if (Image <> nil) then
+        Result += Image;
+    end;
+  end;
+
+  if (Length(Result) = 0) then
+    Self.Fatal('Unknown item: ' + Item);
+
+  Self.ItemImages += [Item, Result];
+end;
+

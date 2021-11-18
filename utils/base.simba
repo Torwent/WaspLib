@@ -1,0 +1,81 @@
+{$DEFINE WL_BASE_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+procedure TSRLBaseRecord.DebugLn(Text: String); constref; override;
+var
+  ScriptStr: String;
+  TimeStamp: String;
+  NewFile: Boolean;
+begin
+  TimeStamp := SRL.TimeStamp;
+  Text := TimeStamp + ':[' + Name + ']: ' + Text;
+
+  if not Self.DisableDebugging then
+    WriteLn(Text);
+
+  GenerateLog(NewFile);
+
+  if NewFile then
+  begin
+    ScriptStr := ToStr(Self);
+    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
+    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
+    WriteFileContents(WL.LogFile, ScriptStr, True);
+  end;
+
+  WriteFileContents(WL.LogFile, Text + STR_NEW_LINE, True);
+end;
+
+procedure TSRLBaseRecord.DebugLn(Text, ExtraInfo: String); constref; overload;
+var
+  ScriptStr: String;
+  TimeStamp: String;
+  NewFile: Boolean;
+begin
+  TimeStamp := SRL.TimeStamp;
+  Text := TimeStamp + ':[' + Name + ']: ' + Text;
+
+  if not Self.DisableDebugging then
+    WriteLn(Text);
+
+  GenerateLog(NewFile);
+
+  if NewFile then
+  begin
+    ScriptStr := ToStr(Self);
+    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
+    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
+    WriteFileContents(WL.LogFile, ScriptStr, True);
+  end;
+
+  WriteFileContents(WL.LogFile, Text + STR_NEW_LINE, True);
+
+  if ExtraInfo <> '' then
+    WriteFileContents(WL.LogFile, TimeStamp + ':[ExtraInfo]: ' + ExtraInfo + STR_NEW_LINE, True);
+end;
+
+procedure TSRLBaseRecord.Fatal(Text: String); constref; override;
+var
+  ScriptStr: String;
+  NewFile: Boolean;
+begin
+  Text := SRL.TimeStamp + ':[' + Name + ']:[Fatal]: ' + Text;
+  WriteLn(Text);
+
+  GenerateLog(NewFile);
+
+  if NewFile then
+  begin
+    ScriptStr := ToStr(Self);
+    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
+    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
+    WriteFileContents(WL.LogFile, ScriptStr, True);
+  end;
+
+  WriteFileContents(WL.LogFile, Text + STR_NEW_LINE, True);
+
+  TerminateScript();
+end;
+

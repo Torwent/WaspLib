@@ -92,6 +92,8 @@ The extra variables that are part of **TBaseBankScript** are:
     CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
   end;
 
+var
+  TotalConsumableCost: Int32;
 
 procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to add more stuff.
 begin
@@ -147,7 +149,7 @@ var
   TitleLength: Int32;
   ElapsedTime: UInt64;
 begin
-  TotalProfit := TotalActions * ActionProfit;
+  TotalProfit := (TotalActions * ActionProfit) - TotalConsumableCost;
 
   if (GetTickCount - StatsDebugTick) > 1000 then
   begin
@@ -393,6 +395,7 @@ begin
   inherited(Bitmap);
 end;
 
+
 //CombatHandler
 type
   TCombatHandler = record
@@ -412,7 +415,6 @@ type
     QuickPrayerIsSetup: Boolean;
     IsSetup: Boolean;
   end;
-
 
 procedure TCombatHandler.Setup(Timer: Int64 = 4000);
 begin
@@ -646,7 +648,7 @@ end;
 
 //ConsumableHandler
 type
-  TConsumableHandler = record
+  TConsumableHandler = record(TSRLBaseRecord)
     ConsumableType: ERSConsumable;
     Consumable: TRSConsumableArray;
     ItemArray: TRSItemArray;
@@ -666,7 +668,7 @@ begin
   case ConsumableType of
     ERSConsumable.HEALTH_CONSUMABLE: Result.SetupFood;
     ERSConsumable.PRAYER_CONSUMABLE: Result.SetupPrayer;
-    ERSConsumable.ENERGY_CONSUMABLE: Result := [];
+    ERSConsumable.ENERGY_CONSUMABLE: Result.SetupEnergy;
     ERSConsumable.BOOST_CONSUMABLE:  Result := [];
   end;
 end;
@@ -678,19 +680,21 @@ var
   Consumable: TRSConsumable;
   Item: TRSItem;
 begin
+  DebugLn('Setting up consumable of type: ' + ToStr(ConsumableType));
   for Item in Arr do
     if Bank.FindItem(Item) then
     begin
+      DebugLn('Consumable found: ' + ToStr(Item));
       Consumable := Self._Setup(Item);
 
-      while ToStr(Consumable.Parent) <> 'Null' do
+      if not Consumable.IsParent then
         Consumable := Self._Setup(Consumable.Parent);
 
       Result += Consumable;
 
       BankTab := Bank.GetCurrentTab; //TODO: Search parent maybe?
 
-      while Consumable.LeftOver <> 'Null' do
+      while not Consumable.IsLast do
       begin
         i := Arr.Find(Consumable.LeftOver);
         Consumable := Self._Setup(Arr[i]);
@@ -735,7 +739,7 @@ begin
     Result += C.Points;
 end;
 
-procedure TConsumableHandler._SetupAmount;
+procedure TConsumableHandler.SetupAmount;
 begin
   if Amount = 0 then
     case MinInvPoints of
@@ -768,7 +772,7 @@ begin
   IsSetup := Consumable <> [];
 
   if IsSetup then
-    Self._SetupAmount;
+    Self.SetupAmount;
 end;
 
 var
@@ -823,21 +827,39 @@ end;
 
 
 function TRSInventory.Consume(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
+var
+  Handler: ^TConsumableHandler := GetHandler(ConsumableType);
+  LastConsumable: TRSConsumable;
 begin
-  if (Slots = []) and not Self.FindConsumable(ConsumableType, Slots) then
+  if not Handler^.IsSetup then
+    Exit;
+
+  if (Slots = []) and not Self.FindItems(Handler^.ItemArray.Reversed, Slots) then
     Exit;
 
   Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+
+  if Result then
+  begin
+    LastConsumable := Handler^.Consumable[High(Handler^.Consumable)];
+    TotalConsumableCost += LastConsumable.Cost;
+    if LastConsumable.LeftOverIsTrash then
+      if WaitUntil(Inventory.FindItem(LastConsumable.LeftOver), 50, 650) then
+      begin
+        if Bank.IsOpen then
+          Bank.DepositSlot([Slots[0], BANK_DEPOSIT_ALL], False)
+        else
+          Inventory.ShiftDrop([Slots[0]]);
+      end;
+    Slots.Del(0);
+  end;
 end;
 
 function TRSInventory.Consume(ConsumableType: ERSConsumable): Boolean; overload;
 var
   Slots: TIntegerArray;
 begin
-  if not Self.FindConsumable(ConsumableType, Slots) then
-    Exit;
-
-  Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+  Result := Self.Consume(ConsumableType, Slots);
 end;
 
 

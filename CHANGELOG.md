@@ -1,3 +1,12 @@
+## [3.4.1](https://github.com/Torwent/WaspLib/compare/v3.4.0...v3.4.1) (2021-11-20)
+
+
+### Bug Fixes
+
+* Fixed bad filtering logic for resizable. ([3860b72](https://github.com/Torwent/WaspLib/commit/3860b72e0f644667401dfb3d1de8130f2aed5d7e))
+
+
+
 # [3.4.0](https://github.com/Torwent/WaspLib/compare/v3.3.2...v3.4.0) (2021-11-16)
 
 
@@ -52,16 +61,6 @@
 
 * **mainscreen:** improved MainScreen.IsVisible ([59086f3](https://github.com/Torwent/WaspLib/commit/59086f329627e5a53eb03ada81cd17edc1ce3df1))
 * **waspobjects:** improved object hovering. ([1b4de66](https://github.com/Torwent/WaspLib/commit/1b4de663282a4a0e36b7be8fe092ca3d9698a448))
-
-
-
-## [3.2.5](https://github.com/Torwent/WaspLib/compare/v3.2.4...v3.2.5) (2021-11-14)
-
-
-### Bug Fixes
-
-* **rsaction:** temporary fix to ultra slow edge mainscreen filtering of water ([c2f7041](https://github.com/Torwent/WaspLib/commit/c2f704118de1508826fb85f19e4d4b4f8cfa7cea))
-* update waspbot link ([67ae435](https://github.com/Torwent/WaspLib/commit/67ae43504ee8a5e187dc2a1e173372cd4ff5969b))
 
 
 

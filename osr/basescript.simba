@@ -660,7 +660,7 @@ type
   end;
   TConsumableHandlerArray = array of TConsumableHandler;
 
-  TConsumableManager = record
+  TConsumableManager = record(TSRLBaseRecord)
     Handlers: TConsumableHandlerArray;
     ItemArray: TRSItemArray;
     MinInvPoints: Int32;
@@ -684,29 +684,10 @@ begin
   Result.Item := Item;
 
   case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE:
-      begin
-        Name := 'FoodHandler';
-        Result.SetupFood;
-      end;
-
-    ERSConsumable.PRAYER_CONSUMABLE:
-      begin
-        Name := 'PrayerHandler';
-        Result.SetupPrayer;
-      end;
-
-    ERSConsumable.ENERGY_CONSUMABLE:
-      begin
-        Name := 'EnergyHandler';
-        Result.SetupEnergy;
-      end;
-
-    ERSConsumable.BOOST_CONSUMABLE:
-      begin
-        Name := 'BoostHandler';
-        Result := [];
-      end;
+    ERSConsumable.HEALTH_CONSUMABLE: Result.SetupFood;
+    ERSConsumable.PRAYER_CONSUMABLE: Result.SetupPrayer;
+    ERSConsumable.ENERGY_CONSUMABLE: Result.SetupEnergy;
+    ERSConsumable.BOOST_CONSUMABLE:  Result := [];
   end;
 end;
 
@@ -789,6 +770,13 @@ begin
 
   ConsumableType := ConsumType;
 
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Name := 'FoodHandler';
+    ERSConsumable.PRAYER_CONSUMABLE: Name := 'PrayerHandler';
+    ERSConsumable.ENERGY_CONSUMABLE: Name := 'EnergyHandler';
+    ERSConsumable.BOOST_CONSUMABLE: Name := 'BoostHandler';
+  end;
+
   BankTab := -1;
 
   if Inventory.Open then
@@ -810,20 +798,20 @@ procedure TConsumableManager.SetupAmount;
 var
   i: Int32;
 begin
-  if not Self.IsSetup then
-    Exit;
-
-  for i := 0 to High(Self.Handlers) do
+  for i := 0 to High(Handlers) do
   begin
+    if Handlers[i].Amount <> 0 then
+      Continue;
+
     if Amount = 0 then
       case MinInvPoints of
          0:  TerminateScript('FATAL: MinInvPoints or Amount have to be different from 0.');
-        -1:  Self.Handlers[0].Amount := BANK_WITHDRAW_ALL;
-        -2:  Self.Handlers[0].Amount := BANK_WITHDRAW_ALL_BUT_ONE;
-        else Self.Handlers[0].Amount := Round(MinInvPoints / Self.Handlers[0].GetPoints);
+        -1:  Handlers[i].Amount := BANK_WITHDRAW_ALL;
+        -2:  Handlers[i].Amount := BANK_WITHDRAW_ALL_BUT_ONE;
+        else Handlers[i].Amount := Round(MinInvPoints / Handlers[i].GetPoints);
       end
     else
-      Self.Handlers[0].Amount := Amount;
+      Handlers[i].Amount := Amount;
   end;
 end;
 
@@ -831,17 +819,27 @@ procedure TConsumableManager.Setup(ConsumableType: ERSConsumable);
 var
   Handler: TConsumableHandler;
 begin
-  if Self.IsSetup then
+  if IsSetup then
     Exit;
+
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Name := 'FoodManager';
+    ERSConsumable.PRAYER_CONSUMABLE: Name := 'PrayerManager';
+    ERSConsumable.ENERGY_CONSUMABLE: Name := 'EnergyManager';
+    ERSConsumable.BOOST_CONSUMABLE: Name := 'BoostManager';
+  end;
+
+  DebugLn('Setting up...');
 
   Handler.Setup(ConsumableType);
   if Handler.IsSetup then
   begin
-    Self.Handlers += Handler;
-    Self.ItemArray.Extend(Handler.ItemArray);
+    Handlers += Handler;
+    ItemArray := Handler.ItemArray;
+    Self.SetupAmount;
   end;
 
-  IsSetup := Self <> [];
+  IsSetup := Handler.IsSetup;
 end;
 
 procedure TConsumableManager.SetupNew(ConsumableType: ERSConsumable);
@@ -852,13 +850,15 @@ begin
   Handler.Setup(ConsumableType);
   if Handler.IsSetup then
   begin
-    for i := 0 to High(Self.Handlers) do
-      if Self.Handlers[i].Consumable = Handler.Consumable then
+    for i := 0 to High(Handlers) do
+      if Handlers[i].Consumable = Handler.Consumable then
         Exit;
-    Self.Handlers += Handler;
-    Self.ItemArray.Extend(Handler.ItemArray);
+    Handlers += Handler;
+    ItemArray.Extend(Handler.ItemArray);
+    Self.SetupAmount;
   end;
 end;
+
 
 var
   FoodManager: TConsumableManager;
@@ -1005,6 +1005,7 @@ function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable; Idx: In
 var
   HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
 begin
+  WriteLn HandlerManager^.Handlers[Idx].Amount;
   case HandlerManager^.Handlers[Idx].Amount of
     BANK_WITHDRAW_ALL: Result := BANK_WITHDRAW_ALL;
     BANK_WITHDRAW_ALL_BUT_ONE: Result := BANK_WITHDRAW_ALL_BUT_ONE;

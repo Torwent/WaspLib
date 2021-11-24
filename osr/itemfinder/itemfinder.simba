@@ -5,6 +5,50 @@
 const
   WL_ITEM_FINDER_IMAGES_PATH = {$macro CURRENT_DIRECTORY} + '/images/';
 
+type
+  TOverridenItem = record
+    ItemID: Int32;
+    Files: TStringArray;
+  end;
+
+  TOverridenItemArray = array of TOverridenItem;
+
+procedure TOverridenItemArray.Setup(Item: TRSItem; FileName: String; FileCount: Int32 = 0);
+var
+  OverridenItem: TOverridenItem;
+  i: Int32;
+  Str: String;
+begin
+  Str := VarToStr(Item);
+
+  if VarToStr(Str).IsDigit() then
+    OverridenItem.ItemID := StrToInt(Str)
+  else
+  begin
+    OverridenItem.ItemID := StrToInt(ItemFinder.ItemNames.GetValues(Str));
+    if (OverridenItem.ItemID = 0) then
+      ItemFinder.Fatal('Unknown item: ' + Str);
+  end;
+
+  for i := 0 to FileCount do
+    OverridenItem.Files += FileName + ToStr(i) + '.png';
+
+  Self += OverridenItem;
+end;
+
+function TOverridenItemArray.Find(ItemID: Int32): Int32;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i].ItemId = ItemId then
+      Exit(i);
+  Result := -1;
+end;
+
+
+var
+  OverridenItems: TOverridenItemArray;
 
 function TRSItemFinder.GetItemImages(Item: String): array of TMufasaBitmap; override;
 type
@@ -18,7 +62,7 @@ type
   end;
 
 var
-  FileName: String;
+  FileName, Str: String;
   Image: TMufasaBitmap;
   ItemID: Int32;
   I, J: Int32;
@@ -53,28 +97,36 @@ begin
 
       if (Image <> nil) then
         Result += Image;
-    end else
+    end
+    else
       Self.Fatal('Unknown item: ' + ToStr(ItemID));
 
-    FileName := ExpandFileName(WL_ITEM_FINDER_IMAGES_PATH + ToStr(ItemID) + '.png');
-    if FileExists(FileName) then
+    I := OverridenItems.Find(ItemId);
+    if I > -1 then
     begin
-      Image.Init(Client.GetMBitmaps());
-      Image.LoadFromFile(FileName);
-      Image.SetName(Item);
-      Image.ReplaceColor(RS_ITEM_SHADOW, 0);
-
-      for J := 0 to High(Result) do
-        if Image.Equals(Result[J]) then
+      for Str in OverridenItems[I].Files do
+      begin
+        FileName := ExpandFileName(WL_ITEM_FINDER_IMAGES_PATH + Str);
+        if FileExists(FileName) then
         begin
-          Image.Free();
-          Image := nil;
+          Image.Init(Client.GetMBitmaps());
+          Image.LoadFromFile(FileName);
+          Image.SetName(Item);
+          Image.ReplaceColor(RS_ITEM_SHADOW, 0);
 
-          Break;
+          for J := 0 to High(Result) do
+            if Image.Equals(Result[J]) then
+            begin
+              Image.Free();
+              Image := nil;
+
+              Break;
+            end;
+
+          if (Image <> nil) then
+            Result += Image;
         end;
-
-      if (Image <> nil) then
-        Result += Image;
+      end;
     end;
   end;
 
@@ -84,3 +136,6 @@ begin
   Self.ItemImages += [Item, Result];
 end;
 
+begin
+  OverridenItems.Setup('Dark essence block', 'darkess', 1);
+end;

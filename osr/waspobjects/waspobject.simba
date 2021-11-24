@@ -157,6 +157,8 @@ They can be used for objects with a minimap dot that do not move but **TRSMMDot*
   PRSObject = ^TRSObject;
   PRSObjectArray = array of PRSObject;
 
+  TRSDoor = type TRSObjectArray;
+
 (*
 type TRSMMDot
 ~~~~~~~~~~~~~~~~~~~~
@@ -246,6 +248,36 @@ begin
   for i := 0 to High(Shapes) do
     TileArray.Extend(Shapes[i].TileArray);
 end;
+
+
+procedure TRSDoor.SetupCommon(PWalker: PRSWalker; Shapes: array of TRSObjectShape); overload;
+var
+  i: Int32;
+begin
+  if (Length(Shapes) < 2) or (Length(Shapes) > 3) then
+    Exit;
+
+  SetLength(Self, 2);
+
+  for i := 0 to High(Self) do
+  begin
+    Self[i].SetupCommon;
+    Self[i].Walker := PWalker;
+    Self[i].Filter.Walker := True;
+  end;
+
+  Self[0].ShapeArray := [Shapes[0]];
+  Self[0].TileArray.Extend(Shapes[0].TileArray);
+
+  for i := 1 to High(Shapes) do
+  begin
+    Self[1].ShapeArray += Shapes[i];
+    Self[1].TileArray.Extend(Shapes[i].TileArray);
+  end;
+end;
+
+
+
 
 
 procedure TRSMMDot.SetupCommon; override;
@@ -444,7 +476,9 @@ begin
   begin
     Dots := Minimap.GetDotArrayInCircleArray(DotType,
                     Walker^.WorldToMM(ShapeArray[0].TileArray), TileRadius);
-    Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
+
+    if Dots <> [] then
+      Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
   end
 
   else if Filter.Walker then
@@ -460,7 +494,8 @@ begin
   else if Filter.MinimapDot then
   begin
     Dots := Minimap.GetDots(DotType);
-    Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
+    if Dots <> [] then
+      Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
   end;
 end;
 
@@ -831,7 +866,7 @@ begin
     Exit(False);
 
   if Filter.UpText and MainScreen.IsUpText(UpText) then
-      Exit(True);
+    Exit(True);
 
   for Attempt := 0 to Attempts do
   begin
@@ -1104,14 +1139,14 @@ begin
       StrArray := ActionUpText;
   end;
 
+  if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
+    Exit(False);
+
+  if RedClicked or (Filter.UpText and MainScreen.IsUpText(UpText)) then
+    Exit(True);
+
   for Attempt := 0 to Attempts do
   begin
-    if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
-      Exit(False);
-
-    if RedClicked or (Filter.UpText and MainScreen.IsUpText(UpText)) then
-      Exit(True);
-
     if Self.Find(ATPA) then
     begin
       if Attempt < 2 then
@@ -1166,14 +1201,14 @@ var
   Points: TPointArray;
   CompassAngle: Double;
 begin
+  if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
+    Exit(False);
+
+  if Filter.UpText and MainScreen.IsUpText(UpText) then
+    Exit(True);
+
   for Attempt := 0 to Attempts do
   begin
-    if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
-      Exit(False);
-
-    if Filter.UpText and MainScreen.IsUpText(UpText) then
-      Exit(True);
-
     if Self.Find(ATPA) then
     begin
       if Attempt < 2 then
@@ -1242,14 +1277,14 @@ begin
       StrArray := ActionUpText;
   end;
 
+  if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
+    Exit(False);
+
+  if Filter.UpText and MainScreen.IsUpText(UpText) then
+    Exit(True);
+
   for Attempt := 0 to Attempts do
   begin
-    if (RSClient.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface then
-      Exit(False);
-
-    if Filter.UpText and MainScreen.IsUpText(UpText) then
-      Exit(True);
-
     if Self.Find(ATPA) then
     begin
       if Attempt < 2 then

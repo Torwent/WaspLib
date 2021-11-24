@@ -1,3 +1,12 @@
+## [4.0.1](https://github.com/Torwent/WaspLib/compare/v4.0.0...v4.0.1) (2021-11-24)
+
+
+### Bug Fixes
+
+* **ItemFinder:** Better item image overriding ([fad98f7](https://github.com/Torwent/WaspLib/commit/fad98f73bb903bb759a892533543f9cf910f8f98))
+
+
+
 # [4.0.0](https://github.com/Torwent/WaspLib/compare/v3.4.1...v4.0.0) (2021-11-22)
 
 
@@ -55,15 +64,6 @@
 
 * **basescript:** logs now include the ExtraInfo variable. ([e67aee3](https://github.com/Torwent/WaspLib/commit/e67aee35360841190b2f8ce41c370826b9b94601))
 * **rsobjects:** bad coordinate fixed ([859d5ff](https://github.com/Torwent/WaspLib/commit/859d5ffc36b27dfe373e811aa118a1e92b37474d))
-
-
-
-## [3.3.1](https://github.com/Torwent/WaspLib/compare/v3.3.0...v3.3.1) (2021-11-15)
-
-
-### Bug Fixes
-
-* **FoodHandler:** attempt to fix minor issues with EatFood ([7dcf160](https://github.com/Torwent/WaspLib/commit/7dcf1605e66a822e7dd58806a66f26818cb48074))
 
 
 

@@ -1,3 +1,17 @@
+# [4.1.0](https://github.com/Torwent/WaspLib/compare/v4.0.1...v4.1.0) (2021-11-24)
+
+
+### Bug Fixes
+
+* **ConsumableManagers:** fixed some issues with multiple dose items. ([73bcc33](https://github.com/Torwent/WaspLib/commit/73bcc339e1993b6eeb3b9b721fab7d1e2658928b))
+
+
+### Features
+
+* **TRSDoor:** New record to handle doors ([f7c5097](https://github.com/Torwent/WaspLib/commit/f7c509746f0d816aeadfc1baab15fbfa5a1c473f))
+
+
+
 ## [4.0.1](https://github.com/Torwent/WaspLib/compare/v4.0.0...v4.0.1) (2021-11-24)
 
 
@@ -54,16 +68,6 @@
 
 * **depositbox:** added a bunch of this to deposit box for it to function ([d8a07ff](https://github.com/Torwent/WaspLib/commit/d8a07ffdf06a16a7e17877341301370afc9b2a41))
 * **itemfinder:** wasplib now has an override for itemfinder ([5c6816a](https://github.com/Torwent/WaspLib/commit/5c6816ada7f444fa4b9fbe6cd440890d58b635ab))
-
-
-
-## [3.3.2](https://github.com/Torwent/WaspLib/compare/v3.3.1...v3.3.2) (2021-11-16)
-
-
-### Bug Fixes
-
-* **basescript:** logs now include the ExtraInfo variable. ([e67aee3](https://github.com/Torwent/WaspLib/commit/e67aee35360841190b2f8ce41c370826b9b94601))
-* **rsobjects:** bad coordinate fixed ([859d5ff](https://github.com/Torwent/WaspLib/commit/859d5ffc36b27dfe373e811aa118a1e92b37474d))
 
 
 

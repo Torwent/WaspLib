@@ -1,3 +1,12 @@
+## [4.1.1](https://github.com/Torwent/WaspLib/compare/v4.1.0...v4.1.1) (2021-11-25)
+
+
+### Bug Fixes
+
+* **itemfinder:** item overrides ([77ae075](https://github.com/Torwent/WaspLib/commit/77ae075ae320b1dde932ec1c231437db73162649))
+
+
+
 # [4.1.0](https://github.com/Torwent/WaspLib/compare/v4.0.1...v4.1.0) (2021-11-24)
 
 
@@ -52,22 +61,6 @@
 ### Bug Fixes
 
 * Fixed bad filtering logic for resizable. ([3860b72](https://github.com/Torwent/WaspLib/commit/3860b72e0f644667401dfb3d1de8130f2aed5d7e))
-
-
-
-# [3.4.0](https://github.com/Torwent/WaspLib/compare/v3.3.2...v3.4.0) (2021-11-16)
-
-
-### Bug Fixes
-
-* added a small delay to the initial setup ([6344b85](https://github.com/Torwent/WaspLib/commit/6344b8565b20bde554edbc9401372a2222faf091))
-* bad coordinates ([d7a5369](https://github.com/Torwent/WaspLib/commit/d7a5369cfa5e2108221501b3c2330ae643479d6f))
-
-
-### Features
-
-* **depositbox:** added a bunch of this to deposit box for it to function ([d8a07ff](https://github.com/Torwent/WaspLib/commit/d8a07ffdf06a16a7e17877341301370afc9b2a41))
-* **itemfinder:** wasplib now has an override for itemfinder ([5c6816a](https://github.com/Torwent/WaspLib/commit/5c6816ada7f444fa4b9fbe6cd440890d58b635ab))
 
 
 

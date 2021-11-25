@@ -12,7 +12,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2.2.0
                     
-    - name: Conventional Changelog Action
+    - name: Generate Conventional Changelog
       id: changelog
       uses: TriPSs/conventional-changelog-action@v3.8.0
       with:
@@ -25,12 +25,12 @@ jobs:
         skip-on-empty: 'true'
         skip-commit: 'false'
     
-    - name: Write version.txt file
+    - name: Make a new version.txt file
       if: ${{ steps.changelog.outputs.skipped == 'false' }}
       shell: bash
       run: echo ${{ steps.changelog.outputs.tag }} > version.txt
       
-    - name: Update version file
+    - name: Rewrite version.txt file with the new one
       uses: test-room-7/action-update-file@v1
       if: ${{ steps.changelog.outputs.skipped == 'false' }}
       with:
@@ -38,7 +38,16 @@ jobs:
         commit-msg: Bump version.txt and CHANGELOG.md
         github-token: ${{ secrets.GITHUB_TOKEN }}
     
-    - name: Create Release
+    - name: Merge changes to dev branch
+      uses: everlytic/branch-merge@1.1.2
+      if: ${{ steps.changelog.outputs.skipped == 'false' }}
+      with:
+        github_token: ${{ github.token }}
+        source_ref: ${{ github.ref }}
+        target_branch: 'dev'
+        commit_message_template: '[Automated] Merged {source_ref} into target {target_branch}'
+        
+    - name: Create a release from the recent changes
       uses: actions/create-release@v1
       if: ${{ steps.changelog.outputs.skipped == 'false' }}
       env:
@@ -47,7 +56,7 @@ jobs:
         tag_name: ${{ steps.changelog.outputs.tag }}
         release_name: ${{ steps.changelog.outputs.tag }}
         body: ${{ steps.changelog.outputs.clean_changelog }}
-        
+    
     - name: Send Changelog to Discord
       uses: sinshutu/upload-to-discord@master
       env:

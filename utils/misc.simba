@@ -21,7 +21,6 @@ type
     GELimit: Int32;
   end;
 
-
 procedure TRSItemInfo.Setup;
 begin
   WikiRealTimeInfo := GetPage('https://prices.runescape.wiki/api/v1/osrs/latest');
@@ -46,7 +45,7 @@ var
 begin
   Str := VarToStr(RSItem);
 
-  if VarToStr(Str).IsDigit() then
+  if VarToStr(Str).IsDigit then
     ItemID := Str
   else
   begin
@@ -163,7 +162,7 @@ begin
   if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
-  Result := HighAlchemy - Self.GetAveragePrice(Item) - Self.GetAveragePrice('Nature rune');
+  Result := HighAlchemy - Self.GetAveragePrice(Item) - Self.GetAveragePrice('561');
 end;
 
 function TRSItemInfo.GetLowAlchemyProfit(Item: TRSItem): Int32;
@@ -171,7 +170,7 @@ begin
   if VarToStr(Item) <> VarToStr(RSItem) then
     Self.SetInfo(Item);
 
-  Result := HighAlchemy - Self.GetAveragePrice(Item) - Self.GetAveragePrice('Nature rune');
+  Result := HighAlchemy - Self.GetAveragePrice(Item) - Self.GetAveragePrice('561');
 end;
 
 
@@ -263,3 +262,53 @@ end;
 
 var
   ItemInfo: TRSItemInfo;
+
+type
+  TRSMonsterInfo = record
+    OSRSBoxInfo: String;
+    Size: Int32;
+    Hitpoints: Int32;
+    MaxHit: Int32;
+    AttackTypes: TStringArray;
+    DropStrings: TStringArray;
+    DropIDs: TStringArray;
+    NotedDrops: TStringArray;
+  end;
+
+procedure TRSMonsterInfo.Setup(Name: String);
+var
+  Str: String;
+  UneditedValues: TStringArray;
+begin
+  Name[1] := UpperCase(Name[1])[1];
+
+  Name := Name.Replace(' ', '%20');
+  OSRSBoxInfo := GetPage('https://api.osrsbox.com/monsters?where={%20%22name%22:%20%22' + Name +'%22,%20%22duplicate%22:%20false%20}');
+
+  Size := StrToInt(OSRSBoxInfo.After('"size": ').Before(', "hitpoints"'));
+
+  Hitpoints := StrToInt(OSRSBoxInfo.After('"hitpoints": ').Before(', "max_hit"'));
+  Str := OSRSBoxInfo.After('"max_hit": ').Before(', "attack_type"');
+  if Str.Contains('null') then
+    MaxHit := -1
+  else
+    MaxHit := StrToInt(Str);
+
+  Str := OSRSBoxInfo.After('"attack_type": [').Before('], "attack_speed"');
+  UneditedValues := Str.Explode(', ');
+  for Str in UneditedValues do
+    AttackTypes += Str.Replace('"', '');
+
+
+  Str := OSRSBoxInfo.After('"drops": [').Before('], "_created"');
+
+  UneditedValues := Str.Explode('},');
+
+  for Str in UneditedValues do
+  begin
+    if Str.Contains('"noted": true') then
+      NotedDrops += Str.After('"id": ').Before(', "name"');
+    DropIDs += Str.After('"id": ').Before(', "name"');
+    DropStrings += Str.After('"name": "').Before('", "members"');
+  end;
+end;

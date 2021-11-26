@@ -10,32 +10,105 @@ TRSMonters are a type or TRSNPC that can be fought.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+var
+  ValueThreshold: Int32;
+
 type
   TRSMonster = record(TRSMMDot)
-    Health: Int32;
-    DropTable: TRSItemArray;
-    GroundItems: PRSGroundItemArray;
+    MonsterName: String;
+    Hitpoints: Int32;
+    MaxHit: Int32;
+    AttackTypes: TStringArray;
+    Drops: TRSItemArray;
     AlchableDrops: TRSItemArray;
+    GoodDrops: TRSItemArray;
+    LootGItem: TRSGroundItem;
   end;
 
   TRSMonsterArray = array of TRSMonster;
   PRSMonster = ^TRSMonster;
   PRSMonsterArray = array of PRSMonster;
 
-procedure TRSMonster.SetupCommon; override;
+procedure TRSMonster.SetupCommon(Name: String); overload;
 var
-  Item: TRSItem;
+  MonsterInfo: TRSMonsterInfo;
   i: Int32;
 begin
-  inherited;
+  MonsterName := Name;
+  Self.SetupCommon;
+  MonsterInfo.Setup(MonsterName);
 
-  for Item in DropTable do
-    if RSAction.AlchItemArray.Find(Item) > -1 then
-      AlchableDrops += Item;
+  Name := Name.Lower;
+  Name[1] := UpperCase(Name[1])[1];
 
-  for i := 0 to High(DropTable) do
-    if RSGroundItems.ItemArray.Find(DropTable[i]) then
-      GroundItems += RSGroundItems.GroundItemArray[i];
+  UpText += Name;
+
+  Hitpoints := MonsterInfo.Hitpoints;
+  MaxHit := MonsterInfo.MaxHit;
+  ShapeArray := [[[], [MonsterInfo.Size/2, MonsterInfo.Size/2, 0]]];
+  AttackTypes := MonsterInfo.AttackTypes;
+
+  ValueThreshold := 10000;
+
+  for i := 0 to High(MonsterInfo.DropIDs) do
+    Drops += MonsterInfo.DropIDs[i];
+
+  for i := 0 to High(Drops) do
+    if ItemInfo.GetAveragePrice(Drops[i]) >= ValueThreshold then
+      GoodDrops += Drops[i];
+
+  for i := 0 to High(Drops) do
+    if ItemInfo.GetHighAlchemyProfit(Drops[i]) > 500 then
+      if GoodDrops.Find(Drops[i]) < 0 then
+        GoodDrops += Drops[i];
+
+  for i := 0 to High(MonsterInfo.NotedDrops) do
+    if GoodDrops.Find(MonsterInfo.NotedDrops[i]) < 0 then
+      GoodDrops += MonsterInfo.NotedDrops[i];
+
+  LootGItem.SetupCommon;
+  LootGItem.Filter.Finder := False;
+
+  for i := 0 to High(GoodDrops) do
+    LootGItem.UpText += MonsterInfo.DropStrings[Drops.Find(GoodDrops[i])];
 end;
 
 
+procedure TRSItemFinder.Setup; override;
+begin
+  inherited;
+
+end;
+
+
+procedure TRSMonster.ResetGoodDrops;
+var
+  MonsterInfo: TRSMonsterInfo;
+  i: Int32;
+begin
+  GoodDrops := [];
+  LootGItem := [];
+  MonsterInfo.Setup(MonsterName);
+
+  for i := 0 to High(MonsterInfo.DropIDs) do
+    Drops += MonsterInfo.DropIDs[i];
+
+  for i := 0 to High(Drops) do
+    if ItemInfo.GetAveragePrice(Drops[i]) >= ValueThreshold then
+      GoodDrops += Drops[i];
+
+  for i := 0 to High(Drops) do
+    if ItemInfo.GetHighAlchemyProfit(Drops[i]) > 500 then
+      if GoodDrops.Find(Drops[i]) < 0 then
+        GoodDrops += Drops[i];
+
+  for i := 0 to High(MonsterInfo.NotedDrops) do
+    if GoodDrops.Find(MonsterInfo.NotedDrops[i]) < 0 then
+      GoodDrops += MonsterInfo.NotedDrops[i];
+
+  LootGItem.SetupCommon;
+  LootGItem.Filter.Finder := False;
+
+  for i := 0 to High(GoodDrops) do
+    LootGItem.UpText += MonsterInfo.DropStrings[Drops.Find(GoodDrops[i])];
+end;

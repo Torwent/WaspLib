@@ -59,8 +59,11 @@ begin
 
   for i := 0 to High(Drops) do
     if ItemInfo.GetHighAlchemyProfit(Drops[i]) > 500 then
-      if GoodDrops.Find(Drops[i]) < 0 then
-        GoodDrops += Drops[i];
+      AlchableDrops += Drops[i];
+
+  for i := 0 to High(AlchableDrops) do
+    if GoodDrops.Find(AlchableDrops[i]) < 0 then
+        GoodDrops += AlchableDrops[i];
 
   for i := 0 to High(MonsterInfo.NotedDrops) do
     if GoodDrops.Find(MonsterInfo.NotedDrops[i]) < 0 then
@@ -72,14 +75,6 @@ begin
   for i := 0 to High(GoodDrops) do
     LootGItem.UpText += MonsterInfo.DropStrings[Drops.Find(GoodDrops[i])];
 end;
-
-
-procedure TRSItemFinder.Setup; override;
-begin
-  inherited;
-
-end;
-
 
 procedure TRSMonster.ResetGoodDrops;
 var
@@ -111,4 +106,30 @@ begin
 
   for i := 0 to High(GoodDrops) do
     LootGItem.UpText += MonsterInfo.DropStrings[Drops.Find(GoodDrops[i])];
+end;
+
+function TRSMonster.CheckLoot(B: TBox): Boolean;
+var
+  Str: String;
+begin
+  Mouse.Move(B);
+
+  if not MainScreen.IsUpText('Take') then
+    Exit;
+
+  ChooseOption.Open;
+  if not ChooseOption.HasOption(LootGItem.UpText) then
+    Exit;
+
+  for Str in LootGItem.UpText do
+  begin
+    if Inventory.IsFull then
+    begin
+      if (not Str.Contains('noted') or not Inventory.FindItem(Str)) then
+        Continue;
+      //TODO! EAT OR DROP SOMETHING!
+    end;
+
+    ChooseOption.Select(Str.After('noted '));
+  end;
 end;

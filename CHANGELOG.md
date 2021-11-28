@@ -1,3 +1,18 @@
+# [4.2.0](https://github.com/Torwent/WaspLib/compare/v4.1.1...v4.2.0) (2021-11-28)
+
+
+### Bug Fixes
+
+* **itemfinder:** more dark block animations ([fd562b1](https://github.com/Torwent/WaspLib/commit/fd562b1111e48fa95438c4d946004568b4adaed6))
+
+
+### Features
+
+* **MonsterInfo:** new record to communicate with osrsbox monsters api ([bcf3c43](https://github.com/Torwent/WaspLib/commit/bcf3c43013f6d6c96b375e23fcf0be432ac08a73))
+* **rsmonster:** loot is now setup automatically via osrsbox api. ([d790a9e](https://github.com/Torwent/WaspLib/commit/d790a9e370ca4c4f5addce834d195c8a1827cbb2))
+
+
+
 ## [4.1.1](https://github.com/Torwent/WaspLib/compare/v4.1.0...v4.1.1) (2021-11-25)
 
 
@@ -52,15 +67,6 @@
 ### BREAKING CHANGES
 
 * **ConsumableManagers:** New consumable .managers are not compatible with the old food handler.
-
-
-
-## [3.4.1](https://github.com/Torwent/WaspLib/compare/v3.4.0...v3.4.1) (2021-11-20)
-
-
-### Bug Fixes
-
-* Fixed bad filtering logic for resizable. ([3860b72](https://github.com/Torwent/WaspLib/commit/3860b72e0f644667401dfb3d1de8130f2aed5d7e))
 
 
 

@@ -18,9 +18,8 @@ type
     MonsterName: String;
     Hitpoints: Int32;
     MaxHit: Int32;
-    AttackTypes: TStringArray;
-    Drops: TRSItemArray;
-    AlchableDrops: TRSItemArray;
+    AttackTypes: array of ERSMonsterAttackType;
+    Drops: array of TRSMonsterDrop;
     GoodDrops: TRSItemArray;
     LootGItem: TRSGroundItem;
   end;
@@ -31,89 +30,85 @@ type
 
 procedure TRSMonster.SetupCommon(Name: String); overload;
 var
-  MonsterInfo: TRSMonsterInfo;
-  i: Int32;
+  i, Size: Int32;
 begin
   MonsterName := Name;
+
   Self.SetupCommon;
-  MonsterInfo.Setup(MonsterName);
 
   Name := Name.Lower;
   Name[1] := UpperCase(Name[1])[1];
 
   UpText += Name;
 
-  Hitpoints := MonsterInfo.Hitpoints;
-  MaxHit := MonsterInfo.MaxHit;
-  ShapeArray := [[[], [MonsterInfo.Size/2, MonsterInfo.Size/2, 0]]];
-  AttackTypes := MonsterInfo.AttackTypes;
+  Hitpoints := MonsterData.GetInt(Name, 'hitpoints');
+  MaxHit := MonsterData.GetInt(Name, 'max_hit');
+  Size := MonsterData.GetInt(Name, 'size');
+  if Size = 1 then
+    ShapeArray := [[[], [1, 1, 0]]]
+  else
+    ShapeArray := [[[], [Size/2, Size/2, 0]]];
+  AttackTypes := MonsterData.GetAttackTypes(Name);
 
   ValueThreshold := 10000;
 
-  for i := 0 to High(MonsterInfo.DropIDs) do
-    Drops += MonsterInfo.DropIDs[i];
+  Drops := MonsterData.GetDrops(Name);
 
   for i := 0 to High(Drops) do
-    if ItemInfo.GetAveragePrice(Drops[i]) >= ValueThreshold then
-      GoodDrops += Drops[i];
-
-  for i := 0 to High(Drops) do
-    if ItemInfo.GetHighAlchemyProfit(Drops[i]) > 500 then
-      AlchableDrops += Drops[i];
-
-  for i := 0 to High(AlchableDrops) do
-    if GoodDrops.Find(AlchableDrops[i]) < 0 then
-        GoodDrops += AlchableDrops[i];
-
-  for i := 0 to High(MonsterInfo.NotedDrops) do
-    if GoodDrops.Find(MonsterInfo.NotedDrops[i]) < 0 then
-      GoodDrops += MonsterInfo.NotedDrops[i];
+  begin
+    if Drops[i].Noted then
+      GoodDrops += Drops[i].Item
+    else if (ItemData.GetHighAlchProfit(Drops[i].ID) > 500) then
+    begin
+      if RSAction.AlchItemArray.Find(Drops[i].Item) < 0 then
+        RSAction.AlchItemArray += Drops[i].Item;
+      GoodDrops += Drops[i].Item;
+    end
+    else if ItemData.GetAverage(Drops[i].ID) >= ValueThreshold then
+      GoodDrops += Drops[i].Item;
+  end;
 
   LootGItem.SetupCommon;
   LootGItem.Filter.Finder := False;
 
   for i := 0 to High(GoodDrops) do
-    LootGItem.UpText += MonsterInfo.DropStrings[Drops.Find(GoodDrops[i])];
+    LootGItem.UpText += ToStr(GoodDrops[i]);
 end;
 
 procedure TRSMonster.ResetGoodDrops;
 var
-  MonsterInfo: TRSMonsterInfo;
   i: Int32;
 begin
   GoodDrops := [];
   LootGItem := [];
-  MonsterInfo.Setup(MonsterName);
-
-  for i := 0 to High(MonsterInfo.DropIDs) do
-    Drops += MonsterInfo.DropIDs[i];
+  Drops := MonsterData.GetDrops(MonsterName);
 
   for i := 0 to High(Drops) do
-    if ItemInfo.GetAveragePrice(Drops[i]) >= ValueThreshold then
-      GoodDrops += Drops[i];
-
-  for i := 0 to High(Drops) do
-    if ItemInfo.GetHighAlchemyProfit(Drops[i]) > 500 then
-      if GoodDrops.Find(Drops[i]) < 0 then
-        GoodDrops += Drops[i];
-
-  for i := 0 to High(MonsterInfo.NotedDrops) do
-    if GoodDrops.Find(MonsterInfo.NotedDrops[i]) < 0 then
-      GoodDrops += MonsterInfo.NotedDrops[i];
+  begin
+    if Drops[i].Noted then
+      GoodDrops += Drops[i].Item
+    else if (ItemData.GetHighAlchProfit(Drops[i].ID) > 500) then
+    begin
+      if RSAction.AlchItemArray.Find(Drops[i].Item) < 0 then
+        RSAction.AlchItemArray += Drops[i].Item;
+      GoodDrops += Drops[i].Item;
+    end
+    else if ItemData.GetAverage(Drops[i].ID) >= ValueThreshold then
+      GoodDrops += Drops[i].Item;
+  end;
 
   LootGItem.SetupCommon;
   LootGItem.Filter.Finder := False;
 
   for i := 0 to High(GoodDrops) do
-    LootGItem.UpText += MonsterInfo.DropStrings[Drops.Find(GoodDrops[i])];
+    LootGItem.UpText += ToStr(GoodDrops[i]);
 end;
 
-function TRSMonster.CheckLoot(B: TBox): Boolean;
+
+function TRSMonster._HandleLooting: Boolean;
 var
   Str: String;
 begin
-  Mouse.Move(B);
-
   if not MainScreen.IsUpText('Take') then
     Exit;
 
@@ -132,4 +127,18 @@ begin
 
     ChooseOption.Select(Str.After('noted '));
   end;
+end;
+
+function TRSMonster.CheckLoot(P: TPoint): Boolean;
+begin
+  Mouse.Move(P);
+
+  Result := Self._HandleLooting;
+end;
+
+function TRSMonster.CheckLoot(B: TBox): Boolean; overload;
+begin
+  Mouse.Move(P);
+
+  Result := Self._HandleLooting;
 end;

@@ -1,0 +1,384 @@
+{$DEFINE WL_DATA_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+const
+  MONSTER_NAMES_FILE  = {$macro CURRENT_DIRECTORY} + '/monster-names';
+  MONSTERS_JSON  = {$macro CURRENT_DIRECTORY} + '/monsters.json';
+
+type
+  TRSItemData = record(TSRLBaseRecord)
+    ItemNames: TStringList;
+    WikiData: TJSONObject;
+    OSRSBoxData: TJSONObject;
+    ReloadTimer: TCountDown;
+    WikiPriceIsSetup: Boolean;
+    OSRSBoxIsSetup: Boolean;
+  end;
+
+  ERSMonsterAttackType = (
+    MELEE_ATTACK, RANGED_ATTACK, MAGIC_ATTACK, TYPELESS_ATTACK
+  );
+
+  TRSMonsterDrop = record
+    Item: String;
+    ID: String;
+    Noted: Boolean;
+  end;
+
+  TRSMonsterData = record(TSRLBaseRecord)
+    MonsterNames: TStringList;
+    CurrentMonster: String;
+    Data: TJSONObject;
+    Size: Int32;
+    Hitpoints: Int32;
+    MaxHit: Int32;
+    AttackTypes: array of ERSMonsterAttackType;
+    Drops: array of TRSMonsterDrop;
+    IsSetup: Boolean;
+  end;
+
+procedure TRSItemData.Free;
+begin
+  ItemNames.Free;
+  WikiData.Free;
+end;
+
+
+procedure TRSItemData.SetupWikiPrices;
+begin
+  if not WikiPriceIsSetup then
+  begin
+    Name := 'ItemData';
+    ItemNames.Init;
+    ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
+    ItemNames.SetSorted(True);
+
+    AddOnTerminate(@Self.Free);
+    WikiPriceIsSetup := True;
+    ReloadTimer.Setup(1200000);
+  end;
+
+  DebugLn('Loading item prices from the wiki API.');
+  WikiData.Init(GetPage('https://prices.runescape.wiki/api/v1/osrs/latest'));
+  ReloadTimer.Restart;
+end;
+
+function TRSItemData.GetIDs(Item: String): TStringArray;
+type
+  TStringList = TStringList;
+
+  function TStringList.NameFromIndex(Index: Int32): String; override;
+  begin
+    if (Index >= 0) and (Index < Self.GetCount()) then
+      Result := Self.GetStrings(Index).Before('=');
+  end;
+
+  function TStringList.ValueFromIndex(Index: Int32): String; override;
+  begin
+    if (Index >= 0) and (Index < Self.GetCount()) then
+      Result := Self.GetStrings(Index).After('=');
+  end;
+
+var
+  ItemID: Int32;
+begin
+  if Item.IsDigit then
+    Result := Result + Item
+  else
+  begin
+    ItemID := Self.ItemNames.IndexOfName(Item);
+    while SameText(Item, Self.ItemNames.NameFromIndex(ItemID)) do
+    begin
+      Result := Result + Self.ItemNames.ValueFromIndex(ItemID);
+
+      Inc(ItemID);
+    end;
+  end;
+end;
+
+function TRSItemData.GetData(Item: String): TJSONObject;
+begin
+  if not WikiPriceIsSetup then
+    Self.SetupWikiPrices;
+
+  DebugLn('Getting ' + Item + ' data from OSRSBox API.');
+  OSRSBoxData.Init(GetPage('https://www.osrsbox.com/osrsbox-db/items-json/' + Item + '.json'));
+  Result := OSRSBoxData;
+
+  if not OSRSBoxIsSetup then
+  begin
+    AddOnTerminate(@OSRSBoxData.Free);
+    OSRSBoxIsSetup := True;
+  end;
+end;
+
+function TRSItemData.GetTradeableID(Item: TRSItem): String;
+var
+  IDs: TStringArray;
+begin
+  if not WikiPriceIsSetup then
+    Self.SetupWikiPrices;
+
+  IDs := Self.GetIDs(Item);
+  for Result in IDs do
+  begin
+    if Self.GetData(Result).getBoolean('tradeable_on_ge') then
+      Exit(Result);
+  end;
+
+  Result := IDs[0];
+end;
+
+function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
+begin
+  if ReloadTimer.IsPaused or ReloadTimer.IsFinished then
+    Self.SetupWikiPrices;
+
+  Result := WikiData.getJSONObject('data').getJSONObject(Self.GetTradeableID(Item));
+end;
+
+
+function TRSItemData.GetHigh(Item: TRSItem): Int32;
+begin
+  Result := Self.GetPrice(Item).getInt('high');
+end;
+
+function TRSItemData.GetLow(Item: TRSItem): Int32;
+begin
+  Result := Self.GetPrice(Item).getInt('low');
+end;
+
+function TRSItemData.GetAverage(Item: TRSItem): Int32;
+var
+  Low, High: Int32;
+begin
+  Low := Self.GetLow(Item);
+  High := Self.GetHigh(Item);
+
+  if (Low = 0) and (High = 0) then
+    Exit;
+
+  if High = 0 then
+    Result := Low
+  else if Low = 0 then
+    Result := High
+  else
+    Result := Round((High + Low) / 2);
+end;
+
+
+function TRSItemData.GetCost(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  Result := Self.GetData(Str).getInt('cost');
+end;
+
+function TRSItemData.GetLowAlch(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  Result := Self.GetData(Str).getInt('lowalch');
+end;
+
+function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  Result := Self.GetData(Str).getInt('highalch');
+end;
+
+function TRSItemData.GetBuyLimit(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  Result := Self.GetData(Str).getInt('buy_limit');
+end;
+
+
+function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  Result := Self.GetHighAlch(Str) - Self.GetAverage(Item) - Self.GetAverage('561');
+end;
+
+function TRSItemData.GetLowAlchProfit(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  Result := Self.GetLowAlch(Str) - Self.GetAverage(Item) - Self.GetAverage('561');
+end;
+
+var
+  ItemData: TRSItemData;
+
+function TRSMonsterData.GetIDs(Monster: String): TStringArray;
+type
+  TStringList = TStringList;
+
+  function TStringList.NameFromIndex(Index: Int32): String; override;
+  begin
+    if (Index >= 0) and (Index < Self.GetCount()) then
+      Result := Self.GetStrings(Index).Before('=');
+  end;
+
+  function TStringList.ValueFromIndex(Index: Int32): String; override;
+  begin
+    if (Index >= 0) and (Index < Self.GetCount()) then
+      Result := Self.GetStrings(Index).After('=');
+  end;
+
+var
+  MonsterID: Int32;
+begin
+  if Monster.IsDigit then
+    Result := Result + Monster
+  else
+  begin
+    MonsterID := Self.MonsterNames.IndexOfName(Monster);
+    while SameText(Monster, Self.MonsterNames.NameFromIndex(MonsterID)) do
+    begin
+      Result := Result + Self.MonsterNames.ValueFromIndex(MonsterID);
+
+      Inc(MonsterID);
+    end;
+  end;
+end;
+
+function TRSMonsterData.GetID(Monster: String): String;
+var
+  IDs: TStringArray := Self.GetIDs(Monster);
+begin
+  if IDs <> [] then
+    Result := IDs[0];
+end;
+
+procedure TRSMonsterData.Free;
+begin
+  MonsterNames.Free;
+  Data.Free;
+end;
+
+procedure TRSMonsterData.Setup;
+begin
+  if not IsSetup then
+  begin
+    Name := 'MonsterData';
+
+    MonsterNames.Init;
+    MonsterNames.LoadFromFile(MONSTER_NAMES_FILE);
+    MonsterNames.SetSorted(True);
+
+    AddOnTerminate(@Data.Free);
+    IsSetup := True;
+  end;
+
+  DebugLn('Loading monsters.json.');
+
+  Data.Init(ReadFileContents(MONSTERS_JSON));
+end;
+
+
+function TRSMonsterData.GetInt(Monster, Key: String): Int32;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  Result := Data.getJSONObject(Self.GetID(Monster)).getInt(Key);
+end;
+
+function TRSMonsterData.GetDouble(Monster, Key: String): Double;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  Result := Data.getJSONObject(Self.GetID(Monster)).getDouble(Key);
+end;
+
+function TRSMonsterData.GetString(Monster, Key: String): String;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  Result := Data.getJSONObject(Self.GetID(Monster)).getString(Key);
+end;
+
+function TRSMonsterData.GetBoolean(Monster, Key: String): Boolean;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  Result := Data.getJSONObject(Self.GetID(Monster)).getBoolean(Key);
+end;
+
+function TRSMonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  Result := Data.getJSONObject(Self.GetID(Monster)).getJSONArray(Key);
+end;
+
+function TRSMonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  Result := Data.getJSONObject(Self.GetID(Monster)).getJSONObject(Key);
+end;
+
+function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSMonsterAttackType;
+var
+  JSONArray: TJSONArray;
+  i: Int32;
+  StrArray: TStringArray;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  JSONArray := Self.GetJSONArray(Monster, 'attack_type');
+
+  for i := 0 to JSONArray.length - 1 do
+    case JSONArray.getString(i) of
+      'stab', 'slash', 'crush':
+        Result += ERSMonsterAttackType.MELEE_ATTACK;
+      'ranged':
+        Result += ERSMonsterAttackType.RANGED_ATTACK;
+      'magic':
+        Result += ERSMonsterAttackType.MAGIC_ATTACK;
+      'typeless':
+        Result += ERSMonsterAttackType.TYPELESS_ATTACK;
+    end;
+end;
+
+function TRSMonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
+begin
+  Result.ID := DropJSON.getString('id');
+  Result.Item := DropJSON.getString('name');
+  Result.Noted := DropJSON.getBoolean('noted');
+end;
+
+function TRSMonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
+var
+  JSONArray: TJSONArray;
+  i: Int32;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  JSONArray := Self.GetJSONArray(Monster, 'drops');
+
+  for i := 0 to JSONArray.length - 1 do
+    Result += Self.GetDrop(JSONArray.getJSONObject(i));
+end;
+
+var
+  MonsterData: TRSMonsterData;
+
+begin
+  ItemData.SetupWikiPrices;
+  MonsterData.Setup;
+end;

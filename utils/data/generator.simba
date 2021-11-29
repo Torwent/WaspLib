@@ -1,0 +1,49 @@
+// Takes a few mins.
+
+const
+  MONSTER_NAMES_FILE  = {$macro CURRENT_DIRECTORY} + '/monster-names';
+  MONSTERS_JSON  = {$macro CURRENT_DIRECTORY} + '/monsters.json';
+
+var
+  Data, NPC: TJSONObject;
+  Keys, OutputJSON, Output: TStringList;
+  Name, ID: String;
+  I: Int32;
+begin
+  DeleteFile(MONSTERS_JSON);
+  DeleteFile(MONSTER_NAMES_FILE);
+
+  OutputJSON.Init;
+  OutputJSON.Add('{');
+
+  Output.Init;
+  Data.Init(GetPage('https://raw.githubusercontent.com/osrsbox/osrsbox-db/master/docs/monsters-complete.json'));
+
+  Keys := Data.Keys;
+
+  for I := 0 to Keys.GetCount() - 1 do
+  begin
+    if (I mod 100 = 0) then
+      WriteLn(I, '/', Keys.GetCount);
+
+    NPC := Data.GetJSONObject(Keys.GetStrings(I));
+
+    if NPC.getBoolean('duplicate') then
+      Continue;
+
+    ID := NPC.GetString('id');
+
+    OutputJSON.Add('"' + ID + '": ' + StringReplace(NPC.ToString, '\u0020', ' ', [rfReplaceAll]) + ',');
+    Name := LowerCase(NPC.GetString('name'));
+
+    Output.Add(Name + '=' + ID);
+  end;
+  OutputJSON.Add('}');
+
+  OutputJSON.SaveToFile(MONSTERS_JSON);
+  Output.SaveToFile(MONSTER_NAMES_FILE);
+
+  OutputJSON.Free;
+  Output.Free;
+  Data.Free;
+end.

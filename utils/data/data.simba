@@ -117,45 +117,47 @@ end;
 function TRSItemData.GetTradeableID(Item: TRSItem): String;
 var
   IDs: TStringArray;
+  ID: String;
 begin
   if not WikiPriceIsSetup then
     Self.SetupWikiPrices;
 
   IDs := Self.GetIDs(Item);
-  for Result in IDs do
+  for ID in IDs do
   begin
-    if Self.GetData(Result).getBoolean('tradeable_on_ge') then
-      Exit(Result);
+    if Self.GetData(ID).getBoolean('tradeable_on_ge') then
+      Exit(ID);
   end;
-
-  Result := IDs[0];
 end;
 
 function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
+var
+  ID: String;
 begin
   if ReloadTimer.IsPaused or ReloadTimer.IsFinished then
     Self.SetupWikiPrices;
 
-  Result := WikiData.getJSONObject('data').getJSONObject(Self.GetTradeableID(Item));
+  ID := Self.GetTradeableID(Item);
+
+  if ID <> '' then
+    Result := WikiData.getJSONObject('data').getJSONObject(ID);
 end;
 
 
-function TRSItemData.GetHigh(Item: TRSItem): Int32;
+function TRSItemData.GetWikiInt(Item: TRSItem; Key: String): Int32;
+var
+  JSONObject: TJSONObject := Self.GetPrice(Item);
 begin
-  Result := Self.GetPrice(Item).getInt('high');
-end;
-
-function TRSItemData.GetLow(Item: TRSItem): Int32;
-begin
-  Result := Self.GetPrice(Item).getInt('low');
+  if JSONObject <> [] then
+    Result := JSONObject.getInt(Key);
 end;
 
 function TRSItemData.GetAverage(Item: TRSItem): Int32;
 var
   Low, High: Int32;
 begin
-  Low := Self.GetLow(Item);
-  High := Self.GetHigh(Item);
+  Low := Self.GetWikiInt(Item, 'low');
+  High := Self.GetWikiInt(Item, 'high');
 
   if (Low = 0) and (High = 0) then
     Exit;
@@ -169,32 +171,20 @@ begin
 end;
 
 
-function TRSItemData.GetCost(Item: TRSItem): Int32;
+function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
 var
-  Str: String := Self.GetTradeableID(Item);
+  Str: String;
 begin
-  Result := Self.GetData(Str).getInt('cost');
-end;
+  Str := Self.GetTradeableID(Item);
+  if Str = '' then
+    Exit;
 
-function TRSItemData.GetLowAlch(Item: TRSItem): Int32;
-var
-  Str: String := Self.GetTradeableID(Item);
-begin
-  Result := Self.GetData(Str).getInt('lowalch');
-end;
+  Str := Self.GetData(Str).getString(Key);
 
-function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
-var
-  Str: String := Self.GetTradeableID(Item);
-begin
-  Result := Self.GetData(Str).getInt('highalch');
-end;
-
-function TRSItemData.GetBuyLimit(Item: TRSItem): Int32;
-var
-  Str: String := Self.GetTradeableID(Item);
-begin
-  Result := Self.GetData(Str).getInt('buy_limit');
+  if Str.Contains('null') then
+    Result := 0
+  else
+    Result := StrToInt(Str);
 end;
 
 
@@ -202,14 +192,18 @@ function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
 var
   Str: String := Self.GetTradeableID(Item);
 begin
-  Result := Self.GetHighAlch(Str) - Self.GetAverage(Item) - Self.GetAverage('561');
+  if Str <> '' then
+    Result := Self.GetOSRSBoxInt(Str, 'highalch') -
+              Self.GetAverage(Item) - Self.GetAverage('561');
 end;
 
 function TRSItemData.GetLowAlchProfit(Item: TRSItem): Int32;
 var
   Str: String := Self.GetTradeableID(Item);
 begin
-  Result := Self.GetLowAlch(Str) - Self.GetAverage(Item) - Self.GetAverage('561');
+  if Str <> '' then
+    Result := Self.GetOSRSBoxInt(Str, 'lowalch') -
+              Self.GetAverage(Item) - Self.GetAverage('561');
 end;
 
 var

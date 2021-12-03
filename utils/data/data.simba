@@ -24,7 +24,9 @@ type
   TRSMonsterDrop = record
     Item: String;
     ID: String;
+    Stackable: Boolean;
     Noted: Boolean;
+    Quantity: Int32;
   end;
 
   TRSMonsterData = record(TSRLBaseRecord)
@@ -103,6 +105,10 @@ begin
   if not WikiPriceIsSetup then
     Self.SetupWikiPrices;
 
+  if Item = '' then
+    Exit;
+
+  DisableDebugging := True;
   DebugLn('Getting ' + Item + ' data from OSRSBox API.');
   OSRSBoxData.Init(GetPage('https://www.osrsbox.com/osrsbox-db/items-json/' + Item + '.json'));
   Result := OSRSBoxData;
@@ -121,6 +127,9 @@ var
 begin
   if not WikiPriceIsSetup then
     Self.SetupWikiPrices;
+
+  if VarToStr(Item) = '' then
+    Exit;
 
   IDs := Self.GetIDs(Item);
   for ID in IDs do
@@ -154,8 +163,15 @@ end;
 
 function TRSItemData.GetAverage(Item: TRSItem): Int32;
 var
+  ItemStr: String := VarToStr(Item).Lower;
   Low, High: Int32;
 begin
+  if ItemStr.Contains(
+    ['coins', '995', '996', '997',
+     '998', '999', '1000', '1001',
+     '1002', '1003', '1004']) then
+    Exit(1);
+
   Low := Self.GetWikiInt(Item, 'low');
   High := Self.GetWikiInt(Item, 'high');
 
@@ -187,6 +203,25 @@ begin
     Result := StrToInt(Str);
 end;
 
+function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
+var
+  Str: String;
+begin
+  Str := Self.GetTradeableID(Item);
+  if Str = '' then
+    Exit;
+
+  Result := Self.GetData(Str).getBoolean(Key);
+end;
+
+
+function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
+var
+  Str: String := Self.GetTradeableID(Item);
+begin
+  if Str <> '' then
+    Result := Self.GetOSRSBoxInt(Str, 'highalch') - Self.GetAverage('561');
+end;
 
 function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
 var
@@ -328,7 +363,6 @@ function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSMonsterAtta
 var
   JSONArray: TJSONArray;
   i: Int32;
-  StrArray: TStringArray;
 begin
   if not IsSetup then
     Self.Setup;
@@ -349,9 +383,18 @@ begin
 end;
 
 function TRSMonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
+var
+  Str: String;
 begin
   Result.ID := DropJSON.getString('id');
   Result.Item := DropJSON.getString('name');
+  Str := DropJSON.getString('quantity');
+  if Str.Contains('-') then
+  begin
+    Result.Quantity := Round(StrToInt(Str.Before('-')) + StrToInt(Str.After('-')) / 2);
+  end
+  else
+    Result.Quantity := StrToInt(Str);
   Result.Noted := DropJSON.getBoolean('noted');
 end;
 
@@ -359,14 +402,27 @@ function TRSMonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
 var
   JSONArray: TJSONArray;
   i: Int32;
+  Drop: TRSMonsterDrop;
 begin
   if not IsSetup then
     Self.Setup;
 
+  DebugLn('Loading ' + Monster + ' drops, this might take up to a 1 minute.');
+
   JSONArray := Self.GetJSONArray(Monster, 'drops');
 
   for i := 0 to JSONArray.length - 1 do
-    Result += Self.GetDrop(JSONArray.getJSONObject(i));
+  begin
+    Drop := [];
+    Drop := Self.GetDrop(JSONArray.getJSONObject(i));
+
+    if Drop.ID.Contains(['995', '996', '997', '998', '999', '1000', '1001',
+                         '1002', '1003', '1004']) then
+      Drop.Stackable := True
+    else
+      Drop.Stackable := ItemData.GetOSRSBoxBoolean(Drop.ID, 'stackable');
+    Result += Drop;
+  end;
 end;
 
 var

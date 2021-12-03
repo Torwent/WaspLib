@@ -1,3 +1,28 @@
+# [5.0.0](https://github.com/Torwent/WaspLib/compare/v4.2.0...v5.0.0) (2021-12-03)
+
+
+### Bug Fixes
+
+* several fixes to ItemData and MonsterData ([fa371d4](https://github.com/Torwent/WaspLib/commit/fa371d45d4e1fa2ea86bf27bdb0fd635b5c14379))
+* **ConsumeManager:** improve trash handling ([6edcd8d](https://github.com/Torwent/WaspLib/commit/6edcd8d3a0bba0fc9617f6fe27d2371931a39c65))
+* **MainScreen:** fixed .FindGrave ([c23311b](https://github.com/Torwent/WaspLib/commit/c23311bffaa3b03bf0cd26828d78dba34ab366db))
+* **RSMonster:** fix stall loading uneeded monster drops. ([de5b94c](https://github.com/Torwent/WaspLib/commit/de5b94cf375afaae499b59979f3087e34e8a609d))
+* changed interface checking ([bd5869d](https://github.com/Torwent/WaspLib/commit/bd5869dfaa1574823adeb2f540fb0ef75ba65d93))
+* fixed several flaws the new ItemData ([1c225d9](https://github.com/Torwent/WaspLib/commit/1c225d99bf8ca1c1f79c1f0a27a8e241fff91cbb))
+
+
+### Features
+
+* more improvements to rsmonsters ([61d02a1](https://github.com/Torwent/WaspLib/commit/61d02a17f9c4dac8dd4747f2d251e6a248299b6b))
+* reworked and renamed ItemInfo and MonsterInfo ([0b76628](https://github.com/Torwent/WaspLib/commit/0b76628d7ce58314599a6c874bea7a96649d3f17))
+
+
+### BREAKING CHANGES
+
+* ItemInfo was renamed to ItemData and MonsterInfo to MonsterData which makes more sense.
+
+
+
 # [4.2.0](https://github.com/Torwent/WaspLib/compare/v4.1.1...v4.2.0) (2021-11-28)
 
 
@@ -42,31 +67,6 @@
 ### Bug Fixes
 
 * **ItemFinder:** Better item image overriding ([fad98f7](https://github.com/Torwent/WaspLib/commit/fad98f73bb903bb759a892533543f9cf910f8f98))
-
-
-
-# [4.0.0](https://github.com/Torwent/WaspLib/compare/v3.4.1...v4.0.0) (2021-11-22)
-
-
-### Bug Fixes
-
-* **ConsumableManagers:** fixed some issues with multiple dose items. ([e0b3912](https://github.com/Torwent/WaspLib/commit/e0b3912775a23bdeecd544ae4a2b12a726eb228d))
-* total profit now discounts consumables ([91fe28a](https://github.com/Torwent/WaspLib/commit/91fe28abbf15784f2797434be1c27c4f0cd5fbbf))
-* **ConsumableHandler:** now fully working ([77b1314](https://github.com/Torwent/WaspLib/commit/77b13141cd7a06cb1a6399ccd00fa58a3697bc52))
-* **inventory:** now we can properly deselect an item ([a2db532](https://github.com/Torwent/WaspLib/commit/a2db532fac0f953a1c9ad00d367973abcacf23d4))
-
-
-### Features
-
-* **antiban:** spam clicking probability ([34730fa](https://github.com/Torwent/WaspLib/commit/34730fa3bdfb16c46548e737b9a70130735b60c4))
-* ConsumableHandler ([0c750e2](https://github.com/Torwent/WaspLib/commit/0c750e272433695eed992c142d9ae7f82941e600))
-* Multiple consumable managers. ([bfdd7ba](https://github.com/Torwent/WaspLib/commit/bfdd7ba72a4eb79dc4b6e0f89cfbd5f38f761bee))
-* TRSItemArray.Extend ([9fa2857](https://github.com/Torwent/WaspLib/commit/9fa28573786c308fdffbbd65c491fe185e14ea89))
-
-
-### BREAKING CHANGES
-
-* **ConsumableManagers:** New consumable .managers are not compatible with the old food handler.
 
 
 

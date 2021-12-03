@@ -28,9 +28,11 @@ type
   PRSMonster = ^TRSMonster;
   PRSMonsterArray = array of PRSMonster;
 
+
+
 procedure TRSMonster.SetupCommon(Name: String); overload;
 var
-  i, Size: Int32;
+  Size: Int32;
 begin
   MonsterName := Name;
 
@@ -49,75 +51,57 @@ begin
   else
     ShapeArray := [[[], [Size/2, Size/2, 0]]];
   AttackTypes := MonsterData.GetAttackTypes(Name);
-
-  ValueThreshold := 10000;
-
-  Drops := MonsterData.GetDrops(Name);
-
-  for i := 0 to High(Drops) do
-  begin
-    if Drops[i].Noted then
-      GoodDrops += Drops[i].Item
-    else if (ItemData.GetHighAlchProfit(Drops[i].ID) > 500) then
-    begin
-      if RSAction.AlchItemArray.Find(Drops[i].Item) < 0 then
-        RSAction.AlchItemArray += Drops[i].Item;
-      GoodDrops += Drops[i].Item;
-    end
-    else if ItemData.GetAverage(Drops[i].ID) >= ValueThreshold then
-      GoodDrops += Drops[i].Item;
-  end;
-
-  LootGItem.SetupCommon;
-  LootGItem.Filter.Finder := False;
-
-  for i := 0 to High(GoodDrops) do
-    LootGItem.UpText += ToStr(GoodDrops[i]);
 end;
 
-procedure TRSMonster.ResetGoodDrops;
+procedure TRSMonster.SetupDrops;
 var
   i: Int32;
 begin
   GoodDrops := [];
   LootGItem := [];
-  Drops := MonsterData.GetDrops(MonsterName);
-
-  for i := 0 to High(Drops) do
-  begin
-    if Drops[i].Noted then
-      GoodDrops += Drops[i].Item
-    else if (ItemData.GetHighAlchProfit(Drops[i].ID) > 500) then
-    begin
-      if RSAction.AlchItemArray.Find(Drops[i].Item) < 0 then
-        RSAction.AlchItemArray += Drops[i].Item;
-      GoodDrops += Drops[i].Item;
-    end
-    else if ItemData.GetAverage(Drops[i].ID) >= ValueThreshold then
-      GoodDrops += Drops[i].Item;
-  end;
 
   LootGItem.SetupCommon;
   LootGItem.Filter.Finder := False;
 
-  for i := 0 to High(GoodDrops) do
-    LootGItem.UpText += ToStr(GoodDrops[i]);
+  Drops := MonsterData.GetDrops(MonsterName);
+
+  for i := 0 to High(Drops) do
+  begin
+    if Drops[i].Noted and
+      ((ItemData.GetAverage(Drops[i].ID) * Drops[i].Quantity) >= (ValueThreshold/5)) then
+    begin
+      GoodDrops += Drops[i].Item;
+      LootGItem.Item +=  'noted ' + Drops[i].Item;
+      LootGItem.UpText += Drops[i].Item;
+    end
+    else if Drops[i].Stackable and
+      ((ItemData.GetAverage(Drops[i].ID) * Drops[i].Quantity) >= (ValueThreshold/5)) or
+      (ItemData.GetHighAlch(Drops[i].ID) > 500) or
+      (ItemData.GetAverage(Drops[i].ID) >= ValueThreshold) then
+    begin
+      GoodDrops += Drops[i].Item;
+      LootGItem.Item += Drops[i].Item;
+      LootGItem.UpText += Drops[i].Item;
+    end;
+  end;
 end;
 
 
 function TRSMonster._HandleLooting: Boolean;
-var
-  Str: String;
 begin
   if not MainScreen.IsUpText('Take') then
     Exit;
 
   ChooseOption.Open;
+
   if not ChooseOption.HasOption(LootGItem.UpText) then
     Exit;
 
+  Result := ChooseOption.Select(LootGItem.UpText);
+  (*
   for Str in LootGItem.UpText do
   begin
+    WriteLn Str;
     if Inventory.IsFull then
     begin
       if (not Str.Contains('noted') or not Inventory.FindItem(Str)) then
@@ -125,8 +109,9 @@ begin
       //TODO! EAT OR DROP SOMETHING!
     end;
 
-    ChooseOption.Select(Str.After('noted '));
+    ChooseOption.Select(Str.After('noted '), MOUSE_LEFT, False);
   end;
+  *)
 end;
 
 function TRSMonster.CheckLoot(P: TPoint): Boolean;

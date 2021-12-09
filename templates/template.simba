@@ -42,13 +42,13 @@ end;
 procedure TScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   Name := 'Template Script';
-  Version := 'v1.0.0';
 
   inherited;
 
   RSW.Setup('mainland');
 
-  if not RSClient.IsLoggedIn then Login.LoginPlayer;
+  if not RSClient.IsLoggedIn then
+    Login.LoginPlayer;
 end;
 
 function TScript.GetState: EState;
@@ -61,24 +61,22 @@ begin
   ClearDebug;
   Self.Init(MaxActions, MaxTime);
 
-  while True do
+  while not Self.ShouldStop do
   begin
     State := Self.GetState;
     Action := ToStr(State);
     Self.ProcessWhileWaiting;
-
-    if ScriptDebugEnabled then SRL.Debug(RSClient.Image);
 
     case State of
       WAIT_STATE: Wait(500, 800);
     end;
 
     Self.DoAntiban;
-    if not RSClient.IsLoggedIn then Login.LoginPlayer;
   end;
 end;
 
-var Script: TScript;
+var
+  Script: TScript;
 
 type
   TConfig = record(TScriptConfig)
@@ -90,6 +88,9 @@ begin
   Self.Init(Sender);
 
   CurrentTask := ETask(Selector.Combobox.getItemIndex);
+
+  MaxActions := StrToInt(Self.ActionLimit.GetText);
+  MaxTime    := StrToInt64(Self.TimeLimit.GetText);
 end;
 
 procedure TConfig.Setup; override;
@@ -118,7 +119,8 @@ begin
   inherited;
 end;
 
-var Config: TConfig;
+var
+  Config: TConfig;
 
 begin
   {$IFDEF SCRIPT_GUI}

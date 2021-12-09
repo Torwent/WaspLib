@@ -138,6 +138,9 @@ begin
   finally
     TimeRunning.Resume;
     WL.Activity.Resume;
+
+    if not RSClient.IsLoggedIn then
+      Login.LoginPlayer;
   end;
 end;
 
@@ -909,12 +912,23 @@ end;
 function TRSInventory.Consume(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
 var
   HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
-  i, j: Int32;
+  i, j, StartingPoints: Int32;
   LastConsumable: TRSConsumable;
   TrashSlots: TIntegerArray;
 begin
   if not HandlerManager^.IsSetup then
     Exit;
+
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE:
+      StartingPoints := Minimap.GetHPLevel;
+
+    ERSConsumable.PRAYER_CONSUMABLE:
+      StartingPoints := Minimap.GetPrayerLevel;
+
+    ERSConsumable.ENERGY_CONSUMABLE:
+      StartingPoints := Minimap.GetRunEnergy;
+  end;
 
   for i := 0 to High(HandlerManager^.Handlers) do
   begin
@@ -926,6 +940,18 @@ begin
   end;
 
   Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+
+  if Result then
+    case ConsumableType of
+      ERSConsumable.HEALTH_CONSUMABLE:
+        Result := WaitUntil(StartingPoints < Minimap.GetHPLevel, 100, 3000);
+
+      ERSConsumable.PRAYER_CONSUMABLE:
+        Result := WaitUntil(StartingPoints < Minimap.GetPrayerLevel, 100, 3000);
+
+      ERSConsumable.ENERGY_CONSUMABLE:
+        Result := WaitUntil(StartingPoints < Minimap.GetRunEnergy, 100, 3000);
+    end;
 
   if Result then
   begin

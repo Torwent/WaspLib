@@ -1,3 +1,12 @@
+## [5.0.1](https://github.com/Torwent/WaspLib/compare/v5.0.0...v5.0.1) (2021-12-09)
+
+
+### Bug Fixes
+
+* testing the new sliders. Need to update SRL ([808de0b](https://github.com/Torwent/WaspLib/commit/808de0b2cf61557408320d8bad8e67b9d3917fa5))
+
+
+
 # [5.0.0](https://github.com/Torwent/WaspLib/compare/v4.2.0...v5.0.0) (2021-12-03)
 
 
@@ -58,15 +67,6 @@
 ### Features
 
 * **TRSDoor:** New record to handle doors ([f7c5097](https://github.com/Torwent/WaspLib/commit/f7c509746f0d816aeadfc1baab15fbfa5a1c473f))
-
-
-
-## [4.0.1](https://github.com/Torwent/WaspLib/compare/v4.0.0...v4.0.1) (2021-11-24)
-
-
-### Bug Fixes
-
-* **ItemFinder:** Better item image overriding ([fad98f7](https://github.com/Torwent/WaspLib/commit/fad98f73bb903bb759a892533543f9cf910f8f98))
 
 
 

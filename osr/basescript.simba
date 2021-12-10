@@ -399,9 +399,49 @@ begin
 end;
 
 
+//WeaponData
+type
+  TRSWeaponData = record(TSRLBaseRecord)
+    WikiSpecAttacks: String;
+
+    IsSetup: Boolean;
+  end;
+
+procedure TRSWeaponData.Setup;
+begin
+  if IsSetup then
+    Exit;
+
+  WikiSpecAttacks := GetPage('https://oldschool.runescape.wiki/w/Special_attacks').Lower.After('mw-headline');
+end;
+
+function TRSWeaponData.GetSpec(Weapon: TRSItem): Int32;
+var
+  WeaponStr: String;
+  Str: String;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  WeaponStr := ToStr(Weapon);
+  DebugLn('Getting ' + WeaponStr + ' spec data from the wiki.');
+
+  Str :=  WikiSpecAttacks.After(WeaponStr.Lower);
+
+  if Str = WikiSpecAttacks then
+    Exit(200);
+
+  Result := StrToInt(Str.After('energy used').After('<td>').Before('%'));
+
+  DebugLn(WeaponStr + ' spec setup with ' + ToStr(Result) + '% energy.');
+end;
+
+var
+  WeaponData: TRSWeaponData;
+
 //CombatHandler
 type
-  TCombatHandler = record
+  TCombatHandler = record(TSRLBaseRecord)
     EnemyNPC: PRSNPC;
     InCombatTimer: TCountDown;
     CombatStyle: TRSCombatStyle;
@@ -462,7 +502,8 @@ begin
     'Bow of faerdhinen (c)',
     'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
     'Dragon hunter crossbow', 'Dragon crossbow', 'Rune crossbow',
-    'Adamant dart', 'Mithril dart', 'Rune scimitar', 'Null'
+    'Adamant dart', 'Mithril dart', 'Rune scimitar', 'Dorgeshuun crossbow',
+    'Null'
   ];
 
   Shields := [
@@ -485,45 +526,30 @@ begin
 
   for Weapon in Weapons do
     if (Weapon = 'Null') or Equipment.FindItem(Weapon) then Break;
+  DebugLn('Current weapon: ' + ToStr(Weapon) '.');
 
   for Shield in Shields do
     if (Shield = 'Null') or Equipment.FindItem(Shield) then Break;
+  DebugLn('Current shield: ' + ToStr(Shield) '.');
 
   for SpecWeapon in SpecWeapons do
     if (SpecWeapon = 'Null') or Inventory.FindItem(SpecWeapon) then Break;
+  DebugLn('Current spec weapon: ' + ToStr(SpecWeapon) '.');
 
-  case SpecWeapon of
-    'Dragon claws', 'Granite maul', 'Abyssal dagger',
-    'Abyssal dagger (p++)', 'Dinh''s bulwark', 'Abyssal tentacle',
-    'Magic shortbow (i)', 'Toxic blowpipe', 'Armadyl crossbow':
-      WeaponSpec := 50;
-
-    '4153', '12848', 'Dragon crossbow', 'Granite hammer':
-      WeaponSpec := 60;
-    'Dragon dagger', 'Dragon dagger(p++)', 'Dragon longsword':
-      WeaponSpec := 25;
-    'Dragon sword':
-      WeaponSpec := 40;
-    else
-    begin
-      case Weapon of
-        'Dragon claws', 'Granite maul', 'Abyssal dagger',
-        'Abyssal dagger (p++)', 'Dinh''s bulwark', 'Abyssal tentacle',
-        'Saradomin godsword', 'Magic shortbow (i)', 'Toxic blowpipe',
-        'Armadyl crossbow':
-          WeaponSpec := 50;
-        'Saradomin sword':      WeaponSpec := 100;
-        'Dragon scimitar':      WeaponSpec := 55;
-        'Dragon crossbow', 'Granite hammer':
-          WeaponSpec := 60;
-        'Dragon sword':         WeaponSpec := 40;
-        'Dragon longsword':     WeaponSpec := 25;
-        else
-          WeaponSpec := 200; //never spec
-      end;
-
-      if WeaponSpec < 200 then
-        SpecWeapon := Weapon;
+  if SpecWeapon <> 'Null' then
+  begin
+    case SpecWeapon of
+      'Granite maul': WeaponSpec := 50;
+      '4153', '12848': WeaponSpec := 60;
+      else WeaponSpec := WeaponData.GetSpec(SpecWeapon);
+    end;
+  end
+  else
+  begin
+    case Weapon of
+      'Granite maul': WeaponSpec := 50;
+      '4153', '12848': WeaponSpec := 60;
+      else WeaponSpec := WeaponData.GetSpec(Weapon);
     end;
   end;
 

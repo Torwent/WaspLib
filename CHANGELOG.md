@@ -1,3 +1,18 @@
+# [5.1.0](https://github.com/Torwent/WaspLib/compare/v5.0.1...v5.1.0) (2021-12-13)
+
+
+### Bug Fixes
+
+* forgot to name the record ([65875ee](https://github.com/Torwent/WaspLib/commit/65875eed9715962a73bf2e81022b17b6ec4f8d66))
+* minor fixes to antiban and consuming to repeat less code ([21fb41a](https://github.com/Torwent/WaspLib/commit/21fb41aa55817e70d554beb82a5e25e51fd8c2fc))
+
+
+### Features
+
+* new WeaponData to fetch spec attack values from the wiki ([4ba5c90](https://github.com/Torwent/WaspLib/commit/4ba5c904ee009097d679a8e6b209d62b0314ca92))
+
+
+
 ## [5.0.1](https://github.com/Torwent/WaspLib/compare/v5.0.0...v5.0.1) (2021-12-09)
 
 
@@ -53,20 +68,6 @@
 ### Bug Fixes
 
 * **itemfinder:** item overrides ([77ae075](https://github.com/Torwent/WaspLib/commit/77ae075ae320b1dde932ec1c231437db73162649))
-
-
-
-# [4.1.0](https://github.com/Torwent/WaspLib/compare/v4.0.1...v4.1.0) (2021-11-24)
-
-
-### Bug Fixes
-
-* **ConsumableManagers:** fixed some issues with multiple dose items. ([73bcc33](https://github.com/Torwent/WaspLib/commit/73bcc339e1993b6eeb3b9b721fab7d1e2658928b))
-
-
-### Features
-
-* **TRSDoor:** New record to handle doors ([f7c5097](https://github.com/Torwent/WaspLib/commit/f7c509746f0d816aeadfc1baab15fbfa5a1c473f))
 
 
 

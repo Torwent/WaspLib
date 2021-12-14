@@ -1,3 +1,12 @@
+## [5.1.1](https://github.com/Torwent/WaspLib/compare/v5.1.0...v5.1.1) (2021-12-14)
+
+
+### Bug Fixes
+
+* **Combat Handler:** fix weapons that are spec weapons. ([e256556](https://github.com/Torwent/WaspLib/commit/e256556ca0e68699ab3aeec88b34b36422e4e306))
+
+
+
 # [5.1.0](https://github.com/Torwent/WaspLib/compare/v5.0.1...v5.1.0) (2021-12-13)
 
 
@@ -59,15 +68,6 @@
 
 * **MonsterInfo:** new record to communicate with osrsbox monsters api ([bcf3c43](https://github.com/Torwent/WaspLib/commit/bcf3c43013f6d6c96b375e23fcf0be432ac08a73))
 * **rsmonster:** loot is now setup automatically via osrsbox api. ([d790a9e](https://github.com/Torwent/WaspLib/commit/d790a9e370ca4c4f5addce834d195c8a1827cbb2))
-
-
-
-## [4.1.1](https://github.com/Torwent/WaspLib/compare/v4.1.0...v4.1.1) (2021-11-25)
-
-
-### Bug Fixes
-
-* **itemfinder:** item overrides ([77ae075](https://github.com/Torwent/WaspLib/commit/77ae075ae320b1dde932ec1c231437db73162649))
 
 
 

@@ -28,12 +28,32 @@ Antiban.SetupBiometrics
 This comes straight from older SRL versions.
 This basically sets up our BioHash which is a hash of the current player login username. Because usernames are unique, so will the BioHash.
 *)
+
+type
+  EBioBehavior = (
+    MOUSE_SPEED=1,
+    MOUSE_GRAVITY,
+    MOUSE_WIND,
+    MOUSE_MISS,
+
+    FKEY_CHANCE,            //Chance to use FKeys
+    ESCAPE_CHANCE,          //Chance to use Escape to close interfaces
+    KEYBOARD_CHAT_CHANCE,   //Chance to use to handle chat options with the keyboard.
+
+    REACTION_SPEED,       //Decides how long the player will wait after things like changing tabs, opening choose options menu, etc.
+    SPAM_CLICK_CHANCE,    //Chance to spam click things (walking, eating, etc).
+    DROP_PATTERN
+  );
+
 procedure TAntiban.SetupBiometrics;
 var
   h, i: UInt32;
   k: String;
 begin
   BioHash := BioHashOverride;
+
+  if BioHash = 1 then
+    BioHash := 0.999999999999999;
 
   if BioHash = 0 then
   begin
@@ -49,6 +69,16 @@ begin
   end;
 
   DebugLn('Biohash: ' + ToStr(BioHash));
+end;
+
+function TAntiban.GetBehavior(Behavior: EBioBehavior): Int32;
+begin
+  Result := GetDigit(BioHash, Ord(Behavior));
+end;
+
+function TAntiban.GetChance(Behavior: EBioBehavior): Double;
+begin
+  Result := GetDigit(BioHash, Ord(Behavior)) / 10;
 end;
 
 
@@ -182,6 +212,18 @@ begin
   end;
 end;
 
+function TAntiban.BioDice(Behaviour: EBioBehavior): Boolean; overload;
+var
+  Chance: Double := Self.GetChance(Behaviour);
+begin
+  case Chance of
+    0.0..0.2: Result := False;
+    0.2..0.5: Result := SRL.Dice(Chance * 90);
+    0.5..0.8: Result := SRL.Dice(Chance * 110);
+    else        Result := True;
+  end;
+end;
+
 (*
 Antiban.InvertedBioDice
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -193,4 +235,10 @@ function TAntiban.InvertedBioDice: Boolean;
 begin
   Result := not Self.BioDice;
 end;
+
+function TAntiban.InvertedBioDice(Behaviour: EBioBehavior): Boolean; overload;
+begin
+  Result := not Self.BioDice(Behaviour);
+end;
+
 

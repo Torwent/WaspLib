@@ -1,3 +1,17 @@
+# [5.2.0](https://github.com/Torwent/WaspLib/compare/v5.1.1...v5.2.0) (2021-12-19)
+
+
+### Bug Fixes
+
+* **rsmonster:** better looting ([da19197](https://github.com/Torwent/WaspLib/commit/da19197275d8a951399364ee3cd5f57308b51d89))
+
+
+### Features
+
+* **Antiban:** new biohash system ([4f54b04](https://github.com/Torwent/WaspLib/commit/4f54b04dd908c14414d7737524d99426b2567f9a))
+
+
+
 ## [5.1.1](https://github.com/Torwent/WaspLib/compare/v5.1.0...v5.1.1) (2021-12-14)
 
 
@@ -53,21 +67,6 @@
 ### BREAKING CHANGES
 
 * ItemInfo was renamed to ItemData and MonsterInfo to MonsterData which makes more sense.
-
-
-
-# [4.2.0](https://github.com/Torwent/WaspLib/compare/v4.1.1...v4.2.0) (2021-11-28)
-
-
-### Bug Fixes
-
-* **itemfinder:** more dark block animations ([fd562b1](https://github.com/Torwent/WaspLib/commit/fd562b1111e48fa95438c4d946004568b4adaed6))
-
-
-### Features
-
-* **MonsterInfo:** new record to communicate with osrsbox monsters api ([bcf3c43](https://github.com/Torwent/WaspLib/commit/bcf3c43013f6d6c96b375e23fcf0be432ac08a73))
-* **rsmonster:** loot is now setup automatically via osrsbox api. ([d790a9e](https://github.com/Torwent/WaspLib/commit/d790a9e370ca4c4f5addce834d195c8a1827cbb2))
 
 
 

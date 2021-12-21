@@ -1,3 +1,13 @@
+# [5.3.0](https://github.com/Torwent/WaspLib/compare/v5.2.0...v5.3.0) (2021-12-21)
+
+
+### Features
+
+* **Antiban:** 1000 most common words in several languages ([1c78a45](https://github.com/Torwent/WaspLib/commit/1c78a45b6e4d90d5e2fbd51cde7878f22db97bc8))
+* **minimap:** check if there's dots under the player ([42c85a6](https://github.com/Torwent/WaspLib/commit/42c85a6c4dff9ec483e1caea49a745b762ff743f))
+
+
+
 # [5.2.0](https://github.com/Torwent/WaspLib/compare/v5.1.1...v5.2.0) (2021-12-19)
 
 
@@ -42,31 +52,6 @@
 ### Bug Fixes
 
 * testing the new sliders. Need to update SRL ([808de0b](https://github.com/Torwent/WaspLib/commit/808de0b2cf61557408320d8bad8e67b9d3917fa5))
-
-
-
-# [5.0.0](https://github.com/Torwent/WaspLib/compare/v4.2.0...v5.0.0) (2021-12-03)
-
-
-### Bug Fixes
-
-* several fixes to ItemData and MonsterData ([fa371d4](https://github.com/Torwent/WaspLib/commit/fa371d45d4e1fa2ea86bf27bdb0fd635b5c14379))
-* **ConsumeManager:** improve trash handling ([6edcd8d](https://github.com/Torwent/WaspLib/commit/6edcd8d3a0bba0fc9617f6fe27d2371931a39c65))
-* **MainScreen:** fixed .FindGrave ([c23311b](https://github.com/Torwent/WaspLib/commit/c23311bffaa3b03bf0cd26828d78dba34ab366db))
-* **RSMonster:** fix stall loading uneeded monster drops. ([de5b94c](https://github.com/Torwent/WaspLib/commit/de5b94cf375afaae499b59979f3087e34e8a609d))
-* changed interface checking ([bd5869d](https://github.com/Torwent/WaspLib/commit/bd5869dfaa1574823adeb2f540fb0ef75ba65d93))
-* fixed several flaws the new ItemData ([1c225d9](https://github.com/Torwent/WaspLib/commit/1c225d99bf8ca1c1f79c1f0a27a8e241fff91cbb))
-
-
-### Features
-
-* more improvements to rsmonsters ([61d02a1](https://github.com/Torwent/WaspLib/commit/61d02a17f9c4dac8dd4747f2d251e6a248299b6b))
-* reworked and renamed ItemInfo and MonsterInfo ([0b76628](https://github.com/Torwent/WaspLib/commit/0b76628d7ce58314599a6c874bea7a96649d3f17))
-
-
-### BREAKING CHANGES
-
-* ItemInfo was renamed to ItemData and MonsterInfo to MonsterData which makes more sense.
 
 
 

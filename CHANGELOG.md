@@ -1,3 +1,12 @@
+# [5.4.0](https://github.com/Torwent/WaspLib/compare/v5.3.0...v5.4.0) (2021-12-21)
+
+
+### Features
+
+* new function to check if there's a dying monster in the mainscreen ([3e7a117](https://github.com/Torwent/WaspLib/commit/3e7a117c3f59d9f03f0a517af6acb047a770df98))
+
+
+
 # [5.3.0](https://github.com/Torwent/WaspLib/compare/v5.2.0...v5.3.0) (2021-12-21)
 
 
@@ -43,15 +52,6 @@
 ### Features
 
 * new WeaponData to fetch spec attack values from the wiki ([4ba5c90](https://github.com/Torwent/WaspLib/commit/4ba5c904ee009097d679a8e6b209d62b0314ca92))
-
-
-
-## [5.0.1](https://github.com/Torwent/WaspLib/compare/v5.0.0...v5.0.1) (2021-12-09)
-
-
-### Bug Fixes
-
-* testing the new sliders. Need to update SRL ([808de0b](https://github.com/Torwent/WaspLib/commit/808de0b2cf61557408320d8bad8e67b9d3917fa5))
 
 
 

@@ -3,6 +3,7 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
+//ItemData
 const
   MONSTER_NAMES_FILE  = {$macro CURRENT_DIRECTORY} + '/monster-names';
   MONSTERS_JSON  = {$macro CURRENT_DIRECTORY} + '/monsters.json';
@@ -244,6 +245,8 @@ end;
 var
   ItemData: TRSItemData;
 
+
+//MonsterData
 function TRSMonsterData.GetIDs(Monster: String): TStringArray;
 type
   TStringList = TStringList;
@@ -428,7 +431,51 @@ end;
 var
   MonsterData: TRSMonsterData;
 
+
+//WeaponData
+type
+  TRSWeaponData = record(TSRLBaseRecord)
+    WikiSpecAttacks: String;
+
+    IsSetup: Boolean;
+  end;
+
+procedure TRSWeaponData.Setup;
+begin
+  if IsSetup then
+    Exit;
+  Name := 'WeaponData';
+  WikiSpecAttacks := GetPage('https://oldschool.runescape.wiki/w/Special_attacks').Lower.After('mw-headline');
+end;
+
+function TRSWeaponData.GetSpec(Weapon: TRSItem): Int32;
+var
+  WeaponStr: String;
+  Str: String;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  WeaponStr := ToStr(Weapon);
+  DebugLn('Getting ' + WeaponStr + ' spec data from the wiki.');
+
+  Str :=  WikiSpecAttacks.After(WeaponStr.Lower);
+
+  if Str = WikiSpecAttacks then
+    Exit(200);
+
+  Result := StrToInt(Str.After('energy used').After('<td>').Before('%'));
+
+  DebugLn(WeaponStr + ' spec setup with ' + ToStr(Result) + '% energy.');
+end;
+
+var
+  WeaponData: TRSWeaponData;
+
+
+
 begin
   ItemData.SetupWikiPrices;
   MonsterData.Setup;
 end;
+

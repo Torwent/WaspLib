@@ -1,0 +1,321 @@
+(*
+CombatHandler
+=============
+CombatHandler is a record made to handle certain things related to combat.
+*)
+
+{$DEFINE WL_COMBATHANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+//CombatHandler
+type
+  TCombatHandler = record(TSRLBaseRecord)
+    EnemyNPC: PRSNPC;
+    BraceletTimer: TCountDown;
+    InCombatTimer: TCountDown;
+    CombatStyle: TRSCombatStyle;
+
+    ManageGear: Boolean;
+
+    Weapon: TRSItem;
+    Shield: TRSItem;
+    SpecWeapon: TRSItem;
+    Bracelet: TRSItem;
+
+    WeaponSpec: Int32;
+    GearIsSetup: Boolean;
+
+    QuickPrayerIsSetup: Boolean;
+    IsSetup: Boolean;
+  end;
+
+procedure TCombatHandler.Setup(Timer: Int64 = 4000);
+begin
+  if IsSetup then
+    Exit;
+
+  Name := 'CombatHandler';
+
+  InCombatTimer.Setup(Timer);
+  ManageGear := False;
+
+  IsSetup := True;
+end;
+
+procedure TCombatHandler.Setup(NPC: PRSNPC; Timer: Int64 = 4000); overload;
+begin
+  if IsSetup then
+    Exit;
+
+  Self.Setup(Timer);
+
+  EnemyNPC := NPC;
+end;
+
+
+procedure TCombatHandler.SetupGear;
+const
+  WEAPONS: TRSItemArray = [
+    'Ghrazi rapier', 'Blade of saeldor (c)', 'Inquisitor''s mace',
+    'Toktz-xil-ak', 'Abyssal whip', 'Abyssal bludgeon',
+    'Abyssal dagger', 'Abyssal dagger (p++)', 'Saradomin sword',
+    'Dragon scimitar', 'Dragon sword', 'Dragon longsword',
+    'Dharok''s greataxe', 'Sarachnis cudgel', 'Dinh''s bulwark',
+    'Dragon hunter lance', 'Abyssal tentacle', 'Granite hammer',
+    'Bow of faerdhinen (c)',
+    'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
+    'Dragon hunter crossbow', 'Dragon crossbow', 'Rune crossbow',
+    'Adamant dart', 'Mithril dart', 'Rune scimitar', 'Dorgeshuun crossbow',
+    'Null'
+  ];
+  SHIELDS: TRSItemArray = [
+    'Avernic defender', 'Dragon defender', 'Rune defender',
+    'Adamant defender', 'Mithril defender', 'Black defender',
+    'Steel defender', 'Iron defender', 'Bronze defender',
+    'Dragonfire shield', 'Toktz-ket-xil', 'Twisted buckler',
+    'Dragonfire ward', 'Odium ward', 'Book of law',
+    'Book of darkness', 'Unholy book', 'Book of war', 'Rune kiteshield',
+    'Null'
+  ];
+  SPEC_WEAPONS: TRSItemArray = [
+    'Dragon claws', '4153', '12848', 'Granite maul', 'Abyssal dagger',
+    'Abyssal dagger (p++)', 'Dragon dagger', 'Dragon dagger(p++)',
+    'Dragon sword', 'Dragon longsword', 'Dinh''s bulwark', 'Abyssal tentacle',
+    'Saradomin godsword', 'Granite hammer',
+    'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
+    'Dragon crossbow',
+    'Null'
+  ];
+  BRACELETS: TRSItemArray = [
+    'Bracelet of slaughter',
+    'Expeditious bracelet',
+    'Null'
+  ];
+begin
+  if GearIsSetup then
+    Exit;
+
+  for Weapon in WEAPONS do
+    if (Weapon = 'Null') or Equipment.FindItem(Weapon) then Break;
+  DebugLn('Current weapon: ' + ToStr(Weapon) + '.');
+
+  for Shield in SHIELDS do
+    if (Shield = 'Null') or Equipment.FindItem(Shield) then Break;
+  DebugLn('Current shield: ' + ToStr(Shield) + '.');
+
+  for SpecWeapon in SPEC_WEAPONS do
+    if (SpecWeapon = 'Null') or Inventory.FindItem(SpecWeapon) then Break;
+
+  if SpecWeapon <> 'Null' then
+  begin
+    case SpecWeapon of
+      'Granite maul': WeaponSpec := 50;
+      '4153', '12848': WeaponSpec := 60;
+      else WeaponSpec := WeaponData.GetSpec(SpecWeapon);
+    end;
+
+    DebugLn('Current spec weapon: ' + ToStr(SpecWeapon) +
+            '. With ' + ToStr(WeaponSpec) + '% spec.');
+  end
+  else
+  begin
+    case Weapon of
+      'Granite maul': WeaponSpec := 50;
+      '4153', '12848': WeaponSpec := 60;
+      else WeaponSpec := WeaponData.GetSpec(Weapon);
+    end;
+
+    if WeaponSpec <= 100 then
+    begin
+      SpecWeapon := Weapon;
+      DebugLn('Current spec weapon: ' + ToStr(SpecWeapon) +
+              '. With ' + ToStr(WeaponSpec) + '% spec.');
+    end;
+  end;
+
+  for Bracelet in BRACELETS do
+    if (Bracelet = 'Null') or Inventory.FindItem(Bracelet) then Break;
+
+  if (Bracelet <> 'Null') then
+  begin
+    DebugLn('Current slayer bracelet: ' + ToStr(Bracelet) + '.');
+    BraceletTimer.Setup(15 * ONE_MINUTE);
+  end;
+
+  GearIsSetup := (Weapon <> 'Null') or (Shield <> 'Null') or
+                 (SpecWeapon <> 'Null') or (Bracelet <> 'Null');
+end;
+
+
+procedure TCombatHandler.Setup(Manage: Boolean; NPC: PRSNPC; Timer: Int64 = 4000); overload;
+begin
+  if IsSetup then
+    Exit;
+
+  Self.Setup(NPC, Timer);
+
+  if ManageGear := Manage then
+    Self.SetupGear;
+end;
+
+
+function TCombatHandler.AttackNPC: Boolean;
+begin
+  if EnemyNPC^.SelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving;
+    Result := MainScreen.WaitInCombat(5000);
+  end;
+
+  if Result then InCombatTimer.Restart(Random(0, 3000));
+end;
+
+function TCombatHandler.WalkAttackNPC: Boolean;
+begin
+  if EnemyNPC^.WalkSelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving;
+    Result := MainScreen.WaitInCombat(5000);
+  end;
+
+  if Result then InCombatTimer.Restart(Random(0, 3000));
+end;
+
+
+function TCombatHandler.CanSpec: Boolean;
+begin
+  if ManageGear and not GearIsSetup then
+  begin
+    Self.SetupGear;
+    if not GearIsSetup then
+      Exit;
+  end;
+
+  Result := (Minimap.GetSpecLevel >= WeaponSpec) and
+            ((SpecWeapon = Weapon) or Inventory.FindItem(Weapon) or
+            (Inventory.FindItem(SpecWeapon) and Inventory.HasSpace(1)));
+end;
+
+function TCombatHandler.DoSpec: Boolean;
+begin
+  if ManageGear and not GearIsSetup then
+  begin
+    Self.SetupGear;
+    if not GearIsSetup then
+      Exit;
+  end;
+
+  if (SpecWeapon <> Weapon) and Inventory.ClickItem(SpecWeapon) then
+    if not WaitUntil(Inventory.FindItem(Weapon), 100, 4000) then
+      Exit;
+
+  Result := Minimap.EnableSpec(WeaponSpec);
+  if (SpecWeapon = 'Granite maul') or
+     (SpecWeapon = '4153') or
+     (SpecWeapon = '12848') then Result := True;
+
+  if Result and ((SpecWeapon <> 'Granite maul') or
+                 (SpecWeapon <> '4153') or
+                 (SpecWeapon <> '12848')) then
+    Wait(300, 400)
+  else
+    Wait(50, 100);
+end;
+
+
+function TCombatHandler.CheckBracelet: Boolean;
+begin
+  Result := Equipment.FindItem(Bracelet);
+
+  if Result then
+    BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
+end;
+
+
+function TCombatHandler.NeedBracelet: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  Result := (Bracelet <> 'Null') and
+            BraceletTimer.IsFinished and
+            Inventory.FindItem(Bracelet) and not Self.CheckBracelet;
+end;
+
+function TCombatHandler.NeedRegear: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  Result := ((Weapon <> 'Null') and Inventory.FindItem(Weapon)) or
+            ((Shield <> 'Null') and Inventory.FindItem(Shield)) or
+            Self.NeedBracelet;
+end;
+
+
+function TCombatHandler.ReGear: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  if (Weapon <> 'Null') then
+    Inventory.ClickItem(Weapon);
+  if (Shield <> 'Null') then
+    Inventory.ClickItem(Shield);
+
+  if Self.NeedBracelet then
+    Inventory.ClickItem(Bracelet);
+
+  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
+end;
+
+function TCombatHandler.EquipBracelet: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  if (Weapon <> 'Null') then
+    Inventory.ClickItem(Weapon);
+  if (Shield <> 'Null') then
+    Inventory.ClickItem(Shield);
+
+  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
+end;
+
+
+var
+  CombatHandler: TCombatHandler;
+
+function TRSXPDrop.FindDrop: Boolean; override;
+begin
+  Result := inherited;
+
+  if CombatHandler.IsSetup and Result then
+    CombatHandler.InCombatTimer.Restart(Random(0, 3000));
+end;
+
+function TRSMainScreen.FindHitsplats: TRSHitsplatArray; override;
+begin
+  Result := inherited;
+
+  if CombatHandler.IsSetup and (Result <> []) then
+    CombatHandler.InCombatTimer.Restart(Random(0, 3000));
+end;
+
+function TRSMainScreen.FindDepletedHPBar: Boolean;
+var
+  Bar: TRSHPBar;
+begin
+  for Bar in Self.FindHPBars do
+    if Bar.Percent = 0 then
+      Exit(True);
+end;
+
+function TRSMainScreen.InCombat: Boolean; override;
+begin
+  Result := (CombatHandler.IsSetup and not CombatHandler.InCombatTimer.IsFinished)
+            or XPDrop.FindDrop or (Self.FindHitsplats <> []);
+end;
+

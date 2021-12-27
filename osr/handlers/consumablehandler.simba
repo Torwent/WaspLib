@@ -1,0 +1,426 @@
+(*
+CombatHandlers and Managers
+===========================
+*)
+
+{$DEFINE WL_CONSUMABLEHANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TConsumableHandler = record(TSRLBaseRecord)
+    ConsumableType: ERSConsumable;
+    Consumable: TRSConsumableArray;
+    ItemArray: TRSItemArray;
+
+    BankTab: Int32;
+    Amount: Int32;
+
+    IsSetup: Boolean;
+  end;
+  TConsumableHandlerArray = array of TConsumableHandler;
+
+  TConsumableManager = record(TSRLBaseRecord)
+    Handlers: TConsumableHandlerArray;
+    ItemArray: TRSItemArray;
+    MinInvPoints: Int32;
+    Amount: Int32;
+    IsSetup: Boolean;
+  end;
+
+
+function GetConsumableArray(ConsumableType: ERSConsumable): TRSItemArray;
+begin
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Result := FOOD_ARRAY;
+    ERSConsumable.PRAYER_CONSUMABLE: Result := PRAYER_ARRAY;
+    ERSConsumable.ENERGY_CONSUMABLE: Result := ENERGY_ARRAY;
+    ERSConsumable.BOOST_CONSUMABLE:  Result := BOOST_ARRAY;
+  end;
+end;
+
+function TConsumableHandler._Setup(Item: TRSItem): TRSConsumable;
+begin
+  Result.Item := Item;
+
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Result.SetupFood;
+    ERSConsumable.PRAYER_CONSUMABLE: Result.SetupPrayer;
+    ERSConsumable.ENERGY_CONSUMABLE: Result.SetupEnergy;
+    ERSConsumable.BOOST_CONSUMABLE:  Result := [];
+  end;
+end;
+
+
+function TConsumableHandler._FindInBank: TRSConsumableArray;
+var
+  Arr: TRSItemArray := GetConsumableArray(ConsumableType);
+  i: Int32;
+  Consumable: TRSConsumable;
+  Item: TRSItem;
+begin
+  DebugLn('Setting up consumable of type: ' + ToStr(ConsumableType));
+  for Item in Arr do
+    if Bank.FindItem(Item) then
+    begin
+      DebugLn('Consumable found: ' + ToStr(Item));
+      Consumable := Self._Setup(Item);
+
+      if not Consumable.IsParent then
+        Consumable := Self._Setup(Consumable.Parent);
+
+      Result += Consumable;
+
+      BankTab := Bank.GetCurrentTab; //TODO: Search parent maybe?
+
+      while not Consumable.IsLast do
+      begin
+        i := Arr.Find(Consumable.LeftOver);
+        Consumable := Self._Setup(Arr[i]);
+
+        Result += Consumable;
+      end;
+    end;
+end;
+
+function TConsumableHandler._FindInInventory: TRSConsumableArray;
+var
+  Arr: TRSItemArray := GetConsumableArray(ConsumableType);
+  i: Int32;
+  Consumable: TRSConsumable;
+  Item: TRSItem;
+begin
+  DebugLn('Setting up consumable of type: ' + ToStr(ConsumableType));
+  for Item in Arr do
+    if Inventory.FindItem(Item) then
+    begin
+      DebugLn('Consumable found: ' + ToStr(Item));
+      Consumable := Self._Setup(Item);
+
+      while not Consumable.IsParent do
+        Consumable := Self._Setup(Consumable.Parent);
+
+      Result += Consumable;
+
+      while not Consumable.IsLast do
+      begin
+        i := Arr.Find(Consumable.LeftOver);
+        Consumable := Self._Setup(Arr[i]);
+
+        Result += Consumable;
+      end;
+    end;
+end;
+
+
+function TConsumableHandler.GetPoints: Int32;
+var
+  C: TRSConsumable;
+begin
+  for C in Consumable do
+    Result += C.Points;
+end;
+
+procedure TConsumableHandler.Setup(ConsumType: ERSConsumable);
+var
+  C: TRSConsumable;
+begin
+  if IsSetup then
+    Exit;
+
+  ConsumableType := ConsumType;
+
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Name := 'FoodHandler';
+    ERSConsumable.PRAYER_CONSUMABLE: Name := 'PrayerHandler';
+    ERSConsumable.ENERGY_CONSUMABLE: Name := 'EnergyHandler';
+    ERSConsumable.BOOST_CONSUMABLE: Name := 'BoostHandler';
+  end;
+
+  BankTab := -1;
+
+  if Inventory.Open then
+    Consumable := Self._FindInInventory;
+
+  if (Consumable = []) and Bank.IsOpen then
+    Consumable := Self._FindInBank;
+
+  for C in Consumable do
+    ItemArray += C.Item;
+
+  IsSetup := Consumable <> [];
+end;
+
+
+
+
+procedure TConsumableManager.SetupAmount;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Handlers) do
+  begin
+    if Handlers[i].Amount <> 0 then
+      Continue;
+
+    if Amount = 0 then
+      case MinInvPoints of
+         0:  TerminateScript('FATAL: MinInvPoints or Amount have to be different from 0.');
+        -1:  Handlers[i].Amount := BANK_WITHDRAW_ALL;
+        -2:  Handlers[i].Amount := BANK_WITHDRAW_ALL_BUT_ONE;
+        else Handlers[i].Amount := Round(MinInvPoints / Handlers[i].GetPoints);
+      end
+    else
+      Handlers[i].Amount := Amount;
+  end;
+end;
+
+procedure TConsumableManager.Setup(ConsumableType: ERSConsumable);
+var
+  Handler: TConsumableHandler;
+begin
+  if IsSetup then
+    Exit;
+
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Name := 'FoodManager';
+    ERSConsumable.PRAYER_CONSUMABLE: Name := 'PrayerManager';
+    ERSConsumable.ENERGY_CONSUMABLE: Name := 'EnergyManager';
+    ERSConsumable.BOOST_CONSUMABLE: Name := 'BoostManager';
+  end;
+
+  DebugLn('Setting up...');
+
+  Handler.Setup(ConsumableType);
+  if Handler.IsSetup then
+  begin
+    Handlers += Handler;
+    ItemArray := Handler.ItemArray;
+    Self.SetupAmount;
+  end;
+
+  IsSetup := Handler.IsSetup;
+end;
+
+procedure TConsumableManager.SetupNew(ConsumableType: ERSConsumable);
+var
+  Handler: TConsumableHandler;
+  i: Int32;
+begin
+  Handler.Setup(ConsumableType);
+  if Handler.IsSetup then
+  begin
+    for i := 0 to High(Handlers) do
+      if Handlers[i].Consumable = Handler.Consumable then
+        Exit;
+    Handlers += Handler;
+    ItemArray.Extend(Handler.ItemArray);
+    Self.SetupAmount;
+  end;
+end;
+
+
+var
+  FoodManager: TConsumableManager;
+  PrayerManager: TConsumableManager;
+  EnergyManager: TConsumableManager;
+  BoostManager: TConsumableManager;
+
+function GetHandler(ConsumableType: ERSConsumable): ^TConsumableManager;
+begin
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE: Result := @FoodManager;
+    ERSConsumable.PRAYER_CONSUMABLE: Result := @PrayerManager;
+    ERSConsumable.ENERGY_CONSUMABLE: Result := @EnergyManager;
+    ERSConsumable.BOOST_CONSUMABLE:  Result := @BoostManager;
+  end;
+
+  Result^.Setup(ConsumableType);
+end;
+
+function TRSInventory.FindConsumable(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+begin
+  if not HandlerManager^.IsSetup then
+    Exit;
+
+  Result := Self.FindItems(HandlerManager^.ItemArray.Reversed, Slots);
+end;
+
+function TRSInventory.FindConsumable(ConsumableType: ERSConsumable): Boolean; overload;
+var
+  Slots: TIntegerArray;
+begin
+  Result := Self.FindConsumable(ConsumableType, Slots);
+end;
+
+
+function TRSInventory.Consume(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+  i, j, StartingPoints: Int32;
+  LastConsumable: TRSConsumable;
+  TrashSlots: TIntegerArray;
+begin
+  if not HandlerManager^.IsSetup then
+    Exit;
+
+  case ConsumableType of
+    ERSConsumable.HEALTH_CONSUMABLE:
+      StartingPoints := Minimap.GetHPLevel;
+
+    ERSConsumable.PRAYER_CONSUMABLE:
+      StartingPoints := Minimap.GetPrayerLevel;
+
+    ERSConsumable.ENERGY_CONSUMABLE:
+      StartingPoints := Minimap.GetRunEnergy;
+  end;
+
+  for i := 0 to High(HandlerManager^.Handlers) do
+  begin
+    if (Slots <> []) or Self.FindItems(HandlerManager^.Handlers[i].ItemArray.Reversed, Slots) then
+      Break;
+
+    if i = High(HandlerManager^.Handlers) then
+      Exit;
+  end;
+
+  Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+
+  if Result then
+    case ConsumableType of
+      ERSConsumable.HEALTH_CONSUMABLE:
+        Result := WaitUntil(StartingPoints < Minimap.GetHPLevel, 100, 3000);
+
+      ERSConsumable.PRAYER_CONSUMABLE:
+        Result := WaitUntil(StartingPoints < Minimap.GetPrayerLevel, 100, 3000);
+
+      ERSConsumable.ENERGY_CONSUMABLE:
+        Result := WaitUntil(StartingPoints < Minimap.GetRunEnergy, 100, 3000);
+    end;
+
+  if Result then
+  begin
+    LastConsumable := HandlerManager^.Handlers[i].Consumable[High(HandlerManager^.Handlers[i].Consumable)];
+    TotalConsumableCost += LastConsumable.Cost;
+
+    if LastConsumable.LeftOverIsTrash then
+      if WaitUntil(Inventory.FindItem(LastConsumable.LeftOver, TrashSlots), 50, 650) then
+      begin
+        if Bank.IsOpen then
+          Bank.DepositSlot([TrashSlots[0], BANK_DEPOSIT_ALL], False)
+        else
+          Inventory.ShiftDrop(TrashSlots);
+      end;
+
+    for i := 0 to High(TrashSlots) do
+    begin
+      j := Slots.Find(TrashSlots[i]);
+      if j > -1 then
+        Slots.Del(j);
+    end;
+  end;
+end;
+
+function TRSInventory.Consume(ConsumableType: ERSConsumable): Boolean; overload;
+var
+  Slots: TIntegerArray;
+begin
+  Result := Self.Consume(ConsumableType, Slots);
+end;
+
+
+function TRSInventory.CountConsumable(ConsumableType: ERSConsumable): Int32;
+var
+  Slots: TIntegerArray;
+begin
+  Self.FindConsumable(ConsumableType, Slots);
+
+  Result := Length(Slots);
+end;
+
+function TRSInventory.CountEachConsumable(ConsumableType: ERSConsumable): T2DIntegerArray;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+  i: Int32;
+  Item: TRSItem;
+  IntArray: TIntegerArray;
+begin
+  if not HandlerManager^.IsSetup then
+    Exit;
+
+  for i := 0 to High(HandlerManager^.Handlers) do
+  begin
+    for Item in HandlerManager^.Handlers[i].ItemArray do
+      IntArray += Self.CountItem(Item);
+    Result += IntArray;
+  end;
+end;
+
+
+function TRSInventory.CountPoints(ConsumableType: ERSConsumable): Int32;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+  ConsumableAmounts: T2DIntegerArray;
+  i, e: Int32;
+begin
+  ConsumableAmounts := Self.CountEachConsumable(ConsumableType);
+  if ConsumableAmounts = [] then
+    Exit(0);
+
+  for i := 0 to High(ConsumableAmounts) do
+    for e := 0 to High(ConsumableAmounts[i]) do
+      Result += HandlerManager^.Handlers[i].Consumable[e].Points * ConsumableAmounts[i][e];
+end;
+
+function TRSInventory.HasEnoughConsumable(ConsumableType: ERSConsumable): Boolean;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+begin
+  Result := Self.CountPoints(ConsumableType) >= HandlerManager^.MinInvPoints;
+end;
+
+
+function TRSBank.FindConsumable(ConsumableType: ERSConsumable): Boolean;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+begin
+  if not HandlerManager^.IsSetup then
+    Exit;
+
+  Result := Self.FindItems(HandlerManager^.ItemArray);
+end;
+
+function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable; Idx: Int32): Int32;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+begin
+  case HandlerManager^.Handlers[Idx].Amount of
+    BANK_WITHDRAW_ALL: Result := BANK_WITHDRAW_ALL;
+    BANK_WITHDRAW_ALL_BUT_ONE: Result := BANK_WITHDRAW_ALL_BUT_ONE;
+    else
+      Result := Ceil((HandlerManager^.MinInvPoints - Inventory.CountPoints(ConsumableType)) / HandlerManager^.Handlers[Idx].GetPoints);
+  end;
+end;
+
+function TRSBank.WithdrawConsumable(ConsumableType: ERSConsumable): Boolean;
+var
+  HandlerManager: ^TConsumableManager := GetHandler(ConsumableType);
+  i: Int32;
+  WithdrawAmount: Int32;
+begin
+  for i := 0 to High(HandlerManager^.Handlers) do
+  begin
+    if not Self.FindConsumable(ConsumableType) and not HandlerManager^.IsSetup then
+      Exit;
+
+    WithdrawAmount := Self.WithdrawConsumableAmount(ConsumableType, i);
+
+    if WithdrawAmount <> 0 then
+      Bank.WithdrawItem(HandlerManager^.Handlers[i].BankTab, [HandlerManager^.Handlers[i].ItemArray[0], WithdrawAmount, False], False);
+
+    Result := WaitUntil(Inventory.HasEnoughConsumable(ConsumableType), 100, 3000);
+  end;
+end;

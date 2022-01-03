@@ -1,3 +1,17 @@
+# [5.5.0](https://github.com/Torwent/WaspLib/compare/v5.4.0...v5.5.0) (2022-01-03)
+
+
+### Bug Fixes
+
+* kraken drop data was wrong ([1914bc9](https://github.com/Torwent/WaspLib/commit/1914bc96755c91e194870efd5b525f5c61fd403a))
+
+
+### Features
+
+* **CombatHandler:** CombatHandler now handles food, prayer, poison, venom and antifire. ([743bd5a](https://github.com/Torwent/WaspLib/commit/743bd5a0df767e54834aa201eb8b170d2099fe70))
+
+
+
 # [5.4.0](https://github.com/Torwent/WaspLib/compare/v5.3.0...v5.4.0) (2021-12-21)
 
 
@@ -37,21 +51,6 @@
 ### Bug Fixes
 
 * **Combat Handler:** fix weapons that are spec weapons. ([e256556](https://github.com/Torwent/WaspLib/commit/e256556ca0e68699ab3aeec88b34b36422e4e306))
-
-
-
-# [5.1.0](https://github.com/Torwent/WaspLib/compare/v5.0.1...v5.1.0) (2021-12-13)
-
-
-### Bug Fixes
-
-* forgot to name the record ([65875ee](https://github.com/Torwent/WaspLib/commit/65875eed9715962a73bf2e81022b17b6ec4f8d66))
-* minor fixes to antiban and consuming to repeat less code ([21fb41a](https://github.com/Torwent/WaspLib/commit/21fb41aa55817e70d554beb82a5e25e51fd8c2fc))
-
-
-### Features
-
-* new WeaponData to fetch spec attack values from the wiki ([4ba5c90](https://github.com/Torwent/WaspLib/commit/4ba5c904ee009097d679a8e6b209d62b0314ca92))
 
 
 

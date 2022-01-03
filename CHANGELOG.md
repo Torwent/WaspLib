@@ -1,3 +1,12 @@
+## [5.5.1](https://github.com/Torwent/WaspLib/compare/v5.5.0...v5.5.1) (2022-01-03)
+
+
+### Bug Fixes
+
+* **CombatHandler:** Ocmmented out missing function ([be46ff1](https://github.com/Torwent/WaspLib/commit/be46ff19e438fb2f7012037c834748c1278f4580))
+
+
+
 # [5.5.0](https://github.com/Torwent/WaspLib/compare/v5.4.0...v5.5.0) (2022-01-03)
 
 
@@ -42,15 +51,6 @@
 ### Features
 
 * **Antiban:** new biohash system ([4f54b04](https://github.com/Torwent/WaspLib/commit/4f54b04dd908c14414d7737524d99426b2567f9a))
-
-
-
-## [5.1.1](https://github.com/Torwent/WaspLib/compare/v5.1.0...v5.1.1) (2021-12-14)
-
-
-### Bug Fixes
-
-* **Combat Handler:** fix weapons that are spec weapons. ([e256556](https://github.com/Torwent/WaspLib/commit/e256556ca0e68699ab3aeec88b34b36422e4e306))
 
 
 

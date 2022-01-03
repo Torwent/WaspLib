@@ -3,6 +3,41 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+type
+  TRSBaseStats = record(TSRLBaseRecord)
+    Levels: TIntegerArray;
+    IsSetup: Boolean;
+  end;
+
+procedure TRSBaseStats.Setup;
+var
+  i: Int32;
+begin
+  if IsSetup or not Stats.Open then
+    Exit;
+
+  Name := 'BaseStats';
+
+  DebugLn('Caching player levels.');
+
+  for i := Ord(ERSSkill.ATTACK) to Ord(ERSSkill.HUNTER) do
+    Levels += Stats.GetCurrentLevel(ERSSkill(i));
+
+  IsSetup := Levels <> [];
+end;
+
+function TRSBaseStats.GetCurrentLevel(Skill: ERSSkill): Int32;
+begin
+  if not IsSetup then
+    Self.Setup;
+
+  if IsSetup then
+    Result := Levels[Ord(Skill)];
+end;
+
+var
+  BaseStats: TRSBaseStats;
+
 function TRSClient.IsLoggedIn: Boolean; override;
 begin
   Result := inherited;

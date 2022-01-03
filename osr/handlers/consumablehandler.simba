@@ -1,5 +1,5 @@
 (*
-CombatHandlers and Managers
+ConsumableHandlers and Managers
 ===========================
 *)
 
@@ -17,8 +17,12 @@ type
     BankTab: Int32;
     Amount: Int32;
 
+    HasTimer: Boolean;
+    Timer: TCountDown;
+
     IsSetup: Boolean;
   end;
+
   TConsumableHandlerArray = array of TConsumableHandler;
 
   TConsumableManager = record(TSRLBaseRecord)
@@ -26,17 +30,23 @@ type
     ItemArray: TRSItemArray;
     MinInvPoints: Int32;
     Amount: Int32;
+
+    HasTimer: ^Boolean;
+    Timer: ^TCountDown;
+
     IsSetup: Boolean;
   end;
-
 
 function GetConsumableArray(ConsumableType: ERSConsumable): TRSItemArray;
 begin
   case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE: Result := FOOD_ARRAY;
-    ERSConsumable.PRAYER_CONSUMABLE: Result := PRAYER_ARRAY;
-    ERSConsumable.ENERGY_CONSUMABLE: Result := ENERGY_ARRAY;
-    ERSConsumable.BOOST_CONSUMABLE:  Result := BOOST_ARRAY;
+    ERSConsumable.HEALTH_CONSUMABLE:    Result := FOOD_ARRAY;
+    ERSConsumable.PRAYER_CONSUMABLE:    Result := PRAYER_ARRAY;
+    ERSConsumable.ENERGY_CONSUMABLE:    Result := ENERGY_ARRAY;
+    ERSConsumable.POISON_CONSUMABLE:    Result := ANTI_POISON_ARRAY;
+    ERSConsumable.VENOM_CONSUMABLE:     Result := ANTI_VENOM_ARRAY;
+    ERSConsumable.ANTI_FIRE_CONSUMABLE: Result := ANTI_FIRE_ARRAY;
+    ERSConsumable.BOOST_CONSUMABLE:     Result := BOOST_ARRAY;
   end;
 end;
 
@@ -45,10 +55,13 @@ begin
   Result.Item := Item;
 
   case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE: Result.SetupFood;
-    ERSConsumable.PRAYER_CONSUMABLE: Result.SetupPrayer;
-    ERSConsumable.ENERGY_CONSUMABLE: Result.SetupEnergy;
-    ERSConsumable.BOOST_CONSUMABLE:  Result := [];
+    ERSConsumable.HEALTH_CONSUMABLE:    Result.SetupFood;
+    ERSConsumable.PRAYER_CONSUMABLE:    Result.SetupPrayer;
+    ERSConsumable.ENERGY_CONSUMABLE:    Result.SetupEnergy;
+    ERSConsumable.POISON_CONSUMABLE:    Result.SetupAntiPoison;
+    ERSConsumable.VENOM_CONSUMABLE:     Result.SetupAntiVenom;
+    ERSConsumable.ANTI_FIRE_CONSUMABLE: Result.SetupAntiFire;
+    ERSConsumable.BOOST_CONSUMABLE:     Result := [];
   end;
 end;
 
@@ -62,6 +75,10 @@ var
 begin
   DebugLn('Setting up consumable of type: ' + ToStr(ConsumableType));
   for Item in Arr do
+  begin
+    if Self.ItemArray.Find(Item) > -1 then //avoid resetting leftover items.
+      Continue;
+
     if Bank.FindItem(Item) then
     begin
       DebugLn('Consumable found: ' + ToStr(Item));
@@ -82,6 +99,7 @@ begin
         Result += Consumable;
       end;
     end;
+  end;
 end;
 
 function TConsumableHandler._FindInInventory: TRSConsumableArray;
@@ -93,6 +111,10 @@ var
 begin
   DebugLn('Setting up consumable of type: ' + ToStr(ConsumableType));
   for Item in Arr do
+  begin
+    if Self.ItemArray.Find(Item) > -1 then //avoid resetting leftover items.
+      Continue;
+
     if Inventory.FindItem(Item) then
     begin
       DebugLn('Consumable found: ' + ToStr(Item));
@@ -111,6 +133,7 @@ begin
         Result += Consumable;
       end;
     end;
+  end;
 end;
 
 
@@ -132,10 +155,13 @@ begin
   ConsumableType := ConsumType;
 
   case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE: Name := 'FoodHandler';
-    ERSConsumable.PRAYER_CONSUMABLE: Name := 'PrayerHandler';
-    ERSConsumable.ENERGY_CONSUMABLE: Name := 'EnergyHandler';
-    ERSConsumable.BOOST_CONSUMABLE: Name := 'BoostHandler';
+    ERSConsumable.HEALTH_CONSUMABLE:    Name := 'FoodHandler';
+    ERSConsumable.PRAYER_CONSUMABLE:    Name := 'PrayerHandler';
+    ERSConsumable.ENERGY_CONSUMABLE:    Name := 'EnergyHandler';
+    ERSConsumable.POISON_CONSUMABLE:    Name := 'PoisonHandler';
+    ERSConsumable.VENOM_CONSUMABLE:     Name := 'VenomHandler';
+    ERSConsumable.ANTI_FIRE_CONSUMABLE: Name := 'AntiFireHandler';
+    ERSConsumable.BOOST_CONSUMABLE:     Name := 'BoostHandler';
   end;
 
   BankTab := -1;
@@ -150,6 +176,11 @@ begin
     ItemArray += C.Item;
 
   IsSetup := Consumable <> [];
+
+  HasTimer := IsSetup and (C.Timer > 0);
+
+  if HasTimer then
+    Timer.Setup(C.Timer);
 end;
 
 
@@ -184,10 +215,13 @@ begin
     Exit;
 
   case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE: Name := 'FoodManager';
-    ERSConsumable.PRAYER_CONSUMABLE: Name := 'PrayerManager';
-    ERSConsumable.ENERGY_CONSUMABLE: Name := 'EnergyManager';
-    ERSConsumable.BOOST_CONSUMABLE: Name := 'BoostManager';
+    ERSConsumable.HEALTH_CONSUMABLE:    Name := 'FoodManager';
+    ERSConsumable.PRAYER_CONSUMABLE:    Name := 'PrayerManager';
+    ERSConsumable.ENERGY_CONSUMABLE:    Name := 'EnergyManager';
+    ERSConsumable.POISON_CONSUMABLE:    Name := 'PoisonHandler';
+    ERSConsumable.VENOM_CONSUMABLE:     Name := 'VenomHandler';
+    ERSConsumable.ANTI_FIRE_CONSUMABLE: Name := 'AntiFireHandler';
+    ERSConsumable.BOOST_CONSUMABLE:     Name := 'BoostHandler';
   end;
 
   DebugLn('Setting up...');
@@ -198,6 +232,8 @@ begin
     Handlers += Handler;
     ItemArray := Handler.ItemArray;
     Self.SetupAmount;
+    HasTimer := @Handler.HasTimer;
+    Timer := @Handler.Timer;
   end;
 
   IsSetup := Handler.IsSetup;
@@ -217,6 +253,8 @@ begin
     Handlers += Handler;
     ItemArray.Extend(Handler.ItemArray);
     Self.SetupAmount;
+    HasTimer := @Handler.HasTimer;
+    Timer := @Handler.Timer;
   end;
 end;
 
@@ -225,15 +263,21 @@ var
   FoodManager: TConsumableManager;
   PrayerManager: TConsumableManager;
   EnergyManager: TConsumableManager;
+  PoisonManager: TConsumableManager;
+  VenomManager: TConsumableManager;
+  AntifireManager: TConsumableManager;
   BoostManager: TConsumableManager;
 
 function GetHandler(ConsumableType: ERSConsumable): ^TConsumableManager;
 begin
   case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE: Result := @FoodManager;
-    ERSConsumable.PRAYER_CONSUMABLE: Result := @PrayerManager;
-    ERSConsumable.ENERGY_CONSUMABLE: Result := @EnergyManager;
-    ERSConsumable.BOOST_CONSUMABLE:  Result := @BoostManager;
+    ERSConsumable.HEALTH_CONSUMABLE:    Result := @FoodManager;
+    ERSConsumable.PRAYER_CONSUMABLE:    Result := @PrayerManager;
+    ERSConsumable.ENERGY_CONSUMABLE:    Result := @EnergyManager;
+    ERSConsumable.POISON_CONSUMABLE:    Result := @PoisonManager;
+    ERSConsumable.VENOM_CONSUMABLE:     Result := @VenomManager;
+    ERSConsumable.ANTI_FIRE_CONSUMABLE: Result := @AntifireManager;
+    ERSConsumable.BOOST_CONSUMABLE:     Result := @BoostManager;
   end;
 
   Result^.Setup(ConsumableType);
@@ -280,8 +324,14 @@ begin
 
   for i := 0 to High(HandlerManager^.Handlers) do
   begin
-    if (Slots <> []) or Self.FindItems(HandlerManager^.Handlers[i].ItemArray.Reversed, Slots) then
+    if Slots <> [] then
+      Break
+    else if Self.FindItems(HandlerManager^.Handlers[i].ItemArray.Reversed, Slots) then
+    begin
+      HandlerManager^.HasTimer := @HandlerManager^.Handlers[i].HasTimer;
+      HandlerManager^.Timer := @HandlerManager^.Handlers[i].Timer;
       Break;
+    end;
 
     if i = High(HandlerManager^.Handlers) then
       Exit;
@@ -303,6 +353,9 @@ begin
 
   if Result then
   begin
+    if HandlerManager^.Handlers[i].HasTimer then
+      HandlerManager^.Handlers[i].Timer.Restart(Random(3000, 3000));
+
     LastConsumable := HandlerManager^.Handlers[i].Consumable[High(HandlerManager^.Handlers[i].Consumable)];
     TotalConsumableCost += LastConsumable.Cost;
 

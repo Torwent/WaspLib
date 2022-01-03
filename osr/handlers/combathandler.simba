@@ -9,7 +9,19 @@ CombatHandler is a record made to handle certain things related to combat.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-//CombatHandler
+const
+  DWARF_CANNON: TRSItemArray = [
+    'Cannon base',
+    'Cannon stand',
+    'Cannon barrels',
+    'Cannon furnace'
+  ];
+
+  CANNON_BALLS: TRSItemArray = [
+    'Cannonball',
+    'Granite cannonball'
+  ];
+
 type
   TCombatHandler = record(TSRLBaseRecord)
     EnemyNPC: PRSNPC;
@@ -28,6 +40,17 @@ type
     GearIsSetup: Boolean;
 
     QuickPrayerIsSetup: Boolean;
+
+    HandleHealth: Boolean;
+    HandlePrayer: Boolean;
+    HandlePoison: Boolean;
+    HandleVenom: Boolean;
+    HandleAntifire: Boolean;
+    HandleBoosts: Boolean;
+
+    HandleCannon: Boolean;
+    CannonIsSetup: Boolean;
+
     IsSetup: Boolean;
   end;
 
@@ -39,7 +62,26 @@ begin
   Name := 'CombatHandler';
 
   InCombatTimer.Setup(Timer);
-  ManageGear := False;
+
+  HandleHealth := Inventory.FindItems(FOOD_ARRAY);
+  if HandleHealth then
+  begin
+    DebugLn('Food detected and will be used.');
+    PrayerManager.Setup(PRAYER_CONSUMABLE);
+  end;
+
+  HandlePrayer := Inventory.FindItems(PRAYER_ARRAY);
+  if HandlePrayer then
+  begin
+    DebugLn('Prayer potions detected, prayer will be used.');
+    PrayerManager.Setup(PRAYER_CONSUMABLE);
+  end;
+
+  HandleCannon := Inventory.FindAllItems(DWARF_CANNON) and
+               Inventory.FindItems(CANNON_BALLS);
+
+  if HandleCannon then
+    DebugLn('Cannon and cannonballs detected. Cannon will be used.');
 
   IsSetup := True;
 end;
@@ -276,14 +318,86 @@ begin
   if not ManageGear or not GearIsSetup then
     Exit;
 
-  if (Weapon <> 'Null') then
-    Inventory.ClickItem(Weapon);
-  if (Shield <> 'Null') then
-    Inventory.ClickItem(Shield);
+  if (Bracelet = 'Null') then
+    Exit;
 
-  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
+  Result := Inventory.ClickItem(Bracelet);
+
+  if Result then
+    BraceletTimer.Restart;
 end;
 
+
+//Check for pending action combat handler is taking care of.
+function TCombatHandler.CheckActions: Boolean;
+begin
+  if HandleHealth and (Minimap.GetHPPercent <= 50) then
+    Exit(True);
+
+  if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
+    Exit(True);
+
+  if (HandlePoison or HandleVenom) and Minimap.IsPoisoned then
+    Exit(True);
+
+  if Self.CanSpec then
+    Exit(True);
+
+  if Self.NeedRegear then
+    Exit(True);
+end;
+
+function TCombatHandler.NeedAntiPoison: Boolean;
+var
+  PoisonTimer: Boolean;
+  VenomTimer: Boolean;
+begin
+  if not HandlePoison and not HandleVenom then
+    Exit;
+
+  PoisonTimer := PoisonManager.HasTimer^ and PoisonManager.Timer^.IsFinished;
+  VenomTimer := VenomManager.HasTimer^ and VenomManager.Timer^.IsFinished;
+
+  Result := PoisonTimer or VenomTimer or Minimap.IsPoisoned or Minimap.IsVenomed;
+end;
+
+function TCombatHandler.NeedAntifire: Boolean;
+var
+  Timer: Boolean;
+begin
+  if not HandleAntifire then
+    Exit;
+
+  Timer := PoisonManager.HasTimer^ and AntifireManager.Timer^.IsFinished;
+  Result := Timer;
+end;
+
+//Check for pending action combat handler is taking care of and do them.
+procedure TCombatHandler.DoActions;
+begin
+  if HandleHealth and (Minimap.GetHPPercent <= 50) then
+    Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
+
+  if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
+    Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
+
+  if Self.NeedAntifire then
+    Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
+
+  if Self.NeedAntiPoison then
+  begin
+    if HandleVenom then
+      Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE)
+    else if HandlePoison then
+      Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
+  end;
+
+  if Self.CanSpec then
+    Self.DoSpec;
+
+  if Self.NeedRegear then
+    Self.ReGear;
+end;
 
 var
   CombatHandler: TCombatHandler;

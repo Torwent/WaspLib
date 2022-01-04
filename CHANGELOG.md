@@ -1,3 +1,17 @@
+# [5.6.0](https://github.com/Torwent/WaspLib/compare/v5.5.1...v5.6.0) (2022-01-04)
+
+
+### Bug Fixes
+
+* fixed my previous rushed update that didn't compile ([3e8fcc5](https://github.com/Torwent/WaspLib/commit/3e8fcc54a036517448369932552cecc2e9601536))
+
+
+### Features
+
+* new mmdot filter. ([2a5f30b](https://github.com/Torwent/WaspLib/commit/2a5f30b0838060bf4bf8c66b6c06a09f43ac8658))
+
+
+
 ## [5.5.1](https://github.com/Torwent/WaspLib/compare/v5.5.0...v5.5.1) (2022-01-03)
 
 
@@ -37,20 +51,6 @@
 
 * **Antiban:** 1000 most common words in several languages ([1c78a45](https://github.com/Torwent/WaspLib/commit/1c78a45b6e4d90d5e2fbd51cde7878f22db97bc8))
 * **minimap:** check if there's dots under the player ([42c85a6](https://github.com/Torwent/WaspLib/commit/42c85a6c4dff9ec483e1caea49a745b762ff743f))
-
-
-
-# [5.2.0](https://github.com/Torwent/WaspLib/compare/v5.1.1...v5.2.0) (2021-12-19)
-
-
-### Bug Fixes
-
-* **rsmonster:** better looting ([da19197](https://github.com/Torwent/WaspLib/commit/da19197275d8a951399364ee3cd5f57308b51d89))
-
-
-### Features
-
-* **Antiban:** new biohash system ([4f54b04](https://github.com/Torwent/WaspLib/commit/4f54b04dd908c14414d7737524d99426b2567f9a))
 
 
 

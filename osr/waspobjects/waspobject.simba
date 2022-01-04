@@ -144,9 +144,10 @@ TWaspObject is the base record used by **TRSObjects and TRSMMDots**.
   TWaspObjectArray = array of TWaspObject;
   PWaspObject = ^TWaspObject;
   PWaspObjectArray = array of PWaspObject;
+
 (*
 type TRSObject
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
 
 TRSObject is a **TWaspObject** specific for objects that do not have a minimap dot.
 They can be used for objects with a minimap dot that do not move but **TRSMMDot** gives you more flexibility for those.
@@ -160,8 +161,24 @@ They can be used for objects with a minimap dot that do not move but **TRSMMDot*
   TRSDoor = type TRSObjectArray;
 
 (*
+type TRSDotFilter
+~~~~~~~~~~~~~~~~~
+  Used to filter mmdots
+*)
+
+  TRSDotFilter = record
+    TPA: TPointArray;
+    Circle: TCircle;
+    Inside: Boolean;
+    HasTimer: Boolean;
+    Timer: TCountDown;
+  end;
+
+  TRSDotFilterArray = array of TRSDotFilter;
+
+(*
 type TRSMMDot
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~
 
 TRSMMDot is a **TWaspObject** specific for objects that have a minimap dot.
 There's 3 types of TRSMMDot:
@@ -174,6 +191,7 @@ Each one made to handle each type of TRSMMDot.
 
   TRSMMDot = record(TWaspObject)
     TileRadius: Int32;
+    DotFilter: TRSDotFilterArray;
     DotType: ERSMinimapDot;
   end;
 
@@ -278,6 +296,76 @@ end;
 
 
 
+procedure TRSDotFilterArray.Setup(TPA: TPointArray; Inside: Boolean; Time: Int32 = -1);
+var
+  Timer: TCountDown;
+begin
+  Timer.Setup(Time);
+  Self += [TPA, [], Inside, (Time > 0), Timer];
+end;
+
+procedure TRSDotFilterArray.Setup(C: TCircle; Inside: Boolean; Time: Int32 = -1); overload;
+var
+  TPA: TPointArray;
+  Timer: TCountDown;
+begin
+  Timer.Setup(Time);
+  Self += [TPA, C, Inside, (Time > 0), Timer];
+end;
+
+procedure TRSDotFilterArray.ClearExpired;
+var
+  i: Int32;
+  ExpiredIndexes: TIntegerArray;
+begin
+  for i := 0 to High(Self) do
+    if Self[i].HasTimer and Self[i].Timer.IsFinished then
+      ExpiredIndexes += i;
+
+  for i in ExpiredIndexes do
+    Delete(Self, i, 1);
+end;
+
+//This is not very readable but should work as intended
+function TRSDotFilterArray.DotValid(P: TPoint; Clear: Boolean = True): Boolean;
+var
+  i: Int32;
+  ValidInPoly: Boolean;
+  PInPoly: Boolean;
+  ValidInCircle: Boolean;
+  PInCircle: Boolean;
+begin
+  if Clear then
+  Self.ClearExpired;
+
+  for i := 0 to High(Self) do
+  begin
+    ValidInPoly := (Self[i].TPA <> []) and
+                   (((PInPoly := SRL.PointInPoly(P, Self[i].TPA)) and (Self[i].Inside))
+                    or (not PInPoly and not Self[i].Inside));
+
+    ValidInCircle := (Self[i].Circle <> []) and
+                     (((PInCircle := SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius)) and (Self[i].Inside))
+                     or (not PInCircle and not Self[i].Inside));
+
+    if ValidInPoly or ValidInCircle then
+      Exit(True);
+  end;
+
+  Result := False;
+end;
+
+//return filtered valid dots. To be added to MMDot.Find later.
+function TRSDotFilterArray.FilterDots(TPA: TPointArray): TPointArray;
+var
+  P: TPoint;
+begin
+  Self.ClearExpired;
+
+  for P in TPA do
+    if Self.DotValid(P, False) then
+      Result += P;
+end;
 
 
 procedure TRSMMDot.SetupCommon; override;

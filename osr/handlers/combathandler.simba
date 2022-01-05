@@ -24,7 +24,9 @@ const
 
 type
   TCombatHandler = record(TSRLBaseRecord)
+    Monster: PRSMonster;
     EnemyNPC: PRSNPC;
+
     BraceletTimer: TCountDown;
     InCombatTimer: TCountDown;
     CombatStyle: TRSCombatStyle;
@@ -63,18 +65,39 @@ begin
 
   InCombatTimer.Setup(Timer);
 
-  HandleHealth := Inventory.FindItems(FOOD_ARRAY);
-  if HandleHealth then
+  if HandleHealth := Inventory.FindItems(FOOD_ARRAY) then
   begin
     DebugLn('Food detected and will be used.');
-    PrayerManager.Setup(PRAYER_CONSUMABLE);
+    FoodManager.MinInvPoints := 1;
+    FoodManager.Setup(ERSConsumable.HEALTH_CONSUMABLE);
   end;
 
-  HandlePrayer := Inventory.FindItems(PRAYER_ARRAY);
-  if HandlePrayer then
+  if HandlePrayer := Inventory.FindItems(PRAYER_ARRAY) then
   begin
     DebugLn('Prayer potions detected, prayer will be used.');
-    PrayerManager.Setup(PRAYER_CONSUMABLE);
+    PrayerManager.MinInvPoints := 1;
+    PrayerManager.Setup(ERSConsumable.PRAYER_CONSUMABLE);
+  end;
+
+  if HandlePoison := Inventory.FindItems(ANTI_POISON_ARRAY) then
+  begin
+    DebugLn('Anti poison potions detected, they will be used.');
+    PoisonManager.MinInvPoints := 1;
+    PoisonManager.Setup(ERSConsumable.POISON_CONSUMABLE);
+  end;
+
+  if HandleVenom := Inventory.FindItems(ANTI_VENOM_ARRAY) then
+  begin
+    DebugLn('Anti venom potions detected, they will be used.');
+    VenomManager.MinInvPoints := 1;
+    VenomManager.Setup(ERSConsumable.VENOM_CONSUMABLE);
+  end;
+
+  if HandleAntifire := Inventory.FindItems(ANTI_FIRE_ARRAY) then
+  begin
+    DebugLn('Anti fire potions detected, they will be used.');
+    AntifireManager.MinInvPoints := 1;
+    AntifireManager.Setup(ERSConsumable.ANTI_FIRE_CONSUMABLE);
   end;
 
   HandleCannon := Inventory.FindAllItems(DWARF_CANNON) and
@@ -94,6 +117,17 @@ begin
   Self.Setup(Timer);
 
   EnemyNPC := NPC;
+end;
+
+procedure TCombatHandler.Setup(RSMonster: PRSMonster; Timer: Int64 = 4000); overload;
+begin
+  if IsSetup then
+    Exit;
+
+  Self.Setup(Timer);
+
+  RSMonster^.SetupDrops;
+  Monster := RSMonster;
 end;
 
 
@@ -202,6 +236,17 @@ begin
     Self.SetupGear;
 end;
 
+procedure TCombatHandler.Setup(Manage: Boolean; RSMonster: PRSMonster; Timer: Int64 = 4000); overload;
+begin
+  if IsSetup then
+    Exit;
+
+  Self.Setup(RSMonster, Timer);
+
+  if ManageGear := Manage then
+    Self.SetupGear;
+end;
+
 
 function TCombatHandler.AttackNPC: Boolean;
 begin
@@ -226,9 +271,39 @@ begin
 end;
 
 
+function TCombatHandler.AttackMonster: Boolean;
+begin
+  if Monster^.SelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving;
+    Result := MainScreen.WaitInCombat(5000);
+  end;
+
+  if Result then
+    InCombatTimer.Restart(Random(0, 3000));
+end;
+
+function TCombatHandler.WalkAttackMonster: Boolean;
+begin
+  WriteLn 'ATTEMPTING TO ATTACK';
+
+  if Monster^.WalkSelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving;
+    Result := MainScreen.WaitInCombat(5000);
+  end;
+
+  if Result then
+    InCombatTimer.Restart(Random(0, 2000));
+end;
+
+
 function TCombatHandler.CanSpec: Boolean;
 begin
-  if ManageGear and not GearIsSetup then
+  if not ManageGear then
+    Exit;
+
+  if not GearIsSetup then
   begin
     Self.SetupGear;
     if not GearIsSetup then
@@ -328,25 +403,6 @@ begin
 end;
 
 
-//Check for pending action combat handler is taking care of.
-function TCombatHandler.CheckActions: Boolean;
-begin
-  if HandleHealth and (Minimap.GetHPPercent <= 50) then
-    Exit(True);
-
-  if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
-    Exit(True);
-
-  if (HandlePoison or HandleVenom) and Minimap.IsPoisoned then
-    Exit(True);
-
-  if Self.CanSpec then
-    Exit(True);
-
-  if Self.NeedRegear then
-    Exit(True);
-end;
-
 function TCombatHandler.NeedAntiPoison: Boolean;
 var
   PoisonTimer: Boolean;
@@ -372,31 +428,97 @@ begin
   Result := Timer;
 end;
 
-//Check for pending action combat handler is taking care of and do them.
-procedure TCombatHandler.DoActions;
+
+
+//Check for pending action combat handler is taking care of.
+function TCombatHandler.CheckActions: Boolean;
 begin
   if HandleHealth and (Minimap.GetHPPercent <= 50) then
-    Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
+    Exit(True);
 
   if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
-    Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
+    Exit(True);
+
+  if HandlePrayer and not Minimap.IsPrayerEnabled then
+    Exit(True);
 
   if Self.NeedAntifire then
+    Exit(True);
+
+  if Self.NeedAntiPoison then
+    Exit(True);
+
+  if Self.CanSpec then
+    Exit(True);
+
+  if Self.NeedRegear then
+    Exit(True);
+
+  if not MainScreen.InCombat then
+    Exit(True);
+end;
+
+
+//Check for pending action combat handler is taking care of and do them.
+function TCombatHandler.DoActions: String;
+begin
+  if HandleHealth and (Minimap.GetHPPercent <= 50) then
+  begin
+    Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
+    Exit('EAT_FOOD');
+  end;
+
+  if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
+  begin
+    Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
+    Exit('DRINK_PRAYER');
+  end;
+
+  if HandlePrayer and not Minimap.IsPrayerEnabled then
+  begin
+    Minimap.EnablePrayer;
+    Exit('ENABLE_QPRAY');
+  end;
+
+  if Self.NeedAntifire then
+  begin
     Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
+    Exit('DRINK_ANTIFIRE');
+  end;
 
   if Self.NeedAntiPoison then
   begin
     if HandleVenom then
-      Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE)
+    begin
+      Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
+      Exit('DRINK_ANTIVENOM');
+    end
     else if HandlePoison then
+    begin
       Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
+      Exit('DRINK_ANTIPOISON');
+    end;
   end;
 
   if Self.CanSpec then
+  begin
     Self.DoSpec;
+    Exit('DO_SPEC');
+  end;
 
   if Self.NeedRegear then
+  begin
     Self.ReGear;
+    Exit('REGEAR');
+  end;
+
+  if not MainScreen.InCombat then
+  begin
+    Self.WalkAttackMonster;
+    Exit('ATTACK_MONSTER');
+  end;
+
+  Result := 'WAITING';
 end;
 
 var

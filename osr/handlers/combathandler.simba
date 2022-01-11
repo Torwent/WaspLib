@@ -24,6 +24,7 @@ const
 
 type
   TCombatHandler = record(TSRLBaseRecord)
+    State: String;
     Monster: PRSMonster;
     EnemyNPC: PRSNPC;
 
@@ -38,6 +39,8 @@ type
     SpecWeapon: TRSItem;
     Bracelet: TRSItem;
 
+    MinHitPoints: Int32;
+    MinPrayPoints: Int32;
     WeaponSpec: Int32;
     GearIsSetup: Boolean;
 
@@ -52,6 +55,7 @@ type
 
     HandleCannon: Boolean;
     CannonIsSetup: Boolean;
+    DoingSpec: Boolean;
 
     IsSetup: Boolean;
   end;
@@ -109,6 +113,7 @@ begin
   IsSetup := True;
 end;
 
+//THIS WILL BE DELETED IN A FUTURE VERSION.
 procedure TCombatHandler.Setup(NPC: PRSNPC; Timer: Int64 = 4000); overload;
 begin
   if IsSetup then
@@ -172,6 +177,8 @@ const
 begin
   if GearIsSetup then
     Exit;
+
+  ItemFinder.AddItemName('Saradomin godsword', '20372');
 
   for Weapon in WEAPONS do
     if (Weapon = 'Null') or Equipment.FindItem(Weapon) then Break;
@@ -248,6 +255,19 @@ begin
 end;
 
 
+function TCombatHandler.GetCurrentEnemyHPBar: TRSHPBar;
+var
+  HPBarArray: TRSHPBarArray;
+  HitSplatArray: TRSHitsplatArray;
+begin
+
+end;
+
+procedure TCombatHandler.MarkCurrentEnemy;
+begin
+
+end;
+
 function TCombatHandler.AttackNPC: Boolean;
 begin
   if EnemyNPC^.SelectOption(['Attack']) then
@@ -280,13 +300,15 @@ begin
   end;
 
   if Result then
-    InCombatTimer.Restart(Random(0, 3000));
+  begin
+    if DoingSpec then
+      DoingSpec := False;
+    InCombatTimer.Restart(Random(0, 2000));
+  end;
 end;
 
 function TCombatHandler.WalkAttackMonster: Boolean;
 begin
-  WriteLn 'ATTEMPTING TO ATTACK';
-
   if Monster^.WalkSelectOption(['Attack']) then
   begin
     Minimap.WaitMoving;
@@ -294,7 +316,11 @@ begin
   end;
 
   if Result then
+  begin
+    if DoingSpec then
+      DoingSpec := False;
     InCombatTimer.Restart(Random(0, 2000));
+  end;
 end;
 
 
@@ -313,6 +339,7 @@ begin
   Result := (Minimap.GetSpecLevel >= WeaponSpec) and
             ((SpecWeapon = Weapon) or Inventory.FindItem(Weapon) or
             (Inventory.FindItem(SpecWeapon) and Inventory.HasSpace(1)));
+  DoingSpec := Result;
 end;
 
 function TCombatHandler.DoSpec: Boolean;
@@ -328,7 +355,7 @@ begin
     if not WaitUntil(Inventory.FindItem(Weapon), 100, 4000) then
       Exit;
 
-  Result := Minimap.EnableSpec(WeaponSpec);
+  Result := DoingSpec := Minimap.EnableSpec(WeaponSpec);
   if (SpecWeapon = 'Granite maul') or
      (SpecWeapon = '4153') or
      (SpecWeapon = '12848') then Result := True;
@@ -369,6 +396,8 @@ begin
   Result := ((Weapon <> 'Null') and Inventory.FindItem(Weapon)) or
             ((Shield <> 'Null') and Inventory.FindItem(Shield)) or
             Self.NeedBracelet;
+
+  DoingSpec := not Result;
 end;
 
 
@@ -411,8 +440,11 @@ begin
   if not HandlePoison and not HandleVenom then
     Exit;
 
-  PoisonTimer := PoisonManager.HasTimer^ and PoisonManager.Timer^.IsFinished;
-  VenomTimer := VenomManager.HasTimer^ and VenomManager.Timer^.IsFinished;
+  if PoisonManager.HasTimer <> nil then
+    PoisonTimer := PoisonManager.HasTimer^ and PoisonManager.Timer^.IsFinished;
+
+  if VenomManager.HasTimer <> nil then
+    VenomTimer := VenomManager.HasTimer^ and VenomManager.Timer^.IsFinished;
 
   Result := PoisonTimer or VenomTimer or Minimap.IsPoisoned or Minimap.IsEnvenomed;
 end;
@@ -431,94 +463,100 @@ end;
 
 
 //Check for pending action combat handler is taking care of.
-function TCombatHandler.CheckActions: Boolean;
+function TCombatHandler.GetState: String;
+var
+  PrayCache: Int32;
 begin
-  if HandleHealth and (Minimap.GetHPPercent <= 50) then
-    Exit(True);
+  if HandleHealth and (Minimap.GetHPLevel <= MinHitPoints) then
+  begin
+    State := 'EAT_FOOD';
+    Exit(State);
+  end;
 
-  if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
-    Exit(True);
+  if HandlePrayer then
+  begin
+    PrayCache := Minimap.GetPrayerLevel;
+    if (PrayCache <= MinPrayPoints) and Inventory.FindConsumable(ERSConsumable.PRAYER_CONSUMABLE) then
+    begin
+      State := 'DRINK_PRAYER';
+      Exit(State);
+    end;
 
-  if HandlePrayer and not Minimap.IsPrayerEnabled then
-    Exit(True);
+    if (PrayCache > 0) and not Minimap.IsPrayerEnabled then
+    begin
+      State := 'ENABLE_QPRAY';
+      Exit(State);
+    end;
+  end;
 
   if Self.NeedAntifire then
-    Exit(True);
+  begin
+    State := 'DRINK_ANTIFIRE';
+    Exit(State);
+  end;
 
   if Self.NeedAntiPoison then
-    Exit(True);
+  begin
+    if HandleVenom and Inventory.FindConsumable(ERSConsumable.VENOM_CONSUMABLE) then
+    begin
+      State := 'DRINK_ANTIVENOM';
+      Exit(State);
+    end;
+
+    if HandlePoison and Inventory.FindConsumable(ERSConsumable.POISON_CONSUMABLE) then
+    begin
+      State := 'DRINK_ANTIPOISON';
+      Exit(State);
+    end;
+  end;
+
+  if DoingSpec and Self.CanSpec then
+  begin
+    State := 'SPEC_MONSTER';
+    Exit(State);
+  end;
 
   if Self.CanSpec then
-    Exit(True);
+  begin
+    State := 'USE_SPECIAL_ATT';
+    Exit(State);
+  end;
 
   if Self.NeedRegear then
-    Exit(True);
+  begin
+    State := 'REEQUIP_GEAR';
+    Exit(State);
+  end;
 
   if not MainScreen.InCombat then
-    Exit(True);
+  begin
+    State := 'ATTACK_MONSTER';
+    Exit(State);
+  end;
+
+  Result := 'WAIT_IN_COMBAT';
 end;
 
 
 //Check for pending action combat handler is taking care of and do them.
-function TCombatHandler.DoActions: String;
+function TCombatHandler.DoActions(HandlerState: String = ''): Boolean;
 begin
-  if HandleHealth and (Minimap.GetHPPercent <= 50) then
-  begin
-    Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
-    Exit('EAT_FOOD');
-  end;
+  if HandlerState = '' then
+    HandlerState := Self.GetState;
 
-  if HandlePrayer and (Minimap.GetPrayerLevel <= 20) then
-  begin
-    Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
-    Exit('DRINK_PRAYER');
+  case HandlerState of
+    'EAT_FOOD':         Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
+    'DRINK_PRAYER':     Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
+    'ENABLE_QPRAY':     Minimap.EnablePrayer;
+    'DRINK_ANTIFIRE':   Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
+    'DRINK_ANTIVENOM':  Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
+    'DRINK_ANTIPOISON': Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
+    'SPEC_MONSTER':     Self.WalkAttackMonster;
+    'USE_SPECIAL_ATT':  Self.DoSpec;
+    'REEQUIP_GEAR':     Self.ReGear;
+    'ATTACK_MONSTER':   Self.WalkAttackMonster;
+    'WAIT_IN_COMBAT': ;
   end;
-
-  if HandlePrayer and not Minimap.IsPrayerEnabled then
-  begin
-    Minimap.EnablePrayer;
-    Exit('ENABLE_QPRAY');
-  end;
-
-  if Self.NeedAntifire then
-  begin
-    Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
-    Exit('DRINK_ANTIFIRE');
-  end;
-
-  if Self.NeedAntiPoison then
-  begin
-    if HandleVenom then
-    begin
-      Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
-      Exit('DRINK_ANTIVENOM');
-    end
-    else if HandlePoison then
-    begin
-      Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
-      Exit('DRINK_ANTIPOISON');
-    end;
-  end;
-
-  if Self.CanSpec then
-  begin
-    Self.DoSpec;
-    Exit('DO_SPEC');
-  end;
-
-  if Self.NeedRegear then
-  begin
-    Self.ReGear;
-    Exit('REGEAR');
-  end;
-
-  if not MainScreen.InCombat then
-  begin
-    Self.WalkAttackMonster;
-    Exit('ATTACK_MONSTER');
-  end;
-
-  Result := 'WAITING';
 end;
 
 var

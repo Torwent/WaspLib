@@ -161,22 +161,6 @@ They can be used for objects with a minimap dot that do not move but **TRSMMDot*
   TRSDoor = type TRSObjectArray;
 
 (*
-type TRSDotFilter
-~~~~~~~~~~~~~~~~~
-  Used to filter mmdots
-*)
-
-  TRSDotFilter = record
-    TPA: TPointArray;
-    Circle: TCircle;
-    Inside: Boolean;
-    HasTimer: Boolean;
-    Timer: TCountDown;
-  end;
-
-  TRSDotFilterArray = array of TRSDotFilter;
-
-(*
 type TRSMMDot
 ~~~~~~~~~~~~~
 
@@ -190,7 +174,6 @@ Each one made to handle each type of TRSMMDot.
 *)
 
   TRSMMDot = record(TWaspObject)
-    TileRadius: Int32;
     DotFilter: TRSDotFilterArray;
     DotType: ERSMinimapDot;
   end;
@@ -296,78 +279,6 @@ end;
 
 
 
-procedure TRSDotFilterArray.Setup(TPA: TPointArray; Inside: Boolean; Time: Int32 = -1);
-var
-  Timer: TCountDown;
-begin
-  Timer.Setup(Time);
-  Self += [TPA, [], Inside, (Time > 0), Timer];
-end;
-
-procedure TRSDotFilterArray.Setup(C: TCircle; Inside: Boolean; Time: Int32 = -1); overload;
-var
-  TPA: TPointArray;
-  Timer: TCountDown;
-begin
-  Timer.Setup(Time);
-  Self += [TPA, C, Inside, (Time > 0), Timer];
-end;
-
-procedure TRSDotFilterArray.ClearExpired;
-var
-  i: Int32;
-  ExpiredIndexes: TIntegerArray;
-begin
-  for i := 0 to High(Self) do
-    if Self[i].HasTimer and Self[i].Timer.IsFinished then
-      ExpiredIndexes += i;
-
-  for i in ExpiredIndexes do
-    Delete(Self, i, 1);
-end;
-
-//This is not very readable but should work as intended
-function TRSDotFilterArray.DotValid(P: TPoint; Clear: Boolean = True): Boolean;
-var
-  i: Int32;
-  ValidInPoly: Boolean;
-  PInPoly: Boolean;
-  ValidInCircle: Boolean;
-  PInCircle: Boolean;
-begin
-  if Clear then
-  Self.ClearExpired;
-
-  for i := 0 to High(Self) do
-  begin
-    ValidInPoly := (Self[i].TPA <> []) and
-                   (((PInPoly := SRL.PointInPoly(P, Self[i].TPA)) and (Self[i].Inside))
-                    or (not PInPoly and not Self[i].Inside));
-
-    ValidInCircle := (Self[i].Circle <> []) and
-                     (((PInCircle := SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius)) and (Self[i].Inside))
-                     or (not PInCircle and not Self[i].Inside));
-
-    if ValidInPoly or ValidInCircle then
-      Exit(True);
-  end;
-
-  Result := False;
-end;
-
-//return filtered valid dots. To be added to MMDot.Find later.
-function TRSDotFilterArray.FilterDots(TPA: TPointArray): TPointArray;
-var
-  P: TPoint;
-begin
-  Self.ClearExpired;
-
-  for P in TPA do
-    if Self.DotValid(P, False) then
-      Result += P;
-end;
-
-
 procedure TRSMMDot.SetupCommon; override;
 begin
   inherited;
@@ -377,43 +288,61 @@ begin
 end;
 
 procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius: Int32; Height: Double; ObjTileArray: TPointArray); overload;
+var
+  P: TPoint;
 begin
   Walker := PWalker;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, [1, 1, Height]]];
-  TileRadius := Radius;
+
+  for P in ObjTileArray do
+    DotFilter.Setup([P.X, P.Y, Radius], True);
+
   Filter.Walker := True;
 end;
 
 procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius: Int32; Size, Height: Double; ObjTileArray: TPointArray); overload;
+var
+  P: TPoint;
 begin
   Walker := PWalker;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, [Size, Size, Height]]];
-  TileRadius := Radius;
+
+  for P in ObjTileArray do
+    DotFilter.Setup([P.X, P.Y, Radius], True);
+
   Filter.Walker := True;
 end;
 
 procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius: Int32; TileVector: Vector3; ObjTileArray: TPointArray); overload;
+var
+  P: TPoint;
 begin
   Walker := PWalker;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, TileVector]];
-  TileRadius := Radius;
+
+  for P in ObjTileArray do
+    DotFilter.Setup([P.X, P.Y, Radius], True);
+
   Filter.Walker := True;
 end;
 
 procedure TRSMMDot.SetupCommon(PWalker: PRSWalker; Radius: Int32; Shapes: array of TRSObjectShape); overload;
 var
   i: Int32;
+  P: TPoint;
 begin
   Walker := PWalker;
   ShapeArray := Shapes;
-  TileRadius := Radius;
   Filter.Walker := True;
 
   for i := 0 to High(Shapes) do
     TileArray.Extend(Shapes[i].TileArray);
+
+  for P in TileArray do
+    DotFilter.Setup([P.X, P.Y, Radius], True);
 end;
 
 
@@ -491,11 +420,12 @@ end;
 
 
 
-function TRSMMDot._GetWMMPolys(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray;
+function TRSMMDot._GetWMMPolys(out MMPoints, Dots: TPointArray; out DotFilters: TRSDotFilterArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray;
 begin
-    MMPoints := Walker^.WorldToMM(ShapeArray[0].TileArray);
-    Radiuses := Minimap.GetCircleArray(MMPoints, TileRadius);
-    Dots := Minimap.GetDotArrayInCircleArray(DotType, MMPoints, TileRadius);
+    MMPoints := Walker^.WorldToMM(TileArray);
+    DotFilters.ClearExpired;
+    DotFilters := Walker^.WorldToMM(DotFilter);
+    Dots := Minimap.GetFilteredDotArray(DotType, DotFilters);
 
     Tiles := Walker^.GetTileArrayMS(
                      MMPoints, [ShapeArray[0].TileVector.X, ShapeArray[0].TileVector.Y, 0]);
@@ -545,10 +475,10 @@ begin
 end;
 
 
-function TRSMMDot.GetPolys(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray; overload;
+function TRSMMDot.GetPolys(out MMPoints, Dots: TPointArray; out DotFilters: TRSDotFilterArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray; overload;
 begin
   if Filter.Walker and Filter.MinimapDot then
-    Result := Self._GetWMMPolys(MMPoints, Dots, Radiuses, Tiles, FloorTiles, RoofTiles)
+    Result := Self._GetWMMPolys(MMPoints, Dots, DotFilters, Tiles, FloorTiles, RoofTiles)
   else if Filter.Walker then
     Result := Self._GetWPolys(FloorTiles, RoofTiles)
   else if Filter.MinimapDot then
@@ -562,8 +492,8 @@ var
 begin
   if Filter.Walker and Filter.MinimapDot then
   begin
-    Dots := Minimap.GetDotArrayInCircleArray(DotType,
-                    Walker^.WorldToMM(ShapeArray[0].TileArray), TileRadius);
+    Dots := Minimap.GetFilteredDotArray(DotType,
+                    Walker^.WorldToMM(DotFilter));
 
     if Dots <> [] then
       Result := Minimap.GetTileArrayPolys(Dots, ShapeArray[0].TileVector, [-2, -2]);
@@ -572,7 +502,7 @@ begin
   else if Filter.Walker then
   begin
     Expand := Round(
-                (ShapeArray[0].TileVector.Y + ShapeArray[0].TileVector.X) / 2) * TileRadius;
+                (ShapeArray[0].TileVector.Y + ShapeArray[0].TileVector.X) / 2);
 
     Result := Minimap.GetTileArrayPolys(
                         Walker^.WorldToMM(ShapeArray[0].TileArray),
@@ -715,13 +645,13 @@ end;
 
 
 //MMDot.Find functions
-function TRSMMDot.Find(out MMPoints, Dots: TPointArray; out Radiuses: TCircleArray; out Tiles, FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
+function TRSMMDot.Find(out MMPoints, Dots: TPointArray; out DotFilters: TRSDotFilterArray; out Tiles, FloorTiles, RoofTiles: TRectArray; out PolyArray: TPolyArray; out ATPA: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom;
 
   if Filter.Walker or Filter.MinimapDot then
   begin
-    PolyArray := Self.GetPolys(MMPoints, Dots, Radiuses,
+    PolyArray := Self.GetPolys(MMPoints, Dots, DotFilters,
                                Tiles, FloorTiles, RoofTiles);
 
     if PolyArray = [] then
@@ -821,7 +751,7 @@ procedure Debug(MMDot: TRSMMDot); overload;
 var
   Bitmap: TMufasaBitmap;
   MMPoints, Dots: TPointArray;
-  Radiuses: TCircleArray;
+  DotFilters: TRSDotFilterArray;
   Tiles, FloorTiles, RoofTiles: TRectArray;
   PolyArray: TPolyArray;
   ATPA: T2DPointArray;
@@ -829,7 +759,7 @@ var
 begin
   Bitmap.FromClient;
 
-  MMDot.Find(MMPoints, Dots, Radiuses,
+  MMDot.Find(MMPoints, Dots, DotFilters,
              Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
 
   //Minimap drawing
@@ -839,8 +769,14 @@ begin
   for I := 0 to High(Dots) do
     Bitmap.DrawCrosshairs(Dots[I], 2, clTeal);
 
-  for I := 0 to High(Radiuses) do
-    Bitmap.DrawCircle(Radiuses[I].Mean, Radiuses[I].Radius, clLime);
+  for I := 0 to High(DotFilters) do
+  begin
+    if DotFilters[I].TPA <> [] then
+      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime);
+
+    if DotFilters[I].Circle <> [] then
+      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime);
+  end;
 
   for I := 0 to High(Tiles) do
     Bitmap.DrawRect(Tiles[I], $00FFFF);
@@ -900,13 +836,13 @@ end;
 procedure TRSMMDot.Draw(out Bitmap: TMufasaBitmap);
 var
   MMPoints, Dots: TPointArray;
-  Radiuses: TCircleArray;
+  DotFilters: TRSDotFilterArray;
   Tiles, FloorTiles, RoofTiles: TRectArray;
   PolyArray: TPolyArray;
   ATPA: T2DPointArray;
   I: Int32;
 begin
-  Self.Find(MMPoints, Dots, Radiuses,
+  Self.Find(MMPoints, Dots, DotFilters,
              Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
 
   //Minimap drawing
@@ -916,8 +852,14 @@ begin
   for I := 0 to High(Dots) do
     Bitmap.DrawCrosshairs(Dots[I], 3, $00FFFF);
 
-  for I := 0 to High(Radiuses) do
-    Bitmap.DrawCircle(Radiuses[I].Mean, Radiuses[I].Radius, $FFFFFF);
+  for I := 0 to High(DotFilters) do
+  begin
+    if DotFilters[I].TPA <> [] then
+      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, $FFFFFF);
+
+    if DotFilters[I].Circle <> [] then
+      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, $FFFFFF);
+  end;
 
   for I := 0 to High(Tiles) do
     Bitmap.DrawRect(Tiles[I], $00FFFF);

@@ -174,7 +174,7 @@ procedure Debug(Monster: TRSMonster); overload;
 var
   Bitmap: TMufasaBitmap;
   MMPoints, Dots: TPointArray;
-  Radiuses: TCircleArray;
+  DotFilters: TRSDotFilterArray;
   Tiles, FloorTiles, RoofTiles: TRectArray;
   PolyArray: TPolyArray;
   ATPA: T2DPointArray;
@@ -182,7 +182,7 @@ var
 begin
   Bitmap.FromClient;
 
-  Monster.Find(MMPoints, Dots, Radiuses,
+  Monster.Find(MMPoints, Dots, DotFilters,
              Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
 
   //Minimap drawing
@@ -192,8 +192,14 @@ begin
   for I := 0 to High(Dots) do
     Bitmap.DrawCrosshairs(Dots[I], 2, clTeal);
 
-  for I := 0 to High(Radiuses) do
-    Bitmap.DrawCircle(Radiuses[I].Mean, Radiuses[I].Radius, clLime);
+  for I := 0 to High(DotFilters) do
+  begin
+    if DotFilters[I].TPA <> [] then
+      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime);
+
+    if DotFilters[I].Circle <> [] then
+      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime);
+  end;
 
   for I := 0 to High(Tiles) do
     Bitmap.DrawRect(Tiles[I], $00FFFF);
@@ -219,3 +225,66 @@ begin
   Bitmap.Free;
 end;
 
+procedure TRSMonster.Draw(out Bitmap: TMufasaBitmap); override;
+var
+  MMPoints, Dots: TPointArray;
+  DotFilters: TRSDotFilterArray;
+  Tiles, FloorTiles, RoofTiles: TRectArray;
+  PolyArray: TPolyArray;
+  ATPA: T2DPointArray;
+  I: Int32;
+begin
+  Self.Find(MMPoints, Dots, DotFilters,
+             Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
+
+  //Minimap drawing
+  for I := 0 to High(MMPoints) do
+    Bitmap.DrawCrosshairs(MMPoints[I], 3, $FFFFFF);
+
+  for I := 0 to High(Dots) do
+    Bitmap.DrawCrosshairs(Dots[I], 3, $00FFFF);
+
+  for I := 0 to High(DotFilters) do
+  begin
+    if DotFilters[I].TPA <> [] then
+      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, $FFFFFF);
+
+    if DotFilters[I].Circle <> [] then
+      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, $FFFFFF);
+  end;
+
+  for I := 0 to High(Tiles) do
+    Bitmap.DrawRect(Tiles[I], $00FFFF);
+
+  for I := 0 to High(FloorTiles) do
+    Bitmap.DrawRect(FloorTiles[I], $FFFFFF);
+
+  for I := 0 to High(RoofTiles) do
+    Bitmap.DrawRect(RoofTiles[I], $FFFFFF);
+
+  for I := 0 to High(PolyArray) do
+    Bitmap.DrawPoly(PolyArray[I], $00FFFF);
+
+  for I := 0 to High(ATPA) do
+  begin
+    if I = 0 then
+      Bitmap.DrawTPA(ATPA[0], $0A0A0A) //Closest object will be painted black.
+    else
+      Bitmap.DrawTPA(ATPA[I], DEBUG_COLORS[I mod Length(DEBUG_COLORS)]);
+  end;
+
+end;
+
+
+var
+  DebugMonsterArray: PRSMonsterArray;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugMonster: PRSMonster;
+begin
+  inherited;
+
+  for DebugMonster in DebugMonsterArray do
+    DebugMonster^.Draw(Bitmap);
+end;

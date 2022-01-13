@@ -254,7 +254,7 @@ begin
     Self.SetupGear;
 end;
 
-
+(*
 function TCombatHandler.GetCurrentEnemyHPBar: TRSHPBar;
 var
   HPBarArray: TRSHPBarArray;
@@ -262,6 +262,7 @@ var
 begin
 
 end;
+*)
 
 procedure TCombatHandler.MarkCurrentEnemy;
 begin
@@ -441,23 +442,23 @@ begin
     Exit;
 
   if PoisonManager.HasTimer <> nil then
-    PoisonTimer := PoisonManager.HasTimer^ and PoisonManager.Timer^.IsFinished;
+    PoisonTimer := (PoisonManager.HasTimer^ and PoisonManager.Timer^.IsFinished)
+                    or PoisonManager.Timer^.IsPaused;
 
   if VenomManager.HasTimer <> nil then
-    VenomTimer := VenomManager.HasTimer^ and VenomManager.Timer^.IsFinished;
+    VenomTimer := (VenomManager.HasTimer^ and VenomManager.Timer^.IsFinished) or
+                   VenomManager.Timer^.IsPaused;
 
   Result := PoisonTimer or VenomTimer or Minimap.IsPoisoned or Minimap.IsEnvenomed;
 end;
 
 function TCombatHandler.NeedAntifire: Boolean;
-var
-  Timer: Boolean;
 begin
   if not HandleAntifire then
     Exit;
 
-  Timer := PoisonManager.HasTimer^ and AntifireManager.Timer^.IsFinished;
-  Result := Timer;
+  Result := (AntifireManager.HasTimer^ and
+           AntifireManager.Timer^.IsFinished) or AntifireManager.Timer^.IsPaused;
 end;
 
 
@@ -539,7 +540,7 @@ end;
 
 
 //Check for pending action combat handler is taking care of and do them.
-function TCombatHandler.DoActions(HandlerState: String = ''): Boolean;
+procedure TCombatHandler.DoActions(HandlerState: String = '');
 begin
   if HandlerState = '' then
     HandlerState := Self.GetState;

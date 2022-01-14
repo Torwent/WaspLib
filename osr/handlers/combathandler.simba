@@ -76,6 +76,13 @@ begin
     FoodManager.Setup(ERSConsumable.HEALTH_CONSUMABLE);
   end;
 
+  if HandleBoosts := Inventory.FindItems(BOOST_ARRAY) then
+  begin
+    DebugLn('Boost potions detected, they will be used.');
+    BoostManager.MinInvPoints := 1;
+    BoostManager.Setup(ERSConsumable.BOOST_CONSUMABLE);
+  end;
+
   if HandlePrayer := Inventory.FindItems(PRAYER_ARRAY) then
   begin
     DebugLn('Prayer potions detected, prayer will be used.');
@@ -277,7 +284,7 @@ begin
     Result := MainScreen.WaitInCombat(5000);
   end;
 
-  if Result then InCombatTimer.Restart(Random(0, 3000));
+  if Result then InCombatTimer.Restart(Random(0, 2000));
 end;
 
 function TCombatHandler.WalkAttackNPC: Boolean;
@@ -288,7 +295,7 @@ begin
     Result := MainScreen.WaitInCombat(5000);
   end;
 
-  if Result then InCombatTimer.Restart(Random(0, 3000));
+  if Result then InCombatTimer.Restart(Random(0, 2000));
 end;
 
 
@@ -356,17 +363,18 @@ begin
     if not WaitUntil(Inventory.FindItem(Weapon), 100, 4000) then
       Exit;
 
+  InCombatTimer.Timeout := GetTickCount;
   Result := DoingSpec := Minimap.EnableSpec(WeaponSpec);
-  if (SpecWeapon = 'Granite maul') or
-     (SpecWeapon = '4153') or
-     (SpecWeapon = '12848') then Result := True;
 
-  if Result and ((SpecWeapon <> 'Granite maul') or
-                 (SpecWeapon <> '4153') or
-                 (SpecWeapon <> '12848')) then
-    Wait(300, 400)
-  else
-    Wait(50, 100);
+  case SpecWeapon of
+    'Granite maul', '4153', '12848':
+      begin
+        Result := DoingSpec := True;
+        Wait(50, 100);
+      end;
+    else
+      Wait(300, 400);
+  end;
 end;
 
 
@@ -402,22 +410,6 @@ begin
 end;
 
 
-function TCombatHandler.ReGear: Boolean;
-begin
-  if not ManageGear or not GearIsSetup then
-    Exit;
-
-  if (Weapon <> 'Null') then
-    Inventory.ClickItem(Weapon);
-  if (Shield <> 'Null') then
-    Inventory.ClickItem(Shield);
-
-  if Self.NeedBracelet then
-    Inventory.ClickItem(Bracelet);
-
-  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
-end;
-
 function TCombatHandler.EquipBracelet: Boolean;
 begin
   if not ManageGear or not GearIsSetup then
@@ -429,39 +421,53 @@ begin
   Result := Inventory.ClickItem(Bracelet);
 
   if Result then
+  begin
     BraceletTimer.Restart;
+    InCombatTimer.Timeout := GetTickCount;
+  end;
+end;
+
+function TCombatHandler.ReGear: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  if (Weapon <> 'Null') then
+    Inventory.ClickItem(Weapon);
+  if (Shield <> 'Null') then
+    Inventory.ClickItem(Shield);
+
+  if Self.NeedBracelet then
+    Self.EquipBracelet;
+
+  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
+
+  if Result then
+    InCombatTimer.Timeout := GetTickCount;
 end;
 
 
+
 function TCombatHandler.NeedAntiPoison: Boolean;
-var
-  PoisonTimer: Boolean;
-  VenomTimer: Boolean;
 begin
   if not HandlePoison and not HandleVenom then
     Exit;
 
-  if PoisonManager.HasTimer <> nil then
-    PoisonTimer := (PoisonManager.HasTimer^ and PoisonManager.Timer^.IsFinished)
-                    or PoisonManager.Timer^.IsPaused;
-
-  if VenomManager.HasTimer <> nil then
-    VenomTimer := (VenomManager.HasTimer^ and VenomManager.Timer^.IsFinished) or
-                   VenomManager.Timer^.IsPaused;
-
-  Result := PoisonTimer or VenomTimer or Minimap.IsPoisoned or Minimap.IsEnvenomed;
+  Result := PoisonManager.NeedToConsume or
+            VenomManager.NeedToConsume or
+            Minimap.IsPoisoned or
+            Minimap.IsEnvenomed;
 end;
 
 function TCombatHandler.NeedAntifire: Boolean;
 begin
-  if not HandleAntifire then
-    Exit;
-
-  Result := (AntifireManager.HasTimer^ and
-           AntifireManager.Timer^.IsFinished) or AntifireManager.Timer^.IsPaused;
+  Result := HandleAntifire and AntifireManager.NeedToConsume;
 end;
 
-
+function TCombatHandler.NeedBoost: Boolean;
+begin
+  Result := HandleBoosts and BoostManager.NeedToConsume;
+end;
 
 //Check for pending action combat handler is taking care of.
 function TCombatHandler.GetState: String;
@@ -511,6 +517,16 @@ begin
     end;
   end;
 
+  if MainScreen.FindGrave then
+    Exit('PLAYER_DEAD');
+
+  if Self.NeedBoost then
+  begin
+    State := 'DRINK_BOOST';
+    Exit(State);
+  end;
+
+
   if DoingSpec and Self.CanSpec then
   begin
     State := 'SPEC_MONSTER';
@@ -548,15 +564,21 @@ begin
   case HandlerState of
     'EAT_FOOD':         Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
     'DRINK_PRAYER':     Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
-    'ENABLE_QPRAY':     Minimap.EnablePrayer;
     'DRINK_ANTIFIRE':   Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
     'DRINK_ANTIVENOM':  Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
     'DRINK_ANTIPOISON': Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
+    'DRINK_BOOST':      Inventory.Consume(ERSConsumable.BOOST_CONSUMABLE);
+    'ENABLE_QPRAY':     Minimap.EnablePrayer;
     'SPEC_MONSTER':     Self.WalkAttackMonster;
     'USE_SPECIAL_ATT':  Self.DoSpec;
     'REEQUIP_GEAR':     Self.ReGear;
     'ATTACK_MONSTER':   Self.WalkAttackMonster;
-    'WAIT_IN_COMBAT': ;
+    'WAIT_IN_COMBAT':   MainScreen.WaitInCombat(InCombatTimer.Length);
+    'PLAYER_DEAD':
+      begin
+        Logout.ClickLogout;
+        TerminateScript('We seem to have died.');
+      end;
   end;
 end;
 

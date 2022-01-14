@@ -26,28 +26,26 @@ type
   TConsumableHandlerArray = array of TConsumableHandler;
 
   TConsumableManager = record(TSRLBaseRecord)
+    Index: Int32;
     Handlers: TConsumableHandlerArray;
     ItemArray: TRSItemArray;
     MinInvPoints: Int32;
     Amount: Int32;
-
-    HasTimer: ^Boolean;
-    Timer: ^TCountDown;
-
     IsSetup: Boolean;
   end;
 
-function GetConsumableArray(ConsumableType: ERSConsumable): TRSItemArray;
+
+procedure TRSConsumableArray.SetupCost;
+var
+  i: Int32;
+  DoseCost: Int32;
 begin
-  case ConsumableType of
-    ERSConsumable.HEALTH_CONSUMABLE:    Result := FOOD_ARRAY;
-    ERSConsumable.PRAYER_CONSUMABLE:    Result := PRAYER_ARRAY;
-    ERSConsumable.ENERGY_CONSUMABLE:    Result := ENERGY_ARRAY;
-    ERSConsumable.POISON_CONSUMABLE:    Result := ANTI_POISON_ARRAY;
-    ERSConsumable.VENOM_CONSUMABLE:     Result := ANTI_VENOM_ARRAY;
-    ERSConsumable.ANTI_FIRE_CONSUMABLE: Result := ANTI_FIRE_ARRAY;
-    ERSConsumable.BOOST_CONSUMABLE:     Result := BOOST_ARRAY;
-  end;
+  if Self = [] then
+    Exit;
+
+  DoseCost := ItemData.GetAverage(Self[High(Self)].Item);
+  for i := 0 to High(Self) do
+    Self[i].Cost := DoseCost;
 end;
 
 function TConsumableHandler._Setup(Item: TRSItem): TRSConsumable;
@@ -61,10 +59,9 @@ begin
     ERSConsumable.POISON_CONSUMABLE:    Result.SetupAntiPoison;
     ERSConsumable.VENOM_CONSUMABLE:     Result.SetupAntiVenom;
     ERSConsumable.ANTI_FIRE_CONSUMABLE: Result.SetupAntiFire;
-    ERSConsumable.BOOST_CONSUMABLE:     Result := [];
+    ERSConsumable.BOOST_CONSUMABLE:     Result.SetupBoost;
   end;
 end;
-
 
 function TConsumableHandler._FindInBank: TRSConsumableArray;
 var
@@ -98,6 +95,8 @@ begin
 
         Result += Consumable;
       end;
+
+      Result.SetupCost;
     end;
   end;
 end;
@@ -132,6 +131,8 @@ begin
 
         Result += Consumable;
       end;
+
+      Result.SetupCost;
     end;
   end;
 end;
@@ -183,9 +184,6 @@ begin
     Timer.Setup(C.Timer);
 end;
 
-
-
-
 procedure TConsumableManager.SetupAmount;
 var
   i: Int32;
@@ -232,8 +230,7 @@ begin
     Handlers += Handler;
     ItemArray := Handler.ItemArray;
     Self.SetupAmount;
-    HasTimer := @Handler.HasTimer;
-    Timer := @Handler.Timer;
+    Index := High(Handlers);
   end;
 
   IsSetup := Handler.IsSetup;
@@ -253,11 +250,27 @@ begin
     Handlers += Handler;
     ItemArray.Extend(Handler.ItemArray);
     Self.SetupAmount;
-    HasTimer := @Handler.HasTimer;
-    Timer := @Handler.Timer;
+    Index := High(Handlers);
   end;
 end;
 
+function TConsumableManager.GetCurrentHandler: TConsumableHandler;
+begin
+  if Index > -1 then
+    Result := Handlers[Index];
+end;
+
+function TConsumableManager.NeedToConsume: Boolean;
+var
+  CurrentHandler: TConsumableHandler;
+begin
+  if not IsSetup then
+    Exit;
+
+  CurrentHandler := Self.GetCurrentHandler;
+  Result := (CurrentHandler.HasTimer and CurrentHandler.Timer.IsFinished)
+            or CurrentHandler.Timer.IsPaused;
+end;
 
 var
   FoodManager: TConsumableManager;
@@ -328,13 +341,15 @@ begin
       Break
     else if Self.FindItems(HandlerManager^.Handlers[i].ItemArray.Reversed, Slots) then
     begin
-      HandlerManager^.HasTimer := @HandlerManager^.Handlers[i].HasTimer;
-      HandlerManager^.Timer := @HandlerManager^.Handlers[i].Timer;
+      HandlerManager^.Index := i;
       Break;
     end;
 
     if i = High(HandlerManager^.Handlers) then
+    begin
+      HandlerManager^.Index := -1;
       Exit;
+    end;
   end;
 
   Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
@@ -354,7 +369,12 @@ begin
   if Result then
   begin
     if HandlerManager^.Handlers[i].HasTimer then
-      HandlerManager^.Handlers[i].Timer.Restart(Random(3000, 3000));
+    begin
+      if ConsumableType = ERSConsumable.ANTI_FIRE_CONSUMABLE then
+        HandlerManager^.Handlers[i].Timer.Restart(Random(-50000, -20000))
+      else
+        HandlerManager^.Handlers[i].Timer.Restart(Random(-3000, 3000));
+    end;
 
     LastConsumable := HandlerManager^.Handlers[i].Consumable[High(HandlerManager^.Handlers[i].Consumable)];
     TotalConsumableCost += LastConsumable.Cost;

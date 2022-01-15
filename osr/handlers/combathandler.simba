@@ -469,36 +469,69 @@ begin
   Result := HandleBoosts and BoostManager.NeedToConsume;
 end;
 
+
+function TCombatHandler.Terminate: Boolean;
+begin
+  if not MainScreen.FindGrave then
+  begin
+    Magic.CastSpell(ERSSpell.VARROCK_TELEPORT);
+    Wait(10000);
+  end;
+
+  Logout.ClickLogout;
+  Self.Fatal('Last state: ' + State);
+end;
+
+
 //Check for pending action combat handler is taking care of.
 function TCombatHandler.GetState: String;
 var
   PrayCache: Int32;
 begin
-  if HandleHealth and (Minimap.GetHPLevel <= MinHitPoints) then
+  if (Minimap.GetHPLevel <= MinHitPoints) then
   begin
-    State := 'EAT_FOOD';
+    if HandleHealth then
+    begin
+      State := 'EAT_FOOD';
+      Exit(State);
+    end;
+
+    State := 'LOW_HEALTH';
     Exit(State);
   end;
 
   if HandlePrayer then
   begin
     PrayCache := Minimap.GetPrayerLevel;
-    if (PrayCache <= MinPrayPoints) and Inventory.FindConsumable(ERSConsumable.PRAYER_CONSUMABLE) then
-    begin
-      State := 'DRINK_PRAYER';
-      Exit(State);
-    end;
 
     if (PrayCache > 0) and not Minimap.IsPrayerEnabled then
     begin
       State := 'ENABLE_QPRAY';
       Exit(State);
     end;
+
+    if (PrayCache <= MinPrayPoints) then
+    begin
+      if Inventory.FindConsumable(ERSConsumable.PRAYER_CONSUMABLE) then
+      begin
+        State := 'DRINK_PRAYER';
+        Exit(State);
+      end;
+
+      State := 'LOW_PRAYER';
+      Exit(State);
+    end;
   end;
 
   if Self.NeedAntifire then
   begin
-    State := 'DRINK_ANTIFIRE';
+    if Inventory.FindConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE) then
+    begin
+      State := 'DRINK_ANTIFIRE';
+      Exit(State);
+    end;
+
+    State := 'NO_ANTIFIRE';
     Exit(State);
   end;
 
@@ -574,11 +607,8 @@ begin
     'REEQUIP_GEAR':     Self.ReGear;
     'ATTACK_MONSTER':   Self.WalkAttackMonster;
     'WAIT_IN_COMBAT':   MainScreen.WaitInCombat(InCombatTimer.Length);
-    'PLAYER_DEAD':
-      begin
-        Logout.ClickLogout;
-        TerminateScript('We seem to have died.');
-      end;
+    'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
+      Self.Terminate;
   end;
 end;
 

@@ -10,18 +10,12 @@ TRSMonters are a type or TRSNPC that can be fought.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-var
-  ValueThreshold: Int32;
-
 type
   TRSMonster = record(TRSMMDot)
     MonsterName: String;
     Hitpoints: Int32;
     MaxHit: Int32;
     AttackTypes: array of ERSMonsterAttackType;
-    Drops: array of TRSMonsterDrop;
-    GoodDrops: TRSItemArray;
-    LootGItem: TRSGroundItem;
   end;
 
   TRSMonsterArray = array of TRSMonster;
@@ -57,40 +51,6 @@ begin
   AttackTypes := MonsterData.GetAttackTypes(Name);
 end;
 
-procedure TRSMonster.SetupDrops;
-var
-  i: Int32;
-begin
-  GoodDrops := [];
-  LootGItem := [];
-
-  LootGItem.SetupCommon;
-  LootGItem.Filter.Finder := False;
-
-  Drops := MonsterData.GetDrops(MonsterName);
-
-  for i := 0 to High(Drops) do
-  begin
-    if Drops[i].Noted and
-      ((ItemData.GetAverage(Drops[i].ID) * Drops[i].Quantity) >= (ValueThreshold/5)) then
-    begin
-      GoodDrops += Drops[i].Item;
-      LootGItem.Item +=  'noted ' + Drops[i].Item;
-      LootGItem.UpText += Drops[i].Item;
-    end
-    else if Drops[i].Stackable and
-      ((ItemData.GetAverage(Drops[i].ID) * Drops[i].Quantity) >= (ValueThreshold/5)) or
-      (ItemData.GetHighAlch(Drops[i].ID) > 500) or
-      (ItemData.GetAverage(Drops[i].ID) >= ValueThreshold) then
-    begin
-      GoodDrops += Drops[i].Item;
-      LootGItem.Item += Drops[i].Item;
-      LootGItem.UpText += Drops[i].Item;
-    end;
-  end;
-end;
-
-
 function TRSMonster.Attack: Boolean;
 begin
   if Self.SelectOption(['Attack']) then
@@ -109,67 +69,6 @@ begin
   end;
 end;
 
-
-function TRSMonster._HandleLooting: Boolean;
-var
-  i: Int32;
-  ItemStr: String;
-
-begin
-  if not MainScreen.IsUpText('Take') then
-    Exit;
-
-  ChooseOption.Open;
-
-  if not ChooseOption.HasOption(LootGItem.UpText) then Exit;
-  Result := ChooseOption.Select(LootGItem.UpText);
-  (*
-  for i := 0 to High(LootGItem.UpText) do
-  begin
-    ItemStr := LootGItem.UpText[i];
-
-    if not ChooseOption.HasOption(ItemStr, True, False) then
-      Continue;
-
-    if Inventory.IsFull then
-    begin
-      WriteLn ItemStr;
-      if Drops[i].Stackable then
-      begin
-        if Drops[i].Noted then
-          ItemStr := 'noted ' + ItemStr;
-
-        if Inventory.FindItem(ItemStr) then
-          Exit(ChooseOption.Select(LootGItem.UpText[i], MOUSE_LEFT, False));
-      end
-
-      //ELSE IF ALCH! TODO!
-
-      else if Inventory.FindConsumable(ERSConsumable.HEALTH_CONSUMABLE) then
-      begin
-        Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE);
-        Exit;
-      end;
-    end;
-
-    Exit(ChooseOption.Select(ItemStr, MOUSE_LEFT, False));
-  end;
-  *)
-end;
-
-function TRSMonster.CheckLoot(P: TPoint): Boolean;
-begin
-  Mouse.Move(P);
-
-  Result := Self._HandleLooting;
-end;
-
-function TRSMonster.CheckLoot(B: TBox): Boolean; overload;
-begin
-  Mouse.Move(B);
-
-  Result := Self._HandleLooting;
-end;
 
 //Debug TRSMonster
 procedure Debug(Monster: TRSMonster); overload;
@@ -197,10 +96,20 @@ begin
   for I := 0 to High(DotFilters) do
   begin
     if DotFilters[I].TPA <> [] then
-      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clRed);
+    end;
 
     if DotFilters[I].Circle <> [] then
-      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clRed);
+    end;
   end;
 
   for I := 0 to High(Tiles) do
@@ -249,10 +158,20 @@ begin
   for I := 0 to High(DotFilters) do
   begin
     if DotFilters[I].TPA <> [] then
-      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, $FFFFFF);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clRed);
+    end;
 
     if DotFilters[I].Circle <> [] then
-      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, $FFFFFF);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clRed);
+    end;
   end;
 
   for I := 0 to High(Tiles) do

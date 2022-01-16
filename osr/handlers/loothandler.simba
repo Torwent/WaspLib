@@ -1,0 +1,167 @@
+(*
+CombatHandler
+=============
+CombatHandler is a record made to handle certain things related to combat.
+*)
+
+{$DEFINE WL_LOOTHANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TRSLootHandler = record(TSRLBaseRecord)
+    Loot: TRSGroundItem;
+    Drops: array of TRSMonsterDrop;
+    ValueThreshold: Int32;
+    CheckedLoot: Boolean;
+    IsSetup: Boolean;
+  end;
+
+
+function TRSLootHandler.IsGoodDrop(Drop: TRSMonsterDrop): Boolean;
+const
+  ItemArray: TStringArray = [
+    'Clue scroll (easy)', 'Clue scroll (medium)',
+    'Clue scroll (hard)', 'Clue scroll (elite)',
+    'Clue scroll (master)',
+    'Dark totem base', 'Dark totem middle', 'Dark totem top',
+    'Dark totem', 'Ancient shard'
+  ];
+var
+  Value: Int32;
+begin
+  if ItemArray.Find(Drop.Item) > -1 then
+    Exit(True);
+
+  Value := ItemData.GetAverage(Drop.ID);
+  Result := (Drop.Stackable and ((Value * Drop.Quantity) >= (ValueThreshold/5))) or
+            (ItemData.GetHighAlch(Drop.ID) > Value) or (Value >= ValueThreshold);
+end;
+
+procedure TRSLootHandler.Setup(Monster: PRSMonster; Value: Int32);
+var
+  i: Int32;
+  TempDrops: array of TRSMonsterDrop;
+begin
+  ValueThreshold := Value;
+
+  Loot.SetupCommon;
+  Loot.SetupCommon(Monster^.Walker, Monster^.DotFilter[0].Circle.Radius, 2, Monster^.TileArray);
+
+  Loot.Filter.Finder := False;
+
+  TempDrops := MonsterData.GetDrops(Monster^.MonsterName);
+
+  for i := 0 to High(TempDrops) do
+  begin
+    if Self.IsGoodDrop(TempDrops[i]) then
+    begin
+      Drops += TempDrops[i];
+      Loot.UpText += TempDrops[i].Item;
+    end;
+  end;
+
+  IsSetup:= Loot <> [];
+end;
+
+function TRSLootHandler.HasSpace(Drop: TRSMonsterDrop): Boolean;
+begin
+  Result := not Inventory.IsFull or (Drop.Stackable and Inventory.FindItem(Drop.Item));
+end;
+
+function TRSLootHandler.HandleLooting: Boolean;
+var
+  Index, i: Int32;
+  ItemStr: String;
+  TempFilter: TRSDotFilterArray; //Used to reset filters.
+begin
+  if not MainScreen.IsUpText('Take') then
+    Exit;
+
+  CheckedLoot := True;
+  TempFilter := Loot.DotFilter;
+  Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 3], True);
+
+  if MainScreen.IsUpText(Loot.UpText, -1, Index) then
+  begin
+    if not Self.HasSpace(Drops[Index]) then
+    begin
+      if Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE) then
+        Loot.Hover(5)
+      else
+      begin
+        Loot.DotFilter := TempFilter;
+        Exit;
+      end;
+    end;
+    Mouse.Click(MOUSE_LEFT);
+    Loot.DotFilter := TempFilter;
+    Exit(True);
+  end
+
+  else
+
+  if ChooseOption.Open then
+  begin
+    if not ChooseOption.HasOption(Loot.UpText, Index) then
+    begin
+      Loot.DotFilter := TempFilter;
+      Exit;
+    end;
+
+    if not Self.HasSpace(Drops[Index]) then
+    begin
+      if Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE) then
+        Loot.Hover(5)
+      else
+      begin
+        Loot.DotFilter := TempFilter;
+        Exit;
+      end;
+    end;
+
+    Result := ChooseOption.Select(Loot.UpText[Index]);
+  end;
+
+  Loot.DotFilter := TempFilter;
+end;
+
+function TRSLootHandler.CheckLoot(P: TPoint): Boolean;
+begin
+  Mouse.Move(P);
+
+  Result := Self.HandleLooting;
+end;
+
+function TRSLootHandler.CheckLoot(B: TBox): Boolean; overload;
+begin
+  Mouse.Move(B);
+
+  Result := Self.HandleLooting;
+end;
+
+function TRSLootHandler.CheckLoot: Boolean; overload;
+begin
+  Debug(Loot);
+  Loot.Hover(0);
+  Result := Self.HandleLooting;
+  if Result then
+    Minimap.WaitMoving;
+
+  if CheckedLoot then
+  begin
+    Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 3], False, 120 * ONE_SECOND);
+    CheckedLoot := False;
+  end;
+end;
+
+
+
+
+
+
+
+
+var
+  LootHandler: TRSLootHandler;

@@ -174,6 +174,7 @@ Each one made to handle each type of TRSMMDot.
 *)
 
   TRSMMDot = record(TWaspObject)
+    ClosestDot: TPoint;
     DotFilter: TRSDotFilterArray;
     DotType: ERSMinimapDot;
   end;
@@ -669,7 +670,11 @@ begin
     ATPA := MainScreen.FindObject(Finder);
 
   if Result := (ATPA <> []) then
+  begin
     ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+    if Walker <> nil then
+      ClosestDot := Walker^.MSToWorld(ATPA[0].Mean);
+  end;
 end;
 
 function TRSMMDot.Find(out ATPA: T2DPointArray): Boolean; overload;
@@ -692,7 +697,11 @@ begin
     ATPA := MainScreen.FindObject(Finder);
 
   if Result := (ATPA <> []) then
+  begin
     ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+    if Walker <> nil then
+      ClosestDot := Walker^.MSToWorld(ATPA[0].Mean);
+  end;
 end;
 
 function TRSMMDot.Find: Boolean; overload;
@@ -777,10 +786,85 @@ begin
   for I := 0 to High(DotFilters) do
   begin
     if DotFilters[I].TPA <> [] then
-      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clRed);
+    end;
 
     if DotFilters[I].Circle <> [] then
-      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clRed);
+    end;
+  end;
+
+  for I := 0 to High(Tiles) do
+    Bitmap.DrawRect(Tiles[I], $00FFFF);
+
+  for I := 0 to High(FloorTiles) do
+    Bitmap.DrawRect(FloorTiles[I], $FFFFFF);
+
+  for I := 0 to High(RoofTiles) do
+    Bitmap.DrawRect(RoofTiles[I], $FFFFFF);
+
+  for I := 0 to High(PolyArray) do
+    Bitmap.DrawPoly(PolyArray[I], $00FFFF);
+
+  for I := 0 to High(ATPA) do
+  begin
+    if I = 0 then
+      Bitmap.DrawTPA(ATPA[0], $0A0A0A) //Closest object will be painted black.
+    else
+      Bitmap.DrawTPA(ATPA[I], DEBUG_COLORS[I mod Length(DEBUG_COLORS)]);
+  end;
+
+  Bitmap.Debug;
+  Bitmap.Free;
+end;
+
+procedure Debug(GItem: TRSGroundItem); overload;
+var
+  Bitmap: TMufasaBitmap;
+  MMPoints, Dots: TPointArray;
+  DotFilters: TRSDotFilterArray;
+  Tiles, FloorTiles, RoofTiles: TRectArray;
+  PolyArray: TPolyArray;
+  ATPA: T2DPointArray;
+  I: Int32;
+begin
+  Bitmap.FromClient;
+
+  GItem.Find(MMPoints, Dots, DotFilters,
+             Tiles, FloorTiles, RoofTiles, PolyArray, ATPA);
+
+  //Minimap drawing
+  for I := 0 to High(MMPoints) do
+    Bitmap.DrawCrosshairs(MMPoints[I], 4, clBlue);
+
+  for I := 0 to High(Dots) do
+    Bitmap.DrawCrosshairs(Dots[I], 2, clTeal);
+
+  for I := 0 to High(DotFilters) do
+  begin
+    if DotFilters[I].TPA <> [] then
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clRed);
+    end;
+
+    if DotFilters[I].Circle <> [] then
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clRed);
+    end;
   end;
 
   for I := 0 to High(Tiles) do
@@ -860,10 +944,20 @@ begin
   for I := 0 to High(DotFilters) do
   begin
     if DotFilters[I].TPA <> [] then
-      Bitmap.DrawTPA(DotFilters[I].TPA.Connect, $FFFFFF);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilters[I].TPA.Connect, clRed);
+    end;
 
     if DotFilters[I].Circle <> [] then
-      Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, $FFFFFF);
+    begin
+      if DotFilters[I].Inside then
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilters[I].Circle.Mean, DotFilters[I].Circle.Radius, clRed);
+    end;
   end;
 
   for I := 0 to High(Tiles) do
@@ -1244,6 +1338,9 @@ begin
 
   for Attempt := 0 to Attempts do
   begin
+    if Filter.MinimapDot and (Minimap.GetDots(DotType) = []) then
+      Exit;
+
     if Self.Find(ATPA) then
     begin
       if Attempt < 2 then

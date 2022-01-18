@@ -10,6 +10,46 @@ CombatHandler is a record made to handle certain things related to combat.
 {$ENDIF}
 
 const
+  WEAPONS: TRSItemArray = [
+    'Ghrazi rapier', 'Blade of saeldor (c)', 'Inquisitor''s mace',
+    'Toktz-xil-ak', 'Abyssal whip', 'Abyssal bludgeon',
+    'Abyssal dagger', 'Abyssal dagger (p++)', 'Saradomin sword',
+    'Dragon scimitar', 'Dragon sword', 'Dragon longsword',
+    'Dharok''s greataxe', 'Sarachnis cudgel', 'Dinh''s bulwark',
+    'Dragon hunter lance', 'Abyssal tentacle', 'Granite hammer',
+    'Bow of faerdhinen (c)',
+    'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
+    'Dragon hunter crossbow', 'Dragon crossbow', 'Rune crossbow',
+    'Adamant dart', 'Mithril dart', 'Rune scimitar', 'Dorgeshuun crossbow',
+    'Null'
+  ];
+
+  SHIELDS: TRSItemArray = [
+    'Avernic defender', 'Dragon defender', 'Rune defender',
+    'Adamant defender', 'Mithril defender', 'Black defender',
+    'Steel defender', 'Iron defender', 'Bronze defender',
+    'Dragonfire shield', 'Toktz-ket-xil', 'Twisted buckler',
+    'Dragonfire ward', 'Odium ward', 'Book of law',
+    'Book of darkness', 'Unholy book', 'Book of war', 'Rune kiteshield',
+    'Null'
+  ];
+
+  SPEC_WEAPONS: TRSItemArray = [
+    'Dragon claws', '4153', '12848', 'Granite maul', 'Abyssal dagger',
+    'Abyssal dagger (p++)', 'Dragon dagger', 'Dragon dagger(p++)',
+    'Dragon sword', 'Dragon longsword', 'Dinh''s bulwark', 'Abyssal tentacle',
+    'Saradomin godsword', 'Granite hammer',
+    'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
+    'Dragon crossbow',
+    'Null'
+  ];
+
+  BRACELETS: TRSItemArray = [
+    'Bracelet of slaughter',
+    'Expeditious bracelet',
+    'Null'
+  ];
+
   DWARF_CANNON: TRSItemArray = [
     'Cannon base',
     'Cannon stand',
@@ -26,7 +66,6 @@ type
   TCombatHandler = record(TSRLBaseRecord)
     State: String;
     Monster: PRSMonster;
-    EnemyNPC: PRSNPC;
 
     BraceletTimer: TCountDown;
     InCombatTimer: TCountDown;
@@ -57,6 +96,8 @@ type
     CannonIsSetup: Boolean;
     DoingSpec: Boolean;
     SlayerTaskFinished: Boolean;
+    LootEnabled: Boolean;
+    LootHandler: TRSLootHandler;
 
     IsSetup: Boolean;
   end;
@@ -69,6 +110,9 @@ begin
   Name := 'CombatHandler';
 
   InCombatTimer.Setup(Timer);
+
+  if not RSClient.IsLoggedIn then
+    Login.LoginPlayer;
 
   if HandleHealth := Inventory.FindItems(FOOD_ARRAY) then
   begin
@@ -121,17 +165,6 @@ begin
   IsSetup := True;
 end;
 
-//THIS WILL BE DELETED IN A FUTURE VERSION.
-procedure TCombatHandler.Setup(NPC: PRSNPC; Timer: Int64 = 4000); overload;
-begin
-  if IsSetup then
-    Exit;
-
-  Self.Setup(Timer);
-
-  EnemyNPC := NPC;
-end;
-
 procedure TCombatHandler.Setup(RSMonster: PRSMonster; Timer: Int64 = 4000); overload;
 begin
   if IsSetup then
@@ -143,52 +176,12 @@ begin
 end;
 
 
-procedure TCombatHandler.SetupGear;
-const
-  WEAPONS: TRSItemArray = [
-    'Ghrazi rapier', 'Blade of saeldor (c)', 'Inquisitor''s mace',
-    'Toktz-xil-ak', 'Abyssal whip', 'Abyssal bludgeon',
-    'Abyssal dagger', 'Abyssal dagger (p++)', 'Saradomin sword',
-    'Dragon scimitar', 'Dragon sword', 'Dragon longsword',
-    'Dharok''s greataxe', 'Sarachnis cudgel', 'Dinh''s bulwark',
-    'Dragon hunter lance', 'Abyssal tentacle', 'Granite hammer',
-    'Bow of faerdhinen (c)',
-    'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
-    'Dragon hunter crossbow', 'Dragon crossbow', 'Rune crossbow',
-    'Adamant dart', 'Mithril dart', 'Rune scimitar', 'Dorgeshuun crossbow',
-    'Null'
-  ];
-  SHIELDS: TRSItemArray = [
-    'Avernic defender', 'Dragon defender', 'Rune defender',
-    'Adamant defender', 'Mithril defender', 'Black defender',
-    'Steel defender', 'Iron defender', 'Bronze defender',
-    'Dragonfire shield', 'Toktz-ket-xil', 'Twisted buckler',
-    'Dragonfire ward', 'Odium ward', 'Book of law',
-    'Book of darkness', 'Unholy book', 'Book of war', 'Rune kiteshield',
-    'Null'
-  ];
-  SPEC_WEAPONS: TRSItemArray = [
-    'Dragon claws', '4153', '12848', 'Granite maul', 'Abyssal dagger',
-    'Abyssal dagger (p++)', 'Dragon dagger', 'Dragon dagger(p++)',
-    'Dragon sword', 'Dragon longsword', 'Dinh''s bulwark', 'Abyssal tentacle',
-    'Saradomin godsword', 'Granite hammer',
-    'Toxic blowpipe', 'Magic shortbow (i)', 'Armadyl crossbow',
-    'Dragon crossbow',
-    'Null'
-  ];
-  BRACELETS: TRSItemArray = [
-    'Bracelet of slaughter',
-    'Expeditious bracelet',
-    'Null'
-  ];
+procedure TCombatHandler._SetupGear;
 begin
   if GearIsSetup then
     Exit;
 
   ItemFinder.AddItemName('Saradomin godsword', '20372');
-
-  if not RSClient.IsLoggedIn then
-    Login.LoginPlayer;
 
   for Weapon in WEAPONS do
     if (Weapon = 'Null') or Equipment.FindItem(Weapon) then Break;
@@ -241,18 +234,6 @@ begin
                  (SpecWeapon <> 'Null') or (Bracelet <> 'Null');
 end;
 
-
-procedure TCombatHandler.Setup(Manage: Boolean; NPC: PRSNPC; Timer: Int64 = 4000); overload;
-begin
-  if IsSetup then
-    Exit;
-
-  Self.Setup(NPC, Timer);
-
-  if ManageGear := Manage then
-    Self.SetupGear;
-end;
-
 procedure TCombatHandler.Setup(Manage: Boolean; RSMonster: PRSMonster; Timer: Int64 = 4000); overload;
 begin
   if IsSetup then
@@ -260,8 +241,14 @@ begin
 
   Self.Setup(RSMonster, Timer);
 
-  if ManageGear := Manage then
-    Self.SetupGear;
+  if Manage then
+  begin
+    ManageGear := True;
+    Self._SetupGear;
+    LootHandler.Setup(RSMonster);
+  end;
+
+  DebugMonsterArray += RSMonster;
 end;
 
 (*
@@ -277,28 +264,6 @@ end;
 procedure TCombatHandler.MarkCurrentEnemy;
 begin
 
-end;
-
-function TCombatHandler.AttackNPC: Boolean;
-begin
-  if EnemyNPC^.SelectOption(['Attack']) then
-  begin
-    Minimap.WaitMoving;
-    Result := MainScreen.WaitInCombat(5000);
-  end;
-
-  if Result then InCombatTimer.Restart(Random(0, 2000));
-end;
-
-function TCombatHandler.WalkAttackNPC: Boolean;
-begin
-  if EnemyNPC^.WalkSelectOption(['Attack']) then
-  begin
-    Minimap.WaitMoving;
-    Result := MainScreen.WaitInCombat(5000);
-  end;
-
-  if Result then InCombatTimer.Restart(Random(0, 2000));
 end;
 
 
@@ -335,6 +300,96 @@ begin
 end;
 
 
+function TCombatHandler.Loot: Boolean;
+begin
+  if Result := LootHandler.CheckLoot then
+  begin
+    Wait(400, 600);
+    if Inventory.FindItems(RSAction.AlchItemArray) and
+       RSAction.AlchItems(RSAction.AlchItemArray) then
+      Wait(600, 800);
+  end;
+end;
+
+
+
+function TCombatHandler.CheckBracelet: Boolean;
+begin
+  if not ManageGear then
+    Exit;
+
+  if not GearIsSetup then
+  begin
+    Self._SetupGear;
+    if not GearIsSetup then
+      Exit;
+  end;
+
+  Result := (Bracelet <> 'Null') and Equipment.FindItem(Bracelet);
+
+  if Result then
+    BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
+end;
+
+function TCombatHandler.NeedBracelet: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  Result := (Bracelet <> 'Null') and
+            BraceletTimer.IsFinished and
+            Inventory.FindItem(Bracelet) and not Self.CheckBracelet;
+end;
+
+function TCombatHandler.EquipBracelet: Boolean;
+begin
+  if not ManageGear or not GearIsSetup or (Bracelet = 'Null') then
+    Exit;
+
+  Result := Inventory.ClickItem(Bracelet);
+
+  if Result then
+  begin
+    BraceletTimer.Restart;
+    InCombatTimer.Timeout := GetTickCount;
+  end;
+end;
+
+
+function TCombatHandler.NeedRegear: Boolean;
+begin
+  if not ManageGear then
+    Exit;
+
+  if not GearIsSetup then
+  begin
+    Self._SetupGear;
+    if not GearIsSetup then
+      Exit;
+  end;
+
+  Result := ((Weapon <> 'Null') and Inventory.FindItem(Weapon)) or
+            ((Shield <> 'Null') and Inventory.FindItem(Shield));
+
+  DoingSpec := not Result;
+end;
+
+function TCombatHandler.ReGear: Boolean;
+begin
+  if not ManageGear or not GearIsSetup then
+    Exit;
+
+  repeat
+    if (Weapon <> 'Null') then
+      Inventory.ClickItem(Weapon);
+    if (Shield <> 'Null') then
+      Inventory.ClickItem(Shield);
+  until WaitUntil(not Self.NeedRegear, 100, 5000);
+
+  InCombatTimer.Timeout := GetTickCount;
+end;
+
+
 function TCombatHandler.CanSpec: Boolean;
 begin
   if not ManageGear then
@@ -342,7 +397,7 @@ begin
 
   if not GearIsSetup then
   begin
-    Self.SetupGear;
+    Self._SetupGear;
     if not GearIsSetup then
       Exit;
   end;
@@ -357,7 +412,7 @@ function TCombatHandler.DoSpec: Boolean;
 begin
   if ManageGear and not GearIsSetup then
   begin
-    Self.SetupGear;
+    Self._SetupGear;
     if not GearIsSetup then
       Exit;
   end;
@@ -378,86 +433,11 @@ begin
     else
       Wait(300, 400);
   end;
+
+  if Result and (Minimap.GetSpecLevel < WeaponSpec) then
+    Self.Regear;
 end;
 
-
-function TCombatHandler.CheckBracelet: Boolean;
-begin
-  if not ManageGear then
-    Exit;
-
-  if not GearIsSetup then
-  begin
-    Self.SetupGear;
-    if not GearIsSetup then
-      Exit;
-  end;
-
-  Result := (Bracelet <> 'Null') and Equipment.FindItem(Bracelet);
-
-  if Result then
-    BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
-end;
-
-
-function TCombatHandler.NeedBracelet: Boolean;
-begin
-  if not ManageGear or not GearIsSetup then
-    Exit;
-
-  Result := (Bracelet <> 'Null') and
-            BraceletTimer.IsFinished and
-            Inventory.FindItem(Bracelet) and not Self.CheckBracelet;
-end;
-
-function TCombatHandler.NeedRegear: Boolean;
-begin
-  if not ManageGear or not GearIsSetup then
-    Exit;
-
-  Result := ((Weapon <> 'Null') and Inventory.FindItem(Weapon)) or
-            ((Shield <> 'Null') and Inventory.FindItem(Shield)) or
-            Self.NeedBracelet;
-
-  DoingSpec := not Result;
-end;
-
-
-function TCombatHandler.EquipBracelet: Boolean;
-begin
-  if not ManageGear or not GearIsSetup then
-    Exit;
-
-  if (Bracelet = 'Null') then
-    Exit;
-
-  Result := Inventory.ClickItem(Bracelet);
-
-  if Result then
-  begin
-    BraceletTimer.Restart;
-    InCombatTimer.Timeout := GetTickCount;
-  end;
-end;
-
-function TCombatHandler.ReGear: Boolean;
-begin
-  if not ManageGear or not GearIsSetup then
-    Exit;
-
-  if (Weapon <> 'Null') then
-    Inventory.ClickItem(Weapon);
-  if (Shield <> 'Null') then
-    Inventory.ClickItem(Shield);
-
-  if Self.NeedBracelet then
-    Self.EquipBracelet;
-
-  Result := WaitUntil(not Self.NeedRegear, 100, 5000);
-
-  if Result then
-    InCombatTimer.Timeout := GetTickCount;
-end;
 
 
 
@@ -491,7 +471,7 @@ begin
     Wait(10000);
   end;
 
-  Logout.ClickLogout;
+  Result := Logout.ClickLogout;
   Self.Fatal('Last state: ' + State);
 end;
 
@@ -570,6 +550,9 @@ begin
     SlayerTaskFinished := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]) or
                           Chat.FindMessage('stick to your', [CHAT_COLOR_BLACK]);
 
+  if Self.NeedBracelet then
+    Exit('NEED_BRACELET');
+
   if Self.NeedBoost then
   begin
     State := 'DRINK_BOOST';
@@ -619,6 +602,7 @@ begin
     'DRINK_ANTIPOISON': Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
     'DRINK_BOOST':      Inventory.Consume(ERSConsumable.BOOST_CONSUMABLE);
     'ENABLE_QPRAY':     Minimap.EnablePrayer;
+    'NEED_BRACELET':    Self.EquipBracelet;
     'SPEC_MONSTER':     Self.WalkAttackMonster;
     'USE_SPECIAL_ATT':  Self.DoSpec;
     'REEQUIP_GEAR':     Self.ReGear;
@@ -627,6 +611,9 @@ begin
     'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
       Self.Terminate;
   end;
+
+  if LootEnabled and not DoingSpec then
+    Self.Loot;
 end;
 
 var

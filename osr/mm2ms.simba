@@ -339,62 +339,162 @@ type
 
   TRSDotFilterArray = array of TRSDotFilter;
 
-procedure TRSDotFilterArray.Setup(TPA: TPointArray; Inside: Boolean; Time: Int32 = -1);
+
+procedure TRSDotFilterArray.Setup(TPA: TPointArray; C: TCircle; Inside: Boolean; Time: Int32 = -1);
 var
   Timer: TCountDown;
 begin
-  Timer.Setup(Time);
-  Self += [TPA, [], Inside, (Time > 0), Timer];
+  Timer.Init(Time);
+  Self += [TPA, C, Inside, (Time > 0), Timer];
+end;
+
+procedure TRSDotFilterArray.Setup(TPA: TPointArray; Inside: Boolean; Time: Int32 = -1); overload;
+var
+  C: TCircle;
+begin
+  Self.Setup(TPA, C, Inside, Time);
 end;
 
 procedure TRSDotFilterArray.Setup(C: TCircle; Inside: Boolean; Time: Int32 = -1); overload;
 var
   TPA: TPointArray;
-  Timer: TCountDown;
 begin
-  Timer.Setup(Time);
-  Self += [TPA, C, Inside, (Time > 0), Timer];
+  Self.Setup(TPA, C, Inside, Time);
 end;
+
 
 procedure TRSDotFilterArray.ClearExpired;
 var
-  i: Int32;
-  ExpiredIndexes: TIntegerArray;
+  i, DelCount: Int32;
 begin
-  for i := 0 to High(Self) do
-    if Self[i].HasTimer and Self[i].Timer.IsFinished then
-      ExpiredIndexes += i;
+  DelCount := 0;
 
-  for i in ExpiredIndexes do
-    Delete(Self, i, 1);
+  for i := 0 to High(Self) do
+  begin
+    if Self[i - DelCount].HasTimer and Self[i - DelCount].Timer.IsFinished then
+    begin
+      Delete(Self, i - DelCount, 1);
+      DelCount += 1;
+    end;
+  end;
 end;
 
-//This is not very readable but should work as intended
-function TRSDotFilterArray.DotValid(P: TPoint; Clear: Boolean = True): Boolean;
+
+//Filter circles circles within circles.
+//There are times we only want the inner circles, other's we want the outter ones.
+//not being used yet.
+function TRSDotFilterArray.FilterCircles(Inside: Boolean): TRSDotFilterArray;
+var
+  i, j: Int32;
+begin
+  Result := Self;
+
+  for i := 0 to High(Self) do
+    for j := 0 to High(Self) do
+      if j <> i then
+        if SRL.PointInCircle(Self[j].Circle.Mean, Self[i].Circle.Mean, Self[i].Circle.Radius) then
+          if Inside then
+            Delete(Result, i)
+          else
+            Delete(Result, j);
+end;
+
+
+
+function TRSDotFilterArray._DotValidIn(P: TPoint): Boolean;
 var
   i: Int32;
-  ValidInPoly: Boolean;
-  ValidInCircle: Boolean;
+  InPoly: Boolean;
+  InCircle: Boolean;
+begin
+  for i := 0 to High(Self) do
+  begin
+    if Self[i].TPA <> [] then
+      InPoly := SRL.PointInPoly(P, Self[i].TPA);
+
+    if Self[i].Circle <> [] then
+      InCircle := SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius);
+
+    if InPoly or InCircle then
+      Exit(True);
+  end;
+
+  Result := False;
+end;
+
+function TRSDotFilterArray._DotValidOut(P: TPoint): Boolean;
+var
+  i: Int32;
+  InPoly: Boolean;
+  InCircle: Boolean;
+begin
+  for i := 0 to High(Self) do
+  begin
+    if Self[i].TPA <> [] then
+      InPoly := SRL.PointInPoly(P, Self[i].TPA);
+
+    if Self[i].Circle <> [] then
+      InCircle := SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius);
+
+    if InPoly or InCircle then
+      Exit(False);
+  end;
+
+  Result := True;
+end;
+
+
+procedure Debug(DotFilterArray: TRSDotFilterArray); overload;
+var
+  Bitmap: TMufasaBitmap;
+  I: Int32;
+begin
+  Bitmap.FromClient;
+
+  for I := 0 to High(DotFilterArray) do
+  begin
+    if DotFilterArray[I].TPA <> [] then
+    begin
+      if DotFilterArray[I].Inside then
+        Bitmap.DrawTPA(DotFilterArray[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilterArray[I].TPA.Connect, clRed);
+    end;
+
+    if DotFilterArray[I].Circle <> [] then
+    begin
+      if DotFilterArray[I].Inside then
+        Bitmap.DrawCircle(DotFilterArray[I].Circle.Mean, DotFilterArray[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilterArray[I].Circle.Mean, DotFilterArray[I].Circle.Radius, clRed);
+    end;
+  end;
+
+  Bitmap.Debug;
+  Bitmap.Free;
+end;
+
+
+function TRSDotFilterArray.DotValid(P: TPoint; Clear: Boolean = True): Boolean;
+var
+  i, j: Int32;
+  InDotFilter: TRSDotFilterArray;
+  FinalInDotFilter: TRSDotFilterArray;
+  OutDotFilter: TRSDotFilterArray;
 begin
   if Clear then
     Self.ClearExpired;
 
   for i := 0 to High(Self) do
-  begin
-    if Self[i].TPA <> [] then
-      ValidInPoly := (SRL.PointInPoly(P, Self[i].TPA) = Self[i].Inside);
+    if Self[i].Inside then
+      InDotFilter += Self[i]
+    else
+      OutDotFilter += Self[i];
 
-    if Self[i].Circle <> [] then
-      ValidInCircle := (SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius) = Self[i].Inside);
+  //InDotFilter := InDotFilter.FilterCircles(True);
+  //OutDotFilter := OutDotFilter.FilterCircles(False);
 
-    if ValidInPoly or ValidInCircle then
-      Break;
-
-    if i = High(Self) then
-      Exit(False);
-  end;
-
-  Result := True;
+  Result := InDotFilter._DotValidIn(P) and OutDotFilter._DotValidOut(P);
 end;
 
 //return filtered valid dots. To be added to MMDot.Find later.

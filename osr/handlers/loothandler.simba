@@ -37,16 +37,26 @@ const
     'Lesser demon champion scroll',
     'Giant key', 'Mossy key'
   ];
-
 var
-  Value: Int32;
+  GEValue: Int32;
 begin
   if ItemArray.Find(Drop.Item) > -1 then
     Exit(True);
 
-  Value := ItemData.GetAverage(Drop.ID);
-  Result := (Drop.Stackable and ((Value * Drop.Quantity) >= (ValueThreshold/5))) or
-            (ItemData.GetHighAlch(Drop.ID) > Value) or (Value >= ValueThreshold);
+  GEValue := ItemData.GetAverage(Drop.ID);
+
+  Result := GEValue >= ValueThreshold;
+  if Result then
+    Exit;
+
+  Result := Drop.Stackable and
+            ((GEValue * Drop.Quantity) >= (ValueThreshold / 5));
+  if Result then
+    Exit;
+
+  Result := ItemData.GetHighAlch(Drop.ID) > ValueThreshold;
+  if Result then
+    RSAction.AlchItemArray += Drop.Item;
 end;
 
 procedure TRSLootHandler.Setup(Monster: PRSMonster; Value: Int32 = 5000);
@@ -166,7 +176,7 @@ begin
 
   if CheckedLoot then
   begin
-    Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 3], False, 120 * ONE_SECOND);
+    Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 2], False, 120 * ONE_SECOND);
     CheckedLoot := False;
   end;
 end;

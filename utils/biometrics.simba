@@ -5,8 +5,8 @@ Methods related to biometrics that make your account behave in a unique way.
 *)
 
 {$DEFINE WL_BIOMETRICS_INCLUDED}
-{$IFNDEF WL_OSR}
-  {$I WaspLib/osr.simba}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
 {$ENDIF}
 
 (*
@@ -20,6 +20,21 @@ var
   BioHash: Extended;
   BioHashOverride: Extended;
 
+  AntibanEnabled: Boolean := True;
+  BreaksEnabled:  Boolean := True;
+  SleepEnabled:   Boolean := True;
+
+  SleepHour: String;
+  SleepLength: Double;
+
+  SleepLengthOverride: Double;
+  SleepHourOverride: String;
+
+  ABCamera:   Boolean := True;
+  ABMouse:    Boolean := True;
+  ABChat:     Boolean := True;
+  ABGameTabs: Boolean := True;
+  ABBank:     Boolean := True;
 (*
 Antiban.SetupBiometrics
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -42,7 +57,8 @@ type
 
     REACTION_SPEED,       //Decides how long the player will wait after things like changing tabs, opening choose options menu, etc.
     SPAM_CLICK_CHANCE,    //Chance to spam click things (walking, eating, etc).
-    DROP_PATTERN
+    DROP_PATTERN,
+    CONSUME_IN_BANK
   );
 
 procedure TAntiban.SetupBiometrics;
@@ -241,4 +257,34 @@ begin
   Result := not Self.BioDice(Behaviour);
 end;
 
+
+procedure TAntiban.SetSleepHour;
+var
+  Sleep: UInt64;
+begin
+  if SleepHourOverride <> '' then
+  begin
+    SleepHour := SleepHourOverride;
+    Exit;
+  end;
+
+  Sleep := (((22 + Round(5 * BioHash)) * ONE_HOUR) +
+    (Round(59 * BioHash) * ONE_MINUTE));
+
+  if Sleep > ONE_DAY then
+    Sleep -= ONE_DAY;
+
+  SleepHour := SRL.MsToTime(Sleep, Time_Bare);
+end;
+
+procedure TAntiban.SetSleepLength;
+begin
+  if SleepLengthOverride <> 0 then
+  begin
+    SleepLength := SleepLengthOverride * ONE_HOUR;
+    Exit;
+  end;
+
+  SleepLength := (5 * ONE_HOUR) + ((200 * ONE_MINUTE) * BioHash);
+end;
 

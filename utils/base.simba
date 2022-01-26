@@ -3,11 +3,16 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
+procedure TSRLBaseRecord.AddToLog(Message: String); constref;
+begin
+  if WL.LogFile = '' then
+    Exit;
+  WriteFileContents(WL.LogFile, Message + STR_NEW_LINE, True);
+end;
+
 procedure TSRLBaseRecord.DebugLn(Text: String); constref; override;
 var
-  ScriptStr: String;
   TimeStamp: String;
-  NewFile: Boolean;
 begin
   TimeStamp := SRL.TimeStamp;
   Text := TimeStamp + ':[' + Name + ']: ' + Text;
@@ -15,24 +20,12 @@ begin
   if not Self.DisableDebugging then
     WriteLn(Text);
 
-  GenerateLog(NewFile);
-
-  if NewFile then
-  begin
-    ScriptStr := ToStr(Self);
-    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
-    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
-    WriteFileContents(WL.LogFile, ScriptStr, True);
-  end;
-
-  WriteFileContents(WL.LogFile, Text + STR_NEW_LINE, True);
+  Self.AddToLog(Text);
 end;
 
 procedure TSRLBaseRecord.DebugLn(Text, ExtraInfo: String); constref; overload;
 var
-  ScriptStr: String;
   TimeStamp: String;
-  NewFile: Boolean;
 begin
   TimeStamp := SRL.TimeStamp;
   Text := TimeStamp + ':[' + Name + ']: ' + Text;
@@ -40,42 +33,17 @@ begin
   if not Self.DisableDebugging then
     WriteLn(Text);
 
-  GenerateLog(NewFile);
-
-  if NewFile then
-  begin
-    ScriptStr := ToStr(Self);
-    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
-    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
-    WriteFileContents(WL.LogFile, ScriptStr, True);
-  end;
-
-  WriteFileContents(WL.LogFile, Text + STR_NEW_LINE, True);
-
-  if ExtraInfo <> '' then
-    WriteFileContents(WL.LogFile, TimeStamp + ':[ExtraInfo]: ' + ExtraInfo + STR_NEW_LINE, True);
+  Text += STR_NEW_LINE + TimeStamp + ':[ExtraInfo]: ' + ExtraInfo;
+  Self.AddToLog(Text);
 end;
 
 procedure TSRLBaseRecord.Fatal(Text: String); constref; override;
-var
-  ScriptStr: String;
-  NewFile: Boolean;
 begin
+  SaveScreenshot(Name + '-fatal');
   Text := SRL.TimeStamp + ':[' + Name + ']:[Fatal]: ' + Text;
   WriteLn(Text);
 
-  GenerateLog(NewFile);
-
-  if NewFile then
-  begin
-    ScriptStr := ToStr(Self);
-    ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
-    ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
-    WriteFileContents(WL.LogFile, ScriptStr, True);
-  end;
-
-  WriteFileContents(WL.LogFile, Text + STR_NEW_LINE, True);
-
-  TerminateScript();
+  Self.AddToLog(Text);
+  TerminateScript;
 end;
 

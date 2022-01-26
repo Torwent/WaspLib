@@ -3,35 +3,43 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-procedure SaveScreenshot; overload;
+procedure SaveScreenshot(FileName: String); override;
 var
   Path: String;
 begin
+  if '\' in FileName then
+  begin
+    inherited(FileName);
+    Exit;
+  end;
+
   Path := AppPath + 'Screenshots';
   if not DirectoryExists(Path) then
     CreateDirectory(Path);
 
-  Path += '\screenshot-' + ToStr(UnixTime) + '.png';
-  SaveScreenshot(Path);
+  Path += '\' + FileName + '-' + ToStr(UnixTime) + '.png';
+  inherited(Path);
+end;
+
+procedure SaveScreenshot; overload;
+begin
+  SaveScreenshot('screenshot');
 end;
 
 
-
-procedure GenerateLog(out NewLog: Boolean);
+procedure GenerateLog(FileName: String);
 var
   Path: String;
   F: Int32;
 begin
-  NewLog := WL.LogFile = '';
-
-  if not NewLog then
+  if WL.LogFile <> '' then
     Exit;
 
   Path := AppPath + 'Logs';
   if not DirectoryExists(Path) then
     CreateDirectory(Path);
 
-  WL.LogFile := Path + '/log-' + ToStr(UnixTime) + '.txt';
+  WL.LogFile := Path + '/' + FileName.Replace(' ', '_').Lower + '-' + ToStr(UnixTime) + '.txt';
 
   if not FileExists(WL.LogFile) then
   begin
@@ -39,3 +47,4 @@ begin
     CloseFile(F);
   end;
 end;
+

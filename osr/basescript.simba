@@ -96,9 +96,19 @@ var
   TotalConsumableCost: Int32;
 
 procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to add more stuff.
+var
+  ScriptStr: String;
 begin
+  AddOnTerminate(@SaveScreenshot);
+
   DisableDebugging := True;
   Version := ReadFileContents(IncludePath + 'WaspLib\version.txt');
+
+  GenerateLog(Name);
+  ScriptStr := ToStr(Self);
+  ScriptStr := ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
+  ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
+  WriteFileContents(WL.LogFile, ScriptStr, True);
 
   if MaxActions > -1 then ActionLimit := TotalActions + MaxActions
   else ActionLimit := -1;
@@ -207,6 +217,9 @@ function TBaseScript.ShouldStop: Boolean;
 begin
   Result := ((ActionLimit > -1) and (TotalActions >= ActionLimit)) or
             ((TimeLimit > -1) and (TimeRunning.ElapsedTime >= TimeLimit));
+
+  if Result then
+    SaveScreenshot('shouldstop-' + Name);
 end;
 
 

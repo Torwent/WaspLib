@@ -353,6 +353,10 @@ begin
     end;
   end;
 
+  if not Antiban.BioDice(EBioBehavior.CONSUME_IN_BANK) and
+     MainScreen.HasInterface then
+     MainScreen.CloseInterface;
+
   Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
 
   if Result then
@@ -486,6 +490,7 @@ var
   HandlerManager: PConsumableManager := GetHandler(ConsumableType);
   i: Int32;
   WithdrawAmount: Int32;
+  Item: TRSItem;
 begin
   for i := 0 to High(HandlerManager^.Handlers) do
   begin
@@ -494,8 +499,12 @@ begin
 
     WithdrawAmount := Self.WithdrawConsumableAmount(ConsumableType, i);
 
-    if WithdrawAmount <> 0 then
-      Bank.WithdrawItem(HandlerManager^.Handlers[i].BankTab, [HandlerManager^.Handlers[i].ItemArray[0], WithdrawAmount, False], False);
+    if WithdrawAmount = 0 then
+      Exit;
+
+    for Item in HandlerManager^.Handlers[i].ItemArray do
+      if Bank.WithdrawItem(HandlerManager^.Handlers[i].BankTab, [Item, WithdrawAmount, False], False) then
+        Break;
 
     Result := WaitUntil(Inventory.HasEnoughConsumable(ConsumableType), 100, 3000);
   end;

@@ -64,16 +64,17 @@ var
   i: Int32;
   TempDrops: array of TRSMonsterDrop;
 begin
-  if Monster^.MonsterName = '' then
+  if (Monster^.MonsterName = '') or (Value <= 0) then
     Exit;
 
   ValueThreshold := Value;
 
   Loot.SetupCommon;
   if Monster^.WalkerIndex > -1 then
-    Loot.SetupCommon(Monster^.WalkerIndex, Monster^.DotFilter[0].Circle.Radius, 2, Monster^.TileArray);
+    Loot.SetupCommon(Monster^.WalkerIndex, Monster^.DotFilter[0].Circle.Radius, 0, Monster^.TileArray);
 
   Loot.Filter.Finder := False;
+  Loot.Filter.UpText := False;
 
   DebugGItemArray += @Loot;
 
@@ -102,13 +103,17 @@ var
   TempFilter: TRSDotFilterArray; //Used to reset filters.
 begin
   if not MainScreen.IsUpText('Take') then
-    Exit;
+  begin
+    ChooseOption.Open;
+    if not ChooseOption.HasOption('Take') then
+      Exit;
+  end;
 
   CheckedLoot := True;
   TempFilter := Loot.DotFilter;
   Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 3], True);
 
-  if MainScreen.IsUpText(Loot.UpText, -1, Index) then
+  if not ChooseOption.IsOpen and MainScreen.IsUpText(Loot.UpText, -1, Index) then
   begin
     if not Self.HasSpace(Drops[Index]) then
     begin
@@ -123,9 +128,7 @@ begin
     Mouse.Click(MOUSE_LEFT);
     Loot.DotFilter := TempFilter;
     Exit(True);
-  end
-
-  else
+  end;
 
   if ChooseOption.Open then
   begin
@@ -168,7 +171,8 @@ end;
 
 function TRSLootHandler.CheckLoot: Boolean; overload;
 begin
-  Loot.Hover(1);
+  if not Loot.Hover(0) then
+    Exit;
 
   Result := Self.HandleLooting;
   if Result then

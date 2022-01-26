@@ -60,16 +60,6 @@ var
   MaxActions: Int32 := -1;
   MaxTime:    Int64 := -1;
 
-  AntibanEnabled := True; //Enables Most Antiban
-  BreaksEnabled  := True; //Enables Short Breaks
-  SleepEnabled   := True; //Enables Sleep Breaks
-
-  ABCamera   := True;
-  ABMouse    := True;
-  ABChat     := True;
-  ABGameTabs := True;
-  ABBank     := True;
-
   RemoteInputEnabled    := True; //Enables Remote Input
   ProgressReportEnabled := True; //Enables Graphical Progress Report
   ScriptDebugEnabled    := False; //Enables Script Debugging
@@ -102,6 +92,9 @@ type
     ABChatState:          TLabeledCheckbox;
     ABGameTabsState:      TLabeledCheckbox;
     ABBankState:          TLabeledCheckbox;
+
+    SleepHourEdit:        TLabeledEdit;
+    SleepLengthEdit:      TLabeledEdit;
 
     ScriptSettingsPanel:  TPanel;
     ScriptSettingsLabel:  TLabel;
@@ -313,6 +306,15 @@ begin
     Login.PlayerIndex := Idx;
     Self.FillInputs(Sender);
   end;
+
+  Antiban.SetupBiometrics;
+  Antiban.SetSleepHour;
+  Antiban.SetSleepLength;
+  WriteLn SleepHourEdit;
+  if SleepHourEdit.IsInitiated then
+    SleepHourEdit.SetText(SleepHour);
+  if SleepLengthEdit.IsInitiated then
+    SleepLengthEdit.SetText(ToStr(SleepLength / ONE_HOUR));
 end;
 
 
@@ -380,15 +382,17 @@ begin
   ABChatState.SetVisible(AdvancedEnabled);
   ABGameTabsState.SetVisible(AdvancedEnabled);
   ABBankState.SetVisible(AdvancedEnabled);
+  SleepHourEdit.SetVisible(AdvancedEnabled);
+  SleepLengthEdit.SetVisible(AdvancedEnabled);
 
   if AdvancedEnabled then
   begin
-    Self.UpdateFormSize(Form.getWidth, Form.getHeight + 150);
+    Self.UpdateFormSize(Form.getWidth, Form.getHeight + 230);
     AdvancedABButton.SetCaption('Show less');
   end
   else
   begin
-    Self.UpdateFormSize(Form.getWidth, Form.getHeight - 150);
+    Self.UpdateFormSize(Form.getWidth, Form.getHeight - 230);
     AdvancedABButton.SetCaption('Show more');
   end;
 
@@ -417,8 +421,6 @@ end;
 
 procedure TScriptConfig.Setup; //override me to add stuff!
 begin
-
-
   with Form do
   begin
     Form.Init(nil);
@@ -462,7 +464,8 @@ begin
 
       Combobox.SetOnChange(@Self.SelectorOnChange);
     end;
-      Self.ReloadSelector(AccountSelector.Combobox);
+
+    Self.ReloadSelector(AccountSelector.Combobox);
 
     with AccountUser do
     begin
@@ -544,6 +547,8 @@ begin
       setOnClick(@Self.OnDeleteClick);
     end;
   end;
+
+  Self.SelectorOnChange(AccountSelector.Combobox);
 
   //Setup antiban panel
   begin
@@ -678,6 +683,29 @@ begin
       SetEnabled(ABBank);
       SetVisible(False);
     end;
+
+    with SleepHourEdit do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Aprox sleep hour' + STR_NEW_LINE + '(HH:MM:SS):');
+      SetTop(ABBankState.getTop + ABBankState.getHeight + 15);
+      Edit.SetTop(Edit.GetTop + 15);
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetWidth(100);
+      SetText(SleepHour);
+      SetVisible(False);
+    end;
+
+    with SleepLengthEdit do
+    begin
+      Init(AntibanPanel);
+      SetCaption('Aprox sleep time:');
+      SetLeft(AntibanSettingsLabel.getLeft + 5);
+      SetTop(SleepHourEdit.getTop + SleepHourEdit.getHeight + 20);
+      SetWidth(100);
+      SetText(ToStr(SleepLength / ONE_HOUR));
+      SetVisible(False);
+    end;
   end;
 
   //Setup script settings
@@ -794,6 +822,10 @@ begin
   ABGameTabs := ABGameTabsState.Checkbox.getState = cbChecked;
   ABBank     := ABBankState.Checkbox.getState = cbChecked;
 
+  SleepHourOverride := SleepHourEdit.GetText;
+  WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep hour: ' + SleepHourOverride;
+  SleepLengthOverride := StrToFloat(SleepLengthEdit.GetText);
+  WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep length: ' + ToStr(SleepLengthOverride);
 
   RemoteInputEnabled    := RemoteInputState.Checkbox.getState = cbChecked;
   ProgressReportEnabled := (ProgressReportState.Checkbox.getState = cbChecked) and

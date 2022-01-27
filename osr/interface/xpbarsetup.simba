@@ -1,0 +1,168 @@
+(*
+XPBar
+=====
+Methods to interact with the XP Bar that extends SRL functionality.
+*)
+
+{$DEFINE WL_XPBAR_SETUP_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  ERSXPBarSetupDropDown = (
+    POSITION,
+    SIZE,
+    SPEED,
+    DURATION,
+    COUNTER,
+    PROGRESS_BAR,
+    COLOUR,
+    GROUP,
+    FAKE_DROPS
+  );
+
+  TRSXPBarSetup = type TRSInterface;
+
+function TRSXPBarSetup.IsOpen: Boolean;
+var
+  Count: Int32;
+begin
+  if MainScreen.IsClassicOpen then
+    Count := SRL.CountColor(CTS0(2070783, 0), InterfaceArea.Bounds);
+  Result :=  (Count >= 2800) and (Count <= 4200);
+end;
+
+function TRSXPBarSetup.Open: Boolean;
+begin
+  if Self.IsOpen then
+    Exit(True);
+
+  if MainScreen.HasInterface then
+    Exit(False);
+
+  Mouse.Move(Minimap.GetXPCircle);
+  ChooseOption.Select('Setup');
+  Result := WaitUntil(Self.IsOpen, SRL.TruncatedGauss(100, 1000), 3000);
+end;
+
+function TRSXPBarSetup.Close(PressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := MainScreen.CloseInterface(PressEscape);
+end;
+
+
+function TRSXPBarSetup.GetDropDowns: TRSDropDownArray;
+begin
+  Result := Self.FindDropDown([[113, 18], [98, 18], [108, 18], [103, 18], [78, 18], [63, 18], [73, 18]]);
+end;
+
+function TRSXPBarSetup.GetDropDown(DropDown: ERSXPBarSetupDropDown): TRSDropDown;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := Self.GetDropDowns[Ord(DropDown)];
+end;
+
+
+
+function TRSXPBarSetup.GetSetting(DropDown: ERSXPBarSetupDropDown): String;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := Self.GetDropDown(DropDown).GetText(RS_FONT_PLAIN_12);
+end;
+
+function TRSXPBarSetup.ChangeDropDown(DropDown: ERSXPBarSetupDropDown; Option: String): Boolean;
+begin
+  if not Self.Open then
+    Exit;
+
+  if Self.GetSetting(DropDown) = Option then
+    Exit(True);
+
+  Result := Self.GetDropDown(DropDown).Select(Option, MOUSE_LEFT, True, True, RS_FONT_PLAIN_12);
+end;
+
+
+function TRSXPBarSetup.ProperSettings: Boolean;
+begin
+  Result := (Self.GetSetting(ERSXPBarSetupDropDown.DURATION) = 'Permanent')
+             and
+            (Self.GetSetting(ERSXPBarSetupDropDown.COUNTER) = 'Total XP');
+  WL.XPBarIsSetup := Result;
+end;
+
+procedure TRSXPBarSetup.SetXPBarProperly;
+begin
+  if not Self.Open then
+    Exit;
+
+  repeat
+    Self.ChangeDropDown(ERSXPBarSetupDropDown.DURATION, 'Permanent');
+    Wait(50, 200);
+    Self.ChangeDropDown(ERSXPBarSetupDropDown.COUNTER, 'Total XP');
+    Wait(50, 200);
+  until not Self.IsOpen and Self.ProperSettings;
+
+  Self.Close;
+end;
+
+
+procedure TRSXPBarSetup.Setup; override;
+begin
+  inherited;
+
+  Self.Name := 'XPBar Setup';
+end;
+
+procedure TRSXPBarSetup.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  Self.Mode := Mode;
+
+  Self.Alignment.Left := [@InterfaceArea.X1];
+  Self.Alignment.Right := [@InterfaceArea.X2];
+  Self.Alignment.Top := [@InterfaceArea.Y1];
+  Self.Alignment.Bottom := [@InterfaceArea.Y2];
+  Self.Alignment.Center.MaxWidth := 486;
+  Self.Alignment.Center.MaxHeight := 330;
+end;
+
+procedure TRSXPBarSetup.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawDropDowns(Self.GetDropDowns);
+end;
+
+var
+  XPBarSetup: TRSXPBarSetup;
+
+procedure TRSClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  XPBarSetup.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  XPBarSetup.Setup;
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  XPBarSetup.Draw(Bitmap);
+end;

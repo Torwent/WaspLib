@@ -153,7 +153,10 @@ They can be used for objects with a minimap dot that do not move but **TRSMMDot*
   PRSObject = ^TRSObject;
   PRSObjectArray = array of PRSObject;
 
-  TRSDoor = type TRSObjectArray;
+  TRSDoor = record
+    Open: TRSObject;
+    Closed: TRSObject;
+  end;
 
 (*
 type TRSMMDot
@@ -209,36 +212,31 @@ begin
   Filter.UpText := True;
 end;
 
-procedure TRSObject.SetupCommon(MapIndex: Int32; Height: Double; ObjTileArray: TPointArray); overload;
+procedure TRSObject.SetupCommon(Height: Double; ObjTileArray: TPointArray); overload;
 begin
-  WalkerIndex := MapIndex;
-
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, [1, 1, Height]]];
   Filter.Walker := True;
 end;
 
-procedure TRSObject.SetupCommon(MapIndex: Int32; Size, Height: Double; ObjTileArray: TPointArray); overload;
+procedure TRSObject.SetupCommon(Size, Height: Double; ObjTileArray: TPointArray); overload;
 begin
-  WalkerIndex := MapIndex;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, [Size, Size, Height]]];
   Filter.Walker := True;
 end;
 
-procedure TRSObject.SetupCommon(MapIndex: Int32; TileVector: Vector3; ObjTileArray: TPointArray); overload;
+procedure TRSObject.SetupCommon(TileVector: Vector3; ObjTileArray: TPointArray); overload;
 begin
-  WalkerIndex := MapIndex;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, TileVector]];
   Filter.Walker := True;
 end;
 
-procedure TRSObject.SetupCommon(MapIndex: Int32; Shapes: array of TRSObjectShape); overload;
+procedure TRSObject.SetupCommon(Shapes: array of TRSObjectShape); overload;
 var
   i: Int32;
 begin
-  WalkerIndex := MapIndex;
   ShapeArray := Shapes;
   Filter.Walker := True;
 
@@ -247,30 +245,10 @@ begin
 end;
 
 
-procedure TRSDoor.SetupCommon(MapIndex: Int32; Shapes: array of TRSObjectShape); overload;
-var
-  i: Int32;
+procedure TRSDoor.Setup(ClosedObject, OpenObject: TRSObject);
 begin
-  if (Length(Shapes) < 2) or (Length(Shapes) > 3) then
-    Exit;
-
-  SetLength(Self, 2);
-
-  for i := 0 to High(Self) do
-  begin
-    Self[i].SetupCommon;
-    Self[i].WalkerIndex := MapIndex;
-    Self[i].Filter.Walker := True;
-  end;
-
-  Self[0].ShapeArray := [Shapes[0]];
-  Self[0].TileArray.Extend(Shapes[0].TileArray);
-
-  for i := 1 to High(Shapes) do
-  begin
-    Self[1].ShapeArray += Shapes[i];
-    Self[1].TileArray.Extend(Shapes[i].TileArray);
-  end;
+  Open := OpenObject;
+  Closed := ClosedObject;
 end;
 
 
@@ -283,11 +261,10 @@ begin
   Filter.MinimapDot := True;
 end;
 
-procedure TRSMMDot.SetupCommon(MapIndex: Int32; Radius: Int32; Height: Double; ObjTileArray: TPointArray); overload;
+procedure TRSMMDot.SetupCommon(Radius: Int32; Height: Double; ObjTileArray: TPointArray); overload;
 var
   P: TPoint;
 begin
-  WalkerIndex := MapIndex;
   TileArray := ObjTileArray;
   if ShapeArray <> [] then
     ShapeArray := [[ObjTileArray, [ShapeArray[0].TileVector.X, ShapeArray[0].TileVector.Y, Height]]]
@@ -300,11 +277,10 @@ begin
   Filter.Walker := True;
 end;
 
-procedure TRSMMDot.SetupCommon(MapIndex: Int32; Radius: Int32; Size, Height: Double; ObjTileArray: TPointArray); overload;
+procedure TRSMMDot.SetupCommon(Radius: Int32; Size, Height: Double; ObjTileArray: TPointArray); overload;
 var
   P: TPoint;
 begin
-  WalkerIndex := MapIndex;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, [Size, Size, Height]]];
 
@@ -314,11 +290,10 @@ begin
   Filter.Walker := True;
 end;
 
-procedure TRSMMDot.SetupCommon(MapIndex: Int32; Radius: Int32; TileVector: Vector3; ObjTileArray: TPointArray); overload;
+procedure TRSMMDot.SetupCommon(Radius: Int32; TileVector: Vector3; ObjTileArray: TPointArray); overload;
 var
   P: TPoint;
 begin
-  WalkerIndex := MapIndex;
   TileArray := ObjTileArray;
   ShapeArray := [[ObjTileArray, TileVector]];
 
@@ -328,12 +303,11 @@ begin
   Filter.Walker := True;
 end;
 
-procedure TRSMMDot.SetupCommon(MapIndex: Int32; Radius: Int32; Shapes: array of TRSObjectShape); overload;
+procedure TRSMMDot.SetupCommon(Radius: Int32; Shapes: array of TRSObjectShape); overload;
 var
   i: Int32;
   P: TPoint;
 begin
-  WalkerIndex := MapIndex;
   ShapeArray := Shapes;
   Filter.Walker := True;
 
@@ -1600,6 +1574,27 @@ begin
   Result := Self.WalkHover(Attempts) and
             Self._SelectHelper(Action);
 end;
+
+
+
+function TRSDoor.IsOpen: Boolean;
+begin
+  Result := not Closed.Find;
+end;
+
+function TRSDoor.OpenDoor: Boolean;
+begin
+  if Self.IsOpen then
+    Exit(True);
+
+  WriteLn 'Opening door';
+
+  if Closed.SelectOption(['Open']) then
+    Minimap.WaitMoving;
+
+  Result := WaitUntil(Self.IsOpen, 100, 2000);
+end;
+
 
 
 

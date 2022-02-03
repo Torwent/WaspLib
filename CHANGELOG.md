@@ -1,3 +1,12 @@
+## [6.0.2](https://github.com/Torwent/WaspLib/compare/v6.0.1...v6.0.2) (2022-02-03)
+
+
+### Bug Fixes
+
+* remove inventory background ([238b53d](https://github.com/Torwent/WaspLib/commit/238b53d34ab74b5bfd6ed09556c1fc01a16a696c))
+
+
+
 ## [6.0.1](https://github.com/Torwent/WaspLib/compare/v6.0.0...v6.0.1) (2022-01-31)
 
 
@@ -83,20 +92,6 @@
 ### Bug Fixes
 
 * **CombatHandler:** Ocmmented out missing function ([be46ff1](https://github.com/Torwent/WaspLib/commit/be46ff19e438fb2f7012037c834748c1278f4580))
-
-
-
-# [5.5.0](https://github.com/Torwent/WaspLib/compare/v5.4.0...v5.5.0) (2022-01-03)
-
-
-### Bug Fixes
-
-* kraken drop data was wrong ([1914bc9](https://github.com/Torwent/WaspLib/commit/1914bc96755c91e194870efd5b525f5c61fd403a))
-
-
-### Features
-
-* **CombatHandler:** CombatHandler now handles food, prayer, poison, venom and antifire. ([743bd5a](https://github.com/Torwent/WaspLib/commit/743bd5a0df767e54834aa201eb8b170d2099fe70))
 
 
 

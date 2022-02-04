@@ -3,22 +3,154 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
+function CreatePath(const Path: String): Boolean;
+var
+  CurrentPath: String;
+  StrArray: TStringArray;
+  i: Int32;
+begin
+  if DirectoryExists(Path) then
+    Exit(True);
+
+  StrArray := Path.Explode('/');
+
+  for i := 0 to High(StrArray) do
+  begin
+    CurrentPath += StrArray[i] + '/';
+    if not DirectoryExists(CurrentPath) then
+      if not CreateDirectory(CurrentPath) then
+        Exit;
+  end;
+
+  Result := DirectoryExists(Path);
+end;
+
+
+function GetFileCount(Path, Ext: String): Int32;
+begin
+  Result := Length(GetFiles(Path, Ext));
+end;
+
+type
+  TFile = record
+    FileName: String;
+    Age: Int32;
+  end;
+
+function FileAgeCompare(constref L,R: TFile): Integer;
+begin
+  if L.Age < R.Age then
+    Result := -1
+  else
+    Result := 1;
+end;
+
+function GetAgeSortedFiles(Path, Ext: String): TStringArray;
+var
+  i: Int32;
+  StrArray: TStringArray;
+  FileArray: array of TFile;
+begin
+  StrArray := GetFiles(Path, Ext);
+
+  for i := 0 to High(StrArray) do
+    FileArray += [StrArray[i], FileAge(Path + StrArray[i])];
+
+  Sort(FileArray, @FileAgeCompare);
+
+  for i := 0 to High(FileArray) do
+    Result += FileArray[i].FileName;
+end;
+
+procedure DeleteOldFiles(Path, Ext: String; KeepAmount: Int32);
+var
+  TotalAmount: Int32;
+  FileArray: TStringArray;
+  i: Int32;
+begin
+  Ext := Ext.After('.');
+
+  TotalAmount := Length(GetFiles(Path, Ext));
+  if TotalAmount < KeepAmount then
+    Exit;
+
+  FileArray := GetAgeSortedFiles(Path, Ext);
+  WriteLn FileArray;
+  for i := 0 to (TotalAmount - KeepAmount - 1) do
+    DeleteFile(Path + FileArray[i]);
+end;
+
 procedure SaveScreenshot(FileName: String); override;
 var
   Path: String;
+  FileExt: String;
+  FileTime: String;
 begin
-  if '\' in FileName then
+  Path := ExtractFilePath(FileName);
+  FileName := ExtractFileName(FileName);
+
+  if FileName.Pos('.') = 0 then
+    FileExt := '.png'
+  else
   begin
-    inherited(FileName);
-    Exit;
+    FileExt := '.' + FileName.After('.');
+    FileName := FileName.Before('.');
   end;
 
-  Path := AppPath + 'Screenshots';
-  if not DirectoryExists(Path) then
-    CreateDirectory(Path);
+  if Path.Pos('Screenshots/') = 0 then
+  begin
+    if Path.StartsWith('/') then
+      Path := Path.After('/');
 
-  Path += '\' + FileName + '-' + ToStr(UnixTime) + '.png';
+    Path := 'Screenshots/' + Path;
+
+    if Path.EndsWith('/') then
+      Path += '/';
+  end;
+
+  if not DirectoryExists(Path) then
+    CreatePath(Path);
+
+  if FileName.Pos('-') = 0 then
+    FileTime := '-' + ToStr(UnixTime);
+
+  DeleteOldFiles(Path, FileExt, 300);
+
+  Path += FileName + FileTime + FileExt;
+
   inherited(Path);
+end;
+
+procedure SaveScreenshot(FileName: String; MessageUser: Boolean); overload;
+var
+  Path: String;
+begin
+  Path := ExtractFilePath(FileName);
+  FileName := ExtractFileName(FileName);
+
+  if Path.Pos('Screenshots/') = 0 then
+  begin
+    if Path.StartsWith('/') then
+      Path := Path.After('/');
+
+    Path := 'Screenshots/' + Path;
+
+    if Path.EndsWith('/') then
+      Path += '/';
+  end;
+
+  if not DirectoryExists(Path) then
+    CreatePath(Path);
+
+  if FileName.Pos('.') = 0 then
+    Path += FileName + '-' + ToStr(UnixTime) + '.png'
+  else
+    Path += FileName.Before('.') + '-' + ToStr(UnixTime) + '.' + FileName.After('.');
+
+  SaveScreenshot(Path);
+
+  if MessageUser then
+    WriteLn 'Screenshot saved: ' + Path;
 end;
 
 procedure SaveScreenshot; overload;
@@ -35,11 +167,12 @@ begin
   if WL.LogFile <> '' then
     Exit;
 
-  Path := AppPath + 'Logs';
-  if not DirectoryExists(Path) then
-    CreateDirectory(Path);
+  Path := AppPath + 'Logs/';
+  CreatePath(Path);
 
-  WL.LogFile := Path + '/' + FileName.Replace(' ', '_').Lower + '-' + ToStr(UnixTime) + '.txt';
+  DeleteOldFiles(Path, 'txt', 100);
+
+  WL.LogFile := Path + FileName.Replace(' ', '_').Lower + '-' + ToStr(UnixTime) + '.txt';
 
   if not FileExists(WL.LogFile) then
   begin

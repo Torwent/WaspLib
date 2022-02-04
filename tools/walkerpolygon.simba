@@ -8,14 +8,17 @@ Tool to draw polygons in walker maps. This polygons can later be used to detect 
 {$I WaspLib/osr.simba}
 
 const
-  MAP_NAME: String = 'mainland';
+  MAP_NAME: String = 'zeah';
 
 type
   TPolyDrawerForm = record
     Form: TForm;
     ImageBox: TSimbaImageBox;
-    Nodes: TPointArray;
 
+    SelectedPolygon: Int32;
+    NodeArray: T2DPointArray;
+
+    PolyIndexEdit: TEdit;
     CoordinateEdit: TEdit;
     SelectedNode: Int32;
     Dragging: Boolean;
@@ -47,28 +50,50 @@ procedure TPolyDrawerForm.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y:
 begin
   if Dragging and (SelectedNode > -1) then
   begin
-    Nodes[SelectedNode].X := X;
-    Nodes[SelectedNode].Y := Y;
-    Nodes[SelectedNode] := Nodes[SelectedNode] + Offset;
-    CoordinateEdit.setCaption(ToStr(Nodes[SelectedNode].X) + ', ' + ToStr(Nodes[SelectedNode].Y));
+    NodeArray[SelectedPolygon][SelectedNode].X := X;
+    NodeArray[SelectedPolygon][SelectedNode].Y := Y;
+    NodeArray[SelectedPolygon][SelectedNode] := NodeArray[SelectedPolygon][SelectedNode] + Offset;
+    PolyIndexEdit.setCaption(ToStr(SelectedPolygon));
+    CoordinateEdit.setCaption(ToStr(NodeArray[SelectedPolygon][SelectedNode].X) + ', ' + ToStr(NodeArray[SelectedPolygon][SelectedNode].Y));
     ImageBox.Update;
   end;
 end;
 
+
+procedure TPolyDrawerForm.AddToArray;
+begin
+  SelectedPolygon := Length(NodeArray);
+  SetLength(NodeArray, SelectedPolygon + 1);
+end;
+
+procedure TPolyDrawerForm.RemoveFromArray;
+begin
+  Delete(NodeArray, SelectedPolygon, 1);
+  SelectedPolygon := High(NodeArray);
+end;
+
+
 procedure TPolyDrawerForm.AddNode(p: TPoint);
 var
-  c: Int32;
+  n, c: Int32;
 begin
-  c := Length(Nodes);
-  SetLength(Nodes, c + 1);
+  if SelectedPolygon < 0 then
+    SelectedPolygon := 0;
 
-  Nodes[c] := p + Offset;
+  n := Length(NodeArray);
+  if (n = 0) or (SelectedPolygon > n) then
+    SetLength(NodeArray, n + 1);
+
+  c := Length(NodeArray[SelectedPolygon]);
+  SetLength(NodeArray[SelectedPolygon], c + 1);
+
+  NodeArray[SelectedPolygon][c] := p + Offset;
 
   SelectedNode := c;
   ImageBox.Update;
-  CoordinateEdit.setCaption(ToStr(Nodes[SelectedNode].X) + ', ' + ToStr(Nodes[SelectedNode].Y));
+  PolyIndexEdit.setCaption(ToStr(SelectedPolygon));
+  CoordinateEdit.setCaption(ToStr(NodeArray[SelectedPolygon][SelectedNode].X) + ', ' + ToStr(NodeArray[SelectedPolygon][SelectedNode].Y));
 end;
-
 
 procedure TPolyDrawerForm.DeleteNode(n: Int32);
 var
@@ -76,7 +101,7 @@ var
   marked: TIntegerArray;
   p: TPoint;
 begin
-  p := Nodes[n];
+  p := NodeArray[SelectedPolygon][n];
   marked += n;
 
   repeat
@@ -86,22 +111,31 @@ begin
       if marked[i] > curr then Dec(marked[i]);
 
     // remove the node itself
-    Delete(Nodes, curr, 1);
+    Delete(NodeArray[SelectedPolygon], curr, 1);
   until Length(marked) = 0;
 
-  SelectedNode := High(Nodes);
+  if NodeArray[SelectedPolygon] = [] then
+    Self.RemoveFromArray;
+
+  SelectedNode := High(NodeArray[SelectedPolygon]);
   ImageBox.Update;
 
-  if Nodes <> [] then
-    CoordinateEdit.setCaption(ToStr(Nodes[SelectedNode].X) + ', ' + ToStr(Nodes[SelectedNode].Y))
+  if SelectedPolygon > -1 then
+  begin
+    PolyIndexEdit.setCaption(ToStr(SelectedPolygon));
+    if NodeArray[SelectedPolygon] <> [] then
+      CoordinateEdit.setCaption(ToStr(NodeArray[SelectedPolygon][SelectedNode].X) + ', ' + ToStr(NodeArray[SelectedPolygon][SelectedNode].Y))
+    else
+      CoordinateEdit.setCaption('null, null');
+  end
   else
-    CoordinateEdit.setCaption('null, null');
+    PolyIndexEdit.setCaption('null');
 end;
 
 
 procedure TPolyDrawerForm.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 var
-  I: Int32;
+  I, J: Int32;
   P: TPoint;
 begin
   if Button <> mbLeft then
@@ -109,19 +143,22 @@ begin
 
   Dragging := True;
 
-  for I := 0 to High(Nodes) do
-  begin
-    P := Nodes[I] - Offset;
-    if Distance(P.X, P.Y, X, Y) <= 3 then
+  for I := 0 to High(NodeArray) do
+    for J := 0 to High(NodeArray[I]) do
     begin
-      SelectedNode := I;
-      CoordinateEdit.setCaption(ToStr(Nodes[I].X) + ', ' + ToStr(Nodes[I].Y));
-      ImageBox.Update;
-      Exit;
+      P := NodeArray[I][J] - Offset;
+      if Distance(P.X, P.Y, X, Y) <= 3 then
+      begin
+        SelectedPolygon := I;
+        SelectedNode := J;
+        PolyIndexEdit.setCaption(ToStr(SelectedPolygon));
+        CoordinateEdit.setCaption(ToStr(NodeArray[I][J].X) + ', ' + ToStr(NodeArray[I][J].Y));
+        ImageBox.Update;
+        Exit;
+      end;
     end;
-  end;
 
-  AddNode([X, Y]);
+  Self.AddNode([X, Y]);
 end;
 
 procedure TPolyDrawerForm.OnMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
@@ -137,58 +174,69 @@ begin
 end;
 
 
-procedure TPolyDrawerForm.DrawWeb(Area: TBox);
+procedure TPolyDrawerForm.DrawPolygons(Area: TBox);
 var
-  W,H,i,j,n,color,add: Int32;
-  p,q: TPoint;
-  line: TPointArray;
-  canvas: TCanvas;
-  B: TBox;
+  I, J, Color: Int32;
+  P, Q: TPoint;
+  Canvas: TCanvas;
 begin
-  if Length(Nodes) = 0 then
+  if (Length(NodeArray) = 0) then
     Exit;
 
   Canvas := ImageBox.GetOverlay.GetCanvas;
-  Canvas.GetPen.SetColor($00FFFF);
-
-  for i := 0 to High(Nodes) do
+  for J := 0 to High(NodeArray) do
   begin
-    p := Nodes[i] - Offset;
-
-    if i < High(Nodes) then
-      q := Nodes[i + 1]
-    else
-      q := Nodes[0];
-
-    q := q - Offset;
-
-    color := $0000FF;
-
-    if p.InBox(Area) or q.InBox(Area) then
+    if (Length(NodeArray[J]) > 0) then
     begin
-      Canvas.MoveTo(p.x, p.y);
-      Canvas.LineTo(q.x, q.y);
-    end;
+      for i := 0 to High(NodeArray[J]) do
+      begin
+        P := NodeArray[J][i] - Offset;
 
-    if p.InBox(Area) then
-    begin
-      Canvas.GetBrush.SetColor(Color);
-      Canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
-    end;
-  end;
+        if I < High(NodeArray[J]) then
+          Q := NodeArray[J][I + 1]
+        else
+          Q := NodeArray[J][0];
 
-  if InRange(SelectedNode, Low(Nodes), High(Nodes)) then
-  begin
-    Canvas.GetBrush.SetColor($FF0000);
-    p := Nodes[SelectedNode] - Offset;
-    Canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+        Q := Q - Offset;
+
+        if J = SelectedPolygon then
+        begin
+          Canvas.GetPen.SetColor($00FF7F);
+          Color := $FFAAD4;
+        end
+        else
+        begin
+          Canvas.GetPen.SetColor($00FFFF);
+          Color := $0000FF;
+        end;
+
+        if P.InBox(Area) or Q.InBox(Area) then
+        begin
+          Canvas.MoveTo(P.x, P.y);
+          Canvas.LineTo(Q.x, Q.y);
+        end;
+
+        if P.InBox(Area) then
+        begin
+          Canvas.GetBrush.SetColor(Color);
+          Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
+        end;
+      end;
+
+      if InRange(SelectedNode, Low(NodeArray[SelectedPolygon]), High(NodeArray[SelectedPolygon])) then
+      begin
+        Canvas.GetBrush.SetColor($FF0000);
+        P := NodeArray[SelectedPolygon][SelectedNode] - Offset;
+        Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
+      end;
+    end;
   end;
 end;
 
 
 procedure TPolyDrawerForm.PaintArea(Sender: TObject; Canvas: TCanvas; R: TRect);
 begin
-  DrawWeb([R.Left, R.Top, R.Right, R.Bottom]);
+  DrawPolygons([R.Left, R.Top, R.Right, R.Bottom]);
 end;
 
 
@@ -198,43 +246,79 @@ begin
   ImageBox.Update;
 end;
 
-procedure TPolyDrawerForm.OnPrintNodes(Sender: TObject);
+
+procedure TPolyDrawerForm.OnResetNodeArray(Sender: TObject);
+begin
+  NodeArray := [];
+  SelectedPolygon := -1;
+  SelectedNode := -1;
+end;
+
+procedure TPolyDrawerForm.OnNewNodeArray(Sender: TObject);
+begin
+  Self.AddToArray;
+end;
+
+procedure TPolyDrawerForm.OnPrintNodeArray(Sender: TObject);
 var
-  i: Int32;
+  I, J: Int32;
   Str: String;
 begin
-  Str := '[';
-  for i := 0 to High(Nodes) do
+  if Length(NodeArray) > 1 then
   begin
-    Str += '[' + ToStr(Nodes[i].X) + ', ' + ToStr(Nodes[i].Y) + ']';
-    if i < High(Nodes) then
-      Str += ', ';
-  end;
+    Str := '[' + STR_NEW_LINE;
+    for J := 0 to High(NodeArray) do
+    begin
+      Str += '[';
+      for I := 0 to High(NodeArray[J]) do
+      begin
+        Str += '[' + ToStr(NodeArray[J][I].X) + ', ' + ToStr(NodeArray[J][I].Y) + ']';
+        if I < High(NodeArray[J]) then
+          Str += ', ';
+      end;
 
-  Str += ']';
+      Str += ']';
+      if J < High(NodeArray) then
+        Str += ',';
+
+      Str += STR_NEW_LINE;
+    end;
+
+    Str += ']';
+  end
+  else
+  begin
+      Str := '[';
+      for I := 0 to High(NodeArray[0]) do
+      begin
+        Str += '[' + ToStr(NodeArray[0][I].X) + ', ' + ToStr(NodeArray[0][I].Y) + ']';
+        if I < High(NodeArray[0]) then
+          Str += ', ';
+      end;
+      Str += ']';
+  end;
 
   WriteLn Str;
 end;
 
+
 procedure TPolyDrawerForm.OnFormShow(Sender: TObject);
 begin
-  SelectedNode := High(Nodes);
-  if SelectedNode > -1 then
-    ImageBox.MoveTo(Nodes[SelectedNode].X, Nodes[SelectedNode].Y);
   ImageBox.Update;
+  PolyIndexEdit.setCaption('null');
   CoordinateEdit.setCaption('null, null');
 end;
 
 procedure TPolyDrawerForm.OnFormClose(Sender: TObject; var CloseAction: TCloseAction);
 begin
-  OnPrintNodes(nil);
+  OnPrintNodeArray(nil);
 end;
 
 procedure TPolyDrawerForm.Run;
 var
   Panel: TPanel;
-  NodeLabel: TLabel;
-  Button: TButton;
+  IndexLabel, NodeLabel: TLabel;
+  PrintButton, NewButton, ResetButton: TButton;
 begin
   try
     Name := 'PolygonDrawer';
@@ -264,12 +348,37 @@ begin
     NodeLabel.setCaption(' Selected coordinate: ');
     NodeLabel.setAlign(alLeft);
 
-    Button.Init(Panel);
-    Button.SetParent(Panel);
-    Button.SetAutoSize(True);
-    Button.SetCaption('Print TPointArray');
-    Button.SetOnClick(@OnPrintNodes);
-    Button.setAlign(alLeft);
+    PolyIndexEdit.Init(Panel);
+    PolyIndexEdit.setParent(Panel);
+    PolyIndexEdit.setAutoSize(True);
+    PolyIndexEdit.setAlign(alLeft);
+
+    IndexLabel.Init(Panel);
+    IndexLabel.setParent(Panel);
+    IndexLabel.setAutoSize(True);
+    IndexLabel.setCaption(' Selected polygon: ');
+    IndexLabel.setAlign(alLeft);
+
+    ResetButton.Init(Panel);
+    ResetButton.SetParent(Panel);
+    ResetButton.SetAutoSize(True);
+    ResetButton.SetCaption('Reset');
+    ResetButton.SetOnClick(@OnResetNodeArray);
+    ResetButton.setAlign(alLeft);
+
+    NewButton.Init(Panel);
+    NewButton.SetParent(Panel);
+    NewButton.SetAutoSize(True);
+    NewButton.SetCaption('New Polygon');
+    NewButton.SetOnClick(@OnNewNodeArray);
+    NewButton.setAlign(alLeft);
+
+    PrintButton.Init(Panel);
+    PrintButton.SetParent(Panel);
+    PrintButton.SetAutoSize(True);
+    PrintButton.SetCaption('Print Polygons');
+    PrintButton.SetOnClick(@OnPrintNodeArray);
+    PrintButton.setAlign(alLeft);
 
     ImageBox.Init(Form);
     ImageBox.SetParent(Form);

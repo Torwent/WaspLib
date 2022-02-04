@@ -1,3 +1,18 @@
+# [6.1.0](https://github.com/Torwent/WaspLib/compare/v6.0.2...v6.1.0) (2022-02-04)
+
+
+### Bug Fixes
+
+* removed tztok slayer helmet since it's not in SRL yet. ([8a0f411](https://github.com/Torwent/WaspLib/commit/8a0f41103eeb1e1aef08477a2bae211118a894f6))
+
+
+### Features
+
+* improved file creation. ([c7bfe61](https://github.com/Torwent/WaspLib/commit/c7bfe610da98e90bc6e23135d9d75742e16e8896))
+* **tools:** walkerpolygon can now be used for ATPAs as well ([34475e9](https://github.com/Torwent/WaspLib/commit/34475e98b199b386fe6b7e46dc7fd7a3d32838d8))
+
+
+
 ## [6.0.2](https://github.com/Torwent/WaspLib/compare/v6.0.1...v6.0.2) (2022-02-03)
 
 
@@ -83,15 +98,6 @@
 ### Features
 
 * new mmdot filter. ([2a5f30b](https://github.com/Torwent/WaspLib/commit/2a5f30b0838060bf4bf8c66b6c06a09f43ac8658))
-
-
-
-## [5.5.1](https://github.com/Torwent/WaspLib/compare/v5.5.0...v5.5.1) (2022-01-03)
-
-
-### Bug Fixes
-
-* **CombatHandler:** Ocmmented out missing function ([be46ff1](https://github.com/Torwent/WaspLib/commit/be46ff19e438fb2f7012037c834748c1278f4580))
 
 
 

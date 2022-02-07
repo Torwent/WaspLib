@@ -25,42 +25,27 @@ begin
   Result := DirectoryExists(Path);
 end;
 
-
 function GetFileCount(Path, Ext: String): Int32;
 begin
   Result := Length(GetFiles(Path, Ext));
 end;
 
-type
-  TFile = record
-    FileName: String;
-    Age: Int32;
-  end;
-
-function FileAgeCompare(constref L,R: TFile): Integer;
-begin
-  if L.Age < R.Age then
-    Result := -1
-  else
-    Result := 1;
-end;
-
 function GetAgeSortedFiles(Path, Ext: String): TStringArray;
-var
-  i: Int32;
-  StrArray: TStringArray;
-  FileArray: array of TFile;
+  function SortFilesByAge(Files: TStringArray; LowToHigh: Boolean = True): TStringArray;
+  var
+    Weights: TIntegerArray;
+    I: Integer;
+  begin
+    SetLength(Weights, Length(Files));
+    for I := 0 to High(Weights) do
+      Weights[I] := FileAge(Files[I]);
+
+    Result := Sorted(Files, Weights, LowToHigh);
+  end;
 begin
-  StrArray := GetFiles(Path, Ext);
-
-  for i := 0 to High(StrArray) do
-    FileArray += [StrArray[i], FileAge(Path + StrArray[i])];
-
-  Sort(FileArray, @FileAgeCompare);
-
-  for i := 0 to High(FileArray) do
-    Result += FileArray[i].FileName;
+  Result := SortFilesByAge(GetFiles(Path, Ext));
 end;
+
 
 procedure DeleteOldFiles(Path, Ext: String; KeepAmount: Int32);
 var

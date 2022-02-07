@@ -1,3 +1,12 @@
+## [6.1.1](https://github.com/Torwent/WaspLib/compare/v6.1.0...v6.1.1) (2022-02-07)
+
+
+### Bug Fixes
+
+* removed all dark esse sprites. zeah rc now has a better method included in the script ([c52ab26](https://github.com/Torwent/WaspLib/commit/c52ab264a4e7338c2431a0ac10b7975eeba36850))
+
+
+
 # [6.1.0](https://github.com/Torwent/WaspLib/compare/v6.0.2...v6.1.0) (2022-02-04)
 
 
@@ -84,20 +93,6 @@
 ### BREAKING CHANGES
 
 * This probably breaks compatibility with older scripts and includes.
-
-
-
-# [5.6.0](https://github.com/Torwent/WaspLib/compare/v5.5.1...v5.6.0) (2022-01-04)
-
-
-### Bug Fixes
-
-* fixed my previous rushed update that didn't compile ([3e8fcc5](https://github.com/Torwent/WaspLib/commit/3e8fcc54a036517448369932552cecc2e9601536))
-
-
-### Features
-
-* new mmdot filter. ([2a5f30b](https://github.com/Torwent/WaspLib/commit/2a5f30b0838060bf4bf8c66b6c06a09f43ac8658))
 
 
 

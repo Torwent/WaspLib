@@ -1,0 +1,69 @@
+(*
+XPDrop
+======
+Methods to interact with the XP Drops.
+*)
+
+{$DEFINE WL_XPBAR_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+
+
+
+function TRSXPBar.EarnedXP(CurrentXP: Int32): Boolean;
+begin
+  Result := CurrentXP > WL.PreviousXP;
+
+  if Result then
+  begin
+    WL.Activity.Restart;
+    WL.PreviousXP := CurrentXP;
+  end;
+end;
+
+function TRSXPBar.EarnedXP: Boolean; overload;
+begin
+  Result := Self.EarnedXP(Self.Read);
+end;
+
+function TRSXPBar.WaitXP(WaitTime: Int32 = 600; Interval: Int32 = -1): Boolean;
+begin
+  if (Interval = -1) then
+    Interval := SRL.TruncatedGauss(50, 200);
+
+  Result := WaitUntil(Self.EarnedXP, Interval, WaitTime);
+end;
+
+
+function TRSXPBar.CircleIsOpen: Boolean;
+var
+  TPA: TPointArray;
+begin
+  if FindColors(TPA, 11592943, Minimap.GetXPCircle.Bounds) then
+    Result := Length(Minimap.GetXPCircle().Filter(TPA)) > 50;
+end;
+
+function TRSXPBar.Read: Int32; override;
+begin
+  Result := -1;
+
+  if not Self.CircleIsOpen then
+    Self.Open;
+
+  if Self.IsOpen then
+    Result := OCR.RecognizeNumber(Self.Bounds, TOCRColorRule.Create([$FFFFFF]), Self.Font);
+
+  WL.XPBarIsSetup := (Result >= WL.PreviousXP);
+
+  if WL.XPBarIsSetup then
+    Exit;
+
+  if MainScreen.HasInterface then
+    MainScreen.CloseInterface;
+
+  XPBarSetup.SetXPBarProperly;
+end;
+
+

@@ -127,6 +127,81 @@ begin
 end;
 
 
+
+
+var
+  WithdrawXCache: Int32;
+
+function TRSBank.WithdrawHelper(B: TBox; Amount: Int32; Noted: Boolean; UseQuantityButtons: Boolean): Boolean; override;
+var
+  Button: TRSButton;
+begin
+  if Noted then
+    Button := Self.GetButton(ERSBankButton.NOTE)
+  else
+    Button := Self.GetButton(ERSBankButton.ITEM);
+
+  if not Button.Enable() then
+    Exit;
+
+  if UseQuantityButtons then
+  begin
+    if Self.IsCustomQuantity(Amount) then
+    begin
+      Button := Self.GetButton(ERSBankButton.QUANTITY_CUSTOM);
+
+      if Button.Enable then
+      begin
+        Mouse.Move(B);
+
+        if (WithdrawXCache = Amount) or MainScreen.IsUpText('Withdraw-' + ToString(Amount)) then
+        begin
+          Mouse.Click(MOUSE_LEFT);
+
+          Result := True;
+        end else
+        begin
+          Result := ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 4000));
+          if Result then
+            WithdrawXCache := Amount;
+        end;
+      end;
+    end else
+    begin
+      case Amount of
+        1:  Button := Self.GetButton(ERSBankButton.QUANTITY_1);
+        5:  Button := Self.GetButton(ERSBankButton.QUANTITY_5);
+        10: Button := Self.GetButton(ERSBankButton.QUANTITY_10);
+        else
+            Button := Self.GetButton(ERSBankButton.QUANTITY_ALL)
+      end;
+
+      if Button.Enable() then
+      begin
+        Result := True;
+
+        Mouse.Click(B, MOUSE_LEFT);
+      end;
+    end;
+  end else
+  begin
+    Mouse.Move(B);
+
+    case Amount of
+      BANK_WITHDRAW_ALL:
+        Result := ChooseOption.Select('Withdraw-All');
+      BANK_WITHDRAW_ALL_BUT_ONE:
+        Result := ChooseOption.Select('Withdraw-All-but-1');
+      else
+        Result := ChooseOption.Select('Withdraw-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False) or
+                  ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 2500));
+    end;
+  end;
+end;
+
+
+
+
 function TRSBank.WithdrawSlot(Tab: Int32; Item: TRSBankWithdrawSlot; UseQuantityButtons: Boolean): Boolean; overload;
 var
   ItemCount: Int32;

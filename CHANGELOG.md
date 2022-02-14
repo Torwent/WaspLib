@@ -1,3 +1,12 @@
+## [7.0.2](https://github.com/Torwent/WaspLib/compare/v7.0.1...v7.0.2) (2022-02-14)
+
+
+### Bug Fixes
+
+* zeah rc ([6facf5b](https://github.com/Torwent/WaspLib/commit/6facf5ba15bb5b23a25fc420e63a7aed41b6d402))
+
+
+
 ## [7.0.1](https://github.com/Torwent/WaspLib/compare/v7.0.0...v7.0.1) (2022-02-14)
 
 
@@ -46,21 +55,6 @@
 ### Bug Fixes
 
 * removed all dark esse sprites. zeah rc now has a better method included in the script ([c52ab26](https://github.com/Torwent/WaspLib/commit/c52ab264a4e7338c2431a0ac10b7975eeba36850))
-
-
-
-# [6.1.0](https://github.com/Torwent/WaspLib/compare/v6.0.2...v6.1.0) (2022-02-04)
-
-
-### Bug Fixes
-
-* removed tztok slayer helmet since it's not in SRL yet. ([8a0f411](https://github.com/Torwent/WaspLib/commit/8a0f41103eeb1e1aef08477a2bae211118a894f6))
-
-
-### Features
-
-* improved file creation. ([c7bfe61](https://github.com/Torwent/WaspLib/commit/c7bfe610da98e90bc6e23135d9d75742e16e8896))
-* **tools:** walkerpolygon can now be used for ATPAs as well ([34475e9](https://github.com/Torwent/WaspLib/commit/34475e98b199b386fe6b7e46dc7fd7a3d32838d8))
 
 
 

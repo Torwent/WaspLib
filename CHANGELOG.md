@@ -1,3 +1,12 @@
+## [7.0.1](https://github.com/Torwent/WaspLib/compare/v7.0.0...v7.0.1) (2022-02-14)
+
+
+### Bug Fixes
+
+* zeah coordinates ([26002f7](https://github.com/Torwent/WaspLib/commit/26002f749eff4e8de41d956d6d934097751b459f))
+
+
+
 # [7.0.0](https://github.com/Torwent/WaspLib/compare/v6.1.2...v7.0.0) (2022-02-14)
 
 
@@ -52,15 +61,6 @@
 
 * improved file creation. ([c7bfe61](https://github.com/Torwent/WaspLib/commit/c7bfe610da98e90bc6e23135d9d75742e16e8896))
 * **tools:** walkerpolygon can now be used for ATPAs as well ([34475e9](https://github.com/Torwent/WaspLib/commit/34475e98b199b386fe6b7e46dc7fd7a3d32838d8))
-
-
-
-## [6.0.2](https://github.com/Torwent/WaspLib/compare/v6.0.1...v6.0.2) (2022-02-03)
-
-
-### Bug Fixes
-
-* remove inventory background ([238b53d](https://github.com/Torwent/WaspLib/commit/238b53d34ab74b5bfd6ed09556c1fc01a16a696c))
 
 
 

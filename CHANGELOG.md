@@ -1,3 +1,12 @@
+## [7.0.3](https://github.com/Torwent/WaspLib/compare/v7.0.2...v7.0.3) (2022-02-15)
+
+
+### Bug Fixes
+
+* teak trees ([f32f22e](https://github.com/Torwent/WaspLib/commit/f32f22e7800d6a90568e85cae82e6f8fa5bb711f))
+
+
+
 ## [7.0.2](https://github.com/Torwent/WaspLib/compare/v7.0.1...v7.0.2) (2022-02-14)
 
 
@@ -46,15 +55,6 @@
 ### Bug Fixes
 
 * make combathandler not check gear constantly when we have a null weapon/shield/specweapon ([2c6e93c](https://github.com/Torwent/WaspLib/commit/2c6e93c558dcc58ac98f546e132292b4d185a3aa))
-
-
-
-## [6.1.1](https://github.com/Torwent/WaspLib/compare/v6.1.0...v6.1.1) (2022-02-07)
-
-
-### Bug Fixes
-
-* removed all dark esse sprites. zeah rc now has a better method included in the script ([c52ab26](https://github.com/Torwent/WaspLib/commit/c52ab264a4e7338c2431a0ac10b7975eeba36850))
 
 
 

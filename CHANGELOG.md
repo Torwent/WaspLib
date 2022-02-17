@@ -1,3 +1,12 @@
+## [7.0.4](https://github.com/Torwent/WaspLib/compare/v7.0.3...v7.0.4) (2022-02-17)
+
+
+### Bug Fixes
+
+* progress report now works properly on antiban ([32f57f6](https://github.com/Torwent/WaspLib/commit/32f57f61d7e278394418ebcc5cf61776b47ca801))
+
+
+
 ## [7.0.3](https://github.com/Torwent/WaspLib/compare/v7.0.2...v7.0.3) (2022-02-15)
 
 
@@ -46,15 +55,6 @@
 ### BREAKING CHANGES
 
 * This will likely break compatibility with everything released previously.
-
-
-
-## [6.1.2](https://github.com/Torwent/WaspLib/compare/v6.1.1...v6.1.2) (2022-02-09)
-
-
-### Bug Fixes
-
-* make combathandler not check gear constantly when we have a null weapon/shield/specweapon ([2c6e93c](https://github.com/Torwent/WaspLib/commit/2c6e93c558dcc58ac98f546e132292b4d185a3aa))
 
 
 

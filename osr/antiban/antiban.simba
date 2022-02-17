@@ -5,7 +5,6 @@
 
 procedure TAntiban.TakeSleep(var Task: TSleepTask); override;
 var
-  ProgressArray: TStringArray;
   Countdown: TCountDown;
   I: Int32;
   ActiveTasks: PAntibanTaskArray;
@@ -36,11 +35,13 @@ begin
     Self.DebugLn('Sleep time remaining: ' + SRL.MsToTime(Countdown.TimeRemaining, TIME_FORMAL));
 
     {$IFDEF SRL_USE_REMOTEINPUT}
-    ProgressArray += ProgressTitle;
-    ProgressArray += PadR((' Sleeping      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(TitleLength/2), ' ') +
-                           ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
-    if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
-      ProgressReport.Update(ProgressArray);
+    if Length(ProgressArray) > 2 then
+    begin
+      ProgressArray[1] := PadR((' Sleeping      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(TitleLength/2), ' ') +
+                             ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
+      if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+        ProgressReport.Update(ProgressArray);
+    end;
     {$ENDIF}
 
     Wait(Min(Countdown.TimeRemaining, 60000 * 5));
@@ -68,7 +69,6 @@ end;
 
 procedure TAntiban.TakeBreak(var Task: TBreakTask); override;
 var
-  ProgressArray: TStringArray;
   Countdown: TCountDown;
   I: Int32;
   ActiveTasks: PAntibanTaskArray;
@@ -101,11 +101,13 @@ begin
       Self.DebugLn('Break time remaining: ' + ToString(CountDown.TimeRemaining div 60000) + ' minutes');
 
     {$IFDEF SRL_USE_REMOTEINPUT}
-    ProgressArray += ProgressTitle;
-    ProgressArray += PadR((' Breaking      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(TitleLength/2), ' ') +
+    if Length(ProgressArray) > 2 then
+    begin
+      ProgressArray[1] := PadR((' Breaking      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(TitleLength/2), ' ') +
                            ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
-    if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
-      ProgressReport.Update(ProgressArray);
+      if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+        ProgressReport.Update(ProgressArray);
+    end;
     {$ENDIF}
 
     if (@Self.OnBreaking <> nil) then
@@ -135,7 +137,6 @@ end;
 
 function TAntiban.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean; override;
 var
-  ProgressArray: TStringArray;
   I: Int32;
   Task: PAntibanTask;
   ActiveTasks: array of PAntibanTask;
@@ -160,11 +161,13 @@ begin
           Self.OnStartTask(Task);
 
         {$IFDEF SRL_USE_REMOTEINPUT}
-        ProgressArray += ProgressTitle;
-        ProgressArray += PadR((' Action        : Antiban'), Round(TitleLength/2), ' ') +
-                               ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
-        if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
-          ProgressReport.Update(ProgressArray);
+        if Length(ProgressArray) > 2 then
+        begin
+          ProgressArray[1] := PadR((' Action        : Antiban'), Round(TitleLength/2), ' ') +
+                                    ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
+          if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+            ProgressReport.Update(ProgressArray);
+        end;
         {$ENDIF}
         Task^.Method;
         Task^.Countdown.Init(Trunc(Abs(SRL.GaussRand(Task^.Interval, Task^.Interval * Task^.StdVar))));

@@ -9,7 +9,46 @@ Methods to interact with the XP Drops.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+function TRSXPBar.IsOpen: Boolean; override;
 
+  function FindBorder: Boolean;
+  const
+    COLOR_BORDER = $233038;
+  var
+    ColorCount, MinCount, MaxCount: Int32;
+  begin
+    ColorCount := SRL.CountColor(COLOR_BORDER, Self.Bounds);
+    MinCount := (Self.Width*2 + Self.Height*2) - 16;
+    MaxCount := (Self.Width*2 + Self.Height*2) - 4;
+    Result :=  (ColorCount <= MaxCount) and (ColorCount >= MinCount);
+  end;
+
+  function UpdateLocation: Boolean;
+  var
+    Location: ERSXPBarLocation;
+    Size: ERSXPBarSize;
+  begin
+    for Location in ERSXPBarLocation do
+      for Size in ERSXPBarSize do
+      begin
+        Self.Cache := [];
+        Self.Alignment := Self.Alignments[Location][Size];
+        if FindBorder() then
+        begin
+          case Size of
+            ERSXPBarSize.SMALL:  Self.Font := RS_FONT_PLAIN_11;
+            ERSXPBarSize.MEDIUM: Self.Font := RS_FONT_PLAIN_12;
+            ERSXPBarSize.LARGE:  Self.Font := RS_FONT_BOLD_12;
+          end;
+
+          Exit(True);
+        end;
+      end;
+  end;
+
+begin
+  Result := FindBorder or UpdateLocation;
+end;
 
 
 function TRSXPBar.EarnedXP(CurrentXP: Int32): Boolean;

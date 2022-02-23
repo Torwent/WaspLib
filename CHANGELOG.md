@@ -1,3 +1,12 @@
+## [7.0.6](https://github.com/Torwent/WaspLib/compare/v7.0.5...v7.0.6) (2022-02-23)
+
+
+### Bug Fixes
+
+* UpText shouldn't interfere with XPBar.IsOpen anymore. ([c8eb477](https://github.com/Torwent/WaspLib/commit/c8eb4773a646ac7a30c99c80cb277f14e2e953e4))
+
+
+
 ## [7.0.5](https://github.com/Torwent/WaspLib/compare/v7.0.4...v7.0.5) (2022-02-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * zeah rc ([6facf5b](https://github.com/Torwent/WaspLib/commit/6facf5ba15bb5b23a25fc420e63a7aed41b6d402))
-
-
-
-## [7.0.1](https://github.com/Torwent/WaspLib/compare/v7.0.0...v7.0.1) (2022-02-14)
-
-
-### Bug Fixes
-
-* zeah coordinates ([26002f7](https://github.com/Torwent/WaspLib/commit/26002f749eff4e8de41d956d6d934097751b459f))
 
 
 

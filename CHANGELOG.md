@@ -1,3 +1,12 @@
+## [7.0.7](https://github.com/Torwent/WaspLib/compare/v7.0.6...v7.0.7) (2022-02-24)
+
+
+### Bug Fixes
+
+* **loothandler:** now loots again ([fdf2ed4](https://github.com/Torwent/WaspLib/commit/fdf2ed4ea4df0ef01ba091b88afcbb94bbe3471b))
+
+
+
 ## [7.0.6](https://github.com/Torwent/WaspLib/compare/v7.0.5...v7.0.6) (2022-02-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * teak trees ([f32f22e](https://github.com/Torwent/WaspLib/commit/f32f22e7800d6a90568e85cae82e6f8fa5bb711f))
-
-
-
-## [7.0.2](https://github.com/Torwent/WaspLib/compare/v7.0.1...v7.0.2) (2022-02-14)
-
-
-### Bug Fixes
-
-* zeah rc ([6facf5b](https://github.com/Torwent/WaspLib/commit/6facf5ba15bb5b23a25fc420e63a7aed41b6d402))
 
 
 

@@ -1,3 +1,12 @@
+## [7.0.9](https://github.com/Torwent/WaspLib/compare/v7.0.8...v7.0.9) (2022-02-28)
+
+
+### Bug Fixes
+
+* webgraph ([2107270](https://github.com/Torwent/WaspLib/commit/2107270bc96c98b7df0ed1800b5bfa0da06f0cce))
+
+
+
 ## [7.0.8](https://github.com/Torwent/WaspLib/compare/v7.0.7...v7.0.8) (2022-02-28)
 
 
@@ -33,15 +42,6 @@
 ### Bug Fixes
 
 * compile test ([71bbc15](https://github.com/Torwent/WaspLib/commit/71bbc15ef99f1eb9bca79502a4da63d9c5b25aa3))
-
-
-
-## [7.0.4](https://github.com/Torwent/WaspLib/compare/v7.0.3...v7.0.4) (2022-02-17)
-
-
-### Bug Fixes
-
-* progress report now works properly on antiban ([32f57f6](https://github.com/Torwent/WaspLib/commit/32f57f61d7e278394418ebcc5cf61776b47ca801))
 
 
 

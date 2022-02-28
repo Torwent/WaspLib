@@ -1,3 +1,14 @@
+## [7.0.8](https://github.com/Torwent/WaspLib/compare/v7.0.7...v7.0.8) (2022-02-28)
+
+
+### Bug Fixes
+
+* weapon, shield and specweapon are now removed from the alch list ([8499110](https://github.com/Torwent/WaspLib/commit/8499110ede8da94f6fd3133e10c3e4340e760931))
+* **rsmonsters:** fix hill giants uptext ([6870a3c](https://github.com/Torwent/WaspLib/commit/6870a3c0a22f081423b1022705d1523274a3c6f0))
+* **rsmonsters:** improved kalphite coordinates ([511dd10](https://github.com/Torwent/WaspLib/commit/511dd10a8e30fe6a1b1f8d93a11a7a9121f46e3d))
+
+
+
 ## [7.0.7](https://github.com/Torwent/WaspLib/compare/v7.0.6...v7.0.7) (2022-02-24)
 
 
@@ -31,15 +42,6 @@
 ### Bug Fixes
 
 * progress report now works properly on antiban ([32f57f6](https://github.com/Torwent/WaspLib/commit/32f57f61d7e278394418ebcc5cf61776b47ca801))
-
-
-
-## [7.0.3](https://github.com/Torwent/WaspLib/compare/v7.0.2...v7.0.3) (2022-02-15)
-
-
-### Bug Fixes
-
-* teak trees ([f32f22e](https://github.com/Torwent/WaspLib/commit/f32f22e7800d6a90568e85cae82e6f8fa5bb711f))
 
 
 

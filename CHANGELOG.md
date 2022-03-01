@@ -1,3 +1,12 @@
+## [7.0.10](https://github.com/Torwent/WaspLib/compare/v7.0.9...v7.0.10) (2022-03-01)
+
+
+### Bug Fixes
+
+* **maps:** moved pest control and mlm maps ([84f9860](https://github.com/Torwent/WaspLib/commit/84f9860344652f6090cb7ca3974d713501f77bd6))
+
+
+
 ## [7.0.9](https://github.com/Torwent/WaspLib/compare/v7.0.8...v7.0.9) (2022-02-28)
 
 
@@ -33,15 +42,6 @@
 ### Bug Fixes
 
 * UpText shouldn't interfere with XPBar.IsOpen anymore. ([c8eb477](https://github.com/Torwent/WaspLib/commit/c8eb4773a646ac7a30c99c80cb277f14e2e953e4))
-
-
-
-## [7.0.5](https://github.com/Torwent/WaspLib/compare/v7.0.4...v7.0.5) (2022-02-22)
-
-
-### Bug Fixes
-
-* compile test ([71bbc15](https://github.com/Torwent/WaspLib/commit/71bbc15ef99f1eb9bca79502a4da63d9c5b25aa3))
 
 
 

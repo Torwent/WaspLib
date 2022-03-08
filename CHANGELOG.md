@@ -1,3 +1,12 @@
+# [7.1.0](https://github.com/Torwent/WaspLib/compare/v7.0.10...v7.1.0) (2022-03-08)
+
+
+### Features
+
+* new way to use items with each other ([02634e1](https://github.com/Torwent/WaspLib/commit/02634e1a57d355bfee30191d75984fc26dd57589))
+
+
+
 ## [7.0.10](https://github.com/Torwent/WaspLib/compare/v7.0.9...v7.0.10) (2022-03-01)
 
 
@@ -33,15 +42,6 @@
 ### Bug Fixes
 
 * **loothandler:** now loots again ([fdf2ed4](https://github.com/Torwent/WaspLib/commit/fdf2ed4ea4df0ef01ba091b88afcbb94bbe3471b))
-
-
-
-## [7.0.6](https://github.com/Torwent/WaspLib/compare/v7.0.5...v7.0.6) (2022-02-23)
-
-
-### Bug Fixes
-
-* UpText shouldn't interfere with XPBar.IsOpen anymore. ([c8eb477](https://github.com/Torwent/WaspLib/commit/c8eb4773a646ac7a30c99c80cb277f14e2e953e4))
 
 
 

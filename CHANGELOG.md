@@ -1,3 +1,17 @@
+# [7.2.0](https://github.com/Torwent/WaspLib/compare/v7.1.1...v7.2.0) (2022-03-12)
+
+
+### Bug Fixes
+
+* CombatHandler was erasing the whole alch list ([41baeab](https://github.com/Torwent/WaspLib/commit/41baeab65f62afa20c021e015010975613077894))
+
+
+### Features
+
+* new TryGetPage function ([0ca604a](https://github.com/Torwent/WaspLib/commit/0ca604a8542010625d5120ffc7a210119a70c0a8))
+
+
+
 ## [7.1.1](https://github.com/Torwent/WaspLib/compare/v7.1.0...v7.1.1) (2022-03-09)
 
 
@@ -31,17 +45,6 @@
 ### Bug Fixes
 
 * webgraph ([2107270](https://github.com/Torwent/WaspLib/commit/2107270bc96c98b7df0ed1800b5bfa0da06f0cce))
-
-
-
-## [7.0.8](https://github.com/Torwent/WaspLib/compare/v7.0.7...v7.0.8) (2022-02-28)
-
-
-### Bug Fixes
-
-* weapon, shield and specweapon are now removed from the alch list ([8499110](https://github.com/Torwent/WaspLib/commit/8499110ede8da94f6fd3133e10c3e4340e760931))
-* **rsmonsters:** fix hill giants uptext ([6870a3c](https://github.com/Torwent/WaspLib/commit/6870a3c0a22f081423b1022705d1523274a3c6f0))
-* **rsmonsters:** improved kalphite coordinates ([511dd10](https://github.com/Torwent/WaspLib/commit/511dd10a8e30fe6a1b1f8d93a11a7a9121f46e3d))
 
 
 

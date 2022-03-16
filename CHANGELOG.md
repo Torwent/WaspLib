@@ -1,3 +1,12 @@
+## [7.2.1](https://github.com/Torwent/WaspLib/compare/v7.2.0...v7.2.1) (2022-03-16)
+
+
+### Bug Fixes
+
+* connection to Wiki or OSRSBox shouldn't be required anymore. ([22cae8c](https://github.com/Torwent/WaspLib/commit/22cae8cbe204998298f707e3bb6ce5c3d43af261))
+
+
+
 # [7.2.0](https://github.com/Torwent/WaspLib/compare/v7.1.1...v7.2.0) (2022-03-12)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **maps:** moved pest control and mlm maps ([84f9860](https://github.com/Torwent/WaspLib/commit/84f9860344652f6090cb7ca3974d713501f77bd6))
-
-
-
-## [7.0.9](https://github.com/Torwent/WaspLib/compare/v7.0.8...v7.0.9) (2022-02-28)
-
-
-### Bug Fixes
-
-* webgraph ([2107270](https://github.com/Torwent/WaspLib/commit/2107270bc96c98b7df0ed1800b5bfa0da06f0cce))
 
 
 

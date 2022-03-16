@@ -16,6 +16,8 @@ type
     ReloadTimer: TCountDown;
     WikiPriceIsSetup: Boolean;
     OSRSBoxIsSetup: Boolean;
+    WikiDisconnected: Boolean;
+    OSRSBoxDisconnected: Boolean;
   end;
 
   ERSMonsterAttackType = (
@@ -50,6 +52,8 @@ end;
 
 
 procedure TRSItemData.SetupWikiPrices;
+var
+  JSON: String;
 begin
   if not WikiPriceIsSetup then
   begin
@@ -62,8 +66,17 @@ begin
     ReloadTimer.Setup(1200000);
   end;
 
-  WriteLn('Loading item prices from the wiki API.');
-  WikiData.Init(TryGetPage('https://prices.runescape.wiki/api/v1/osrs/latest'));
+  WriteLn 'Loading item prices from the wiki API.';
+  JSON := TryGetPage('https://prices.runescape.wiki/api/v1/osrs/latest');
+
+  if JSON = '' then
+  begin
+    WriteLn 'We don''t seem to be able to connect to https://prices.runescape.wiki';
+    WikiDisconnected := True;
+    Exit;
+  end;
+
+  WikiData.Init(JSON);
   ReloadTimer.Restart;
 end;
 
@@ -101,14 +114,27 @@ begin
 end;
 
 function TRSItemData.GetData(Item: String): TJSONObject;
+var
+  JSON: String;
 begin
+  if WikiDisconnected or OSRSBoxDisconnected then
+    Exit;
+
   if not WikiPriceIsSetup then
     Self.SetupWikiPrices;
 
   if Item = '' then
     Exit;
 
-  OSRSBoxData.Init(TryGetPage('https://www.osrsbox.com/osrsbox-db/items-json/' + Item + '.json'));
+  JSON := TryGetPage('https://www.osrsbox.com/osrsbox-db/items-json/' + Item + '.json');
+  if JSON = '' then
+  begin
+    WriteLn 'We don''t seem to be able to connect to https://www.osrsbox.com';
+    OSRSBoxDisconnected := True;
+    Exit;
+  end;
+
+  OSRSBoxData.Init(Json);
   Result := OSRSBoxData;
 
   if not OSRSBoxIsSetup then
@@ -122,6 +148,7 @@ function TRSItemData.GetTradeableID(Item: TRSItem): String;
 var
   IDs: TStringArray;
   ID: String;
+  OSRSBoxJSON: TJSONObject;
 begin
   if not WikiPriceIsSetup then
     Self.SetupWikiPrices;
@@ -132,7 +159,8 @@ begin
   IDs := Self.GetIDs(Item);
   for ID in IDs do
   begin
-    if Self.GetData(ID).getBoolean('tradeable_on_ge') then
+    OSRSBoxJSON := Self.GetData(ID);
+    if (OSRSBoxJSON <> nil) and Self.GetData(ID).getBoolean('tradeable_on_ge') then
       Exit(ID);
   end;
 end;
@@ -140,6 +168,7 @@ end;
 function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
 var
   ID: String;
+  WikiJSON: TJSONObject;
 begin
   if ReloadTimer.IsPaused or ReloadTimer.IsFinished then
     Self.SetupWikiPrices;
@@ -147,7 +176,11 @@ begin
   ID := Self.GetTradeableID(Item);
 
   if ID <> '' then
-    Result := WikiData.getJSONObject('data').getJSONObject(ID);
+  begin
+    WikiJSON := WikiData.getJSONObject('data');
+    if WikiJSON <> nil then
+      Result := WikiJSON.getJSONObject(ID);
+  end;
 end;
 
 
@@ -155,7 +188,7 @@ function TRSItemData.GetWikiInt(Item: TRSItem; Key: String): Int32;
 var
   JSONObject: TJSONObject := Self.GetPrice(Item);
 begin
-  if JSONObject <> [] then
+  if JSONObject <> nil then
     Result := JSONObject.getInt(Key);
 end;
 
@@ -188,12 +221,17 @@ end;
 function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
 var
   Str: String;
+  OSRSBoxJSON: TJSONObject;
 begin
   Str := Self.GetTradeableID(Item);
   if Str = '' then
     Exit;
 
-  Str := Self.GetData(Str).getString(Key);
+  OSRSBoxJSON := Self.GetData(Str);
+  if OSRSBoxJSON = nil then
+    Exit;
+
+  Str := OSRSBoxJSON.getString(Key);
 
   if Str.Contains('null') then
     Result := 0
@@ -204,12 +242,17 @@ end;
 function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
 var
   Str: String;
+  OSRSBoxJSON: TJSONObject;
 begin
   Str := Self.GetTradeableID(Item);
   if Str = '' then
     Exit;
 
-  Result := Self.GetData(Str).getBoolean(Key);
+  OSRSBoxJSON := Self.GetData(Str);
+  if OSRSBoxJSON = nil then
+    Exit;
+
+  Result := OSRSBoxJSON.getBoolean(Key);
 end;
 
 

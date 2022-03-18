@@ -1,3 +1,12 @@
+## [7.2.3](https://github.com/Torwent/WaspLib/compare/v7.2.2...v7.2.3) (2022-03-18)
+
+
+### Bug Fixes
+
+* added aberrant spectres coords in srtronghold slayer dungeon ([aca029f](https://github.com/Torwent/WaspLib/commit/aca029fe34a49257730f3c73603401748928a22b))
+
+
+
 ## [7.2.2](https://github.com/Torwent/WaspLib/compare/v7.2.1...v7.2.2) (2022-03-18)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **CombatHandler:** typos ([9005bc0](https://github.com/Torwent/WaspLib/commit/9005bc091fb3f7b4ac57cbf5c6f8b93cfff44879))
-
-
-
-# [7.1.0](https://github.com/Torwent/WaspLib/compare/v7.0.10...v7.1.0) (2022-03-08)
-
-
-### Features
-
-* new way to use items with each other ([02634e1](https://github.com/Torwent/WaspLib/commit/02634e1a57d355bfee30191d75984fc26dd57589))
 
 
 

@@ -1,3 +1,12 @@
+## [7.2.2](https://github.com/Torwent/WaspLib/compare/v7.2.1...v7.2.2) (2022-03-18)
+
+
+### Bug Fixes
+
+* just pushing update lol ([e67434c](https://github.com/Torwent/WaspLib/commit/e67434cbb9fa03edcf4829a56ea07d8a35a0a489))
+
+
+
 ## [7.2.1](https://github.com/Torwent/WaspLib/compare/v7.2.0...v7.2.1) (2022-03-16)
 
 
@@ -36,15 +45,6 @@
 ### Features
 
 * new way to use items with each other ([02634e1](https://github.com/Torwent/WaspLib/commit/02634e1a57d355bfee30191d75984fc26dd57589))
-
-
-
-## [7.0.10](https://github.com/Torwent/WaspLib/compare/v7.0.9...v7.0.10) (2022-03-01)
-
-
-### Bug Fixes
-
-* **maps:** moved pest control and mlm maps ([84f9860](https://github.com/Torwent/WaspLib/commit/84f9860344652f6090cb7ca3974d713501f77bd6))
 
 
 

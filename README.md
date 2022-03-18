@@ -57,7 +57,7 @@
  Examples of this are:
  - [x] Anvil
  - [x] Collect box
- - [ ] Furniture builder
+ - [x] Furniture builder
  - [ ] NMZ Reward chest
  - [ ] NMZ Dream Setup
 

@@ -42,6 +42,8 @@ Minimap.ZoomRadius
 This function returns you an approximate radius of what's viewable in the MainScreen on the Minimap.
 This is not 100% accurate since it was made with trial and error and eyeballing but works pretty well.
 
+THIS IS DEPRECATED
+
 Example
 -------
 
@@ -67,6 +69,36 @@ begin
   Result := Round(73 - (0.8 * (MM2MS.ZoomLevel + 25)));
 end;
 
+
+(*
+Minimap.GetZoomRectangle
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function Minimap.GetZoomRectangle: TRectangle;
+
+This function returns you a rectangle of what's visible on the MainScreen on the Minimap.
+
+Example
+-------
+
+.. code-block:: pascal
+
+  Debug(Minimap.GetZoomRectangle);
+*)
+function Minimap.GetZoomRectangle: TRectangle;
+begin
+  if MM2MS.ZoomLevel = -1 then
+    MM2MS.ZoomLevel := Options.GetZoomLevel;
+
+  Result := [
+    MainScreen.PointToMM([MainScreen.Bounds.X1, MainScreen.Bounds.Y1]).ToPoint,
+    MainScreen.PointToMM([MainScreen.Bounds.X2, MainScreen.Bounds.Y1]).ToPoint,
+    MainScreen.PointToMM([MainScreen.Bounds.X2, MainScreen.Bounds.Y2]).ToPoint,
+    MainScreen.PointToMM([MainScreen.Bounds.X1, MainScreen.Bounds.Y2]).ToPoint
+  ];
+
+  Result := Result.FixOrder;
+end;
+
 (*
 Minimap.PointInZoomRadius
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -82,12 +114,9 @@ Example
   P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
   WriteLn Minimap.PointInZoomRadius(P);
 *)
-function Minimap.PointInZoomRadius(P: TPoint): Boolean;
-var
-  Radius: Int32;
+function Minimap.PointInZoomRectangle(P: TPoint): Boolean;
 begin
-  Radius := Self.ZoomRadius;
-  Result := P.InCircle([Minimap.Center.X, Minimap.Center.Y, Radius]);
+  Result := P.InRect(Self.GetZoomRectangle);
 end;
 
 (*

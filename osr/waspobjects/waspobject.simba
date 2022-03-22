@@ -1027,13 +1027,31 @@ end;
 function TRSWalker.Click(MinimapPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean; Randomness: Int32): Boolean; overload;
 var
   P: TPoint;
+  L: TPointArray;
+  i, j: Int32;
   HoveringObject: Boolean;
 begin
   Result := True;
 
   if Self.ScreenWalk then
   begin
-    Mouse.Move(Minimap.PointToMsRect(MinimapPoint).Mean);
+    repeat
+      i += 1;
+      P := MinimapPoint.Random(-Randomness, Randomness);
+      if i >= 15 then
+      begin
+        WriteLn 'Stuck in TRSWalker.Click infinite loop';
+        L := TPAFromLine(P, Minimap.Center);
+        for j := 0 to High(L) do
+          if Minimap.PointInZoomRectangle(L[j]) then
+          begin
+            P := L[j];
+            Break;
+          end;
+      end;
+    until Minimap.PointInZoomRectangle(P);
+
+    Mouse.Move(Minimap.PointToMsRect(P).Mean);
 
     HoveringObject := MainScreen.IsUpText(UpText);
 
@@ -1041,9 +1059,9 @@ begin
       Exit(ChooseOption.Select('Walk here'));
   end else
   begin
-    P := MinimapPoint.Random(-Randomness, Randomness);
-    while not Minimap.IsPointOn(P) do
+    repeat
       P := MinimapPoint.Random(-Randomness, Randomness);
+    until Minimap.IsPointOn(P);
 
     Mouse.Move(P);
   end;

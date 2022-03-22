@@ -1,3 +1,17 @@
+# [7.3.0](https://github.com/Torwent/WaspLib/compare/v7.2.3...v7.3.0) (2022-03-22)
+
+
+### Bug Fixes
+
+* changed osrsbox data provider ([29a2b9b](https://github.com/Torwent/WaspLib/commit/29a2b9b23ca9420cd949c8c58657d2d78f60127b))
+
+
+### Features
+
+* new proper within zoom function ([d4a4b6a](https://github.com/Torwent/WaspLib/commit/d4a4b6abb412c0844efaabda75d47b59f7ffd226))
+
+
+
 ## [7.2.3](https://github.com/Torwent/WaspLib/compare/v7.2.2...v7.2.3) (2022-03-18)
 
 
@@ -36,15 +50,6 @@
 ### Features
 
 * new TryGetPage function ([0ca604a](https://github.com/Torwent/WaspLib/commit/0ca604a8542010625d5120ffc7a210119a70c0a8))
-
-
-
-## [7.1.1](https://github.com/Torwent/WaspLib/compare/v7.1.0...v7.1.1) (2022-03-09)
-
-
-### Bug Fixes
-
-* **CombatHandler:** typos ([9005bc0](https://github.com/Torwent/WaspLib/commit/9005bc091fb3f7b4ac57cbf5c6f8b93cfff44879))
 
 
 

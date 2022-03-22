@@ -1,3 +1,12 @@
+## [7.3.1](https://github.com/Torwent/WaspLib/compare/v7.3.0...v7.3.1) (2022-03-22)
+
+
+### Bug Fixes
+
+* AttackMonsterDelay sets itself up if needed ([b127ba4](https://github.com/Torwent/WaspLib/commit/b127ba42e595d22a4686e0092f0794ce7a594a83))
+
+
+
 # [7.3.0](https://github.com/Torwent/WaspLib/compare/v7.2.3...v7.3.0) (2022-03-22)
 
 
@@ -36,20 +45,6 @@
 ### Bug Fixes
 
 * connection to Wiki or OSRSBox shouldn't be required anymore. ([22cae8c](https://github.com/Torwent/WaspLib/commit/22cae8cbe204998298f707e3bb6ce5c3d43af261))
-
-
-
-# [7.2.0](https://github.com/Torwent/WaspLib/compare/v7.1.1...v7.2.0) (2022-03-12)
-
-
-### Bug Fixes
-
-* CombatHandler was erasing the whole alch list ([41baeab](https://github.com/Torwent/WaspLib/commit/41baeab65f62afa20c021e015010975613077894))
-
-
-### Features
-
-* new TryGetPage function ([0ca604a](https://github.com/Torwent/WaspLib/commit/0ca604a8542010625d5120ffc7a210119a70c0a8))
 
 
 

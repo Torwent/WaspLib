@@ -1,3 +1,12 @@
+## [7.3.3](https://github.com/Torwent/WaspLib/compare/v7.3.2...v7.3.3) (2022-03-29)
+
+
+### Bug Fixes
+
+* added deviant spectres ([5bee53b](https://github.com/Torwent/WaspLib/commit/5bee53bb8b7954284373673e52a5a2bb4233d439))
+
+
+
 ## [7.3.2](https://github.com/Torwent/WaspLib/compare/v7.3.1...v7.3.2) (2022-03-29)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * added aberrant spectres coords in srtronghold slayer dungeon ([aca029f](https://github.com/Torwent/WaspLib/commit/aca029fe34a49257730f3c73603401748928a22b))
-
-
-
-## [7.2.2](https://github.com/Torwent/WaspLib/compare/v7.2.1...v7.2.2) (2022-03-18)
-
-
-### Bug Fixes
-
-* just pushing update lol ([e67434c](https://github.com/Torwent/WaspLib/commit/e67434cbb9fa03edcf4829a56ea07d8a35a0a489))
 
 
 

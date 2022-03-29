@@ -1,3 +1,14 @@
+## [7.3.2](https://github.com/Torwent/WaspLib/compare/v7.3.1...v7.3.2) (2022-03-29)
+
+
+### Bug Fixes
+
+* added abyss to abyssal demons ([d5f9a43](https://github.com/Torwent/WaspLib/commit/d5f9a436befaa24bbbd89d6875dced02f44bd46a))
+* XPBarSetup.GetDropDown now checks if we found dropdowns first. ([ca20a60](https://github.com/Torwent/WaspLib/commit/ca20a600bec6dc3b0dc7393a570f28818c61355f))
+* **MainScreen:** Fixed MainScreen.IsVisible ([0069140](https://github.com/Torwent/WaspLib/commit/006914076f9211dec4cbaac712400dabf2129a82))
+
+
+
 ## [7.3.1](https://github.com/Torwent/WaspLib/compare/v7.3.0...v7.3.1) (2022-03-22)
 
 
@@ -36,15 +47,6 @@
 ### Bug Fixes
 
 * just pushing update lol ([e67434c](https://github.com/Torwent/WaspLib/commit/e67434cbb9fa03edcf4829a56ea07d8a35a0a489))
-
-
-
-## [7.2.1](https://github.com/Torwent/WaspLib/compare/v7.2.0...v7.2.1) (2022-03-16)
-
-
-### Bug Fixes
-
-* connection to Wiki or OSRSBox shouldn't be required anymore. ([22cae8c](https://github.com/Torwent/WaspLib/commit/22cae8cbe204998298f707e3bb6ce5c3d43af261))
 
 
 

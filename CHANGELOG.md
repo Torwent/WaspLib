@@ -1,3 +1,12 @@
+# [7.4.0](https://github.com/Torwent/WaspLib/compare/v7.3.3...v7.4.0) (2022-04-13)
+
+
+### Features
+
+* functions to find random items in the inventory. ([757b48c](https://github.com/Torwent/WaspLib/commit/757b48cc581d3758bc1613385e0931af33e1456e))
+
+
+
 ## [7.3.3](https://github.com/Torwent/WaspLib/compare/v7.3.2...v7.3.3) (2022-03-29)
 
 
@@ -38,15 +47,6 @@
 ### Features
 
 * new proper within zoom function ([d4a4b6a](https://github.com/Torwent/WaspLib/commit/d4a4b6abb412c0844efaabda75d47b59f7ffd226))
-
-
-
-## [7.2.3](https://github.com/Torwent/WaspLib/compare/v7.2.2...v7.2.3) (2022-03-18)
-
-
-### Bug Fixes
-
-* added aberrant spectres coords in srtronghold slayer dungeon ([aca029f](https://github.com/Torwent/WaspLib/commit/aca029fe34a49257730f3c73603401748928a22b))
 
 
 

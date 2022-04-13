@@ -62,6 +62,15 @@ const
     'Granite cannonball'
   ];
 
+  REMAINS: TRSItemArray = [
+    'Bones', 'Wolf bones', 'Monkey bones', 'Bat bones', 'Big bones',
+    'Jogre bones', 'Zogre bones', 'Babydragon bones', 'Wyrm bones',
+    'Wyvern bones', 'Dragon bones', 'Drake bones', 'Lava dragon bones',
+    'Hydra bones', 'Dagannoth bones', 'Superior dragon bones',
+    'Fiendish ashes', 'Vile ashes', 'Malicious ashes',
+    'Abyssal ashes', 'Infernal ashes'
+  ];
+
 type
   TCombatHandler = record(TSRLBaseRecord)
     State: String;
@@ -100,6 +109,8 @@ type
     LootEnabled: Boolean;
     LootHandler: TRSLootHandler;
     AttackMonsterDelay: Int32;
+
+    BuryBones: Boolean;
     IsSetup: Boolean;
   end;
 
@@ -477,6 +488,20 @@ begin
 end;
 
 
+function TCombatHandler.BuryBones: Boolean;
+var
+  Slots: TIntegerArray;
+  Slot: Int32;
+begin
+  if not Inventory.FindItems(REMAINS, Slots) then
+    Exit;
+
+  Slot := Slots[0];
+
+  Inventory.ClickSlot(Slot);
+  Inventory.WaitItemFade(Slot);
+  Result := WaitUntil(not Inventory.IsSlotUsed(Slot), 100, 2000);
+end;
 
 
 function TCombatHandler.NeedAntiPoison: Boolean;
@@ -624,6 +649,12 @@ begin
     Exit(State);
   end;
 
+  if BuryBones and Inventory.FindItems(REMAINS) then
+  begin
+    State := 'BURY_BONES';
+    Exit(State);
+  end;
+
   if not MainScreen.InCombat then
   begin
     State := 'ATTACK_MONSTER';
@@ -652,6 +683,7 @@ begin
     'SPEC_MONSTER':     Self.WalkAttackMonster;
     'USE_SPECIAL_ATT':  Self.DoSpec;
     'REEQUIP_GEAR':     Self.ReGear;
+    'BURY_BONES':       Self.BuryBones;
     'ATTACK_MONSTER':   Self.WalkAttackMonster;
     'WAIT_IN_COMBAT':   MainScreen.WaitInCombat(InCombatTimer.Length);
     'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
@@ -662,7 +694,7 @@ begin
     case HandlerState of
       'EAT_FOOD', 'DRINK_PRAYER', 'DRINK_ANTIFIRE', 'DRINK_ANTIVENOM',
       'DRINK_ANTIPOISON', 'DRINK_BOOST', 'ENABLE_QPRAY', 'NEED_BRACELET',
-      'ATTACK_MONSTER', 'WAIT_IN_COMBAT':
+      'BURY_BONES', 'ATTACK_MONSTER', 'WAIT_IN_COMBAT':
       Self.Loot;
     end;
 end;

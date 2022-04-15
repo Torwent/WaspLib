@@ -219,6 +219,7 @@ end;
 
 function TRSBank.WithdrawItem(out Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
 var
+  B: TBox;
   ItemCount: Int32;
 begin
   if not Self.IsOpen then
@@ -227,20 +228,20 @@ begin
   if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
     Exit;
 
-  if not Self.FindItem(Item) then
+  if not Self.FindItem(Item.Item, B) then
   begin
     if Tab = -1 then
       Tab := Self.FindItemTab(Item.Item)
     else
       Self.OpenTab(Tab);
 
-    if not Self.FindItem(Item) then
+    if not Self.FindItem(Item.Item, B) then
       Exit(False);
   end;
 
-  ItemCount := Self.CountItemStack(Item.Item);
-  if Self.WithdrawItem(Item, UseQuantityButtons) then
-    Result := WaitUntil(Self.CountItemStack(Item.Item) < ItemCount, 100, 2000);
+  ItemCount := SRL.GetItemAmount(B);
+  if Self.WithdrawHelper(B, Item.Quantity, Item.Noted, UseQuantityButtons) then
+    Result := WaitUntil(SRL.GetItemAmount(B) < ItemCount, 100, 2000);
 end;
 
 function TRSBank.WithdrawItems(Tab: Int32; Items: array of TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean;

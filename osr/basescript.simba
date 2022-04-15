@@ -167,51 +167,54 @@ var
 begin
   TotalProfit := (TotalActions * ActionProfit) - TotalConsumableCost;
 
-  if (GetTickCount - StatsDebugTick) > 1000 then
-  begin
-    Self.DebugLn(Action, ExtraInfo);
-    ElapsedTime := TimeRunning.ElapsedTime;
+  if (GetTickCount - StatsDebugTick) < 1000 then
+    Exit;
 
-    ProgressTitle := Name;
-    TitleLength := ProgressTitle.Len;
+  Self.DebugLn(Action, ExtraInfo);
+  ElapsedTime := TimeRunning.ElapsedTime;
 
-    ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
-    ProgressTitle    := PadR(ProgressTitle, 90 - TitleLength, ' ');
+  ProgressTitle := Name;
+  PadLength := ProgressTitle.Len + 6;
 
-    TitleLength := ProgressTitle.Len;
+  ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
+  ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
 
-    ProgressArray := [];
-    ProgressArray += ProgressTitle;
+  PadLength := ProgressTitle.Len;
 
-    ProgressArray += PadR((' Action        : ' + Action), Round(TitleLength/2), ' ') +
-                           ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
+  ProgressArray := [];
+  ProgressArray += ProgressTitle;
 
-    if (ActionLimit = -1) then
-      ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions)), Round(TitleLength/2), ' ') +
-                             ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime))
-    else
-      ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions) + '/' + ToStr(ActionLimit)), Round(TitleLength/2), ' ') +
-                             ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime));
+  Str := ' Action        : ' + Action;
 
-    ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(TitleLength/2), ' ') +
-                           ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
+  ProgressArray += PadR((' Action        : ' + Action), Round(PadLength/2), ' ') +
+                         ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
 
-    ProgressArray += ' Join WaspBots on Discord: https://waspbot.com';
+  if (ActionLimit = -1) then
+    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions)), Round(PadLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime))
+  else
+    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions) + '/' + ToStr(ActionLimit)), Round(PadLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime));
 
-    ProgressArray += ExtraInfo;
+  ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(PadLength/2), ' ') +
+                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
 
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled and
-    (Action <> PreviousAction) then
-      ProgressReport.Update(ProgressArray);
-    {$ENDIF}
+  ProgressArray += ' Join WaspBots on Discord: https://waspbot.com';
 
-    for Str in ProgressArray do
-      Writeln(Str);
+  ProgressArray += ExtraInfo;
 
-    PreviousAction := Action;
-    StatsDebugTick := GetTickCount;
-  end;
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled and
+  (Action <> PreviousAction) then
+    ProgressReport.Update(ProgressArray);
+  {$ENDIF}
+
+  for Str in ProgressArray do
+    Writeln(Str);
+
+  PreviousAction := Action;
+  StatsDebugTick := GetTickCount;
+
 
   if ScriptDebugEnabled then
     SRL.Debug(RSClient.Image);

@@ -1,3 +1,20 @@
+# [7.5.0](https://github.com/Torwent/WaspLib/compare/v7.4.0...v7.5.0) (2022-04-15)
+
+
+### Bug Fixes
+
+* fixed sleep time bug with certain time formats ([b75fd1a](https://github.com/Torwent/WaspLib/commit/b75fd1af63698ca7fb44aae0640c50e42bb9b186))
+* improved performance when withdrawing items... less repeated image finding is used now ([dfc0999](https://github.com/Torwent/WaspLib/commit/dfc0999deda8ac440d48e9d782bfcf3576687623))
+* removed unneeded definition ([9990835](https://github.com/Torwent/WaspLib/commit/999083508d93b6d1e911189eb3384a3c20dda356))
+* wrong math in NumberPerHour ([6a09bde](https://github.com/Torwent/WaspLib/commit/6a09bde91fd9ef8591baa51c52dc15253668862a))
+
+
+### Features
+
+* added the ability for RI to block user input ([5760a7f](https://github.com/Torwent/WaspLib/commit/5760a7ffcfa5e7c67d1468bd4cfca98bc35c1593))
+
+
+
 # [7.4.0](https://github.com/Torwent/WaspLib/compare/v7.3.3...v7.4.0) (2022-04-13)
 
 
@@ -33,20 +50,6 @@
 ### Bug Fixes
 
 * AttackMonsterDelay sets itself up if needed ([b127ba4](https://github.com/Torwent/WaspLib/commit/b127ba42e595d22a4686e0092f0794ce7a594a83))
-
-
-
-# [7.3.0](https://github.com/Torwent/WaspLib/compare/v7.2.3...v7.3.0) (2022-03-22)
-
-
-### Bug Fixes
-
-* changed osrsbox data provider ([29a2b9b](https://github.com/Torwent/WaspLib/commit/29a2b9b23ca9420cd949c8c58657d2d78f60127b))
-
-
-### Features
-
-* new proper within zoom function ([d4a4b6a](https://github.com/Torwent/WaspLib/commit/d4a4b6abb412c0844efaabda75d47b59f7ffd226))
 
 
 

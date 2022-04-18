@@ -1,3 +1,12 @@
+## [7.5.1](https://github.com/Torwent/WaspLib/compare/v7.5.0...v7.5.1) (2022-04-18)
+
+
+### Bug Fixes
+
+* zoom and brightness are always gathered together so there's less options tab flicking ([5bb0cde](https://github.com/Torwent/WaspLib/commit/5bb0cde68d7d1693acd9ff220ef9637a8e0a2ccf))
+
+
+
 # [7.5.0](https://github.com/Torwent/WaspLib/compare/v7.4.0...v7.5.0) (2022-04-15)
 
 
@@ -41,15 +50,6 @@
 * added abyss to abyssal demons ([d5f9a43](https://github.com/Torwent/WaspLib/commit/d5f9a436befaa24bbbd89d6875dced02f44bd46a))
 * XPBarSetup.GetDropDown now checks if we found dropdowns first. ([ca20a60](https://github.com/Torwent/WaspLib/commit/ca20a600bec6dc3b0dc7393a570f28818c61355f))
 * **MainScreen:** Fixed MainScreen.IsVisible ([0069140](https://github.com/Torwent/WaspLib/commit/006914076f9211dec4cbaac712400dabf2129a82))
-
-
-
-## [7.3.1](https://github.com/Torwent/WaspLib/compare/v7.3.0...v7.3.1) (2022-03-22)
-
-
-### Bug Fixes
-
-* AttackMonsterDelay sets itself up if needed ([b127ba4](https://github.com/Torwent/WaspLib/commit/b127ba42e595d22a4686e0092f0794ce7a594a83))
 
 
 

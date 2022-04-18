@@ -1,3 +1,12 @@
+## [7.5.2](https://github.com/Torwent/WaspLib/compare/v7.5.1...v7.5.2) (2022-04-18)
+
+
+### Bug Fixes
+
+* fix progress report not updating on antiban ([5918e81](https://github.com/Torwent/WaspLib/commit/5918e8190a8553159d44b7b0615ff81a09242f8e))
+
+
+
 ## [7.5.1](https://github.com/Torwent/WaspLib/compare/v7.5.0...v7.5.1) (2022-04-18)
 
 
@@ -39,17 +48,6 @@
 ### Bug Fixes
 
 * added deviant spectres ([5bee53b](https://github.com/Torwent/WaspLib/commit/5bee53bb8b7954284373673e52a5a2bb4233d439))
-
-
-
-## [7.3.2](https://github.com/Torwent/WaspLib/compare/v7.3.1...v7.3.2) (2022-03-29)
-
-
-### Bug Fixes
-
-* added abyss to abyssal demons ([d5f9a43](https://github.com/Torwent/WaspLib/commit/d5f9a436befaa24bbbd89d6875dced02f44bd46a))
-* XPBarSetup.GetDropDown now checks if we found dropdowns first. ([ca20a60](https://github.com/Torwent/WaspLib/commit/ca20a600bec6dc3b0dc7393a570f28818c61355f))
-* **MainScreen:** Fixed MainScreen.IsVisible ([0069140](https://github.com/Torwent/WaspLib/commit/006914076f9211dec4cbaac712400dabf2129a82))
 
 
 

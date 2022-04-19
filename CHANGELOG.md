@@ -1,3 +1,12 @@
+## [7.5.3](https://github.com/Torwent/WaspLib/compare/v7.5.2...v7.5.3) (2022-04-19)
+
+
+### Bug Fixes
+
+* Make sure mouse down is released ([b44c0d4](https://github.com/Torwent/WaspLib/commit/b44c0d4ab099c21a4f592677521a694d9206a4f7))
+
+
+
 ## [7.5.2](https://github.com/Torwent/WaspLib/compare/v7.5.1...v7.5.2) (2022-04-18)
 
 
@@ -39,15 +48,6 @@
 ### Features
 
 * functions to find random items in the inventory. ([757b48c](https://github.com/Torwent/WaspLib/commit/757b48cc581d3758bc1613385e0931af33e1456e))
-
-
-
-## [7.3.3](https://github.com/Torwent/WaspLib/compare/v7.3.2...v7.3.3) (2022-03-29)
-
-
-### Bug Fixes
-
-* added deviant spectres ([5bee53b](https://github.com/Torwent/WaspLib/commit/5bee53bb8b7954284373673e52a5a2bb4233d439))
 
 
 

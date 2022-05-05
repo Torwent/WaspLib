@@ -1,3 +1,12 @@
+## [7.5.5](https://github.com/Torwent/WaspLib/compare/v7.5.4...v7.5.5) (2022-05-05)
+
+
+### Bug Fixes
+
+* NumberPerHour now works properly with negative values ([0bed785](https://github.com/Torwent/WaspLib/commit/0bed78561fd7133ab11a5935ad45ad75731c0a10))
+
+
+
 ## [7.5.4](https://github.com/Torwent/WaspLib/compare/v7.5.3...v7.5.4) (2022-04-26)
 
 
@@ -34,23 +43,6 @@
 ### Bug Fixes
 
 * zoom and brightness are always gathered together so there's less options tab flicking ([5bb0cde](https://github.com/Torwent/WaspLib/commit/5bb0cde68d7d1693acd9ff220ef9637a8e0a2ccf))
-
-
-
-# [7.5.0](https://github.com/Torwent/WaspLib/compare/v7.4.0...v7.5.0) (2022-04-15)
-
-
-### Bug Fixes
-
-* fixed sleep time bug with certain time formats ([b75fd1a](https://github.com/Torwent/WaspLib/commit/b75fd1af63698ca7fb44aae0640c50e42bb9b186))
-* improved performance when withdrawing items... less repeated image finding is used now ([dfc0999](https://github.com/Torwent/WaspLib/commit/dfc0999deda8ac440d48e9d782bfcf3576687623))
-* removed unneeded definition ([9990835](https://github.com/Torwent/WaspLib/commit/999083508d93b6d1e911189eb3384a3c20dda356))
-* wrong math in NumberPerHour ([6a09bde](https://github.com/Torwent/WaspLib/commit/6a09bde91fd9ef8591baa51c52dc15253668862a))
-
-
-### Features
-
-* added the ability for RI to block user input ([5760a7f](https://github.com/Torwent/WaspLib/commit/5760a7ffcfa5e7c67d1468bd4cfca98bc35c1593))
 
 
 

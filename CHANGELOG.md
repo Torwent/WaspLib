@@ -1,3 +1,13 @@
+## [7.5.6](https://github.com/Torwent/WaspLib/compare/v7.5.5...v7.5.6) (2022-05-06)
+
+
+### Bug Fixes
+
+* added a small delay to gear reequipping ([8296002](https://github.com/Torwent/WaspLib/commit/829600209f55f1ee724d6c9cd9da5ee7ed3538bf))
+* minor fixes to varrock's agility webgraph ([7a797a5](https://github.com/Torwent/WaspLib/commit/7a797a56a6d51d264242e4b66be52c7242936cbb))
+
+
+
 ## [7.5.5](https://github.com/Torwent/WaspLib/compare/v7.5.4...v7.5.5) (2022-05-05)
 
 
@@ -34,15 +44,6 @@
 ### Bug Fixes
 
 * fix progress report not updating on antiban ([5918e81](https://github.com/Torwent/WaspLib/commit/5918e8190a8553159d44b7b0615ff81a09242f8e))
-
-
-
-## [7.5.1](https://github.com/Torwent/WaspLib/compare/v7.5.0...v7.5.1) (2022-04-18)
-
-
-### Bug Fixes
-
-* zoom and brightness are always gathered together so there's less options tab flicking ([5bb0cde](https://github.com/Torwent/WaspLib/commit/5bb0cde68d7d1693acd9ff220ef9637a8e0a2ccf))
 
 
 

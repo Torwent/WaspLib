@@ -1,3 +1,12 @@
+## [7.5.7](https://github.com/Torwent/WaspLib/compare/v7.5.6...v7.5.7) (2022-05-06)
+
+
+### Bug Fixes
+
+* **maps:** fixed agility flags colors ([d7ec380](https://github.com/Torwent/WaspLib/commit/d7ec38088fc406561a1737d8994b273011949ad6))
+
+
+
 ## [7.5.6](https://github.com/Torwent/WaspLib/compare/v7.5.5...v7.5.6) (2022-05-06)
 
 
@@ -35,15 +44,6 @@
 ### Bug Fixes
 
 * Make sure mouse down is released ([b44c0d4](https://github.com/Torwent/WaspLib/commit/b44c0d4ab099c21a4f592677521a694d9206a4f7))
-
-
-
-## [7.5.2](https://github.com/Torwent/WaspLib/compare/v7.5.1...v7.5.2) (2022-04-18)
-
-
-### Bug Fixes
-
-* fix progress report not updating on antiban ([5918e81](https://github.com/Torwent/WaspLib/commit/5918e8190a8553159d44b7b0615ff81a09242f8e))
 
 
 

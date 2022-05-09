@@ -1,3 +1,12 @@
+# [7.6.0](https://github.com/Torwent/WaspLib/compare/v7.5.7...v7.6.0) (2022-05-09)
+
+
+### Features
+
+* add the avility to load polygons ([d95954e](https://github.com/Torwent/WaspLib/commit/d95954e2d84883902abec4c6273cffbb31fa5b18))
+
+
+
 ## [7.5.7](https://github.com/Torwent/WaspLib/compare/v7.5.6...v7.5.7) (2022-05-06)
 
 
@@ -35,15 +44,6 @@
 * scripts with SRL_DISABLE_REMOTEINPUT won't crash anymore ([562eb54](https://github.com/Torwent/WaspLib/commit/562eb544403e058e2b6b1e70fd0ec05284070772))
 * this was useless ([102008c](https://github.com/Torwent/WaspLib/commit/102008c7de999028f081ff973cd92fc660101eb4))
 * updated link added rotating welcome messages ([daf8421](https://github.com/Torwent/WaspLib/commit/daf84215f798bbf966799ea1b08bae26fa483839))
-
-
-
-## [7.5.3](https://github.com/Torwent/WaspLib/compare/v7.5.2...v7.5.3) (2022-04-19)
-
-
-### Bug Fixes
-
-* Make sure mouse down is released ([b44c0d4](https://github.com/Torwent/WaspLib/commit/b44c0d4ab099c21a4f592677521a694d9206a4f7))
 
 
 

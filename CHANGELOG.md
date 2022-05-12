@@ -1,3 +1,12 @@
+## [8.0.1](https://github.com/Torwent/WaspLib/compare/v8.0.0...v8.0.1) (2022-05-12)
+
+
+### Bug Fixes
+
+* change .FKeyOpen so Simba doesn't throw warnings ([fa9400c](https://github.com/Torwent/WaspLib/commit/fa9400c2a10fbea444fcda264d517c91da7f54ab))
+
+
+
 # [8.0.0](https://github.com/Torwent/WaspLib/compare/v7.6.0...v8.0.0) (2022-05-10)
 
 
@@ -37,15 +46,6 @@
 
 * added a small delay to gear reequipping ([8296002](https://github.com/Torwent/WaspLib/commit/829600209f55f1ee724d6c9cd9da5ee7ed3538bf))
 * minor fixes to varrock's agility webgraph ([7a797a5](https://github.com/Torwent/WaspLib/commit/7a797a56a6d51d264242e4b66be52c7242936cbb))
-
-
-
-## [7.5.5](https://github.com/Torwent/WaspLib/compare/v7.5.4...v7.5.5) (2022-05-05)
-
-
-### Bug Fixes
-
-* NumberPerHour now works properly with negative values ([0bed785](https://github.com/Torwent/WaspLib/commit/0bed78561fd7133ab11a5935ad45ad75731c0a10))
 
 
 

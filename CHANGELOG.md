@@ -1,3 +1,13 @@
+## [8.0.2](https://github.com/Torwent/WaspLib/compare/v8.0.1...v8.0.2) (2022-05-14)
+
+
+### Bug Fixes
+
+* **ConsumableManager:** fixed an issue that scripts would get stuck right click empty spaces ([3012a99](https://github.com/Torwent/WaspLib/commit/3012a99e00d28e1b7ff15e7cfd2112f37135deb7))
+* **keyboard:** attempt to fix fkeys getting stuck down ([d4fe9e4](https://github.com/Torwent/WaspLib/commit/d4fe9e4061e7ed6fb38c349cc52e758b41b9bf64))
+
+
+
 ## [8.0.1](https://github.com/Torwent/WaspLib/compare/v8.0.0...v8.0.1) (2022-05-12)
 
 
@@ -36,16 +46,6 @@
 ### Bug Fixes
 
 * **maps:** fixed agility flags colors ([d7ec380](https://github.com/Torwent/WaspLib/commit/d7ec38088fc406561a1737d8994b273011949ad6))
-
-
-
-## [7.5.6](https://github.com/Torwent/WaspLib/compare/v7.5.5...v7.5.6) (2022-05-06)
-
-
-### Bug Fixes
-
-* added a small delay to gear reequipping ([8296002](https://github.com/Torwent/WaspLib/commit/829600209f55f1ee724d6c9cd9da5ee7ed3538bf))
-* minor fixes to varrock's agility webgraph ([7a797a5](https://github.com/Torwent/WaspLib/commit/7a797a56a6d51d264242e4b66be52c7242936cbb))
 
 
 

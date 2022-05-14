@@ -1,3 +1,12 @@
+## [8.0.3](https://github.com/Torwent/WaspLib/compare/v8.0.2...v8.0.3) (2022-05-14)
+
+
+### Bug Fixes
+
+* **walker:** fixed piscarillius offset, oops. ([4a71c38](https://github.com/Torwent/WaspLib/commit/4a71c384938d7358919d97906288fc3a522c546d))
+
+
+
 ## [8.0.2](https://github.com/Torwent/WaspLib/compare/v8.0.1...v8.0.2) (2022-05-14)
 
 
@@ -37,15 +46,6 @@
 ### Features
 
 * add the avility to load polygons ([d95954e](https://github.com/Torwent/WaspLib/commit/d95954e2d84883902abec4c6273cffbb31fa5b18))
-
-
-
-## [7.5.7](https://github.com/Torwent/WaspLib/compare/v7.5.6...v7.5.7) (2022-05-06)
-
-
-### Bug Fixes
-
-* **maps:** fixed agility flags colors ([d7ec380](https://github.com/Torwent/WaspLib/commit/d7ec38088fc406561a1737d8994b273011949ad6))
 
 
 

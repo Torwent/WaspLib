@@ -1,3 +1,12 @@
+## [8.0.4](https://github.com/Torwent/WaspLib/compare/v8.0.3...v8.0.4) (2022-05-14)
+
+
+### Bug Fixes
+
+* **rsobjects:** fix coordinates ([89fb01c](https://github.com/Torwent/WaspLib/commit/89fb01cafa40479ba5676f23177bbf5bbeb7565e))
+
+
+
 ## [8.0.3](https://github.com/Torwent/WaspLib/compare/v8.0.2...v8.0.3) (2022-05-14)
 
 
@@ -37,15 +46,6 @@
 ### BREAKING CHANGES
 
 * This will break compatibility and everything should be updated.
-
-
-
-# [7.6.0](https://github.com/Torwent/WaspLib/compare/v7.5.7...v7.6.0) (2022-05-09)
-
-
-### Features
-
-* add the avility to load polygons ([d95954e](https://github.com/Torwent/WaspLib/commit/d95954e2d84883902abec4c6273cffbb31fa5b18))
 
 
 

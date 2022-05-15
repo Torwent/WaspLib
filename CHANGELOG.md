@@ -1,3 +1,12 @@
+## [8.0.5](https://github.com/Torwent/WaspLib/compare/v8.0.4...v8.0.5) (2022-05-15)
+
+
+### Bug Fixes
+
+* added more rsobjects ([47bbe56](https://github.com/Torwent/WaspLib/commit/47bbe56cd4a2c09e8b97ec514bb6a9afe6624d0b))
+
+
+
 ## [8.0.4](https://github.com/Torwent/WaspLib/compare/v8.0.3...v8.0.4) (2022-05-14)
 
 
@@ -32,20 +41,6 @@
 ### Bug Fixes
 
 * change .FKeyOpen so Simba doesn't throw warnings ([fa9400c](https://github.com/Torwent/WaspLib/commit/fa9400c2a10fbea444fcda264d517c91da7f54ab))
-
-
-
-# [8.0.0](https://github.com/Torwent/WaspLib/compare/v7.6.0...v8.0.0) (2022-05-10)
-
-
-### Features
-
-* keybindings are now part of SRL ([8290b15](https://github.com/Torwent/WaspLib/commit/8290b15f0c8cea69029c01a4b293df9fab34963e))
-
-
-### BREAKING CHANGES
-
-* This will break compatibility and everything should be updated.
 
 
 

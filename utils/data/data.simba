@@ -47,8 +47,8 @@ type
 
 procedure TRSItemData.Free;
 begin
-  ItemNames.Free;
-  WikiData.Free;
+  Self.ItemNames.Free;
+  Self.WikiData.Free;
 end;
 
 
@@ -56,15 +56,15 @@ procedure TRSItemData.SetupWikiPrices;
 var
   JSON: String;
 begin
-  if not WikiPriceIsSetup then
+  if not Self.WikiPriceIsSetup then
   begin
-    ItemNames.Init;
-    ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
-    ItemNames.SetSorted(True);
+    Self.ItemNames.Init;
+    Self.ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
+    Self.ItemNames.SetSorted(True);
 
     AddOnTerminate(@Self.Free);
-    WikiPriceIsSetup := True;
-    ReloadTimer.Setup(1200000);
+    Self.WikiPriceIsSetup := True;
+    Self.ReloadTimer.Setup(1200000);
   end;
 
   WriteLn 'Loading item prices from the wiki API.';
@@ -73,12 +73,12 @@ begin
   if JSON = '' then
   begin
     WriteLn 'We don''t seem to be able to connect to https://prices.runescape.wiki';
-    WikiDisconnected := True;
+    Self.WikiDisconnected := True;
     Exit;
   end;
 
-  WikiData.Init(JSON);
-  ReloadTimer.Restart;
+  Self.WikiData.Init(JSON);
+  Self.ReloadTimer.Restart;
 end;
 
 function TRSItemData.GetIDs(Item: String): TStringArray;
@@ -118,10 +118,10 @@ function TRSItemData.GetData(Item: String): TJSONObject;
 var
   JSON: String;
 begin
-  if WikiDisconnected or OSRSBoxDisconnected then
+  if Self.WikiDisconnected or Self.OSRSBoxDisconnected then
     Exit;
 
-  if not WikiPriceIsSetup then
+  if not Self.WikiPriceIsSetup then
     Self.SetupWikiPrices;
 
   if Item = '' then
@@ -131,17 +131,17 @@ begin
   if JSON = '' then
   begin
     WriteLn 'We don''t seem to be able to connect to https://www.osrsbox.com';
-    OSRSBoxDisconnected := True;
+    Self.OSRSBoxDisconnected := True;
     Exit;
   end;
 
-  OSRSBoxData.Init(Json);
-  Result := OSRSBoxData;
+  Self.OSRSBoxData.Init(Json);
+  Result := Self.OSRSBoxData;
 
-  if not OSRSBoxIsSetup then
+  if not Self.OSRSBoxIsSetup then
   begin
-    AddOnTerminate(@OSRSBoxData.Free);
-    OSRSBoxIsSetup := True;
+    AddOnTerminate(@Self.OSRSBoxData.Free);
+    Self.OSRSBoxIsSetup := True;
   end;
 end;
 
@@ -151,10 +151,10 @@ var
   ID: String;
   OSRSBoxJSON: TJSONObject;
 begin
-  if not WikiPriceIsSetup then
+  if not Self.WikiPriceIsSetup then
     Self.SetupWikiPrices;
 
-  if VarToStr(Item) = '' then
+  if ToStr(Item) = '' then
     Exit;
 
   IDs := Self.GetIDs(Item);
@@ -171,14 +171,14 @@ var
   ID: String;
   WikiJSON: TJSONObject;
 begin
-  if ReloadTimer.IsPaused or ReloadTimer.IsFinished then
+  if Self.ReloadTimer.IsPaused or Self.ReloadTimer.IsFinished then
     Self.SetupWikiPrices;
 
   ID := Self.GetTradeableID(Item);
 
   if ID <> '' then
   begin
-    WikiJSON := WikiData.getJSONObject('data');
+    WikiJSON := Self.WikiData.getJSONObject('data');
     if WikiJSON <> nil then
       Result := WikiJSON.getJSONObject(ID);
   end;
@@ -195,7 +195,7 @@ end;
 
 function TRSItemData.GetAverage(Item: TRSItem): Int32;
 var
-  ItemStr: String := VarToStr(Item).Lower;
+  ItemStr: String := ToStr(Item).Lower;
   Low, High: Int32;
 begin
   if ItemStr.Contains(
@@ -331,74 +331,74 @@ end;
 
 procedure TRSMonsterData.Free;
 begin
-  MonsterNames.Free;
-  Data.Free;
+  Self.MonsterNames.Free;
+  Self.Data.Free;
 end;
 
 procedure TRSMonsterData.Setup;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
   begin
-    MonsterNames.Init;
-    MonsterNames.LoadFromFile(MONSTER_NAMES_FILE);
-    MonsterNames.SetSorted(True);
+    Self.MonsterNames.Init;
+    Self.MonsterNames.LoadFromFile(MONSTER_NAMES_FILE);
+    Self.MonsterNames.SetSorted(True);
 
-    AddOnTerminate(@Data.Free);
-    IsSetup := True;
+    AddOnTerminate(@Self.Data.Free);
+    Self.IsSetup := True;
   end;
 
   WriteLn('Loading monsters.json.');
 
-  Data.Init(ReadFileContents(MONSTERS_JSON));
+  Self.Data.Init(ReadFileContents(MONSTERS_JSON));
 end;
 
 
 function TRSMonsterData.GetInt(Monster, Key: String): Int32;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
-  Result := Data.getJSONObject(Self.GetID(Monster)).getInt(Key);
+  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getInt(Key);
 end;
 
 function TRSMonsterData.GetDouble(Monster, Key: String): Double;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
-  Result := Data.getJSONObject(Self.GetID(Monster)).getDouble(Key);
+  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getDouble(Key);
 end;
 
 function TRSMonsterData.GetString(Monster, Key: String): String;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
-  Result := Data.getJSONObject(Self.GetID(Monster)).getString(Key);
+  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getString(Key);
 end;
 
 function TRSMonsterData.GetBoolean(Monster, Key: String): Boolean;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
-  Result := Data.getJSONObject(Self.GetID(Monster)).getBoolean(Key);
+  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getBoolean(Key);
 end;
 
 function TRSMonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
-  Result := Data.getJSONObject(Self.GetID(Monster)).getJSONArray(Key);
+  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getJSONArray(Key);
 end;
 
 function TRSMonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
-  Result := Data.getJSONObject(Self.GetID(Monster)).getJSONObject(Key);
+  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getJSONObject(Key);
 end;
 
 function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSMonsterAttackType;
@@ -406,7 +406,7 @@ var
   JSONArray: TJSONArray;
   i: Int32;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
   JSONArray := Self.GetJSONArray(Monster, 'attack_type');
@@ -447,7 +447,7 @@ var
   i: Int32;
   Drop: TRSMonsterDrop;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
   WriteLn('Loading ' + Monster + ' drops, this might take up to a 1 minute.');
@@ -486,10 +486,10 @@ type
 
 procedure TRSWeaponData.Setup;
 begin
-  if IsSetup then
+  if Self.IsSetup then
     Exit;
-  Name := 'WeaponData';
-  WikiSpecAttacks := GetPage('https://oldschool.runescape.wiki/w/Special_attacks').Lower.After('mw-headline');
+  Self.Name :='WeaponData';
+  Self.WikiSpecAttacks := GetPage('https://oldschool.runescape.wiki/w/Special_attacks').Lower.After('mw-headline');
 end;
 
 function TRSWeaponData.GetSpec(Weapon: TRSItem): Int32;
@@ -497,20 +497,20 @@ var
   WeaponStr: String;
   Str: String;
 begin
-  if not IsSetup then
+  if not Self.IsSetup then
     Self.Setup;
 
   WeaponStr := ToStr(Weapon);
-  DebugLn('Getting ' + WeaponStr + ' spec data from the wiki.');
+  Self.DebugLn('Getting ' + WeaponStr + ' spec data from the wiki.');
 
-  Str :=  WikiSpecAttacks.After(WeaponStr.Lower);
+  Str :=  Self.WikiSpecAttacks.After(WeaponStr.Lower);
 
-  if Str = WikiSpecAttacks then
+  if Str = Self.WikiSpecAttacks then
     Exit(200);
 
   Result := StrToInt(Str.After('energy used').After('<td>').Before('%'));
 
-  DebugLn(WeaponStr + ' spec setup with ' + ToStr(Result) + '% energy.');
+  Self.DebugLn(WeaponStr + ' spec setup with ' + ToStr(Result) + '% energy.');
 end;
 
 var

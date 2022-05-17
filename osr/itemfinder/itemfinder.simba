@@ -19,9 +19,9 @@ var
   i: Int32;
   Str: String;
 begin
-  Str := VarToStr(Item);
+  Str := ToStr(Item);
 
-  if VarToStr(Str).IsDigit() then
+  if ToStr(Str).IsDigit() then
     OverridenItem.ItemID := StrToInt(Str)
   else
   begin
@@ -51,16 +51,6 @@ var
   OverridenItems: TOverridenItemArray;
 
 function TRSItemFinder.GetItemImages(Item: String): array of TMufasaBitmap; override;
-type
-  TMufasaBitmap = TMufasaBitmap;
-
-  function TMufasaBitmap.Equals(Other: TMufasaBitmap): Boolean; override;
-  begin
-    Result := (Self.GetWidth()  = Other.GetWidth()) and
-              (Self.GetHeight() = Other.GetHeight()) and
-              (CompareMem(Self.GetData()^, Other.GetData()^, Self.GetWidth() * Self.GetHeight() * SizeOf(TRGB32)));
-  end;
-
 var
   FileName, Str: String;
   Image: TMufasaBitmap;
@@ -75,14 +65,13 @@ begin
       Exit;
     end;
 
-  for ItemID in GetItemIDs(Item) do
+  for ItemID in Self.GetItemIDs(Item) do
   begin
     FileName := ExpandFileName(ITEM_FINDER_IMAGES_PATH + ToStr(ItemID) + '.png');
 
     if FileExists(FileName) or UnZipOneFile(ITEM_FINDER_IMAGES_ZIP, ExtractFileName(FileName), ITEM_FINDER_IMAGES_PATH) then
     begin
-      Image.Init(Client.GetMBitmaps());
-      Image.LoadFromFile(FileName);
+      Image := TMufasaBitmap.CreateFromFile(FileName);
       Image.SetName(Item);
       Image.ReplaceColor(RS_ITEM_SHADOW, 0);
 
@@ -97,8 +86,7 @@ begin
 
       if (Image <> nil) then
         Result += Image;
-    end
-    else
+    end else
       Self.Fatal('Unknown item: ' + ToStr(ItemID));
 
     I := OverridenItems.Find(ItemId);
@@ -109,8 +97,7 @@ begin
         FileName := ExpandFileName(WL_ITEM_FINDER_IMAGES_PATH + Str);
         if FileExists(FileName) then
         begin
-          Image.Init(Client.GetMBitmaps());
-          Image.LoadFromFile(FileName);
+          Image := TMufasaBitmap.CreateFromFile(FileName);
           Image.SetName(Item);
           Image.ReplaceColor(RS_ITEM_SHADOW, 0);
 

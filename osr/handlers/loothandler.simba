@@ -60,23 +60,23 @@ function TRSLootHandler.IsGoodDrop(Drop: TRSMonsterDrop): Boolean;
 var
   GEValue: Int32;
 begin
-  if GOOD_ITEM_ARRAY.Find(Drop.Item) > -1 then
+  if GOOD_ITEM_ARRAY.IndexOf(Drop.Item) > -1 then
     Exit(True);
 
   GEValue := ItemData.GetAverage(Drop.ID);
 
-  Result := GEValue >= ValueThreshold;
+  Result := GEValue >= Self.ValueThreshold;
   if Result then
     Exit;
 
   Result := Drop.Stackable and
-            ((GEValue * Drop.Quantity) >= (ValueThreshold / 5));
+            ((GEValue * Drop.Quantity) >= (Self.ValueThreshold / 5));
   if Result then
     Exit;
 
-  Result := ItemData.GetHighAlch(Drop.ID) > ValueThreshold;
+  Result := ItemData.GetHighAlch(Drop.ID) > Self.ValueThreshold;
   if Result then
-    RSAction.AlchItemArray += Drop.Item;
+    AlchItemArray += Drop.Item;
 end;
 
 procedure TRSLootHandler.Setup(Monster: PRSMonster; Value: Int32 = 5000);
@@ -87,20 +87,20 @@ begin
   if (Monster^.MonsterName = '') or (Value <= 0) then
     Exit;
 
-  ValueThreshold := Value;
+  Self.ValueThreshold := Value;
 
-  Loot.SetupCommon;
+  Self.Loot.SetupCommon;
 
   if Monster^.TileArray <> [] then
   begin
-    Loot.WalkerIndex := Monster^.WalkerIndex;
-    Loot.SetupCommon(Monster^.DotFilter[0].Circle.Radius, 0, Monster^.TileArray);
+    Self.Loot.WalkerIndex := Monster^.WalkerIndex;
+    Self.Loot.SetupCommon(Monster^.DotFilter[0].Circle.Radius, 0, Monster^.TileArray);
   end;
 
-  Loot.Finder.Colors := GOOD_ITEM_COLORS;
-  Loot.Filter.UpText := False;
+  Self.Loot.Finder.Colors := GOOD_ITEM_COLORS;
+  Self.Loot.Filter.UpText := False;
 
-  DebugGItemArray += @Loot;
+  DebugGItemArray += @Self.Loot;
 
   TempDrops := MonsterData.GetDrops(Monster^.MonsterName);
 
@@ -108,12 +108,12 @@ begin
   begin
     if Self.IsGoodDrop(TempDrops[i]) then
     begin
-      Drops += TempDrops[i];
-      Loot.UpText += TempDrops[i].Item;
+      Self.Drops += TempDrops[i];
+      Self.Loot.UpText += TempDrops[i].Item;
     end;
   end;
 
-  IsSetup:= Loot <> [];
+  Self.IsSetup:= Self.Loot <> [];
 end;
 
 function TRSLootHandler.HasSpace(Drop: TRSMonsterDrop): Boolean;
@@ -133,50 +133,50 @@ begin
       Exit;
   end;
 
-  CheckedLoot := True;
-  TempFilter := Loot.DotFilter;
-  Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 3], True);
+  Self.CheckedLoot := True;
+  TempFilter := Self.Loot.DotFilter;
+  Self.Loot.DotFilter.Setup([Self.Loot.ClosestDot.X, Self.Loot.ClosestDot.Y, 3], True);
 
-  if not ChooseOption.IsOpen and MainScreen.IsUpText(Loot.UpText, -1, Index) then
+  if not ChooseOption.IsOpen and MainScreen.IsUpText(Self.Loot.UpText, -1, Index) then
   begin
-    if not Self.HasSpace(Drops[Index]) then
+    if not Self.HasSpace(Self.Drops[Index]) then
     begin
       if Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE) then
-        Loot.Hover(5)
+        Self.Loot.Hover(5)
       else
       begin
-        Loot.DotFilter := TempFilter;
+        Self.Loot.DotFilter := TempFilter;
         Exit;
       end;
     end;
     Mouse.Click(MOUSE_LEFT);
-    Loot.DotFilter := TempFilter;
+    Self.Loot.DotFilter := TempFilter;
     Exit(True);
   end;
 
   if ChooseOption.Open then
   begin
-    if not ChooseOption.HasOption(Loot.UpText, Index) then
+    if not ChooseOption.HasOption(Self.Loot.UpText, Index) then
     begin
-      Loot.DotFilter := TempFilter;
+      Self.Loot.DotFilter := TempFilter;
       Exit;
     end;
 
-    if not Self.HasSpace(Drops[Index]) then
+    if not Self.HasSpace(Self.Drops[Index]) then
     begin
       if Inventory.Consume(ERSConsumable.HEALTH_CONSUMABLE) then
-        Loot.Hover(5)
+        Self.Loot.Hover(5)
       else
       begin
-        Loot.DotFilter := TempFilter;
+        Self.Loot.DotFilter := TempFilter;
         Exit;
       end;
     end;
 
-    Result := ChooseOption.Select(Loot.UpText[Index]);
+    Result := ChooseOption.Select(Self.Loot.UpText[Index]);
   end;
 
-  Loot.DotFilter := TempFilter;
+  Self.Loot.DotFilter := TempFilter;
 end;
 
 function TRSLootHandler.CheckLoot(P: TPoint): Boolean;
@@ -195,16 +195,16 @@ end;
 
 function TRSLootHandler.CheckLoot: Boolean; overload;
 begin
-  if not Loot.Hover(0) then
+  if not Self.Loot.Hover(0) then
     Exit;
 
   Result := Self.HandleLooting;
   if Result then
     Minimap.WaitMoving;
 
-  if CheckedLoot then
+  if Self.CheckedLoot then
   begin
-    Loot.DotFilter.Setup([Loot.ClosestDot.X, Loot.ClosestDot.Y, 2], False, 120 * ONE_SECOND);
-    CheckedLoot := False;
+    Self.Loot.DotFilter.Setup([Self.Loot.ClosestDot.X, Self.Loot.ClosestDot.Y, 2], False, 120 * ONE_SECOND);
+    Self.CheckedLoot := False;
   end;
 end;

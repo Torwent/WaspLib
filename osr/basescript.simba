@@ -34,7 +34,7 @@ Record that holds common variables for most basic scripts.
 The variables that are part of **TBaseScript** are the following:
  - **Name**: String that holds the script name to be displayed in the log and on screen progress report.
  - **Version**: String that holds the script version to be displayed in the log and on screen progress report.
- - **IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
+ - **Self.IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
  - **TimeRunning**: TStopwatch variable that holds how long our **TBaseScript** has been running.
  - **StatsDebugTick**: Integer variabled used to register the last tick we printed a progress report.
  - **Action**: String variable used to print in Simba output or on screen progress report the current action the script is performing.
@@ -86,8 +86,8 @@ type TBaseBankScript
 Record that holds common variables for most scripts that use a bank.
 This record inherits from **TBaseWalkerScript** and has all of it's variables as well as **TBaseScript's**.
 The extra variables that are part of **TBaseBankScript** are:
- - **ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
- - **ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
+ - **Self.ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
+ - **Self.ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
  - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
  - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
  - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
@@ -117,34 +117,34 @@ var
 begin
   AddOnTerminate(@SaveScreenshot);
 
-  DisableDebugging := True;
-  Version := ReadFileContents(IncludePath + 'WaspLib\version.txt');
+  Self.DisableDebugging := True;
+  Self.Version := ReadFileContents(IncludePath + 'WaspLib\version.txt');
 
-  GenerateLog(Name);
+  GenerateLog(Self.Name);
   ScriptStr := ToStr(Self);
   ScriptStr := ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
   ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
   WriteFileContents(WL.LogFile, ScriptStr, True);
 
-  Welcome := WELCOME_SENTENCES.Random;
+  Self.Welcome := WELCOME_SENTENCES.Random;
 
-  ActionLimit := -1;
+  Self.ActionLimit := -1;
   if MaxActions > -1 then
-    ActionLimit := TotalActions + MaxActions;
+    Self.ActionLimit := Self.TotalActions + MaxActions;
 
-  TimeRunning.Start;
-  PTimeRunning := @TimeRunning;
+  Self.TimeRunning.Start;
+  PTimeRunning := @Self.TimeRunning;
 
   if MaxTime > -1 then
-    TimeLimit := TimeRunning.ElapsedTime + MaxTime
+    Self.TimeLimit := Self.TimeRunning.ElapsedTime + MaxTime
   else
-    TimeLimit := -1;
+    Self.TimeLimit := -1;
 
 
   WL.Activity.Init(260000);
 
-  if IsSetup then Exit;
-  IsSetup := True;
+  if Self.IsSetup then Exit;
+  Self.IsSetup := True;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if RemoteInputEnabled then
@@ -163,13 +163,13 @@ end;
 function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
 begin
   Antiban.DismissRandom;
-  TimeRunning.Pause;
+  Self.TimeRunning.Pause;
   WL.Activity.Pause;
 
   try
     Result := Antiban.DoAntiban(CheckBreaks, CheckSleeps);
   finally
-    TimeRunning.Resume;
+    Self.TimeRunning.Resume;
     WL.Activity.Resume;
 
     if not RSClient.IsLoggedIn then
@@ -182,15 +182,15 @@ var
   Str: String;
   ElapsedTime: UInt64;
 begin
-  TotalProfit := (TotalActions * ActionProfit) - TotalConsumableCost;
+  Self.TotalProfit := (Self.TotalActions * Self.ActionProfit) - TotalConsumableCost;
 
-  if (GetTickCount - StatsDebugTick) < 1000 then
+  if (GetTickCount - Self.StatsDebugTick) < 1000 then
     Exit;
 
-  Self.DebugLn(Action, ExtraInfo);
-  ElapsedTime := TimeRunning.ElapsedTime;
+  Self.DebugLn(Self.Action, Self.ExtraInfo);
+  ElapsedTime := Self.TimeRunning.ElapsedTime;
 
-  ProgressTitle := Name;
+  ProgressTitle := Self.Name;
   PadLength := ProgressTitle.Len + 6;
 
   ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
@@ -201,36 +201,36 @@ begin
   ProgressArray := [];
   ProgressArray += ProgressTitle;
 
-  Str := ' Action        : ' + Action;
+  Str := ' Action        : ' + Self.Action;
 
-  ProgressArray += PadR((' Action        : ' + Action), Round(PadLength/2), ' ') +
+  ProgressArray += PadR((' Action        : ' + Self.Action), Round(PadLength/2), ' ') +
                          ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
 
-  if (ActionLimit = -1) then
-    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime))
+  if (Self.ActionLimit = -1) then
+    ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions)), Round(PadLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime))
   else
-    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions) + '/' + ToStr(ActionLimit)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime));
+    ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit)), Round(PadLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
 
-  ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(PadLength/2), ' ') +
-                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
+  ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit)), Round(PadLength/2), ' ') +
+                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
 
-  ProgressArray += ' ' + Welcome + ' waspscripts.com';
+  ProgressArray += ' ' + Self.Welcome + ' waspscripts.com';
 
-  ProgressArray += ExtraInfo;
+  ProgressArray += Self.ExtraInfo;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled and
-  (Action <> PreviousAction) then
+  (Self.Action <> Self.PreviousAction) then
     ProgressReport.Update(ProgressArray);
   {$ENDIF}
 
   for Str in ProgressArray do
     Writeln(Str);
 
-  PreviousAction := Action;
-  StatsDebugTick := GetTickCount;
+  Self.PreviousAction := Self.Action;
+  Self.StatsDebugTick := GetTickCount;
 
 
   if ScriptDebugEnabled then
@@ -239,11 +239,11 @@ end;
 
 function TBaseScript.ShouldStop: Boolean;
 begin
-  Result := ((ActionLimit > -1) and (TotalActions >= ActionLimit)) or
-            ((TimeLimit > -1) and (TimeRunning.ElapsedTime >= TimeLimit));
+  Result := ((Self.ActionLimit > -1) and (Self.TotalActions >= Self.ActionLimit)) or
+            ((Self.TimeLimit > -1) and (Self.TimeRunning.ElapsedTime >= Self.TimeLimit));
 
   if Result then
-    SaveScreenshot('ScriptEnding/shouldstop' + Name, True);
+    SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
 end;
 
 
@@ -253,7 +253,7 @@ procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;//
 begin
   inherited;
 
-  RSW.OnWalkingEvent := @WalkerTasks;
+  Self.RSW.OnWalkingEvent := @WalkerTasks;
 end;
 
 
@@ -262,8 +262,8 @@ procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;//ov
 begin
   inherited;
 
-  BankTab := -1;
-  CollectTimer.Init(600000);
+  Self.BankTab := -1;
+  Self.CollectTimer.Init(600000);
 
   //override me to add more stuff.
 end;
@@ -273,116 +273,116 @@ begin
   case CurrentBankLocation of
     EWaspBankLocation.AL_KHARID:
       begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.AlKharidBank;
+		    Self.RSW.Setup('mainland');
+		    Self.ScriptBank := RSObjects.AlKharidBank;
       end;
 
     EWaspBankLocation.ARDOUGNE_NORTH:
       begin
-		    RSW.Setup('x5723y3038');
-		    ScriptBank := RSObjects.ArdougneNorthBank;
+		    Self.RSW.Setup('x5723y3038');
+		    Self.ScriptBank := RSObjects.ArdougneNorthBank;
       end;
 
     EWaspBankLocation.ARDOUGNE_SOUTH:
       begin
-		    RSW.Setup('x5723y3038');
-		    ScriptBank := RSObjects.ArdougneSouthBank;
+		    Self.RSW.Setup('x5723y3038');
+		    Self.ScriptBank := RSObjects.ArdougneSouthBank;
       end;
 
     EWaspBankLocation.CASTLE_WARS:
       begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.CastleWarsBank;
+		    Self.RSW.Setup('mainland');
+		    Self.ScriptBank := RSObjects.CastleWarsBank;
       end;
 
     EWaspBankLocation.CATHERBY:
       begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.CatherbyBank;
+		    Self.RSW.Setup('mainland');
+		    Self.ScriptBank := RSObjects.CatherbyBank;
       end;
 
     EWaspBankLocation.CRAFT_GUILD:
       begin
-		    RSW.Setup('x6953y3166');
-		    ScriptBank := RSObjects.CraftGuildBank;
+		    Self.RSW.Setup('x6953y3166');
+		    Self.ScriptBank := RSObjects.CraftGuildBank;
       end;
 
     EWaspBankLocation.DRAYNOR:
       begin
-		    RSW.Setup('x7617y3214');
-		    ScriptBank := RSObjects.DraynorBank;
+		    Self.RSW.Setup('x7617y3214');
+		    Self.ScriptBank := RSObjects.DraynorBank;
       end;
 
     EWaspBankLocation.EDGEVILLE:
       begin
-		    RSW.Setup('x7536y2363');
-		    ScriptBank := RSObjects.EdgevilleBank;
+		    Self.RSW.Setup('x7536y2363');
+		    Self.ScriptBank := RSObjects.EdgevilleBank;
       end;
 
     EWaspBankLocation.FALADOR_EAST:
       begin
-		    RSW.Setup('x7051y2796');
-		    ScriptBank := RSObjects.FaladorEastBank;
+		    Self.RSW.Setup('x7051y2796');
+		    Self.ScriptBank := RSObjects.FaladorEastBank;
       end;
 
     EWaspBankLocation.FALADOR_WEST:
       begin
-		    RSW.Setup('x7051y2796');
-		    ScriptBank := RSObjects.FaladorWestBank;
+		    Self.RSW.Setup('x7051y2796');
+		    Self.ScriptBank := RSObjects.FaladorWestBank;
       end;
 
     EWaspBankLocation.GRAND_EXCHANGE:
       begin
-		    RSW.Setup('x7789y2306');
-		    ScriptBank := RSObjects.GEBank;
+		    Self.RSW.Setup('x7789y2306');
+		    Self.ScriptBank := RSObjects.GEBank;
       end;
 
     EWaspBankLocation.LUNAR_ISLAND:
       begin
-		    RSW.Setup('x4127y1027');
-		    ScriptBank := RSObjects.LunarBank;
+		    Self.RSW.Setup('x4127y1027');
+		    Self.ScriptBank := RSObjects.LunarBank;
       end;
 
     EWaspBankLocation.MINING_GUILD:
       begin
-		    RSW.Setup('x6291y497');
-		    ScriptBank := RSObjects.MiningGuildBank;
+		    Self.RSW.Setup('x6291y497');
+		    Self.ScriptBank := RSObjects.MiningGuildBank;
       end;
 
     EWaspBankLocation.PRIFDDINNAS:
       begin
-		    RSW.Setup('x3583y1905');
-		    ScriptBank := RSObjects.PrifddinasBank;
+		    Self.RSW.Setup('x3583y1905');
+		    Self.ScriptBank := RSObjects.PrifddinasBank;
       end;
 
     EWaspBankLocation.SEERS:
       begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.SeersBank;
+		    Self.RSW.Setup('mainland');
+		    Self.ScriptBank := RSObjects.SeersBank;
       end;
 
     EWaspBankLocation.TZHAAR:
       begin
-		    RSW.Setup('x4333y310');
-		    ScriptBank := RSObjects.TzhaarBank;
+		    Self.RSW.Setup('x4333y310');
+		    Self.ScriptBank := RSObjects.TzhaarBank;
       end;
 
     EWaspBankLocation.VARROCK_EAST:
       begin
-		    RSW.Setup('x7536y2363');
-		    ScriptBank := RSObjects.VarrockEastBank;
+		    Self.RSW.Setup('x7536y2363');
+		    Self.ScriptBank := RSObjects.VarrockEastBank;
       end;
 
     EWaspBankLocation.VARROCK_WEST:
       begin
-		    RSW.Setup('x7789y2306');
-		    ScriptBank := RSObjects.VarrockWestBank;
+		    Self.RSW.Setup('x7789y2306');
+		    Self.ScriptBank := RSObjects.VarrockWestBank;
       end;
 
     EWaspBankLocation.WINTERTODT:
       begin
-		    RSW.Setup('x1549y224');
-		    ScriptBank := RSObjects.WintertodtBank;
+		    Self.RSW.Setup('x1549y224');
+		    Self.ScriptBank := RSObjects.WintertodtBank;
       end;
   end;
 end;
@@ -398,7 +398,7 @@ begin
       else MainScreen.CloseInterface;
     end;
 
-    if Result := Bank.WalkOpen(ScriptBank) then
+    if Result := Bank.WalkOpen(Self.ScriptBank) then
       Break;
   end;
   //override me to add more stuff.
@@ -406,24 +406,24 @@ end;
 
 procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
 begin
-  ItemLeftAmount := Inventory.CountItem(Item);
+  Self.ItemLeftAmount := Inventory.CountItem(Item);
 end;
 
 function TBaseBankScript.ShouldHover: Boolean;
 begin
-  Result := ((ItemLeftAmount = 1) and SRL.Dice(10 + (90 * BioHash))) or
-            ((ItemLeftAmount = 2) and SRL.Dice(5 + (75 * BioHash))) or
-            ((ItemLeftAmount = 3) and SRL.Dice(5 + (60 * BioHash))) or
-            ((ItemLeftAmount = 4) and SRL.Dice(45 * BioHash)) or
-            ((ItemLeftAmount = 5) and SRL.Dice(30 * BioHash)) or
-            ((ItemLeftAmount = 6) and SRL.Dice(10 * BioHash)) or
+  Result := ((Self.ItemLeftAmount = 1) and SRL.Dice(10 + (90 * BioHash))) or
+            ((Self.ItemLeftAmount = 2) and SRL.Dice(5 + (75 * BioHash))) or
+            ((Self.ItemLeftAmount = 3) and SRL.Dice(5 + (60 * BioHash))) or
+            ((Self.ItemLeftAmount = 4) and SRL.Dice(45 * BioHash)) or
+            ((Self.ItemLeftAmount = 5) and SRL.Dice(30 * BioHash)) or
+            ((Self.ItemLeftAmount = 6) and SRL.Dice(10 * BioHash)) or
             SRL.Dice(5 * BioHash);
 end;
 
 
 function TBaseBankScript.Hover: Boolean;
 begin
-  Result := HoveringBank := Bank.Hover(ScriptBank);
+  Result := Self.HoveringBank := Bank.Hover(Self.ScriptBank);
 end;
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;

@@ -49,7 +49,7 @@ type
 
   EWaspMapBlockArray = array of EWaspMapBlock;
 
-function TRSWalkerArray.Find(const Walker: TRSWalker): Integer; constref;
+function TRSWalkerArray.Find(const Walker: TRSWalker): Integer;
 begin
   for Result := 0 to High(Self) do
     if (Walker.Name = Self[Result].Name) then
@@ -62,7 +62,7 @@ var
   WalkerArray: TRSWalkerArray;
   WalkerOffsetArray: TPointArray;
 
-function EWaspMapBlockArray.Find(const Value: EWaspMapBlock): Integer; constref;
+function EWaspMapBlockArray.Find(const Value: EWaspMapBlock): Integer;
 begin
   for Result := 0 to High(Self) do
     if Self[result] = Value then
@@ -107,7 +107,7 @@ begin
     EWaspMapBlock.BARBARIAN_VILLAGE: Result := 'x7580y2516';
     EWaspMapBlock.OTTOS_GROTTO: Result := 'x5201y2030';
     EWaspMapBlock.ZULANDRA: Result := 'x3969y4031';
-    EWaspMapBlock.PISCARILIUS: Result := 'x2444y1122';
+    EWaspMapBlock.PISCARILIUS: Result := 'x2444y1109';
     EWaspMapBlock.SMOKE_DEVIL_DUNGEON: Result := 'x5346y5184';
     EWaspMapBlock.WC_GUILD: Result := 'x1564y2293';
 
@@ -153,7 +153,7 @@ begin
     EWaspMapBlock.BARBARIAN_VILLAGE: Result := 'x7580y2516';
     EWaspMapBlock.OTTOS_GROTTO: Result := 'x5201y2030';
     EWaspMapBlock.ZULANDRA: Result := 'x3969y4031';
-    EWaspMapBlock.PISCARILIUS: Result := 'x2444y1122';
+    EWaspMapBlock.PISCARILIUS: Result := 'x2444y1109';
     EWaspMapBlock.SMOKE_DEVIL_DUNGEON: Result := 'x5346y5184';
     EWaspMapBlock.WC_GUILD: Result := 'x1564y2293';
 
@@ -191,7 +191,7 @@ var
   Bitmap, Mask, Sample: TMufasaBitmap;
   X, Y: Int32;
 begin
-  Self.Name := Map.Lower;
+  Self.Name :=Map.Lower;
   Self.ScreenWalk := True;
 
   Path := Self.FindMap(Map);
@@ -201,7 +201,7 @@ begin
   Self.Scaling := Scaling;
   Self.ClickRandomness := 4;
 
-  if Name.Contains('agility') then
+  if Self.Name.Contains('agility') then
     Self.WebGraph := WaspAgility
   else
     Self.WebGraph := WaspWeb;
@@ -210,37 +210,41 @@ begin
   if Manage then
     AddOnTerminate(@Self.Free);
 
+  //Self.HighlightFeatures(Self.World);
+
   // Fixed or resizable, doesn't matter.
-  Sample := Self.World.Downsample(Self.Scaling);
-  Bitmap := Self.GetCleanMinimap;
+  Sample := TMufasaBitmap.Create();
+  Self.World.Downsample(Sample, Self.Scaling);
+  Bitmap := Self.GetCleanMinimap();
   Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
 
-  for X := 0 to Mask.getWidth - 1 do
-    for Y := 0 to Mask.getHeight - 1 do
+  for X := 0 to Mask.getWidth() - 1 do
+    for Y := 0 to Mask.getHeight() - 1 do
       if (Mask.GetPixel(X, Y) <> 0) then
         Mask.SetPixel(X, Y, $FFFFFF);
 
-  Self.Cache := TMatchTemplateRGBCache.Create(Sample.ToMatrix, Mask.ToMatrix);
+  Self.Cache := TMatchTemplateCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
 
   Sample.Free;
   Bitmap.Free;
   Mask.Free;
 
   WalkerArray += Self;
-  if Name.Contains('mainland') then
+  if Self.Name.Contains('mainland') then
     WalkerOffsetArray += [3583, 0]
-  else if Name.ContainsAll(['x', 'y']) then
+  else if Self.Name.ContainsAll(['x', 'y']) then
   begin
-    X := StrToInt(Name.After('x').Before('y'));
-    Y := StrToInt(Name.After('y'));
+    X := StrToInt(Self.Name.After('x').Before('y'));
+    Y := StrToInt(Self.Name.After('y'));
     WalkerOffsetArray += [X, Y];
   end
   else
     WalkerOffsetArray += [0, 0];
 end;
 
+
 // overriden to take into account map offset on debug
-procedure TRSWalker.DebugPosition; override;
+procedure TRSWalker.DebugPosition(EnsureVisible: Boolean = True); override;
 var
   X1, Y1, X2, Y2, X, Y: Int32;
   P: TPoint;
@@ -252,37 +256,36 @@ var
 begin
   WalkerOffset := WalkerOffsetArray[WalkerArray.Find(Self)];
 
-  Freeze;
+  Freeze();
 
-  Time := PerformanceTimer;
-  Position := Self.GetMyPos;
-  Time := PerformanceTimer - Time;
+  Time := PerformanceTimer();
+  Position := Self.GetMyPos();
+  Time := PerformanceTimer() - Time;
 
   X1 := Max(0, (Position.X - WalkerOffset.X) - 200);
   Y1 := Max(0, (Position.Y - WalkerOffset.Y) - 200);
-  X2 := Min(X1 + 400, Self.World.GetWidth  - 1);
-  Y2 := Min(Y1 + 400, Self.World.GetHeight - 1);
+  X2 := Min(X1 + 400, Self.World.GetWidth()  - 1);
+  Y2 := Min(Y1 + 400, Self.World.GetHeight() - 1);
 
   X := (Position.X - WalkerOffset.X) - X1;
   Y := (Position.Y - WalkerOffset.Y) - Y1;
 
   WorldBitmap := Self.World.Copy(X1, Y1, X2, Y2);
-  WorldBitmap.LineTo(Point(0, Y), Point(X2 - X1, Y), $00FF00);
-  WorldBitmap.LineTo(Point(X, 0), Point(X, Y2 - Y1), $00FF00);
-  WorldBitmap.DrawBox(Box(X - 2, Y - 2, X + 2, Y + 2), $FFFFFF);
+  WorldBitmap.DrawLine(Point(0, Y), Point(X2 - X1, Y), $00FF00);
+  WorldBitmap.DrawLine(Point(X, 0), Point(X, Y2 - Y1), $00FF00);
+  WorldBitmap.DrawBox([X - 2, Y - 2, X + 2, Y + 2], $FFFFFF);
 
-  MinimapBitmap := ScaleMinimap(GetCleanMinimap, 1);
+  MinimapBitmap := Self.ScaleMinimap(Self.GetCleanMinimap(), 1);
 
-  P := MinimapBitmap.GetCenter;
+  P := MinimapBitmap.GetCenter();
   if RSClient.Mode = ERSClientMode.FIXED then
     P := P.Offset(0, 8).Rotate(-Minimap.GetCompassAngle(False), P);
 
-  MinimapBitmap.DrawBoxFilled([P.X - 1, P.Y - 1, P.X + 1, P.Y + 1], False, $FFFFFF);
-  MinimapBitmap.SetTransparentColor(0);
+  MinimapBitmap.DrawBoxFilled([P.X - 1, P.Y - 1, P.X + 1, P.Y + 1], $FFFFFF);
 
-  Bitmap.Init;
-  Bitmap.SetSize(400 + MinimapBitmap.GetWidth + 30, 420);
-  Bitmap.DrawClear($403027);
+  Bitmap := TMufasaBitmap.Create();
+  Bitmap.SetSize(400 + MinimapBitmap.GetWidth() + 30, 420);
+  Bitmap.Fill($403027);
 
   Lines := [
     '('      + ToStr(Position.X, ', ', Position.Y) + ')',
@@ -294,19 +297,19 @@ begin
   Bitmap.SetFontSize(18);
   Bitmap.SetFontAntialiasing(True);
 
-  Bitmap.DrawText(Lines[0], [420, 20 + MinimapBitmap.GetHeight], $FFFFFF);
+  Bitmap.DrawText(Lines[0], [420, 20 + MinimapBitmap.GetHeight()], $FFFFFF);
   Bitmap.DrawText(Lines[1] + LineEnding + Lines[2], [420, 370], $FFFFFF);
 
-  WorldBitmap.DrawTransparent(10, 10, Bitmap);
-  WorldBitmap.Free;
+  Bitmap.DrawBitmap(WorldBitmap, [10, 10]);
+  WorldBitmap.Free();
 
-  MinimapBitmap.DrawTransparent(420, 10, Bitmap);
-  MinimapBitmap.Free;
+  Bitmap.DrawBitmap(MinimapBitmap, [420, 10]);
+  MinimapBitmap.Free();
 
-  Bitmap.Debug;
-  Bitmap.Free;
+  Bitmap.Show(EnsureVisible);
+  Bitmap.Free();
 
-  UnFreeze;
+  UnFreeze();
 end;
 
 // overriden to take into account map offset
@@ -326,20 +329,22 @@ begin
   Area := [
     Max(0, Position.X - SLICE_SIZE),
     Max(0, Position.Y - SLICE_SIZE),
-    Min(World.GetWidth  - 1, Position.X + SLICE_SIZE),
-    Min(World.GetHeight - 1, Position.Y + SLICE_SIZE)
+    Min(World.GetWidth()  - 1, Position.X + SLICE_SIZE),
+    Min(World.GetHeight() - 1, Position.Y + SLICE_SIZE)
   ];
 
   Slice := World.Copy(Area.X1, Area.Y1, Area.X2, Area.Y2);
-  SliceScaled := Slice.Downsample(SCALING);
+  SliceScaled := Slice.Copy();
+  SliceScaled.Downsample(SCALING);
 
-  TemplScaled := Templ.Downsample(SCALING);
-  with TemplScaled.GetCenter do
+  TemplScaled := Templ.Copy();
+  TemplScaled.Downsample(SCALING);
+  with TemplScaled.GetCenter() do
     TemplScaled.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
 
   Matrix := SliceScaled.MatchTemplate(TemplScaled, TM_CCOEFF_NORMED);
 
-  with Matrix.ArgMax do
+  with Matrix.ArgMax() do
   begin
     Match := Matrix[Y, X];
 
@@ -414,7 +419,7 @@ begin
   for Tile in Tiles do
     Distances += Self.GetMyPos.DistanceTo(Tile);
 
-   ClosestDistances := Distances.FindAll(Distances.Min);
+   ClosestDistances := Distances.IndicesOf(Distances.Min);
 
   Result := Tiles[ClosestDistances[Random(0, High(ClosestDistances))]];
 end;
@@ -539,7 +544,7 @@ end;
 
 function TRSWalker.MakeTileVisible(Tile: TPoint): Boolean;
 begin
-  Result := Self.TileVisible(Tile) or ZoomToTile(Tile) or
+  Result := Self.TileVisible(Tile) or Self.ZoomToTile(Tile) or
             (Self.FaceTile(Tile) and Self.TileVisible(Tile));
 end;
 

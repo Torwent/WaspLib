@@ -387,55 +387,74 @@ begin
 end;
 
 
-function TRSAction.FindWaterDirection: Int32;
+function TRSAction.FindWaterDirection: TIntegerArray;
 var
   Water: TPointArray;
   FaceableTiles: TPointArray := Self.GetFaceableTiles;
   i: Int32;
 begin
-  Result := -1;
-
   SRL.FindColors(Water, CTS0(12161149, 25), Minimap.Bounds);
   if Length(Water) < 1500 then
-    SRL.FindColors(Water, CTS0(5070165, 7), Minimap.Bounds);
+    SRL.FindColors(Water, CTS0(5070165, 7), Minimap.Bounds); //Swamp water
+
+  Water := Water.ConvexHull.Connect;
 
   for i := 0 to High(FaceableTiles) do
-    if Water.Find(FaceableTiles[i]) <> -1 then
-      Exit(i)
+    if SRL.PointInPoly(FaceableTiles[i], Water) then
+      Result += i;
 end;
 
 
 function TRSAction.IsFishing: Boolean;
 var
+  WaterDirections: TIntegerArray;
   Rect1, Rect2: TRectangle;
-  TPA1, TPA2: TPointArray;
+  ATPA: T2DPointArray;
+  TPA, TPA1, TPA2: TPointArray;
 begin
-  case Self.FindWaterDirection of
-    -1: Exit;
-    0:
-      begin
-        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
-        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
-      end;
-    1:
-      begin
-        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
-        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
-      end;
-    2:
-      begin
-        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
-        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
-      end;
-    3:
-      begin
-        Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
-        Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
-      end;
+  WaterDirections := Self.FindWaterDirection;
+  if WaterDirections = [] then
+    Exit;
+
+  if WaterDirections.Find(0) > -1 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
   end;
 
-  if SRL.FindColors(TPA1, CTS2(10036, 7, 0.13, 0.01), Rect1.Bounds.Expand(2)) > 5 then
-    Result := SRL.FindColors(TPA2, CTS2(10036, 7, 0.13, 0.01), Rect2.Bounds.Expand(2)) > 2;
+  if WaterDirections.Find(1) > -1 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  if WaterDirections.Find(2) > -1 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  if WaterDirections.Find(3) > -1 then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  for TPA in ATPA do
+  begin
+    Result := (SRL.FindColors(TPA1, CTS2(10036, 7, 0.13, 0.01), TPA.Bounds) > 25)
+              or
+              (SRL.FindColors(TPA1, CTS2(11581, 2, 0.14, 0.01), TPA.Bounds) > 25) //regular rod
+              or
+              (SRL.FindColors(TPA1, CTS2(5860468, 14, 0.06, 0.35), TPA.Bounds) > 25); //barbarian rod
+
+    if Result then
+      Exit;
+  end;
 end;
 
 

@@ -29,8 +29,18 @@ type
     WINTERTODT
   );
 
+  ERSConsumable = (
+    HEALTH_CONSUMABLE,
+    PRAYER_CONSUMABLE,
+    ENERGY_CONSUMABLE,
+    POISON_CONSUMABLE,
+    VENOM_CONSUMABLE,
+    ANTI_FIRE_CONSUMABLE,
+    BOOST_CONSUMABLE
+  );
+
 const
-  BankLocationStrings: TStringArray = [
+  BANK_LOCATION_STRING_ARRAY: TStringArray = [
     'Al Kharid',
     'Ardougne North',
     'Ardougne South',
@@ -52,118 +62,22 @@ const
     'Wintertodt'
   ];
 
-var
-  CurrentBankLocation: EWaspBankLocation := EWaspBankLocation.GRAND_EXCHANGE;
-
-const
   CREDENTIALS_FILE = AppPath + 'credentials.simba';
 
 var
   MaxActions: Int32 := -1;
   MaxTime:    Int64 := -1;
 
-  RemoteInputEnabled    := True;  //Enables Remote Input
-  BlockRealInput        := False; //Blocks user real input
-  ProgressReportEnabled := True;  //Enables Graphical Progress Report
-  ScriptDebugEnabled    := False; //Enables Script Debugging
-
-type
-  TConfigBlock = record
-    Panel: TPanel;
-    Title: TLabel;
-  end;
-
-procedure TConfigBlock.Init(AOwner: TComponent; TitleStr: String);
-begin
-  Self.Panel.Init(AOwner);
-  Self.Panel.SetParent(AOwner);
-  Self.Panel.SetBorderStyle(bsSizeable);
-
-  Self.Title.Init(Self.Panel);
-  Self.Title.SetParent(Self.Panel);
-  Self.Title.SetCaption(TitleStr);
-  Self.Title.GetFont().SetSize(12);
-  Self.Title.SetAlign(alTop);
-end;
-
-procedure TConfigBlock.SetAlign(Value: TAlign);
-begin
-  Self.Panel.SetAlign(Value);
-end;
-
-function TConfigBlock.GetTop(): Integer;
-begin
-  Result := Self.Panel.GetTop();
-end;
-
-function TConfigBlock.GetLeft(): Integer;
-begin
-  Result := Self.Panel.GetLeft();
-end;
-
-function TConfigBlock.GetHeight(): Integer;
-begin
-  Result := Self.Panel.GetHeight();
-end;
-
-function TConfigBlock.GetWidth(): Integer;
-begin
-  Result := Self.Panel.GetWidth();
-end;
+  RemoteInputEnabled    = True;  //Enables Remote Input
+  BlockRealInput        = False; //Blocks user real input
+  ProgressReportEnabled = True;  //Enables Graphical Progress Report
+  ScriptDebugEnabled    = False; //Enables Script Debugging
+  CurrentBankLocation   = EWaspBankLocation.GRAND_EXCHANGE;
 
 
-type
-  TScriptConfig = record
-    Form: TForm;
 
-    AccountManagerPanel:  TConfigBlock;
-    AccountSelector:      TLabeledCombobox;
-    AccountAddButton:     TButton;
-    AccountSaveButton:    TButton;
-    AccountDeleteButton:  TButton;
 
-    AccountUser:          TLabeledEdit;
-    AccountPass:          TLabeledEdit;
-    AccountPin:           TLabeledEdit;
-    AccountWorlds:        TLabeledMemo;
-
-    AntibanPanel:         TConfigBlock;
-    AntibanState:         TCheckbox;
-    BreaksState:          TCheckbox;
-    SleepsState:          TCheckbox;
-
-    AdvancedABButton:     TButton;
-    AdvancedEnabled:      Boolean;
-
-    ABCameraState:        TCheckbox;
-    ABMouseState:         TCheckbox;
-    ABChatState:          TCheckbox;
-    ABGameTabsState:      TCheckbox;
-    ABBankState:          TCheckbox;
-
-    SleepHourEdit:        TLabeledEdit;
-    SleepLengthEdit:      TLabeledEdit;
-
-    MainPanel: TPanel;
-
-    RIPanel:     TConfigBlock;
-    RIState:     TCheckbox;
-    RIRealInput: TCheckbox;
-    RIHUD:       TCheckbox;
-    RIDebug:     TCheckbox;
-
-    ScriptSettingsPanel:  TConfigBlock;
-
-    WLPanel: TConfigBlock;
-    ActionLimit:          TLabeledEdit;
-    TimeLimit:            TLabeledEdit;
-
-    StartButton: TButton;
-
-    ScriptPanel: TPanel;
-  end;
-
-function TScriptConfig.BuildCredentials: String;
+function BuildCredentials: String;
 var
   Player: TRSLoginPlayer;
   World: Int32;
@@ -193,7 +107,7 @@ begin
   Result += 'end;';
 end;
 
-procedure TScriptConfig.RewriteCredentials;
+procedure RewriteCredentials;
 var
   FileHandle: Int32;
 begin
@@ -205,17 +119,45 @@ begin
 
     FileHandle := AppendFile(CREDENTIALS_FILE);
 
-    WriteFileString(FileHandle, Self.BuildCredentials);
+    WriteFileString(FileHandle, BuildCredentials);
 
     CloseFile(FileHandle);
   except
-    Writeln(GetExceptionMessage);
-    Writeln('It''s possible you lost your saved accounts!');
+    WriteLn GetExceptionMessage();
+    WriteLn 'It''s possible you lost your saved accounts!';
+    WriteLn 'If you have issues with the Account Manager delete the following file:';
+    WriteLn CREDENTIALS_FILE;
   end;
 end;
 
 
-procedure TScriptConfig.ClearInputs(Sender: TObject);
+procedure UpdateFormSize(Form: TForm; Width, Height: Int32);
+begin
+  Form.setWidth(Width);
+  Form.SetHeight(Height);
+end;
+
+procedure NumberField(Sender: TObject; var Key: char);
+begin
+  if not (Key in ['0'..'9', #8, #9, '-']) then Key := #0;
+end;
+
+
+type
+  TAccountManagerPanel = record(TLabeledPanel)
+    AccountSelector:      TLabeledCombobox;
+    AccountAddButton:     TButton;
+    AccountSaveButton:    TButton;
+    AccountDeleteButton:  TButton;
+
+    AccountUser:          TLabeledEdit;
+    AccountPass:          TLabeledEdit;
+    AccountPin:           TLabeledEdit;
+    AccountWorlds:        TLabeledMemo;
+  end;
+
+
+procedure TAccountManagerPanel.ClearInputs(Sender: TObject);
 begin
   Self.AccountUser.setText('');
   Self.AccountPass.setText('');
@@ -223,7 +165,7 @@ begin
   Self.AccountWorlds.SetText('');
 end;
 
-procedure TScriptConfig.FillInputs(Sender: TObject);
+procedure TAccountManagerPanel.FillInputs(Sender: TObject);
 var
   Idx: Int32 := Login.PlayerIndex;
   i: Int32;
@@ -243,149 +185,137 @@ begin
   Self.AccountWorlds.SetText(WorldsStr);
 end;
 
-
-procedure TScriptConfig.ReloadSelector(Sender: TObject);
-var
-  Player: TRSLoginPlayer;
-begin
-  Self.AccountSelector.Clear;
-
-  if Login.Players <> [] then
-  begin
-    for Player in Login.Players do
-      Self.AccountSelector.AddItem(Player.User);
-    Self.AccountSelector.SetItemIndex(Login.PlayerIndex);
-  end;
-
-  Self.AccountSelector.AddItem('New user');
-end;
-
-
-
-procedure TScriptConfig.OnAddClick(Sender: TObject);
-var
-  Worlds: TIntegerArray;
-  Str: String;
-  Ext: Extended;
-begin
-  Str := Self.AccountWorlds.GetText;
-  for Ext in Str.ExtractNumbers do
-    Worlds += Round(Ext);
-
-  Login.Players += [Self.AccountUser.GetText, Self.AccountPass.GetText, Self.AccountPin.GetText, Worlds];
-
-  Self.RewriteCredentials;
-  Self.ReloadSelector(Sender);
-end;
-
-procedure TScriptConfig.OnSaveClick(Sender: TObject);
-var
-  Worlds: TIntegerArray;
-  Str: String;
-  ExtArray: TExtendedArray;
-  Ext: Extended;
-  Idx: Int32;
-begin
-  Idx := Self.AccountSelector.getItemIndex;
-  if Idx > High(Login.Players) then
-  begin
-    Self.OnAddClick(Sender);
-    Exit;
-  end;
-
-  Str := Self.AccountWorlds.GetText;
-  ExtArray := Str.ExtractNumbers;
-  for Ext in ExtArray do
-    Worlds += Round(Ext);
-
-  if Idx = -1 then
-    Login.Players += [Self.AccountUser.GetText, Self.AccountPass.GetText, Self.AccountPin.GetText, Worlds]
-  else
-    Login.Players[Idx] := [Self.AccountUser.GetText, Self.AccountPass.GetText, Self.AccountPin.GetText, Worlds];
-
-  Self.RewriteCredentials;
-  Self.ReloadSelector(Sender);
-end;
-
-procedure TScriptConfig.OnDeleteClick(Sender: TObject);
-var
-  Idx: Int32;
-begin
-  Idx := Self.AccountSelector.getItemIndex;
-
-  Writeln(Idx);
-  Writeln(High(Login.Players));
-
-  if Idx > High(Login.Players) then
-    Exit;
-  Delete(Login.Players, Idx, 1);
-  Login.PlayerIndex -= 1;
-
-
-  Self.ClearInputs(Sender);
-
-  Self.RewriteCredentials;
-  Self.ReloadSelector(Sender);
-end;
-
-
-procedure TScriptConfig.SelectorOnChange(Sender: TObject);
-var
-  Idx: Int32;
-begin
-  Idx := Self.AccountSelector.GetItemIndex;
-  if Idx = -1 then
-  begin
-    Login.PlayerIndex := 0;
-    Self.ClearInputs(Sender);
-  end
-  else if (Idx > High(Login.Players)) then
-  begin
-    Login.PlayerIndex := Idx;
-    Self.ClearInputs(Sender);
-  end
-  else
-  begin
-    Login.PlayerIndex := Idx;
-    Self.FillInputs(Sender);
-  end;
-
-  Antiban.SetupBiometrics;
-  Antiban.SetSleepHour;
-  Antiban.SetSleepLength;
-
-  if Self.SleepHourEdit.IsInitiated then
-    Self.SleepHourEdit.SetText(SleepHour);
-  if Self.SleepLengthEdit.IsInitiated then
-    Self.SleepLengthEdit.SetText(ToStr(SleepLength / ONE_HOUR));
-end;
-
-
-
-procedure TScriptConfig.SelectorKey(Sender: TObject; var Key: char);
-begin
-  Key := #0;
-  Self.SelectorOnChange(Sender);
-end;
-
-procedure TScriptConfig.NumberField(Sender: TObject; var Key: char);
-begin
-  if not (Key in ['0'..'9', #8, #9, '-']) then Key := #0;
-end;
-
-procedure TScriptConfig.WorldsKeyPress(Sender: TObject; var Key: char);
+procedure TAccountManagerPanel.WorldsKeyPress(Sender: TObject; var Key: char);
 begin
   if not (Key in ['0'..'9', ',', ' ' ,#8, #9]) then Key := #0;
 end;
 
-procedure TScriptConfig.UpdateFormSize(Width, Height: Int32);
+procedure TAccountManagerPanel.Init(AOwner: TComponent); overload;
 begin
-  Self.Form.setWidth(Width);
-  Self.Form.SetHeight(Height);
+  Self.Init(AOwner, 'Account Manager');
+
+  with Self.AccountSelector do
+  begin
+    Init(Self.Panel);
+    SetCaption('Current account:');
+    SetLeft(Title.getLeft + 10);
+    SetTop(Title.GetTop + Title.getHeight + 5);
+    Combobox.setStyle(csDropDownList);
+    SetWidth(250);
+  end;
+
+  with Self.AccountUser do
+  begin
+    Init(Self.Panel);
+    SetCaption('Username:');
+    SetLeft(Self.AccountSelector.GetLeft);
+    SetTop(Self.AccountSelector.GetTop + Self.AccountSelector.GetHeight - 2);
+    SetWidth(Self.AccountSelector.GetWidth);
+  end;
+
+  with Self.AccountPass do
+  begin
+    Init(Self.Panel);
+    SetCaption('Password:');
+    SetLeft(Self.AccountUser.GetLeft);
+    SetTop(Self.AccountUser.GetTop + Self.AccountUser.GetHeight);
+    SetWidth(150);
+    Edit.setPasswordChar('*');
+  end;
+
+  with Self.AccountPin do
+  begin
+    Init(Self.Panel);
+    SetCaption('Bank pin:');
+    SetLeft(Self.AccountPass.GetLeft() + Self.AccountPass.GetWidth() + 10);
+    SetTop(Self.AccountPass.GetTop());
+    SetWidth((Self.AccountSelector.GetLeft() + Self.AccountSelector.GetWidth()) - GetLeft());
+    Edit.setPasswordChar('*');
+    Edit.setMaxLength(4);
+    Edit.setOnKeyPress(@NumberField);
+  end;
+
+  with Self.AccountWorlds do
+  begin
+    Init(Self.Panel);
+    SetCaption('Worlds (separated by commas):');
+    SetLeft(Self.AccountSelector.GetLeft + Self.AccountSelector.GetWidth + 25);
+    SetTop(Self.AccountSelector.GetTop);
+    SetHeight(Self.AccountUser.GetTop - 3);
+    SetWidth(Self.AccountUser.GetWidth);
+
+    Memo.setOnKeyPress(@Self.WorldsKeyPress);
+  end;
+
+  with Self.AccountAddButton do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Add');
+    SetLeft(Self.AccountWorlds.GetLeft + 40);
+    SetTop(Self.AccountWorlds.GetTop + Self.AccountWorlds.GetHeight + 5);
+    SetWidth(50);
+  end;
+
+  with Self.AccountSaveButton do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Save');
+    SetLeft(Self.AccountAddButton.getLeft + Self.AccountAddButton.getWidth + 5);
+    SetTop(Self.AccountAddButton.GetTop);
+    SetWidth(50);
+  end;
+
+  with Self.AccountDeleteButton do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Delete');
+    SetLeft(Self.AccountSaveButton.getLeft + Self.AccountSaveButton.getWidth + 5);
+    SetTop(Self.AccountSaveButton.GetTop);
+    SetWidth(50);
+  end;
 end;
 
 
-procedure TScriptConfig.ShowAdvanced(Sender: TObject);
+type
+  TAntibanPanel = record(TLabeledPanel)
+    AntibanState:         TCheckbox;
+    BreaksState:          TCheckbox;
+    SleepsState:          TCheckbox;
+
+    AdvancedABButton:     TButton;
+    AdvancedEnabled:      Boolean;
+    HeightNeeded: Int32;
+    HeightIsSetup: Boolean;
+
+    ABCameraState:        TCheckbox;
+    ABMouseState:         TCheckbox;
+    ABChatState:          TCheckbox;
+    ABGameTabsState:      TCheckbox;
+    ABBankState:          TCheckbox;
+
+    SleepHourEdit:        TLabeledEdit;
+    SleepLengthEdit:      TLabeledEdit;
+  end;
+
+procedure TAntibanPanel.AntibanStateOnChange(Sender: TObject);
+var
+  Checked: Boolean;
+begin
+  Checked := Self.AntibanState.IsChecked;
+
+  Self.ABCameraState.SetEnabled(Checked);
+  Self.ABMouseState.SetEnabled(Checked);
+  Self.ABChatState.SetEnabled(Checked);
+  Self.ABGameTabsState.SetEnabled(Checked);
+  Self.ABBankState.SetEnabled(Checked);
+end;
+
+procedure TAntibanPanel.ShowAdvanced(Sender: TObject);
+var
+  Form: TForm;
 begin
   Self.AdvancedEnabled := not Self.AdvancedEnabled;
 
@@ -397,465 +327,754 @@ begin
   Self.SleepHourEdit.SetVisible(Self.AdvancedEnabled);
   Self.SleepLengthEdit.SetVisible(Self.AdvancedEnabled);
 
+  Form := Self.Panel.GetParent();
+
   if Self.AdvancedEnabled then
   begin
-    Self.UpdateFormSize(Self.Form.getWidth, Self.Form.getHeight + 180);
+    if not Self.HeightIsSetup then
+    begin
+      if Form.GetHeight < 550 then
+        Self.HeightNeeded := 550 - Form.GetHeight;
+
+      Self.HeightIsSetup := True;
+    end;
+
+    UpdateFormSize(Form, Form.getWidth(), Form.getHeight() + Self.HeightNeeded);
     Self.AdvancedABButton.SetCaption('Show less');
   end
   else
   begin
-    Self.UpdateFormSize(Self.Form.getWidth, Self.Form.getHeight - 180);
+    UpdateFormSize(Form, Form.getWidth, Form.getHeight() - Self.HeightNeeded);
     Self.AdvancedABButton.SetCaption('Show more');
   end;
-
 end;
 
 
-procedure TScriptConfig.RemoteInputOnChange(Sender: TObject);
+procedure TAntibanPanel.Init(AOwner: TComponent); overload;
+begin
+  Self.Init(AOwner, 'Antiban Settings');
+
+  with Self.AntibanState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Antiban');
+    SetLeft(20);
+    SetTop(35);
+    SetChecked(AntibanEnabled);
+    SetHint('Enable/Disable all antiban tasks.' +
+            STR_NEW_LINE +
+            'Antiban tasks are all antiban that are not sleep or breaks.' +
+            STR_NEW_LINE +
+            'This can include things like:' + STR_NEW_LINE +
+            '- Random clicks' + STR_NEW_LINE +
+            '- Camera movements, zoom' + STR_NEW_LINE +
+            '- Etc.' + STR_NEW_LINE +
+            'For a more details click "Show more".');
+    ShowHint;
+    SetOnChange(@Self.AntibanStateOnChange);
+  end;
+
+  with Self.BreaksState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Short breaks');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.AntibanState.getTop + Self.AntibanState.getHeight);
+    SetChecked(BreaksEnabled);
+    SetHint('Enable/Disable all short breaks.' + STR_NEW_LINE +
+            'This are breaks that last anywhere from 1 minute to 1 hour.');
+    ShowHint;
+  end;
+
+  with Self.SleepsState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Sleep breaks');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.BreaksState.getTop + Self.BreaksState.getHeight);
+    SetChecked(SleepEnabled);
+    SetHint('Enable/Disable all sleep breaks.' + STR_NEW_LINE +
+            'This are breaks that last anywhere from 4 to 12 hours.');
+    ShowHint;
+  end;
+
+  //Advanced antiban
+  with Self.ABCameraState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Camera');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.SleepsState.getTop + Self.SleepsState.getHeight + 35);
+    SetChecked(ABCamera);
+    SetVisible(False);
+    SetHint('Enable/Disable all camera antiban.' + STR_NEW_LINE +
+            'This can move your camera angle and/or change your zoom.');
+    ShowHint;
+  end;
+
+  with Self.ABMouseState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Mouse');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.ABCameraState.getTop + Self.ABCameraState.getHeight);
+    SetChecked(ABMouse);
+    SetVisible(False);
+    SetHint('Enable/Disable all mouse antiban.' + STR_NEW_LINE +
+            'This can move your mouse and do random clicks,' + STR_NEW_LINE +
+            'usually right clicks to not mess things up.');
+    ShowHint;
+  end;
+
+  with Self.ABChatState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Chat');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.ABMouseState.getTop + Self.ABMouseState.getHeight);
+    SetChecked(ABChat);
+    SetVisible(False);
+    SetHint('Enable/Disable all chat antiban.' + STR_NEW_LINE +
+            'This can click the chat buttons, toggle them and scroll the chat.');
+    ShowHint;
+  end;
+
+  with Self.ABGameTabsState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Gametabs');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.ABChatState.getTop + Self.ABChatState.getHeight);
+    SetChecked(ABGameTabs);
+    SetVisible(False);
+    SetHint('Enable/Disable all gametabs antiban.' + STR_NEW_LINE +
+            'This can open/toggle the gametabs, hover skills, etc.');
+    ShowHint;
+  end;
+
+  with Self.ABBankState do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Bank');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.ABGameTabsState.getTop + Self.ABGameTabsState.getHeight);
+    SetChecked(ABBank);
+    SetVisible(False);
+    SetHint('Enable/Disable all bank antiban.' + STR_NEW_LINE +
+            'This can toggle the banktabs, hover and/or click random items in the bank, etc.');
+    ShowHint;
+  end;
+
+  with Self.SleepHourEdit do
+  begin
+    Init(Self.Panel);
+    SetCaption('Aprox sleep time' + STR_NEW_LINE + '(HH:MM:SS):');
+    SetTop(Self.ABBankState.getTop + Self.ABBankState.getHeight);
+    Edit.SetTop(Edit.GetTop + 15);
+    SetLeft(Self.AntibanState.GetLeft());
+    SetWidth(100);
+    SetText(SleepHour);
+    SetVisible(False);
+  end;
+
+  with Self.SleepLengthEdit do
+  begin
+    Init(Self.Panel);
+    SetCaption('Aprox sleep length:');
+    SetLeft(Self.AntibanState.GetLeft());
+    SetTop(Self.SleepHourEdit.getTop + Self.SleepHourEdit.getHeight + 20);
+    SetWidth(100);
+    SetText(ToStr(SleepLength / ONE_HOUR));
+    SetVisible(False);
+  end;
+
+  with Self.AdvancedABButton do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Show more');
+    SetAlign(alBottom);
+    SetWidth(100);
+    SetHeight(26);
+    setOnClick(@Self.ShowAdvanced);
+  end;
+end;
+
+
+type
+  TRemoteInputPanel = record(TLabeledPanel)
+    State:     TCheckbox;
+    RealInput: TCheckbox;
+    HUD:       TCheckbox;
+    Debug:     TCheckbox;
+  end;
+
+procedure TRemoteInputPanel.StateOnChange(Sender: TObject);
 var
   Checked: Boolean;
 begin
+  Checked := Self.State.IsChecked;
 
-  Checked := Self.RIState.IsChecked;
-
-  Self.RIRealInput.SetEnabled(Checked);
-  Self.RIHUD.SetEnabled(Checked);
-  Self.RIDebug.SetEnabled(Checked);
-end;
-
-procedure TScriptConfig.DebugOnChange(Sender: TObject);
-begin
-  Self.RIHUD.SetEnabled(not Self.RIDebug.IsChecked);
+  Self.RealInput.SetEnabled(Checked);
+  Self.HUD.SetEnabled(Checked);
+  Self.Debug.SetEnabled(Checked);
 end;
 
 
-procedure TScriptConfig.Setup; //override me to add stuff!
+procedure TRemoteInputPanel.HUDOnChange(Sender: TObject);
 begin
-  with Self.Form do
+  if Self.HUD.IsChecked then
+    Self.Debug.SetChecked(False);
+end;
+
+procedure TRemoteInputPanel.DebugOnChange(Sender: TObject);
+begin
+  if Self.Debug.IsChecked then
+    Self.HUD.SetChecked(False);
+end;
+
+
+procedure TRemoteInputPanel.Init(AOwner: TComponent); overload;
+begin
+  Self.Init(AOwner, 'Remote Input Settings');
+
+  with Self.State do
   begin
-    Init(nil);
-    SetCaption('Script Configuration');
-    SetWidth(650);
-    SetHeight(430);
-    SetPosition(poScreenCenter);
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Remote Input');
+    SetChecked(RemoteInputEnabled);
+    setOnChange(@Self.StateOnChange);
+    SetTop(Self.Panel.GetTop() + 25);
+    SetLeft(Self.Panel.GetLeft() + 15);
+    SetHint('Enable/Disable Remote Input.' +
+            STR_NEW_LINE +
+            'Remote Input is a virtual mouse that allows you to bot while you use your real mouse.' +
+            STR_NEW_LINE +
+            'As far as we know this is not detected, but could be in the future.'+
+            STR_NEW_LINE +
+            'Use are your OWN RISK!');
+    ShowHint();
   end;
 
-  //Setup account manager
+  with Self.RealInput do
   begin
-    Self.AccountManagerPanel.Init(Self.Form, 'Account Manager');
-    Self.AccountManagerPanel.SetAlign(alTop);
-    Self.AccountManagerPanel.Panel.SetHeight(150);
-
-    with Self.AccountSelector do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetCaption('Current account:');
-      SetLeft(Title.getLeft + 10);
-      SetTop(Title.GetTop + Title.getHeight + 5);
-      Combobox.setStyle(csDropDownList);
-      SetWidth(250);
-
-      Combobox.SetOnChange(@Self.SelectorOnChange);
-    end;
-
-    Self.ReloadSelector(Self.AccountSelector.Combobox);
-
-    with Self.AccountUser do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetCaption('Username:');
-      SetLeft(Self.AccountSelector.GetLeft);
-      SetTop(Self.AccountSelector.GetTop + Self.AccountSelector.GetHeight - 20);
-      SetWidth(Self.AccountSelector.GetWidth);
-    end;
-
-    with Self.AccountPass do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetCaption('Password:');
-      SetLeft(Self.AccountUser.GetLeft);
-      SetTop(Self.AccountUser.GetTop + Self.AccountUser.GetHeight + 5);
-      SetWidth(150);
-      Edit.setPasswordChar('*');
-    end;
-
-    with Self.AccountPin do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetCaption('Bank pin:');
-      SetLeft(Self.AccountPass.GetLeft + Self.AccountPass.GetWidth + 10);
-      SetTop(Self.AccountPass.GetTop);
-      SetWidth((Self.AccountSelector.GetLeft + Self.AccountSelector.GetWidth) - GetLeft);
-      Edit.setPasswordChar('*');
-      Edit.setMaxLength(4);
-      Edit.setOnKeyPress(@Self.NumberField);
-    end;
-
-    with Self.AccountWorlds do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetCaption('Worlds (separated by commas):');
-      SetLeft(Self.AccountSelector.GetLeft + Self.AccountSelector.GetWidth + 25);
-      SetTop(Self.AccountSelector.GetTop);
-      SetHeight(Self.AccountUser.GetTop - 3);
-      SetWidth(Self.AccountUser.GetWidth);
-
-      Memo.setOnKeyPress(@Self.WorldsKeyPress);
-    end;
-
-
-    with Self.AccountSaveButton do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetParent(Self.AccountManagerPanel.Panel);
-      SetCaption('Save');
-      SetLeft(Self.AccountWorlds.GetLeft + 40);
-      SetTop(Self.AccountWorlds.GetTop + Self.AccountWorlds.GetHeight + 5);
-      SetWidth(50);
-
-      setOnClick(@Self.OnSaveClick);
-    end;
-
-    with Self.AccountAddButton do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetParent(Self.AccountManagerPanel.Panel);
-      SetCaption('Add');
-      SetLeft(Self.AccountSaveButton.getLeft + Self.AccountSaveButton.getWidth + 5);
-      SetTop(Self.AccountSaveButton.GetTop);
-      SetWidth(50);
-
-      setOnClick(@Self.OnAddClick);
-    end;
-
-    with Self.AccountDeleteButton do
-    begin
-      Init(Self.AccountManagerPanel.Panel);
-      SetParent(Self.AccountManagerPanel.Panel);
-      SetCaption('Delete');
-      SetLeft(Self.AccountAddButton.getLeft + Self.AccountAddButton.getWidth + 5);
-      SetTop(Self.AccountAddButton.GetTop);
-      SetWidth(50);
-
-      setOnClick(@Self.OnDeleteClick);
-    end;
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Disable Input');
+    SetChecked(ProgressReportEnabled);
+    SetTop(Self.Panel.GetTop() + 25);
+    SetLeft(Self.State.GetLeft() + Self.State.GetWidth() + 15);
+    SetHint('Enable/Disable User Input.' +
+            STR_NEW_LINE +
+            'This disables your input in the game until you' +
+            STR_NEW_LINE +
+            'pause or terminate the script.');
+    ShowHint();
   end;
 
-  Self.SelectorOnChange(Self.AccountSelector.Combobox);
-
-  //Setup antiban panel
+  with Self.HUD do
   begin
-    Self.AntibanPanel.Init(Self.Form, 'Antiban Settings');
-    Self.AntibanPanel.SetAlign(alLeft);
-
-    with Self.AntibanState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Antiban');
-      SetLeft(Self.AntibanPanel.GetLeft() + 20);
-      SetTop(Self.AntibanPanel.Title.getTop + Self.AntibanPanel.Title.getHeight + 15);
-      SetEnabled(AntibanEnabled);
-      SetHint('Enable/Disable all antiban tasks.' +
-              STR_NEW_LINE +
-              'Antiban tasks are all antiban that are not sleep or breaks.' +
-              STR_NEW_LINE +
-              'This can include things like:' + STR_NEW_LINE +
-              '- Random clicks' + STR_NEW_LINE +
-              '- Camera movements, zoom' + STR_NEW_LINE +
-              '- Etc.' + STR_NEW_LINE +
-              'For a more details click "Show more".');
-      ShowHint;
-    end;
-
-    with Self.BreaksState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Short breaks');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.AntibanState.getTop + Self.AntibanState.getHeight);
-      SetEnabled(BreaksEnabled);
-      SetHint('Enable/Disable all short breaks.' + STR_NEW_LINE +
-              'This are breaks that last anywhere from 1 minute to 1 hour.');
-      ShowHint;
-    end;
-
-    with Self.SleepsState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Sleep breaks');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.BreaksState.getTop + Self.BreaksState.getHeight);
-      SetEnabled(SleepEnabled);
-      SetHint('Enable/Disable all sleep breaks.' + STR_NEW_LINE +
-              'This are breaks that last anywhere from 4 to 12 hours.');
-      ShowHint;
-    end;
-
-
-    with Self.AdvancedABButton do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Show more');
-      SetAlign(alBottom);
-      SetWidth(100);
-      SetHeight(30);
-      setOnClick(@Self.ShowAdvanced);
-    end;
-
-    Self.AdvancedEnabled := False;
-
-    //Advanced antiban
-    with Self.ABCameraState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Camera');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.SleepsState.getTop + Self.SleepsState.getHeight + 35);
-      SetEnabled(ABCamera);
-      SetVisible(False);
-      SetHint('Enable/Disable all camera antiban.' + STR_NEW_LINE +
-              'This can move your camera angle and/or change your zoom.');
-      ShowHint;
-    end;
-
-    with Self.ABMouseState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Mouse');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.ABCameraState.getTop + Self.ABCameraState.getHeight);
-      SetEnabled(ABMouse);
-      SetVisible(False);
-      SetHint('Enable/Disable all mouse antiban.' + STR_NEW_LINE +
-              'This can move your mouse and do random clicks,' + STR_NEW_LINE +
-              'usually right clicks to not mess things up.');
-      ShowHint;
-    end;
-
-    with Self.ABChatState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Chat');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.ABMouseState.getTop + Self.ABMouseState.getHeight);
-      SetEnabled(ABChat);
-      SetVisible(False);
-      SetHint('Enable/Disable all chat antiban.' + STR_NEW_LINE +
-              'This can click the chat buttons, toggle them and scroll the chat.');
-      ShowHint;
-    end;
-
-    with Self.ABGameTabsState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Gametabs');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.ABChatState.getTop + Self.ABChatState.getHeight);
-      SetEnabled(ABGameTabs);
-      SetVisible(False);
-      SetHint('Enable/Disable all gametabs antiban.' + STR_NEW_LINE +
-              'This can open/toggle the gametabs, hover skills, etc.');
-      ShowHint;
-    end;
-
-    with Self.ABBankState do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetParent(Self.AntibanPanel.Panel);
-      SetCaption('Bank');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.ABGameTabsState.getTop + Self.ABGameTabsState.getHeight);
-      SetEnabled(ABBank);
-      SetVisible(False);
-      SetHint('Enable/Disable all bank antiban.' + STR_NEW_LINE +
-              'This can toggle the banktabs, hover and/or click random items in the bank, etc.');
-      ShowHint;
-    end;
-
-    with Self.SleepHourEdit do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetCaption('Aprox sleep time' + STR_NEW_LINE + '(HH:MM:SS):');
-      SetTop(Self.ABBankState.getTop + Self.ABBankState.getHeight);
-      Edit.SetTop(Edit.GetTop + 15);
-      SetLeft(Self.AntibanState.GetLeft());
-      SetWidth(100);
-      SetText(SleepHour);
-      SetVisible(False);
-    end;
-
-    with Self.SleepLengthEdit do
-    begin
-      Init(Self.AntibanPanel.Panel);
-      SetCaption('Aprox sleep length:');
-      SetLeft(Self.AntibanState.GetLeft());
-      SetTop(Self.SleepHourEdit.getTop + Self.SleepHourEdit.getHeight + 20);
-      SetWidth(100);
-      SetText(ToStr(SleepLength / ONE_HOUR));
-      SetVisible(False);
-    end;
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('HUD report');
+    SetChecked(ProgressReportEnabled);
+    SetOnChange(@Self.HUDOnChange);
+    SetTop(Self.Panel.GetTop() + 25);
+    SetLeft(Self.RealInput.GetLeft() + Self.RealInput.GetWidth() + 15);
+    SetHint('Enable/Disable the HUD report.' +
+            STR_NEW_LINE +
+            'HUD report is the in-game progress report, also' +
+            STR_NEW_LINE +
+            'called paint sometimes.');
+    ShowHint();
   end;
+
+  with Self.Debug do
+  begin
+    Init(Self.Panel);
+    SetParent(Self.Panel);
+    SetCaption('Debug script');
+    SetChecked(ScriptDebugEnabled);
+    SetOnChange(@Self.DebugOnChange);
+    SetTop(Self.Panel.GetTop() + 25);
+    SetLeft(Self.HUD.GetLeft() + Self.HUD.GetWidth() + 15);
+    SetHint('Enable/Disable the Script Debugging.' +
+            STR_NEW_LINE +
+            'This will paint/draw on screen critical things' +
+            STR_NEW_LINE +
+            'that Simba is looking for.');
+    ShowHint();
+  end;
+end;
+
+
+type
+  TConsumablePanel = record
+    Panel: TPanel;
+    MinPoints: TLabeledEdit;
+    ConsumableAmount: TLabeledEdit;
+    ConsumableSelector: TLabeledCombobox;
+  end;
+
+procedure TConsumablePanel.SelectorOnChange(Sender: TObject);
+begin
+  CurrentBankLocation := EWaspBankLocation(
+                           BANK_LOCATION_STRING_ARRAY.IndexOf(
+                            TComboBox(Sender).GetText()));
+end;
+
+procedure TConsumablePanel.Init(AOwner: TComponent; ConsumableType: ERSConsumable; UseBank: Boolean);
+var
+  Str, Str1, Str2: String;
+  ConsumableArray: TStringArray;
+begin
+  case ConsumableType of
+    HEALTH_CONSUMABLE:
+      begin
+        Str1 := 'health';
+        Str2 := 'Food';
+        ConsumableArray := [];
+      end;
+
+    PRAYER_CONSUMABLE:
+      begin
+        Str1 := 'prayer';
+        Str2 := 'Potion';
+        ConsumableArray := [];
+      end;
+
+    ENERGY_CONSUMABLE:
+      begin
+        Str1 := 'run energy';
+        Str2 := 'Potion';
+        ConsumableArray := [];
+      end;
+
+    BOOST_CONSUMABLE:
+      begin
+        Str1 := 'time (in minutes)';
+        Str2 := 'Potion';
+        ConsumableArray := [];
+      end;
+  end;
+
+  with Self.Panel do
+  begin
+    Init(AOwner);
+    SetParent(AOwner);
+    SetAlign(alTop);
+    SetHeight(60);
+    SetBevelWidth(0);
+  end;
+
+  with Self.MinPoints do
+  begin
+    Init(Self.Panel);
+    SetCaption('Minimum ' + Str1 + ':');
+    SetLeft(20);
+    SetTop(5);
+    SetWidth(110);
+    SetText('50');
+    Edit.setOnKeyPress(@NumberField);
+  end;
+
+  with Self.ConsumableAmount do
+  begin
+    Init(Self.Panel);
+    SetCaption(Str2 + ' amount:');
+    SetLeft(150);
+    SetTop(5);
+    SetWidth(110);
+    SetText('8');
+    SetVisible(UseBank);
+    Edit.setOnKeyPress(@NumberField);
+  end;
+
+  with Self.ConsumableSelector do
+  begin
+    Init(Self.Panel);
+    SetCaption(Str2 + ' type:');
+    SetLeft(275);
+    SetTop(5);
+    SetWidth(150);
+    Combobox.setStyle(csDropDownList);
+    for Str in ConsumableArray do
+      AddItem(Str);
+    Combobox.SetOnChange(@Self.SelectorOnChange);
+  end;
+end;
+
+
+type
+  TWaspLibPanel = record(TLabeledPanel)
+    MainPanel: TPanel;
+
+    FoodPanel: TConsumablePanel;
+
+    BankPanel: TPanel;
+      BankSelector: TLabeledCombobox;
+    LimitPanel: TPanel;
+      ActionLimit: TLabeledEdit;
+      TimeLimit: TLabeledEdit;
+
+    StartButton: TButton;
+  end;
+
+
+procedure TWaspLibPanel.BankSelectorOnChange(Sender: TObject);
+begin
+  CurrentBankLocation := EWaspBankLocation(
+                           BANK_LOCATION_STRING_ARRAY.IndexOf(
+                             Self.BankSelector.Combobox.getText));
+end;
+
+procedure TWaspLibPanel.Init(AOwner: TComponent; UseFood, UseBank: Boolean = False); overload;
+var
+  PanelCount: Int32 = 1;
+  Str: String;
+  size: TSizeConstraints;
+begin
+  Self.Init(AOwner, 'WaspLib Settings');
 
   with Self.MainPanel do
   begin
-    Init(Self.Form);
-    SetParent(Self.Form);
+    Init(Self.Panel);
+    SetParent(Self.Panel);
     SetAlign(alClient);
+    SetBevelWidth(0);
   end;
 
-  //Setup Remote Input settings
+  with Self.LimitPanel do
   begin
-      Self.RIPanel.Init(Self.MainPanel, 'Remote Input Settings');
-      Self.RIPanel.SetAlign(alTop);
-
-      with Self.RIState do
-      begin
-        Init(Self.RIPanel.Panel);
-        SetParent(Self.RIPanel.Panel);
-        SetCaption('Remote Input');
-        SetEnabled(RemoteInputEnabled);
-        setOnChange(@Self.RemoteInputOnChange);
-        SetTop(Self.RIPanel.GetTop() + 25);
-        SetLeft(Self.RIPanel.GetLeft() + 15);
-        SetHint('Enable/Disable Remote Input.' +
-                STR_NEW_LINE +
-                'Remote Input is a virtual mouse that allows you' +
-                STR_NEW_LINE +
-                'to bot while you use your real mouse');
-        ShowHint;
-      end;
-
-      with Self.RIRealInput do
-      begin
-        Init(Self.RIPanel.Panel);
-        SetParent(Self.RIPanel.Panel);
-        SetCaption('Disable Input');
-        SetEnabled(ProgressReportEnabled);
-        SetTop(Self.RIPanel.GetTop() + 25);
-        SetLeft(Self.RIState.GetLeft() + Self.RIState.GetWidth() + 15);
-        SetHint('Enable/Disable User Input.' +
-                STR_NEW_LINE +
-                'This disables your input in the game until you' +
-                STR_NEW_LINE +
-                'pause or terminate the script.');
-        ShowHint;
-      end;
-
-      with Self.RIHUD do
-      begin
-        Init(Self.RIPanel.Panel);
-        SetParent(Self.RIPanel.Panel);
-        SetCaption('HUD report');
-        SetEnabled(ProgressReportEnabled);
-        SetTop(Self.RIPanel.GetTop() + 25);
-        SetLeft(Self.RIRealInput.GetLeft() + Self.RIRealInput.GetWidth() + 15);
-        SetHint('Enable/Disable the HUD report.' +
-                STR_NEW_LINE +
-                'HUD report is the in-game progress report, also' +
-                STR_NEW_LINE +
-                'called paint sometimes.');
-        ShowHint;
-      end;
-
-      with Self.RIDebug do
-      begin
-        Init(Self.RIPanel.Panel);
-        SetParent(Self.RIPanel.Panel);
-        SetCaption('Debug script');
-        SetEnabled(ScriptDebugEnabled);
-        SetOnChange(@Self.DebugOnChange);
-        SetTop(Self.RIPanel.GetTop() + 25);
-        SetLeft(Self.RIHUD.GetLeft() + Self.RIHUD.GetWidth() + 15);
-        SetHint('Enable/Disable the Script Debugging.' +
-                STR_NEW_LINE +
-                'This will paint/draw on screen critical things' +
-                STR_NEW_LINE +
-                'that Simba is looking for.');
-        ShowHint;
-      end;
-    end;
-
-  //Setup script settings
-  begin
-    Self.ScriptSettingsPanel.Init(Self.MainPanel, 'Script Settings');
-    Self.ScriptSettingsPanel.SetAlign(alClient);
-
-    with Self.WLPanel do
-    begin
-      Init(Self.ScriptSettingsPanel.Panel, 'WaspLib Settings');
-      SetAlign(alBottom);
-      Panel.SetHeight(130);
-    end;
+    Init(Self.MainPanel);
+    SetParent(Self.MainPanel);
+    SetAlign(alTop);
+    SetHeight(60);
+    SetBevelWidth(0);
+    PanelCount += 1;
 
     with Self.ActionLimit do
     begin
-      Init(Self.WLPanel.Panel);
+      Init(Self.LimitPanel);
       SetCaption('Stop after (number of actions):');
-      SetLeft(Self.WLPanel.getLeft + 35);
-      SetTop(Self.WLPanel.GetTop() + 30);
+      SetLeft(Self.LimitPanel.getLeft + 35);
+      SetTop(Self.LimitPanel.GetTop() + 10);
       SetWidth(165);
       SetText(ToStr(MaxActions));
-      Edit.setOnKeyPress(@Self.NumberField);
+      Edit.setOnKeyPress(@NumberField);
     end;
 
     with Self.TimeLimit do
     begin
-      Init(Self.WLPanel.Panel);
+      Init(Self.LimitPanel);
       SetCaption('Stop after (time in minutes):');
       SetTop(Self.ActionLimit.GetTop());
       SetLeft(Self.ActionLimit.getLeft() + Self.ActionLimit.GetWidth() + 55);
       SetWidth(150);
       SetText(ToStr(MaxTime));
-      Edit.setOnKeyPress(@Self.NumberField);
-    end;
-
-    with Self.StartButton do
-    begin
-      Init(Self.WLPanel.Panel);
-      SetParent(Self.WLPanel.Panel);
-      SetCaption('Start');
-      SetAlign(alBottom);
-      SetWidth(50);
-      SetHeight(30);
+      Edit.setOnKeyPress(@NumberField);
     end;
   end;
+
+  with Self.BankPanel do
+  begin
+    Init(Self.MainPanel);
+    SetParent(Self.MainPanel);
+    SetAlign(alTop);
+    SetHeight(60);
+    SetBevelWidth(0);
+    if UseBank then
+      PanelCount += 1
+    else
+      SetVisible(False);
+
+    with Self.BankSelector do
+    begin
+      Init(Self.BankPanel);
+      SetCaption('Bank location:');
+      SetLeft(Round(Self.BankPanel.GetWidth()/2) + 50);
+      SetTop(10);
+      SetWidth(200);
+      Combobox.setStyle(csDropDownList);
+      for Str in BANK_LOCATION_STRING_ARRAY do
+        AddItem(Str);
+      Combobox.setItemIndex(Ord(CurrentBankLocation));
+      Combobox.SetOnChange(@Self.BankSelectorOnChange);
+    end;
+  end;
+
+  with Self.FoodPanel do
+  begin
+    Init(Self.MainPanel, HEALTH_CONSUMABLE, UseBank);
+
+    if UseFood then
+      PanelCount += 1
+    else
+      Self.FoodPanel.Panel.SetVisible(False);
+  end;
+
+  with Self.StartButton do
+  begin
+    Init(Self.MainPanel);
+    SetParent(Self.MainPanel);
+    SetCaption('Start Script!');
+    SetAlign(alBottom);
+  end;
+
+  Self.SetHeight(60 * PanelCount);
+end;
+
+
+
+type
+  TScriptForm = record
+    Form: TForm;
+
+    AMPanel: TAccountManagerPanel;
+
+    ABPanel: TAntibanPanel;
+
+    MainPanel: TPanel;
+    RIPanel: TRemoteInputPanel;
+    SSPanel: TLabeledPanel;
+    WLPanel: TWaspLibPanel;
+  end;
+
+
+procedure TScriptForm.ReloadSelector(Sender: TObject);
+var
+  Player: TRSLoginPlayer;
+  HasPlayers: Boolean;
+begin
+  Self.AMPanel.AccountSelector.Clear;
+
+  HasPlayers := Login.Players <> [];
+
+  Self.AMPanel.AccountSelector.Combobox.SetEnabled(HasPlayers);
+  Self.AMPanel.AccountSaveButton.SetEnabled(HasPlayers);
+  Self.AMPanel.AccountDeleteButton.SetEnabled(HasPlayers);
+
+
+  for Player in Login.Players do
+    Self.AMPanel.AccountSelector.AddItem(Player.User);
+
+  if HasPlayers then
+    Self.AMPanel.AccountSelector.SetItemIndex(Login.PlayerIndex);
+end;
+
+
+
+procedure TScriptForm.OnAddClick(Sender: TObject);
+var
+  Worlds: TIntegerArray;
+  Str: String;
+  Ext: Extended;
+begin
+  if Self.AMPanel.AccountUser.GetText().Strip() = '' then
+  begin
+    Self.AMPanel.ClearInputs(Sender);
+    Exit;
+  end;
+
+  Str := Self.AMPanel.AccountWorlds.GetText();
+  for Ext in Str.ExtractNumbers() do
+    Worlds += Round(Ext);
+
+  Login.Players += [Self.AMPanel.AccountUser.GetText(), Self.AMPanel.AccountPass.GetText(), Self.AMPanel.AccountPin.GetText(), Worlds];
+  Login.PlayerIndex := High(Login.Players);
+
+  RewriteCredentials;
+  Self.ReloadSelector(Sender);
+  Self.SelectorOnChange(Sender);
+end;
+
+procedure TScriptForm.OnSaveClick(Sender: TObject);
+var
+  Worlds: TIntegerArray;
+  Str: String;
+  ExtArray: TExtendedArray;
+  Ext: Extended;
+  Idx: Int32;
+begin
+  if Self.AMPanel.AccountUser.GetText().Strip() = '' then
+  begin
+    Self.AMPanel.ClearInputs(Sender);
+    Exit;
+  end;
+
+  Idx := Self.AMPanel.AccountSelector.getItemIndex();
+  if Idx > High(Login.Players) then
+  begin
+    Self.OnAddClick(Sender);
+    Exit;
+  end;
+
+  Str := Self.AMPanel.AccountWorlds.GetText();
+  ExtArray := Str.ExtractNumbers();
+  for Ext in ExtArray do
+    Worlds += Round(Ext);
+
+  if Idx = -1 then
+    Login.Players += [Self.AMPanel.AccountUser.GetText(), Self.AMPanel.AccountPass.GetText(), Self.AMPanel.AccountPin.GetText(), Worlds]
+  else
+    Login.Players[Idx] := [Self.AMPanel.AccountUser.GetText(), Self.AMPanel.AccountPass.GetText(), Self.AMPanel.AccountPin.GetText(), Worlds];
+
+  RewriteCredentials();
+  Self.ReloadSelector(Sender);
+end;
+
+procedure TScriptForm.OnDeleteClick(Sender: TObject);
+var
+  Idx: Int32;
+begin
+  Idx := Self.AMPanel.AccountSelector.getItemIndex();
+
+  if Idx > High(Login.Players) then
+    Exit;
+  Delete(Login.Players, Idx, 1);
+  Login.PlayerIndex -= 1;
+
+
+  Self.AMPanel.ClearInputs(Sender);
+
+  RewriteCredentials;
+  Self.ReloadSelector(Sender);
+  Self.SelectorOnChange(Sender);
+end;
+
+
+procedure TScriptForm.SelectorOnChange(Sender: TObject);
+var
+  Idx: Int32;
+begin
+  Idx := Self.AMPanel.AccountSelector.GetItemIndex();
+  if Idx = -1 then
+  begin
+    Login.PlayerIndex := 0;
+    Self.AMPanel.ClearInputs(Sender);
+  end
+  else if (Idx > High(Login.Players)) then
+  begin
+    Login.PlayerIndex := Idx;
+    Self.AMPanel.ClearInputs(Sender);
+  end
+  else
+  begin
+    Login.PlayerIndex := Idx;
+    Self.AMPanel.FillInputs(Sender);
+  end;
+
+  Antiban.SetupBiometrics;
+  Antiban.SetSleepHour;
+  Antiban.SetSleepLength;
+
+  if Self.ABPanel.SleepHourEdit.IsInitiated then
+    Self.ABPanel.SleepHourEdit.SetText(SleepHour);
+  if Self.ABPanel.SleepLengthEdit.IsInitiated then
+    Self.ABPanel.SleepLengthEdit.SetText(ToStr(SleepLength / ONE_HOUR));
+end;
+
+
+
+procedure TScriptForm.SelectorKey(Sender: TObject; var Key: char);
+begin
+  Key := #0;
+  Self.SelectorOnChange(Sender);
+end;
+
+
+procedure TScriptForm.Setup(UseFood, UseBank: Boolean); //override me to add stuff!
+var
+  PanelCount: Int32 = 1;
+begin
+  if UseFood then
+    PanelCount += 1;
+  if UseBank then
+    PanelCount += 1;
+
+  with Self.Form do
+  begin
+    Init(nil);
+    SetCaption('Script Configuration');
+    SetWidth(650);
+    SetHeight(390 + 60 * PanelCount);
+    SetPosition(poScreenCenter);
+  end;
+
+  //Setup account manager
+  Self.AMPanel.Init(Self.Form);
+  Self.AMPanel.SetAlign(alTop);
+  Self.AMPanel.SetHeight(160);
+  Self.AMPanel.AccountSelector.Combobox.SetOnChange(@Self.SelectorOnChange);
+  Self.AMPanel.AccountSaveButton.setOnClick(@Self.OnSaveClick);
+  Self.AMPanel.AccountAddButton.setOnClick(@Self.OnAddClick);
+  Self.AMPanel.AccountDeleteButton.setOnClick(@Self.OnDeleteClick);
+
+  Self.ReloadSelector(Self.AMPanel.AccountSelector.Combobox);
+  Self.SelectorOnChange(Self.AMPanel.AccountSelector.Combobox);
+
+  //Setup antiban panel
+  Self.ABPanel.Init(Self.Form);
+  Self.ABPanel.SetAlign(alLeft);
+
+  Self.MainPanel.Init(Self.Form);
+  Self.MainPanel.SetParent(Self.Form);
+  Self.MainPanel.SetAlign(alClient);
+
+  //Setup Remote Input settings
+  Self.RIPanel.Init(Self.MainPanel);
+  Self.RIPanel.SetAlign(alTop);
+
+  //Setup script settings
+  Self.SSPanel.Init(Self.MainPanel, 'Script Settings');
+  Self.SSPanel.SetAlign(alClient);
+
+  //WL settings
+  Self.WLPanel.Init(Self.MainPanel, UseFood, UseBank);
+  Self.WLPanel.SetAlign(alBottom);
 
   //override me to add stuff!
 end;
 
-procedure TScriptConfig.Init(Sender: TObject); //override me to add stuff!
+procedure TScriptForm.Setup(); overload; //override me to add stuff!
 begin
-  AntibanEnabled := Self.AntibanState.IsChecked;
-  BreaksEnabled  := Self.BreaksState.IsChecked;
-  SleepEnabled   := Self.SleepsState.IsChecked;
+  Self.Setup(False, False);
+end;
 
-  ABCamera   := Self.ABCameraState.IsChecked;
-  ABMouse    := Self.ABMouseState.IsChecked;
-  ABChat     := Self.ABChatState.IsChecked;
-  ABGameTabs := Self.ABGameTabsState.IsChecked;
-  ABBank     := Self.ABBankState.IsChecked;
+procedure TScriptForm.Init(Sender: TObject); //override me to add stuff!
+begin
+  AntibanEnabled := Self.ABPanel.AntibanState.IsChecked;
+  BreaksEnabled  := Self.ABPanel.BreaksState.IsChecked;
+  SleepEnabled   := Self.ABPanel.SleepsState.IsChecked;
 
-  SleepHourOverride := Self.SleepHourEdit.GetText;
+  ABCamera   := Self.ABPanel.ABCameraState.IsChecked;
+  ABMouse    := Self.ABPanel.ABMouseState.IsChecked;
+  ABChat     := Self.ABPanel.ABChatState.IsChecked;
+  ABGameTabs := Self.ABPanel.ABGameTabsState.IsChecked;
+  ABBank     := Self.ABPanel.ABBankState.IsChecked;
+
+  SleepHourOverride := Self.ABPanel.SleepHourEdit.GetText;
   WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep hour: ' + SleepHourOverride;
-  SleepLengthOverride := StrToFloat(Self.SleepLengthEdit.GetText);
+  SleepLengthOverride := StrToFloat(Self.ABPanel.SleepLengthEdit.GetText);
   WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep length: ' + ToStr(SleepLengthOverride);
 
-  RemoteInputEnabled    := Self.RIState.IsChecked;
-  ProgressReportEnabled := (Self.RIHUD.IsChecked) and
-                           (not Self.RIDebug.IsChecked);
-  ScriptDebugEnabled    := Self.RIDebug.IsChecked;
+  RemoteInputEnabled    := Self.RIPanel.State.IsChecked;
+  ProgressReportEnabled := (Self.RIPanel.HUD.IsChecked) and
+                           (not Self.RIPanel.Debug.IsChecked);
+  ScriptDebugEnabled    := Self.RIPanel.Debug.IsChecked;
 
-  MaxActions := StrToInt(Self.ActionLimit.GetText);
-  if StrToInt64(Self.TimeLimit.Edit.GetText) > 0 then
-    MaxTime := StrToInt64(Self.TimeLimit.Edit.GetText) * 60 * 1000;
+  MaxActions := StrToInt(Self.WLPanel.ActionLimit.GetText());
+  if StrToInt64(Self.WLPanel.TimeLimit.Edit.GetText()) > 0 then
+    MaxTime := StrToInt64(Self.WLPanel.TimeLimit.Edit.GetText()) * 60 * 1000;
 
   Self.Form.Close;
   Writeln('Script starting...');
@@ -863,53 +1082,13 @@ begin
   //override me to add stuff!
 end;
 
-procedure TScriptConfig.Run;
+procedure TScriptForm.Run;
 begin
   try
     Self.Form.ShowModal;
     Self.Form.Free;
   except
-    Writeln(GetExceptionMessage);
-  end;
-end;
-
-type
-  TBankConfig = record(TScriptConfig)
-    BankSelector: TLabeledCombobox;
-  end;
-
-procedure TBankConfig.BankSelectorOnChange(Sender: TObject);
-begin
-  CurrentBankLocation := EWaspBankLocation(
-                           BankLocationStrings.IndexOf(
-                             Self.BankSelector.Combobox.getText));
-end;
-
-procedure TBankConfig.Setup(Strs: TStringArray); overload;
-var
-  Str: String;
-begin
-  Self.Setup;
-  WriteLn 'HERE';
-
-  Self.UpdateFormSize(Self.Form.getWidth, Self.Form.getHeight + 200);
-
-  with Self.BankSelector do
-  begin
-    Init(Self.WLPanel.Panel);
-    SetCaption('Bank location:');
-    SetLeft(Self.WLPanel.GetLeft() + 5);
-    SetTop(Self.WLPanel.GetTop() + 25);
-    SetWidth(200);
-    Combobox.setStyle(csDropDownList);
-    for Str in Strs do AddItem(Str);
-    Combobox.setItemIndex(Ord(CurrentBankLocation));
-    Combobox.SetOnChange(@Self.BankSelectorOnChange);
-  end;
-
-  with Self.ActionLimit do
-  begin
-    SetTop(Self.WLPanel.GetTop() + 55);
+    Writeln(GetExceptionMessage());
   end;
 end;
 

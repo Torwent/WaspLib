@@ -226,3 +226,341 @@ var
     'noted Mystic gloves (light)',
     'noted Mystic boots (light)'
   ];
+
+type
+  ERSAction = (
+    CHECK_STATS,
+    ALCH,
+    FLETCH,
+    FISH,
+    DROP
+  );
+
+  TRSAction = record
+    AlchItemArray, Droppables: TRSItemArray;
+    DropSlots: TIntegerArray;
+    ActionCooldown: TCountDown;
+  end;
+
+
+procedure TRSAction.Setup;
+begin
+  Self.AlchItemArray := AlchItemArray;
+  Self.ActionCooldown.Setup(800);
+
+  Self.Droppables := [
+    'Trout',
+    'Salmon',
+    'Leaping trout',
+    'Leaping salmon',
+    'Leaping sturgeon'
+  ];
+
+end;
+
+procedure TRSAction.SetDropSlots(Items: TRSItemArray; Pattern: TIntegerArray);
+var
+  Slots: TIntegerArray;
+  I: Int32;
+begin
+  Inventory.FindItems(Items, Slots);
+  for I := 0 to High(Pattern) do
+    if Slots.Contains(Pattern[I]) then
+      Self.DropSlots += Pattern[I];
+end;
+
+
+procedure TRSAction.ClearVariables;
+begin
+  Self.DropSlots := [];
+end;
+
+function TRSAction.DropItems: Boolean;
+begin
+  if Self.DropSlots = [] then
+    Self.SetDropSlots(Self.Droppables, Inventory.RandomPattern);
+  if Self.DropSlots = [] then
+    Exit(True);
+
+  Result := Inventory.ShiftDrop([Self.DropSlots[0]]);
+  Self.DropSlots.Delete(0);
+end;
+
+
+function TRSAction.AlchItems(Items: TRSItemArray; HighAlch: Boolean = True): Boolean;
+var
+  Item: TRSItem;
+  Spell: ERSSpell;
+begin
+  if not Self.ActionCooldown.IsFinished then
+    Exit;
+
+  if HighAlch then
+    Spell := ERSSpell.HIGH_LEVEL_ALCHEMY
+  else
+    Spell := ERSSpell.LOW_LEVEL_ALCHEMY;
+
+  if Magic.CastSpell(Spell) then
+    for Item in Items do
+      if Inventory.ClickItem(Item) then
+        if Result := XPBar.WaitXP(600) then
+        begin
+          Self.ActionCooldown.Restart(Random(-100, 200));
+          Exit;
+        end;
+end;
+
+function TRSAction.AlchItem(Item: TRSItem; HighAlch: Boolean = True): Boolean;
+var
+  Spell: ERSSpell;
+begin
+  if HighAlch then
+    Spell := ERSSpell.HIGH_LEVEL_ALCHEMY
+  else
+    Spell := ERSSpell.LOW_LEVEL_ALCHEMY;
+
+  if Magic.CastSpell(Spell) then
+  begin
+    if Inventory.ClickItem(Item) then
+      Result := XPBar.WaitXP(600);
+  end;
+end;
+
+
+function TRSAction.FindFishSpot(out ATPA: T2DPointArray; ScanTime: Int32 = 250): Boolean;
+var
+  FinalTPA, TPA: TPointArray;
+  t: TCountDown;
+  SpotColor: TCTS2Color;
+begin
+  if SRL.FindColors(TPA, CTS0(12161149, 25), Minimap.Bounds) > 500 then
+    SpotColor := CTS2(8875103, 16, 0.2, 0.7)
+  else if SRL.FindColors(TPA, CTS0(4741200, 7), Minimap.Bounds) > 500 then
+  begin
+    SpotColor := CTS2(7902610, 8, 0.24, 0.36);
+    if ScanTime <= 850 then
+      ScanTime += 1000;
+  end;
+
+  t.Init(ScanTime);
+
+  while not t.IsFinished do
+  begin
+    SRL.FindColors(TPA, SpotColor, MainScreen.Bounds);
+    FinalTPA += TPA.Edges;
+  end;
+
+  //MainScreen.Filter(FinalTPA);
+
+  if FinalTPA = [] then
+    Exit;
+
+  FinalTPA.ClearDuplicates;
+  if SpotColor <> CTS2(7902610, 8, 0.24, 0.36) then
+    FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
+
+  FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
+
+  ATPA := FinalTPA.Cluster(10);
+  ATPA.FilterSize(12, __GT__);
+
+  Result := ATPA <> [];
+end;
+
+function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
+var
+  ATPA: T2DPointArray;
+begin
+  Result := Self.FindFishSpot(ATPA, ScanTime);
+end;
+
+
+function TRSAction.GetFaceableTiles: TPointArray;
+begin
+  Result := [
+    [Minimap.Center.X + 4, Minimap.Center.Y],
+    [Minimap.Center.X - 4, Minimap.Center.Y],
+    [Minimap.Center.X, Minimap.Center.Y + 4],
+    [Minimap.Center.X, Minimap.Center.Y - 4]
+  ];
+
+  Result := Result.Rotate(Minimap.GetCompassAngle(False), Minimap.Center.X, Minimap.Center.Y);
+end;
+
+
+function TRSAction.FindWaterDirection: TIntegerArray;
+const
+  COLORS: array of TCTS0Color = [
+    [12161149, 5],
+    [5070165, 7],
+    [12631999],
+    [10461344],
+    [65536],
+    [16279333],
+    [16614697],
+    [14432775]
+  ];
+var
+  TPA, Water: TPointArray;
+  FaceableTiles: TPointArray := Self.GetFaceableTiles;
+  i: Int32;
+begin
+
+  for i := 0 to High(COLORS) do
+    if SRL.FindColors(TPA, COLORS[i], Minimap.Bounds) > 0 then
+      Water += TPA;
+
+  for i := 0 to High(FaceableTiles) do
+    if SRL.PointInPoly(FaceableTiles[i], Water) then
+      Result += i;
+end;
+
+function TSRL.FindColors(out TPA: TPointArray; Color: TCTS2Color; Area: TPointArray): Int32;  overload;
+var
+  tmpTPA: TPointArray;
+  i: Int32;
+begin
+  Self.FindColorsHelper(tmpTPA, Area.Bounds(), Color.Color, Color.Tolerance, 2, Color.HueMod, Color.SatMod);
+
+  for i := 0 to High(tmpTPA) do
+    if SRL.PointInPoly(tmpTPA[i], Area) then
+      TPA += tmpTPA[i];
+
+  Result := TPA.Length();
+end;
+
+function TRSAction.IsFishing: Boolean;
+var
+  WaterDirections: TIntegerArray;
+  Rect1, Rect2: TRectangle;
+  ATPA: T2DPointArray;
+  TPA, SearchPoly: TPointArray;
+begin
+  WaterDirections := Self.FindWaterDirection;
+  if WaterDirections = [] then
+    Exit;
+
+  if WaterDirections.Contains(0) then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  if WaterDirections.Contains(1) then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  if WaterDirections.Contains(2) then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  if WaterDirections.Contains(3) then
+  begin
+    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
+    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
+    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+  end;
+
+  for SearchPoly in ATPA do
+  begin
+    SearchPoly.Fill;
+    SearchPoly := SearchPoly.Erode(5).Edges();
+
+    Result := (SRL.FindColors(TPA, CTS2(10036, 7, 0.13, 0.01), SearchPoly) > 25)
+              or
+              (SRL.FindColors(TPA, CTS2(11581, 2, 0.14, 0.01), SearchPoly) > 25) //regular rod
+              or
+              (SRL.FindColors(TPA, CTS2(5860468, 14, 0.06, 0.35), SearchPoly) > 25); //barbarian rod
+
+    if Result then
+      Exit;
+  end;
+end;
+
+
+procedure TRSAction.DebugObject(TPA: TPointArray);
+var
+  Bitmap: TMufasaBitmap;
+begin
+  Bitmap.FromClient;
+  Bitmap.DrawBox(TPA.Bounds, $ffffff);
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+procedure TRSAction.DebugObject(ATPA: T2DPointArray); overload;
+var
+  Bitmap: TMufasaBitmap;
+begin
+  Bitmap.FromClient;
+  Bitmap.DrawBoxes(ATPA.ToTBA, $ffffff);
+  ShowBitmap(Bitmap);
+  Bitmap.Free;
+end;
+
+
+function TRSAction.ClickObject(UpText: String; ATPA: T2DPointArray): Boolean;
+var
+  i: Int32;
+begin
+  if MainScreen.IsUpText(UpText) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    if MainScreen.DidYellowClick then
+      Exit(False);
+    Minimap.WaitPlayerMoving(300, 3000);
+    Exit(True);
+  end
+  else if ATPA = [] then
+    Exit(False);
+
+  for i := 0 to High(ATPA) do
+  begin
+    Mouse.Move(ATPA[i].Bounds);
+    if MainScreen.IsUpText(UpText) then
+    begin
+      Mouse.Click(MOUSE_LEFT);
+      if MainScreen.DidYellowClick then
+        Exit(False);
+      Minimap.WaitPlayerMoving(300, 3000);
+      Exit(True);
+    end
+    else if i = High(ATPA) then
+      Exit(False);
+  end;
+end;
+
+function TRSAction.StartFishing: Boolean;
+var
+  ATPA: T2DPointArray;
+begin
+  if not Self.FindFishSpot(ATPA, 250) then
+    Exit;
+
+  Result := Self.ClickObject('Fishing spot', ATPA);
+end;
+
+procedure TRSAction.DoAction(Action: ERSAction);
+begin
+  case Action of
+    CHECK_STATS: Antiban.HoverSkills;
+    FISH: Self.StartFishing;
+    ALCH: Self.AlchItems(AlchItemArray);
+    FLETCH: ;
+    DROP: Self.DropItems;
+  end;
+end;
+
+var
+  RSAction: TRSAction;
+
+begin
+  RSAction.Setup;
+end;

@@ -9,6 +9,28 @@ type
     ScrollLevel: UInt32;
   end;
 
+function TRSBank.FindItem(Item: TRSItem; out Bounds: TBox): Boolean; override;
+var
+  Boxes: TBoxArray;
+  TempItem: TRSItem;
+  Indices: TIntegerArray;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Boxes := Self.FindItemBoundaries();
+
+  for TempItem in GetMultiItem(Item) do
+  begin
+    Indices := ItemFinder.Find(TempItem, Boxes, 1);
+    if Indices <> [] then
+    begin
+      Bounds := Boxes[Indices[0]];
+      Exit(True);
+    end;
+  end;
+end;
+
 function TRSBank.FindItem(Item: TRSBankWithdrawItem): Boolean; overload;
 begin
   Result := Self.FindItem(Item.Item);
@@ -324,15 +346,13 @@ begin
   Result := not Inventory.FindItems(ItemList);
 end;
 
-(*
-TODO: FIX DEPOSITALLBUT
 function TRSBank.DepositAllBut(Tab: Int32; Items: TRSItemArray): Boolean;
 var
   Item: TRSItem;
   Slots: TIntegerArray;
   DepositSlots: TIntegerArray;
 begin
-  if not Self.IsOpen then
+  if not Self.IsOpen() then
     Exit;
 
   if Tab > -1 then
@@ -341,7 +361,7 @@ begin
   for Item in Items do
     Inventory.FindItem(Item, Slots);
 
-  DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+  DepositSlots := Slots.SymmetricDifference(Inventory.GetUsedSlots);
 
   if DepositSlots <> [] then
   repeat
@@ -351,10 +371,9 @@ begin
     if Self.DepositSlot([DepositSlots[0], BANK_DEPOSIT_ALL], True) then
       WaitUntil(not Inventory.IsSlotUsed(DepositSlots[0]), 100, 2000);
 
-    DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+    DepositSlots := Slots.SymmetricDifference(Inventory.GetUsedSlots);
   until Result := (DepositSlots = []);
 end;
-*)
 
 function TRSBank.Close(PressEscape: Boolean = False): Boolean; override;
 begin

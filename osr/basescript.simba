@@ -47,13 +47,12 @@ The variables that are part of **TBaseScript** are the following:
  - **ActionLimit**: Integer variable to set total action limit before ending the script.
 *)
   TBaseScript = record(TSRLBaseRecord)
-    Version: String;
+    Revision: String;
     Welcome: String;
-
-    IsSetup: Boolean;
 
     TimeRunning: TStopwatch;
     StatsDebugTick: UInt64;
+    ReportTimer: TTimer;
 
     Action: String;
     PreviousAction: String;
@@ -66,6 +65,8 @@ The variables that are part of **TBaseScript** are the following:
 
     TimeLimit: Int64;
     ActionLimit: Int32;
+
+    IsSetup: Boolean;
   end;
 
 (*
@@ -111,14 +112,121 @@ The extra variables that are part of **TBaseBankScript** are:
 var
   TotalConsumableCost: Int32;
 
+{$H-}
+
+function TBaseScript.ShouldHandlePaint(): Boolean;
+begin
+  Result := RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled;
+end;
+
+function TBaseScript.ShouldDrawPaint(): Boolean;
+begin
+  Result := not ProgressReport.IsSetup or
+            (Self.ShouldHandlePaint() and (Self.Action <> Self.PreviousAction));
+end;
+
+procedure TBaseScript.ProcessWhileWaiting(Sender: TObject);
+var
+  Str: String;
+  ElapsedTime: UInt64;
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  MousePos: TPoint;
+  PaintDisabled: Boolean;
+  {$ENDIF}
+begin
+  try
+    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+    if Self.ShouldHandlePaint() then
+    begin
+      EIOS_GetRealMousePosition(RSClient.RemoteInput.EIOS, MousePos.X, MousePos.Y);
+      PaintDisabled := PointInBox(MousePos, DisableHoverBox);
+      if PaintDisabled then
+      begin
+        ProgressReport.ClientBMP.Clear;
+        ProgressReport.IsSetup := False;
+
+        ProgressReport.ClientBMP.DrawBoxFilled(Chat.GetDisplayNameBox(), $819DAC);
+        ProgressReport.DrawDisableButton('Show');
+      end;
+    end;
+    {$ENDIF}
+
+    Self.TotalProfit := (Self.TotalActions * Self.ActionProfit) - TotalConsumableCost;
+
+    Self.DebugLn(Self.Action, Self.ExtraInfo);
+    ElapsedTime := Self.TimeRunning.ElapsedTime();
+
+    EnergyLevel := Max(Power(1 + (24 - ElapsedTime) / ONE_DAY, Sqr(Endurance+0.75*Patience+0.25)*1.33), 0);
+
+    ProgressTitle := Self.Name;
+    PadLength := ProgressTitle.Len + 6;
+
+    ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
+    ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
+
+    PadLength := ProgressTitle.Len();
+
+    ProgressArray := [];
+    ProgressArray += ProgressTitle;
+
+    Str := ' Action        : ' + Self.Action;
+
+    ProgressArray += PadR((' Action        : ' + Self.Action), Round(PadLength/2), ' ') +
+                           ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
+
+    if (Self.ActionLimit = -1) then
+      ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions)), Round(PadLength/2), ' ') +
+                             ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime))
+    else
+      ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit)), Round(PadLength/2), ' ') +
+                             ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
+
+    ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit)), Round(PadLength/2), ' ') +
+                           ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
+
+    ProgressArray += ' ' + Self.Welcome + ' waspscripts.com';
+
+    ProgressArray += Self.ExtraInfo;
+
+    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+    if not PaintDisabled and Self.ShouldDrawPaint() then
+        ProgressReport.Update(ProgressArray);
+    {$ENDIF}
+
+    for Str in ProgressArray do
+      Writeln(Str);
+
+    Self.PreviousAction := Self.Action;
+    Self.StatsDebugTick := GetTickCount;
+
+
+    if ScriptDebugEnabled then
+      SRL.Debug(RSClient.Image);
+  except
+    WriteLn(GetExceptionMessage());
+  end;
+end;
+{$H+}
+
+procedure TBaseScript.StartReportTimer;
+begin
+  Self.ReportTimer.Init(nil);
+  Self.ReportTimer.SetInterval(1000);
+  Self.ReportTimer.SetOnTimer(@Self.ProcessWhileWaiting);
+  Self.ReportTimer.SetEnabled(True);
+  addOnTerminate(@Self.ReportTimer.Free);
+end;
+
 procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to add more stuff.
 var
   ScriptStr: String;
 begin
   AddOnTerminate(@SaveScreenshot);
 
+  TotalConsumableCost := 0;
   Self.DisableDebugging := True;
-  Self.Version := ReadFileContents(IncludePath + 'WaspLib\version.txt');
+  {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
+  Self.Revision := {$macro SCRIPT_REVISION};
 
   GenerateLog(Self.Name);
   ScriptStr := ToStr(Self);
@@ -157,6 +265,7 @@ begin
 
   Antiban.Setup;
 
+  Sync(@Self.StartReportTimer);
   //override me to add more stuff.
 end;
 
@@ -177,69 +286,9 @@ begin
   end;
 end;
 
-procedure TBaseScript.ProcessWhileWaiting();
-var
-  Str: String;
-  ElapsedTime: UInt64;
-begin
-  Self.TotalProfit := (Self.TotalActions * Self.ActionProfit) - TotalConsumableCost;
-
-  if (GetTickCount() - Self.StatsDebugTick) < 1000 then
-    Exit;
-
-  Self.DebugLn(Self.Action, Self.ExtraInfo);
-  ElapsedTime := Self.TimeRunning.ElapsedTime();
-
-  EnergyLevel := Max(Power(1 + (24 - ElapsedTime) / ONE_DAY, Sqr(Endurance+0.75*Patience+0.25)*1.33), 0);
-
-  ProgressTitle := Self.Name;
-  PadLength := ProgressTitle.Len + 6;
-
-  ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
-  ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
-
-  PadLength := ProgressTitle.Len;
-
-  ProgressArray := [];
-  ProgressArray += ProgressTitle;
-
-  Str := ' Action        : ' + Self.Action;
-
-  ProgressArray += PadR((' Action        : ' + Self.Action), Round(PadLength/2), ' ') +
-                         ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
-
-  if (Self.ActionLimit = -1) then
-    ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime))
-  else
-    ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
-
-  ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit)), Round(PadLength/2), ' ') +
-                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
-
-  ProgressArray += ' ' + Self.Welcome + ' waspscripts.com';
-
-  ProgressArray += Self.ExtraInfo;
-
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled and
-  (Self.Action <> Self.PreviousAction) then
-    ProgressReport.Update(ProgressArray);
-  {$ENDIF}
-
-  for Str in ProgressArray do
-    Writeln(Str);
-
-  Self.PreviousAction := Self.Action;
-  Self.StatsDebugTick := GetTickCount;
 
 
-  if ScriptDebugEnabled then
-    SRL.Debug(RSClient.Image);
-end;
-
-function TBaseScript.ShouldStop: Boolean;
+function TBaseScript.ShouldStop(): Boolean;
 begin
   Result := ((Self.ActionLimit > -1) and (Self.TotalActions >= Self.ActionLimit)) or
             ((Self.TimeLimit > -1) and (Self.TimeRunning.ElapsedTime >= Self.TimeLimit));

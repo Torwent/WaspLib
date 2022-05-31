@@ -5,7 +5,7 @@
 
 (*
 InventoryExtra
-=========
+==============
 Methods to interact with the inventory.
 This file expands on SRL's inventory file.
 *)
@@ -16,31 +16,153 @@ const
   DROP_PATTERN_TWO_ROW: TIntegerArray = [0,4,1,5,2,6,3,7,8,12,9,13,10,14,11,15,16,20,17,21,18,22,19,23,20,24,25,26,27,28];
   DROP_PATTERN_TWO_ROW_R: TIntegerArray = [0,4,1,5,2,6,3,7,11,15,10,14,9,13,8,12,16,20,17,21,18,22,19,23,20,24,28,27,26,25];
 
-function GetMultiItem(Item: TRSItem): TRSItemArray;
+(*
+TRSItem.Reorder
+~~~~~~~~~~~~~~~
+.. pascal:: function TRSItem.Reorder(LowToHi: Boolean = True): TRSItem;
+
+Used to retrieve reordered items.
+Items that have several "doses" or "portions" like a Saradomin brew (1..4) might need to be reordered sometimes.
+
+When we want to consume them, we usually want to prioritize lower dosage items to get inventory space.
+However when we are withdrawing it from the bank, we want to prioritize the highest dosage items to maximize trips length.
+
+This function reorders depending on what you set in **LowToHi**. By default it reorders items from low to high.
+*)
+function TRSItem.Reorder(LowToHi: Boolean = True): TRSItem;
 var
-  ItemStr: String;
+  Str, first, last: String;
+  i, j: Int32;
+begin
+  Str := ToStr(Self);
+
+  if not Str.Contains('..') then
+    Exit(Self);
+
+  i := StrToInt(Str.Before('..')[High(Str.Before('..'))]);
+  j := StrToInt(Str.After('..')[Low(Str.Before('..'))]);
+
+  if (LowToHi and (i > j)) or (not LowToHi and (i < j)) then
+  begin
+    first := ToStr(j);
+    last  := ToStr(i);
+  end
+  else
+  begin
+    first := ToStr(i);
+    last  := ToStr(j);
+  end;
+
+  Result := Str.Replace('(' + ToStr(i) + '..' + ToStr(j) + ')', '(' + first + '..' + last + ')');
+end;
+
+(*
+TRSItem.GetPortions
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItem.GetPortions(): Int32;
+
+Get the amount of portons in the item.
+*)
+function TRSItem.GetPortions(): Int32;
+var
+  Str: String;
+  i, j: Int32;
+begin
+  Str := ToStr(Self);
+
+  if not Str.Contains('..') then
+    Exit(1);
+
+  i := StrToInt(Str.Before('..')[High(Str.Before('..'))]);
+  j := StrToInt(Str.After('..')[Low(Str.Before('..'))]);
+
+  if i > j then
+    Result := i
+  else
+    Result := j
+end;
+
+(*
+Item.GetArray
+~~~~~~~~~~~~~
+.. pascal:: function TRSItem.GetArray(): TRSItemArray;
+
+Used to retrieve an item array of our multi dose/portion item.
+
+Example
+-------
+  var
+    Item: TRSItem;
+  begin
+    Item := 'Saradomin brew(1..4)';
+
+    WriteLn Item.GetArray();
+    //This will print: ['Saradomin brew(1)', 'Saradomin brew(2)', 'Saradomin brew(3)', 'Saradomin brew(4)']
+  end;
+*)
+function TRSItem.GetArray(): TRSItemArray;
+var
+  Str: String;
   i, first, last: Int32;
 begin
-  ItemStr := ToStr(Item);
+  Str := ToStr(Self);
 
-  if ItemStr.Contains('..') then
+  if Str.Contains('..') then
   begin
-    first := StrToInt(ItemStr.Before('..')[High(ItemStr.Before('..'))]);
-    last :=  StrToInt(ItemStr.After('..')[Low(ItemStr.Before('..'))]);
+    first := StrToInt(Str.Before('..')[High(Str.Before('..'))]);
+    last :=  StrToInt(Str.After('..')[Low(Str.Before('..'))]);
     if first < last then
     begin
       for i := first to last do
-        Result += ItemStr.Replace(ToStr(first) + '..' + ToStr(last), ToStr(i));
+        Result += Str.Replace(ToStr(first) + '..' + ToStr(last), ToStr(i));
     end
     else if first > last then
     begin
       for i := first downto last do
-        Result += ItemStr.Replace(ToStr(first) + '..' + ToStr(last), ToStr(i));
+        Result += Str.Replace(ToStr(first) + '..' + ToStr(last), ToStr(i));
     end;
   end
   else
-    Result := [Item];
+    Result := [Self];
 end;
+
+(*
+Item.GetSingle
+~~~~~~~~~~~~~~
+.. pascal:: function TRSItem.GetSingle(Lo: Boolean = True): TRSItem;
+
+Used to retrieve the lowest or highest dose of our multi dose/portion item.
+
+Example
+-------
+  var
+    Item: TRSItem;
+  begin
+    Item := 'Saradomin brew(1..4)';
+
+    WriteLn Item.GetSingle(True); //This will print: 'Saradomin brew(1)'
+  end;
+*)
+function TRSItem.GetSingle(Lo: Boolean = True): TRSItem;
+var
+  Str: String;
+  i, j: Int32;
+begin
+  Str := ToStr(Self);
+
+  if not Str.Contains('..') then
+    Exit(Self);
+
+  i := StrToInt(Str.Before('..')[High(Str.Before('..'))]);
+
+  j :=  StrToInt(Str.After('..')[Low(Str.Before('..'))]);
+
+  if (Lo and (i > j)) or (not Lo and (i < j)) then
+    Result := Str.Replace(ToStr(i) + '..' + ToStr(j), ToStr(j))
+  else
+    Result := Str.Replace(ToStr(i) + '..' + ToStr(j), ToStr(i));
+end;
+
 
 
 function TRSInventory.FindItems(Items: TRSItemArray; out Slots: TIntegerArray): Boolean; override;
@@ -62,7 +184,7 @@ begin
     end;
 
   for Item in Items do
-    for SingleItem in GetMultiItem(Item) do
+    for SingleItem in Item.GetArray() do
       TempSlots += ItemFinder.Find(SingleItem, tmp);
 
   for i in TempSlots do
@@ -75,9 +197,13 @@ function TRSInventory.FindItem(Item: TRSItem; out Slot: Int32): Boolean; overrid
 var
   TempItem: TRSItem;
 begin
-  for TempItem in GetMultiItem(Item) do
-    if inherited(TempItem, Slot) then
+  for TempItem in Item.GetArray() do
+  begin
+    Result := inherited(TempItem, Slot);
+
+    if Result then
       Exit(True);
+  end;
 end;
 
 

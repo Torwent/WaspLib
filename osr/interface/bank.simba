@@ -82,7 +82,23 @@ begin
 end;
 
 
+(*
+Bank._SimplifyItemName
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSBank._SimplifyItemName(Item: TRSItem): String;
 
+Internal function to get a human like search term for an item.
+This could be improved for better antiban but I decided to keep it simple since it's not used very frequently.
+This basically strips the item name from things humans won't usually type when searching, like brackets. It also makes the string lower case because people searching don't usually care about casing.
+Once that's done wee crop some characters from the final string, because humans don't usually search the full item name, but just enough until it's seen on screen.
+
+.. note:: Could be improved to in the future for only using the relevant part of the string. For example, an human searching for 'Amulet of glory(6)' would probably search for 'glory' instead of 'amulet of gl'.
+
+Example
+-------
+  
+  WriteLn Bank._SimplifyItemName('Amulet of glory(6)');
+*)
 function TRSBank._SimplifyItemName(Item: TRSItem): String;
 var
   ItemStr: String := ToStr(Item);
@@ -96,6 +112,23 @@ begin
   Result := Copy(ItemStr, 0, Random(MinLength, MaxLength));
 end;
 
+(*
+Bank.FindItemTab
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSBank.FindItemTab(Item: TRSItem; OpenTab: Boolean = True): Int32;
+
+Find the bank tab of an item just by knowing it's name.
+This is very useful when you want to support people having items in any tab they want without much hassle for people to setup.
+By default it will open the banktab if the item is found. This can be changed by setting **OpenTab** to false.
+The result will be the BankTab of the item. **-1** means we didn't find a BankTab.
+
+.. note:: A known limitation of this is that if several items match the sprite of the item (for example multiple charged jewlry) the tab retrieved will be the first one found. If you have 'Games necklace(1)' in tab 1 and 'Games necklace(8)' in tab 5 and search for the latter, you will get tab 1.
+
+Example
+-------
+  
+  WriteLn Bank.FindItemTab('Molten glass');
+*)
 function TRSBank.FindItemTab(Item: TRSItem; OpenTab: Boolean = True): Int32;
 var
   Box, SearchBox: TBox;
@@ -105,47 +138,56 @@ var
 begin
   if Self.FindItem(Item, Box) then
   begin
-    if not Self.GetButton(ERSBankButton.SEARCH).Enabled then
-      Exit(Self.GetCurrentTab)
+    if not Self.GetButton(ERSBankButton.SEARCH).Enabled then //if we found the item and we are not searching anything return the current tab.
+      Exit(Self.GetCurrentTab())
     else
     begin
-      Self.OpenSearch(600);
+      Self.OpenSearch(600); //if we found the item and we are searching something, it's better to clear the search and start from scratch.
       Self.CloseSearch;
     end;
   end;
 
-  if not Self.Search(Self._SimplifyItemName(Item)) or not Self.FindItem(Item, Box) then
-    Exit(-1);
-
-  SearchBox := [Self.X1 + 56, Self.Y1 + 77, Self.X1 + 84, Box.Y1];
-
-  if SRL.FindColors(TPA, CTS0(10672356, 0), SearchBox) > 0 then
+  //Attempt to search the "simplified item name" with Bank._SimplifyItemName(). Then try to find the item again. 
+  if not Self.Search(Self._SimplifyItemName(Item)) or not Self.FindItem(Item, Box) then 
+    Exit(-1); //If either of this things fails we exit with -1.
+  //This is because if either fails something is wrong bank is not open or we don't have the item.  
+    
+    
+  //Here is where the interesting stuff starts. We are going to look for the BankTab text on the left side that shows up when you search for an item.
+  //In particular, we are interested in the BankTab text that is right above the item we found.  
+    
+  SearchBox := [Self.X1 + 56, Self.Y1 + 77, Self.X1 + 84, Box.Y1]; //First we restrict the search box. SearchBox.Y2 will be Box.Y1 because we are not interested in anything below the item.
+                                                                   //We also set X1, Y1, X2 to known values that will make the search box smaller based on the Bank.Bounds.
+  
+  //Now we search for both tab text colors. The tab text is light yellow and whiteish when you hover it. 
+  if SRL.FindColors(TPA, CTS0(10672356, 0), SearchBox) > 0 then 
     TabsText += TPA;
-  if SRL.FindColors(TPA, CTS0(16777215, 0), SearchBox) > 0 then
+  if SRL.FindColors(TPA, CTS0(16777215, 0), SearchBox) > 0 then 
     TabsText += TPA;
 
-  if TabsText = [] then //if we can see the item at this point
-  begin                 //and there's no tab text, it's in tab0
-    if OpenTab then
+  if TabsText = [] then //if we can see the item at this point and there's no tab text, it's in tab0
+  begin                 //this is because tab0 is the only tab that doesn't have text.
+    if OpenTab then     
       Self.OpenTab(0);
     Exit(0);
   end;
 
-  TPA := TabsText.Merge;
-  ATPA := TPA.Cluster(6);
+  TPA := TabsText.Merge;  //we merge the tab text.
+  ATPA := TPA.Cluster(6); //and then we cluster it so we have a TPA of each tab text separated from each other.
+  
   //filter out anything that does not fit the size of the tab text.
   ATPA.FilterDimensions(24, 8, 26, 8);
 
-  if ATPA = [] then Exit(-1);
+  if ATPA = [] then Exit(-1); //At this point, if everything got filtered something must have gone wrong and we didn't find a tab. I don't think this ever happens.
 
-  //Sort the tabs text from bottom to top.
-  ATPA.SortByY(False);
+  ATPA.SortByY(False); //Sort the tabs text from bottom to top. This is because we are only interested in the very first above the item.
 
-  //Sort the tab text from right to left so we can extract the number.
-  ATPA := ATPA[0].Cluster(1);
-  ATPA.SortByX(False);
+  
+  ATPA := ATPA[0].Cluster(1); //Now we make clusters of that single tab text. This will separate the text from the number.
+  ATPA.SortByX(False);        //Sort the tab text from right to left because now we are only interested in the number which is to the right.
   TPA := ATPA[0];
-
+  
+  //Now we run OCR on the number TPA to find out what number is it and set our result
   Result := OCR.RecognizeNumber(TPA.Bounds, TOCRColorRule.Create([10672356]), RS_FONT_PLAIN_11);
   if Result = 0 then
     Result := OCR.RecognizeNumber(TPA.Bounds, TOCRColorRule.Create([16777215]), RS_FONT_PLAIN_11);
@@ -153,6 +195,7 @@ begin
   if (Result > 0) and OpenTab then
     Self.OpenTab(Result);
 end;
+
 
 
 

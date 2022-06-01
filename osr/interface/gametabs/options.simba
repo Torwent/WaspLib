@@ -42,6 +42,93 @@ begin
 end;
 
 
+function TRSOptions.GetDropDowns: TRSDropDownArray;
+begin
+  Result := Self.FindDropDown([[160, 18]]);
+end;
+
+function TRSOptions.GetDropDown(DropDown: ERSOptionsDropDown): TRSDropDown;
+var
+  CurrentTab: ERSOptionsTab := Self.GetCurrentTab;
+  DropDowns: TRSDropDownArray;
+begin
+  if ((CurrentTab = ERSOptionsTab.CONTROLS) and
+      (DropDown = ERSOptionsDropDown.CLIENT_MODE)) or
+     ((CurrentTab = ERSOptionsTab.DISPLAY) and
+      (DropDown <> ERSOptionsDropDown.CLIENT_MODE)) then
+    Exit;
+
+  DropDowns := Self.GetDropDowns;
+
+  if DropDowns <> [] then
+    case DropDown of
+      ERSOptionsDropDown.PLAYER_ATTACK_OPTIONS:
+        Result := DropDowns[Low(DropDowns)];
+      ERSOptionsDropDown.NPC_ATTACK_OPTIONS:
+        Result := DropDowns[High(DropDowns)];
+      ERSOptionsDropDown.CLIENT_MODE:
+        Result := DropDowns[Low(DropDowns)];
+    end;
+end;
+
+
+function TRSOptions.GetAttackOption(DropDown: ERSOptionsDropDown): ERSAttackOption;
+var
+  AttOptionStr: String;
+begin
+  if not Self.Open and not Self.OpenTab(ERSOptionsTab.CONTROLS) then
+    Exit;
+
+  AttOptionStr := Self.GetDropDown(DropDown).GetText.Lower;
+
+  if 'depends' in AttOptionStr then
+    Exit(ERSAttackOption.DEPENDS_ON_COMBAT)
+  else if 'left' in AttOptionStr then
+    Exit(ERSAttackOption.ALWAYS_LEFT_CLICK)
+  else if 'right' in AttOptionStr then
+    Exit(ERSAttackOption.ALWAYS_RIGHT_CLICK)
+  else if 'hidden' in AttOptionStr then
+    Exit(ERSAttackOption.HIDDEN)
+  else if 'clan' in AttOptionStr then
+    Exit(ERSAttackOption.RIGHT_CLICK_CLAN);
+end;
+
+function TRSOptions.GetPlayerAttackOption: ERSAttackOption;
+begin
+  Result := Self.GetAttackOption(ERSOptionsDropDown.PLAYER_ATTACK_OPTIONS);
+end;
+
+function TRSOptions.GetNPCAttackOption: ERSAttackOption;
+begin
+  Result := Self.GetAttackOption(ERSOptionsDropDown.NPC_ATTACK_OPTIONS);
+end;
+
+
+function TRSOptions.SetAttackOption(DropDown: ERSOptionsDropDown; Option: ERSAttackOption): Boolean;
+var
+  Strs: TStringArray;
+begin
+  if not Self.Open and not Self.OpenTab(ERSOptionsTab.CONTROLS) then
+    Exit;
+
+  if Self.GetAttackOption(DropDown) = Option then
+    Exit(True);
+
+  Strs := ['depends', 'left', 'right', 'hidden', 'clan'];
+
+  Result := Self.GetDropDown(DropDown).Select(Strs[Ord(Option)], MOUSE_LEFT, False);
+end;
+
+function TRSOptions.SetPlayerAttackOption(Option: ERSAttackOption): Boolean;
+begin
+  Result := Self.SetAttackOption(ERSOptionsDropDown.PLAYER_ATTACK_OPTIONS, Option);
+end;
+
+function TRSOptions.SetNPCAttackOption(Option: ERSAttackOption): Boolean;
+begin
+  Result := Self.SetAttackOption(ERSOptionsDropDown.NPC_ATTACK_OPTIONS, Option);
+end;
+
 
 procedure TRSOptions.RenderSelf;
 begin

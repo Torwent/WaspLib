@@ -11,6 +11,11 @@ They also contain template functions and procedures that can be used as is or ov
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+(*
+const WELCOME_SENTENCES
+~~~~~~~~~~~~~~~~~~~~~~~
+  Global WELCOME_SENTENCES constant used to store advertising senteces to display in the progress report.
+*)
 const
   WELCOME_SENTENCES: TStringArray = [
     'Join WaspScripts today!',
@@ -26,7 +31,6 @@ const
     'Unleash the power of Simba'
   ];
 
-type
 (*
 type TBaseScript
 ~~~~~~~~~~~~~~~~
@@ -45,7 +49,16 @@ The variables that are part of **TBaseScript** are the following:
  - **TotalProfit**:  Integer that holds the total profit our script has done.
  - **TimeLimit**: Integer variable to set a time limit for our script in milliseconds before ending the current script.
  - **ActionLimit**: Integer variable to set total action limit before ending the script.
+
+TBaseScript can be used as is or inherited from to extend it's functionality.
+
+Example
+-------
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TRSWalker;
+  end;
 *)
+type
   TBaseScript = record(TSRLBaseRecord)
     Revision: String;
     Welcome: String;
@@ -69,63 +82,43 @@ The variables that are part of **TBaseScript** are the following:
     IsSetup: Boolean;
   end;
 
-(*
-type TBaseWalkerScript
-~~~~~~~~~~~~~~~~
-Record that holds common variables for most scripts that use walker.
-This record inherits from **TBaseScript** and has all of it's variables too.
-The extra variables that are part of **TBaseWalkerScript** are:
- - **RSW**: TRSWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
-*)
-  TBaseWalkerScript = record(TBaseScript)
-    RSW: TRSWalker;
-  end;
-
-(*
-type TBaseBankScript
-~~~~~~~~~~~~~~~~
-Record that holds common variables for most scripts that use a bank.
-This record inherits from **TBaseWalkerScript** and has all of it's variables as well as **TBaseScript's**.
-The extra variables that are part of **TBaseBankScript** are:
- - **Self.ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
- - **Self.ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
- - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
- - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
- - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
- - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
- - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
- - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
-*)
-  TBaseBankScript = record(TBaseWalkerScript)
-    ScriptBank:   TRSObject;
-    ScriptBanker: TRSNPC;
-
-    BankTab: Int32;
-
-    ItemLeftAmount: Int32;
-    HoveringBank: Boolean;
-    BankEmpty: Boolean;       //Used to cache if Bank doesn't have more of a certain item.
-    CollectEmpty: Boolean;    //Used to cache if CollectBox doesn't have more of a certain item.
-    CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
-  end;
-
-var
-  TotalConsumableCost: Int32;
-
 {$H-}
+(*
+BaseScript.ShouldHandlePaint()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.ShouldHandlePaint(): Boolean;
 
+Wrapper function used internally to decide if we should handle TWaspProgressReport.
+*)
 function TBaseScript.ShouldHandlePaint(): Boolean;
 begin
   Result := RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled;
 end;
 
+(*
+BaseScript.ShouldDrawPaint()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.ShouldDrawPaint(): Boolean;
+
+Wrapper function used internally to decide if we should call TWaspProgressReport.Update().
+To avoid unnecessary redraw, when Self.Action and Self.PreviousAction are the same, we do not redraw.
+*)
 function TBaseScript.ShouldDrawPaint(): Boolean;
 begin
   Result := not ProgressReport.IsSetup or
             (Self.ShouldHandlePaint() and (Self.Action <> Self.PreviousAction));
 end;
 
-procedure TBaseScript.ProcessWhileWaiting(Sender: TObject);
+(*
+BaseScript.PrintReport()
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseScript.PrintReport(Sender: TObject);
+
+Internal method to print our progress report ("proggie").
+This is run on a timer setup by TBaseScript and also handles drawing the HUD progress report if it is enabled.
+It also is responsible for debugging the script with SRL.Debug() if we enable it.
+*)
+procedure TBaseScript.PrintReport(Sender: TObject);
 var
   Str: String;
   ElapsedTime: UInt64;
@@ -208,16 +201,44 @@ begin
 end;
 {$H+}
 
-procedure TBaseScript.StartReportTimer;
+(*
+BaseScript.StartReportTimer()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseScript.StartReportTimer();
+
+Internal method used to start the timer in which TBaseScript.PrintReport() runs on.
+*)
+procedure TBaseScript.StartReportTimer();
 begin
   Self.ReportTimer.Init(nil);
   Self.ReportTimer.SetInterval(1000);
-  Self.ReportTimer.SetOnTimer(@Self.ProcessWhileWaiting);
+  Self.ReportTimer.SetOnTimer(@Self.PrintReport);
   Self.ReportTimer.SetEnabled(True);
   addOnTerminate(@Self.ReportTimer.Free);
 end;
 
-procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to add more stuff.
+(*
+BaseScript.Init()
+~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and/or **MaxTime** -1 that will make
+`TBaseScript.ShouldStop() = True` when `TBaseScript.TotalActions = MaxAtions` or
+`TBaseScript.TimeRunning.ElapsedTime = MaxTime`.
+
+Can be used as is or overriden to do additional tasks.
+
+Example
+-------
+
+  var Script: TBaseScript;
+
+  begin
+    Script.Init(-1, 2 * ONE_DAY);
+  end;
+*)
+procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
 var
   ScriptStr: String;
 begin
@@ -269,6 +290,18 @@ begin
   //override me to add more stuff.
 end;
 
+(*
+BaseScript.DoAntiban()
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
+
+Method used to call Antiban.DoAntiban(CheckBreaks, CheckSleeps).
+
+Example
+-------
+
+  Script.DoAntiban();
+*)
 function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
 begin
   Antiban.DismissRandom();
@@ -286,8 +319,21 @@ begin
   end;
 end;
 
+(*
+BaseScript.ShouldStop()
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.ShouldStop(): Boolean;
 
+Method used to check if we reached the TBaseScript goals and it's time to stop it.
 
+.. note:: This doesn't stop the script. This simply returns true/false when called and it's up to you to stop the script.
+
+Example
+-------
+
+  if Script.ShouldStop() then
+    TerminateScript();
+*)
 function TBaseScript.ShouldStop(): Boolean;
 begin
   Result := ((Self.ActionLimit > -1) and (Self.TotalActions >= Self.ActionLimit)) or
@@ -297,19 +343,76 @@ begin
     SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
 end;
 
+(*
+type TBaseWalkerScript
+~~~~~~~~~~~~~~~~~~~~~~
+Record that holds common variables for most scripts that use walker.
+This record extends **TBaseScript** and has all of it's variables too.
+The extra variables that are part of **TBaseWalkerScript** are:
+ - **RSW**: TRSWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
+*)
+type
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TRSWalker;
+  end;
 
+(*
+BaseWalkerScript.Init()
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
 
-procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;//override me to add more stuff.
+Can be used as is or overriden to do additional tasks.
+*)
+procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   inherited;
 
   Self.RSW.OnWalkingEvent := @WalkerTasks;
 end;
 
+(*
+type TBaseBankScript
+~~~~~~~~~~~~~~~~~~~~
+Record that holds common variables for most scripts that use a bank.
+This record inherits from **TBaseWalkerScript** and which inherits from **TBaseScript's**.
+The extra variables that are part of **TBaseBankScript** are:
+ - **Self.ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
+ - **Self.ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
+ - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
+ - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
+ - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
+ - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
+ - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
+ - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
+*)
+type
+  TBaseBankScript = record(TBaseWalkerScript)
+    ScriptBank:   TRSObject;
+    ScriptBanker: TRSNPC;
 
+    BankTab: Int32;
 
-procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;//override me to add more stuff.
+    ItemLeftAmount: Int32;
+    HoveringBank: Boolean;
+    BankEmpty: Boolean;       //Used to cache if Bank doesn't have more of a certain item.
+    CollectEmpty: Boolean;    //Used to cache if CollectBox doesn't have more of a certain item.
+    CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
+  end;
+
+(*
+BaseBankScript.Init()
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
+
+Can be used as is or overriden to do additional tasks.
+*)
+procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   inherited;
 
@@ -319,118 +422,132 @@ begin
   //override me to add more stuff.
 end;
 
-procedure TBaseBankScript.SetupWLBanks;
+(*
+BaseBankScript.SetupWLBanks()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseBankScript.SetupWLBanks();
+
+Method used to setup the **CurrentBank** of TBaseBankScript.
+**CurrentBankLocation** has to be set beforehand by default it uses the grand exchange.
+
+Example
+-------
+
+  CurrentBankLocation := EWLBankLocation.ARDOUGNE_SOUTH;
+  Script.SetupWLBanks();
+*)
+procedure TBaseBankScript.SetupWLBanks();
 begin
   case CurrentBankLocation of
-    EWaspBankLocation.AL_KHARID:
+    EWLBankLocation.AL_KHARID:
       begin
 		    Self.RSW.Setup('mainland');
 		    Self.ScriptBank := RSObjects.AlKharidBank;
       end;
 
-    EWaspBankLocation.ARDOUGNE_NORTH:
+    EWLBankLocation.ARDOUGNE_NORTH:
       begin
 		    Self.RSW.Setup('x5723y3038');
 		    Self.ScriptBank := RSObjects.ArdougneNorthBank;
       end;
 
-    EWaspBankLocation.ARDOUGNE_SOUTH:
+    EWLBankLocation.ARDOUGNE_SOUTH:
       begin
 		    Self.RSW.Setup('x5723y3038');
 		    Self.ScriptBank := RSObjects.ArdougneSouthBank;
       end;
 
-    EWaspBankLocation.CASTLE_WARS:
+    EWLBankLocation.CASTLE_WARS:
       begin
 		    Self.RSW.Setup('mainland');
 		    Self.ScriptBank := RSObjects.CastleWarsBank;
       end;
 
-    EWaspBankLocation.CATHERBY:
+    EWLBankLocation.CATHERBY:
       begin
 		    Self.RSW.Setup('mainland');
 		    Self.ScriptBank := RSObjects.CatherbyBank;
       end;
 
-    EWaspBankLocation.CRAFT_GUILD:
+    EWLBankLocation.CRAFT_GUILD:
       begin
 		    Self.RSW.Setup('x6953y3166');
 		    Self.ScriptBank := RSObjects.CraftGuildBank;
       end;
 
-    EWaspBankLocation.DRAYNOR:
+    EWLBankLocation.DRAYNOR:
       begin
 		    Self.RSW.Setup('x7617y3214');
 		    Self.ScriptBank := RSObjects.DraynorBank;
       end;
 
-    EWaspBankLocation.EDGEVILLE:
+    EWLBankLocation.EDGEVILLE:
       begin
 		    Self.RSW.Setup('x7536y2363');
 		    Self.ScriptBank := RSObjects.EdgevilleBank;
       end;
 
-    EWaspBankLocation.FALADOR_EAST:
+    EWLBankLocation.FALADOR_EAST:
       begin
 		    Self.RSW.Setup('x7051y2796');
 		    Self.ScriptBank := RSObjects.FaladorEastBank;
       end;
 
-    EWaspBankLocation.FALADOR_WEST:
+    EWLBankLocation.FALADOR_WEST:
       begin
 		    Self.RSW.Setup('x7051y2796');
 		    Self.ScriptBank := RSObjects.FaladorWestBank;
       end;
 
-    EWaspBankLocation.GRAND_EXCHANGE:
+    EWLBankLocation.GRAND_EXCHANGE:
       begin
 		    Self.RSW.Setup('x7789y2306');
 		    Self.ScriptBank := RSObjects.GEBank;
       end;
 
-    EWaspBankLocation.LUNAR_ISLAND:
+    EWLBankLocation.LUNAR_ISLAND:
       begin
 		    Self.RSW.Setup('x4127y1027');
 		    Self.ScriptBank := RSObjects.LunarBank;
       end;
 
-    EWaspBankLocation.MINING_GUILD:
+    EWLBankLocation.MINING_GUILD:
       begin
 		    Self.RSW.Setup('x6291y497');
 		    Self.ScriptBank := RSObjects.MiningGuildBank;
       end;
 
-    EWaspBankLocation.PRIFDDINNAS:
+    EWLBankLocation.PRIFDDINNAS:
       begin
 		    Self.RSW.Setup('x3583y1905');
 		    Self.ScriptBank := RSObjects.PrifddinasBank;
       end;
 
-    EWaspBankLocation.SEERS:
+    EWLBankLocation.SEERS:
       begin
 		    Self.RSW.Setup('mainland');
 		    Self.ScriptBank := RSObjects.SeersBank;
       end;
 
-    EWaspBankLocation.TZHAAR:
+    EWLBankLocation.TZHAAR:
       begin
 		    Self.RSW.Setup('x4333y310');
 		    Self.ScriptBank := RSObjects.TzhaarBank;
       end;
 
-    EWaspBankLocation.VARROCK_EAST:
+    EWLBankLocation.VARROCK_EAST:
       begin
 		    Self.RSW.Setup('x7536y2363');
 		    Self.ScriptBank := RSObjects.VarrockEastBank;
       end;
 
-    EWaspBankLocation.VARROCK_WEST:
+    EWLBankLocation.VARROCK_WEST:
       begin
 		    Self.RSW.Setup('x7789y2306');
 		    Self.ScriptBank := RSObjects.VarrockWestBank;
       end;
 
-    EWaspBankLocation.WINTERTODT:
+    EWLBankLocation.WINTERTODT:
       begin
 		    Self.RSW.Setup('x1549y224');
 		    Self.ScriptBank := RSObjects.WintertodtBank;
@@ -438,8 +555,35 @@ begin
   end;
 end;
 
+(*
+BaseBankScript.Terminate()
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.Terminate(): Boolean;
 
-function TBaseBankScript.Terminate: Boolean;//override me to add more stuff.
+Helper method to be called at the end of the life cycle of a TBaseBankScript.
+By default it simply attempts to open the TBaseBankScript.CurrentBank but it's meant to
+be overriden and inherited or completely be remade for proper termination of the TBaseBankScript.
+
+This is likely required if you want to chain several scripts together.
+
+.. note:: Consider taking a look at script_chainer.simba: https://github.com/Torwent/wasp-mini/blob/master/script_chainer.simba
+
+Example
+-------
+
+  Script1.Init();
+  repeat
+    //do stuff...
+  until Script1.ShouldStop();
+
+  Script1.Terminate();
+
+  Script2.Init();
+  repeat
+    //do stuff...
+  until Script2.ShouldStop();
+*)
+function TBaseBankScript.Terminate(): Boolean;
 begin
   for 0 to 5 do
   begin
@@ -455,12 +599,39 @@ begin
   //override me to add more stuff.
 end;
 
+(*
+BaseBankScript.CountItemsLeft()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
+
+Set's TBaseBankScript.ItemLeftAmount to be used by TBaseBankScript.ShouldHover().
+
+.. note:: For some scripts this might need to be overriten and rewritten.
+*)
 procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
 begin
   Self.ItemLeftAmount := Inventory.CountItem(Item);
 end;
 
-function TBaseBankScript.ShouldHover: Boolean;
+(*
+BaseBankScript.ShouldHover()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.ShouldHover(): Boolean;
+
+Method used to decide if we should pre-hover the bank or not.
+It uses the amount of items left in the inventory stored by TBaseBankScript.CountItemsLeft()
+in TBaseBankScript.ItemLeftAmount() along with the player BioHash to decide if we want to
+pre-hover the bank.
+
+.. note:: This function simply returns true/false and doesn't actualy hover the bank.
+
+Example
+-------
+
+  if Script.ShouldHover() then
+    Script.Hover();
+*)
+function TBaseBankScript.ShouldHover(): Boolean;
 begin
   Result := ((Self.ItemLeftAmount = 1) and SRL.Dice(10 + (90 * BioHash))) or
             ((Self.ItemLeftAmount = 2) and SRL.Dice(5 + (75 * BioHash))) or
@@ -471,11 +642,23 @@ begin
             SRL.Dice(5 * BioHash);
 end;
 
+(*
+BaseBankScript.Hover()
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.Hover(): Boolean;
 
-function TBaseBankScript.Hover: Boolean;
+Moves the mouse to the TBaseBankScript.CurrentBank RSObject.
+
+Example
+-------
+
+  BankScript.Hover();
+*)
+function TBaseBankScript.Hover(): Boolean;
 begin
   Result := Self.HoveringBank := Bank.Hover(Self.ScriptBank);
 end;
+
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
 begin

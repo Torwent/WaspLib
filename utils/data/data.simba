@@ -3,84 +3,103 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-//ItemData
+(*
+Data
+====
+Methods to fetch osrs data.
+This file has methods to fetch information about items, monsters and weapons.
+
+const PRICES_URL
+~~~~~~~~~~~~~~~~~
+  Global PRICES_URL constant. Can be changed to use a different prices data json as long as it has follows the wiki prices structure.
+
+const OSRSBOX_URL
+~~~~~~~~~~~~~~~~~
+  Global OSRSBOX_URL constant. Can be changed to use a different items data json as long as it has follows OSRSBox's structure.
+*)
 const
-  MONSTER_NAMES_FILE  = {$macro CURRENT_DIRECTORY} + '/monster-names';
   MONSTERS_JSON  = {$macro CURRENT_DIRECTORY} + '/monsters.json';
+  WEAPONS_JSON  = {$macro CURRENT_DIRECTORY} + '/weapons.json';
+  PRICES_URL = 'https://prices.runescape.wiki/api/v1/osrs/latest';
   OSRSBOX_URL = 'https://raw.githubusercontent.com/Flipping-Utilities/osrsbox-db/main/docs/items-json/';
 
+(*
+type TRSItemData
+~~~~~~~~~~~~~~~~
+**TRSItemData** is the record used to handle fetching item data.
+*)
 type
   TRSItemData = record
     ItemNames: TStringList;
-    WikiData: TJSONObject;
+    PriceData: TJSONObject;
     OSRSBoxData: TJSONObject;
     ReloadTimer: TCountDown;
-    WikiPriceIsSetup: Boolean;
+    PriceIsSetup: Boolean;
     OSRSBoxIsSetup: Boolean;
-    WikiDisconnected: Boolean;
+    PricesDisconnected: Boolean;
     OSRSBoxDisconnected: Boolean;
   end;
 
-  ERSMonsterAttackType = (
-    MELEE_ATTACK, RANGED_ATTACK, MAGIC_ATTACK, TYPELESS_ATTACK
-  );
+(*
+ItemData.Free()
+~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSItemData.Free();
 
-  TRSMonsterDrop = record
-    Item: String;
-    ID: String;
-    Stackable: Boolean;
-    Noted: Boolean;
-    Quantity: Int32;
-  end;
-
-  TRSMonsterData = record
-    MonsterNames: TStringList;
-    CurrentMonster: String;
-    Data: TJSONObject;
-    Size: Int32;
-    Hitpoints: Int32;
-    MaxHit: Int32;
-    AttackTypes: array of ERSMonsterAttackType;
-    Drops: array of TRSMonsterDrop;
-    IsSetup: Boolean;
-  end;
-
-procedure TRSItemData.Free;
+Internal method called automatically on script termination.
+Shouldn't be called by users other wise another termination will be attempted when the script stops running.
+*)
+procedure TRSItemData.Free();
 begin
-  Self.ItemNames.Free;
-  Self.WikiData.Free;
+  Self.ItemNames.Free();
+  Self.PriceData.Free();
 end;
 
+(*
+ItemData.SetupWikiPrices()
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSItemData.SetupWikiPrices();
 
-procedure TRSItemData.SetupWikiPrices;
+Internal method called automatically when we require price data.
+Doesn't need to be called since it will be called automatically if **TRSItemData.WikiPriceIsSetup** is false.
+It's also recalled when we try to fetch item data and 20 minutes have passed to update prices.
+*)
+procedure TRSItemData.SetupPrices();
 var
   JSON: String;
 begin
-  if not Self.WikiPriceIsSetup then
+  if not Self.PriceIsSetup then
   begin
-    Self.ItemNames.Init;
+    Self.ItemNames.Init();
     Self.ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
     Self.ItemNames.SetSorted(True);
 
     AddOnTerminate(@Self.Free);
-    Self.WikiPriceIsSetup := True;
-    Self.ReloadTimer.Setup(1200000);
+    Self.PriceIsSetup := True;
+    Self.ReloadTimer.Setup(20 * ONE_MINUTE);
   end;
 
   WriteLn 'Loading item prices from the wiki API.';
-  JSON := TryGetPage('https://prices.runescape.wiki/api/v1/osrs/latest');
+  JSON := TryGetPage(PRICES_URL);
 
   if JSON = '' then
   begin
     WriteLn 'We don''t seem to be able to connect to https://prices.runescape.wiki';
-    Self.WikiDisconnected := True;
+    Self.PricesDisconnected := True;
     Exit;
   end;
 
-  Self.WikiData.Init(JSON);
+  Self.PriceData.Init(JSON);
   Self.ReloadTimer.Restart;
 end;
 
+(*
+ItemData.GetIDs()
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetIDs(Item: String): TStringArray;
+
+Internal method called automatically when we require item data.
+This is based of ItemFinder.GetItemIDs() and it's used to retrieve item ids.
+*)
 function TRSItemData.GetIDs(Item: String): TStringArray;
 type
   TStringList = TStringList;
@@ -114,15 +133,23 @@ begin
   end;
 end;
 
+(*
+ItemData.GetData()
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetData(Item: String): TJSONObject;
+
+Internal method used to retrieve a TJSONObject of the Item we want information on.
+**Item** should be an item ID.
+*)
 function TRSItemData.GetData(Item: String): TJSONObject;
 var
   JSON: String;
 begin
-  if Self.WikiDisconnected or Self.OSRSBoxDisconnected then
+  if Self.PricesDisconnected or Self.OSRSBoxDisconnected then
     Exit;
 
-  if not Self.WikiPriceIsSetup then
-    Self.SetupWikiPrices;
+  if not Self.PriceIsSetup then
+    Self.SetupPrices();
 
   if Item = '' then
     Exit;
@@ -130,7 +157,7 @@ begin
   JSON := TryGetPage(OSRSBOX_URL + Item + '.json');
   if JSON = '' then
   begin
-    WriteLn 'We don''t seem to be able to connect to https://www.osrsbox.com';
+    WriteLn 'We don''t seem to be able to connect to the osrsbox data provider';
     Self.OSRSBoxDisconnected := True;
     Exit;
   end;
@@ -145,14 +172,23 @@ begin
   end;
 end;
 
+(*
+ItemData.GetTradeableID()
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetTradeableID(Item: TRSItem): String;
+
+Internal method used to retrieve only the tradeable version of an item if it exists.
+Some items have versions of themselves that are not tradeable and can't be used to fetch item prices,
+such as degraded items, ornamented items, etc.
+*)
 function TRSItemData.GetTradeableID(Item: TRSItem): String;
 var
   IDs: TStringArray;
   ID: String;
   OSRSBoxJSON: TJSONObject;
 begin
-  if not Self.WikiPriceIsSetup then
-    Self.SetupWikiPrices;
+  if not Self.PriceIsSetup then
+    Self.SetupPrices();
 
   if ToStr(Item) = '' then
     Exit;
@@ -166,26 +202,46 @@ begin
   end;
 end;
 
+(*
+ItemData.GetPrice()
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
+
+Internal method used to fetch a price data TJSONObject of a certain item.
+*)
 function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
 var
   ID: String;
   WikiJSON: TJSONObject;
 begin
   if Self.ReloadTimer.IsPaused or Self.ReloadTimer.IsFinished then
-    Self.SetupWikiPrices;
+    Self.SetupPrices();
 
   ID := Self.GetTradeableID(Item);
 
   if ID <> '' then
   begin
-    WikiJSON := Self.WikiData.getJSONObject('data');
+    WikiJSON := Self.PriceData.getJSONObject('data');
     if WikiJSON <> nil then
       Result := WikiJSON.getJSONObject(ID);
   end;
 end;
 
+(*
+ItemData.GetPriceInt()
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetPriceInt(Item: TRSItem; Key: String): Int32;
 
-function TRSItemData.GetWikiInt(Item: TRSItem; Key: String): Int32;
+Wrapper method used to fetch ints from TRSItemData.GetPrice().
+To use this you should be familar with the structure of the JSONObject TRSItemData.GetPrice() returns.
+
+Example
+-------
+
+  WriteLn ItemData.GetPriceInt('Abyssal whip', 'low'); // will print the low price of abyssal whip.
+  WriteLn ItemData.GetPriceInt('Abyssal whip', 'high'); // will print the high price of abyssal whip.
+*)
+function TRSItemData.GetPriceInt(Item: TRSItem; Key: String): Int32;
 var
   JSONObject: TJSONObject := Self.GetPrice(Item);
 begin
@@ -193,6 +249,17 @@ begin
     Result := JSONObject.getInt(Key);
 end;
 
+(*
+ItemData.GetAverage()
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetAverage(Item: TRSItem): Int32;
+
+Method used to get the average price of **Item**.
+
+Example
+-------
+  WriteLn ItemData.GetAverage('Abyssal whip');
+*)
 function TRSItemData.GetAverage(Item: TRSItem): Int32;
 var
   ItemStr: String := ToStr(Item).Lower;
@@ -204,8 +271,8 @@ begin
      '1002', '1003', '1004']) then
     Exit(1);
 
-  Low := Self.GetWikiInt(Item, 'low');
-  High := Self.GetWikiInt(Item, 'high');
+  Low := Self.GetPriceInt(Item, 'low');
+  High := Self.GetPriceInt(Item, 'high');
 
   if (Low = 0) and (High = 0) then
     Exit;
@@ -219,6 +286,18 @@ begin
 end;
 
 
+(*
+ItemData.GetOSRSBoxInt()
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
+
+Wrapper method used to get the integer values of the OSRSBox item json.
+To use it, knowledge about the file structure is required.
+
+Example
+-------
+  WriteLn ItemData.GetOSRSBoxInt('Abyssal whip', 'highalch'); //will print high alch value for the abyssal whip.
+*)
 function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
 var
   Str: String;
@@ -232,7 +311,7 @@ begin
   if OSRSBoxJSON = nil then
     Exit;
 
-  Str := OSRSBoxJSON.getString(Key);
+  Str := OSRSBoxJSON.getString(Key); //we use .getString instead of .getInt to handle "null" values.
 
   if Str.Contains('null') then
     Result := 0
@@ -240,6 +319,18 @@ begin
     Result := StrToInt(Str);
 end;
 
+(*
+ItemData.GetOSRSBoxBoolean()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
+
+Wrapper method used to get the boolean values of the OSRSBox item json.
+To use it, knowledge about the file structure is required.
+
+Example
+-------
+  WriteLn ItemData.GetOSRSBoxBoolean('Abyssal whip', 'tradeable_on_ge');
+*)
 function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
 var
   Str: String;
@@ -256,7 +347,17 @@ begin
   Result := OSRSBoxJSON.getBoolean(Key);
 end;
 
+(*
+ItemData.GetHighAlch()
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
 
+Method used to get the the high alchemy value of an item.
+
+Example
+-------
+  WriteLn ItemData.GetHighAlch('Magic longbow');
+*)
 function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
 var
   Str: String := Self.GetTradeableID(Item);
@@ -265,6 +366,19 @@ begin
     Result := Self.GetOSRSBoxInt(Str, 'highalch') - Self.GetAverage('561');
 end;
 
+(*
+ItemData.GetHighAlchProfit()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
+
+Method used to get the the high alchemy profit of an item.
+
+.. note:: HighAlchProfit = HighAlchValue - ItemAveragePrice - NatureRuneAveragePrice
+
+Example
+-------
+  WriteLn ItemData.GetHighAlchProfit('Magic longbow');
+*)
 function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
 var
   Str: String := Self.GetTradeableID(Item);
@@ -274,6 +388,19 @@ begin
               Self.GetAverage(Item) - Self.GetAverage('561');
 end;
 
+(*
+ItemData.GetLowAlchProfit()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSItemData.GetLowAlchProfit(Item: TRSItem): Int32;
+
+Method used to get the the low alchemy profit of an item.
+
+.. note:: LowAlchProfit = LowAlchValue - ItemAveragePrice - NatureRuneAveragePrice
+
+Example
+-------
+  WriteLn ItemData.GetLowAlchProfit('Magic longbow');
+*)
 function TRSItemData.GetLowAlchProfit(Item: TRSItem): Int32;
 var
   Str: String := Self.GetTradeableID(Item);
@@ -283,125 +410,182 @@ begin
               Self.GetAverage(Item) - Self.GetAverage('561');
 end;
 
+(*
+var ItemData
+~~~~~~~~~~~~
+  Global ItemData variable.
+*)
+{$H-}
 var
   ItemData: TRSItemData;
+{$H+}
 
 
-//MonsterData
-function TRSMonsterData.GetIDs(Monster: String): TStringArray;
+(*
+type ERSAttackType
+~~~~~~~~~~~~~~~~~~
+
+Attack types in game.
+Can be used to know what to pray for example.
+
+type TRSMonsterDrop
+~~~~~~~~~~~~~~~~~~~
+
+Helper record to handle monster drops. Has several variable that hold information about monster
+drops such as wether it's stackable and/or noted and quantity.
+
+type TRSMonsterData
+~~~~~~~~~~~~~~~~~~~
+
+Main record to handle monster data.
+*)
 type
-  TStringList = TStringList;
+  ERSAttackType = (
+    MELEE_ATTACK_TYPE, RANGED_ATTACK_TYPE, MAGIC_ATTACK_TYPE, TYPELESS_ATTACK_TYPE
+  );
 
-  function TStringList.NameFromIndex(Index: Int32): String; override;
-  begin
-    if (Index >= 0) and (Index < Self.GetCount()) then
-      Result := Self.GetStrings(Index).Before('=');
+  TRSMonsterDrop = record
+    Item: String;
+    ID: String;
+    Stackable: Boolean;
+    Noted: Boolean;
+    Quantity: Int32;
   end;
 
-  function TStringList.ValueFromIndex(Index: Int32): String; override;
-  begin
-    if (Index >= 0) and (Index < Self.GetCount()) then
-      Result := Self.GetStrings(Index).After('=');
+  TRSMonsterData = record
+    CurrentMonster: String;
+    Data: TJSONObject;
+    Size: Int32;
+    Hitpoints: Int32;
+    MaxHit: Int32;
+    AttackTypes: array of ERSAttackType;
+    Drops: array of TRSMonsterDrop;
+    IsSetup: Boolean;
   end;
 
-var
-  MonsterID: Int32;
+(*
+MonsterData.Setup()
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMonsterData.Setup();
+
+Internal method to setup the TRSMonsterData record.
+*)
+procedure TRSMonsterData.Setup();
 begin
-  if Monster.IsDigit then
-    Result := Result + Monster
-  else
-  begin
-    MonsterID := Self.MonsterNames.IndexOfName(Monster);
-    while SameText(Monster, Self.MonsterNames.NameFromIndex(MonsterID)) do
-    begin
-      Result := Result + Self.MonsterNames.ValueFromIndex(MonsterID);
-
-      Inc(MonsterID);
-    end;
-  end;
-end;
-
-function TRSMonsterData.GetID(Monster: String): String;
-var
-  IDs: TStringArray := Self.GetIDs(Monster);
-begin
-  if IDs <> [] then
-    Result := IDs[0];
-end;
-
-procedure TRSMonsterData.Free;
-begin
-  Self.MonsterNames.Free;
-  Self.Data.Free;
-end;
-
-procedure TRSMonsterData.Setup;
-begin
-  if not Self.IsSetup then
-  begin
-    Self.MonsterNames.Init;
-    Self.MonsterNames.LoadFromFile(MONSTER_NAMES_FILE);
-    Self.MonsterNames.SetSorted(True);
-
-    AddOnTerminate(@Self.Data.Free);
-    Self.IsSetup := True;
-  end;
+  if Self.IsSetup then
+    Exit;
 
   WriteLn('Loading monsters.json.');
 
   Self.Data.Init(ReadFileContents(MONSTERS_JSON));
+
+  AddOnTerminate(@Self.Data.Free);
+
+  Self.IsSetup := True;
 end;
 
+(*
+MonsterData.GetInt()
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetInt(Monster, Key: String): Int32;
 
+Wrapper method to get integer data from from monsters.json.
+
+.. note:: Using this requires you to know the structure of the monster.json file.
+
+Example
+-------
+
+  WriteLn MonsterData.GetInt('Cow', 'hitpoints'); //This will print 8.
+*)
 function TRSMonsterData.GetInt(Monster, Key: String): Int32;
 begin
   if not Self.IsSetup then
     Self.Setup;
 
-  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getInt(Key);
+  Result := Self.Data.getJSONObject(Monster).getInt(Key);
 end;
 
-function TRSMonsterData.GetDouble(Monster, Key: String): Double;
-begin
-  if not Self.IsSetup then
-    Self.Setup;
+(*
+MonsterData.GetString()
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetString(Monster, Key: String): String;
 
-  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getDouble(Key);
-end;
+Wrapper method to get string data from monsters.json.
 
+.. note:: Using this requires you to know the structure of the monster.json file.
+
+Example
+-------
+
+  WriteLn MonsterData.GetString('Cow', 'drops');
+*)
 function TRSMonsterData.GetString(Monster, Key: String): String;
 begin
   if not Self.IsSetup then
     Self.Setup;
 
-  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getString(Key);
+  Result := Self.Data.getJSONObject(Monster).getString(Key);
 end;
 
-function TRSMonsterData.GetBoolean(Monster, Key: String): Boolean;
+(*
+MonsterData.IsAgressive()
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.IsAgressive(Monster): String;
+
+Method to get information on wether a monster is aggressive or not.
+
+Example
+-------
+
+  WriteLn MonsterData.IsAgressive('Cow'); //Will print False.
+*)
+function TRSMonsterData.IsAgressive(Monster: String): Boolean;
 begin
   if not Self.IsSetup then
     Self.Setup;
 
-  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getBoolean(Key);
+  Result := Self.Data.getJSONObject(Monster).getBoolean('aggressive');
 end;
 
+(*
+MonsterData.GetJSONArray()
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
+
+Internal method to get a TJSONArray value from monsters.json.
+*)
 function TRSMonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
 begin
   if not Self.IsSetup then
     Self.Setup;
 
-  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getJSONArray(Key);
+  Result := Self.Data.getJSONObject(Monster).getJSONArray(Key);
 end;
 
+(*
+MonsterData.GetJSONObject()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
+
+Internal method to get a TJSONObject value from monsters.json.
+*)
 function TRSMonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
 begin
   if not Self.IsSetup then
     Self.Setup;
 
-  Result := Self.Data.getJSONObject(Self.GetID(Monster)).getJSONObject(Key);
+  Result := Self.Data.getJSONObject(Monster).getJSONObject(Key);
 end;
 
-function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSMonsterAttackType;
+(*
+MonsterData.GetAttackTypes()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSAttackType;
+
+Method used to get an array of ERSAttackType used by the specified monster.
+*)
+function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSAttackType;
 var
   JSONArray: TJSONArray;
   i: Int32;
@@ -414,16 +598,23 @@ begin
   for i := 0 to JSONArray.length - 1 do
     case JSONArray.getString(i) of
       'stab', 'slash', 'crush':
-        Result += ERSMonsterAttackType.MELEE_ATTACK;
+        Result += MELEE_ATTACK_TYPE;
       'ranged':
-        Result += ERSMonsterAttackType.RANGED_ATTACK;
+        Result += RANGED_ATTACK_TYPE;
       'magic':
-        Result += ERSMonsterAttackType.MAGIC_ATTACK;
+        Result += MAGIC_ATTACK_TYPE;
       'typeless':
-        Result += ERSMonsterAttackType.TYPELESS_ATTACK;
+        Result += TYPELESS_ATTACK_TYPE;
     end;
 end;
 
+(*
+MonsterData.GetDrop()
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
+
+Method to convert a monster json object to a TRSMonsterDrop.
+*)
 function TRSMonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
 var
   Str: String;
@@ -441,6 +632,18 @@ begin
   Result.Stackable := Result.Noted;
 end;
 
+(*
+MonsterData.GetDrops()
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
+
+Method to return all monster drops as an array of TRSMonsterDrop.
+
+Example
+-------
+
+  WriteLn MonsterData.GetDrops('Abyssal demon'); //prints all monster drops.
+*)
 function TRSMonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
 var
   JSONArray: TJSONArray;
@@ -472,54 +675,135 @@ begin
   end;
 end;
 
+(*
+var MonsterData
+~~~~~~~~~~~~
+  Global MonsterData variable.
+*)
+{$H-}
 var
   MonsterData: TRSMonsterData;
+{$H+}
 
-
-//WeaponData
+(*
+type TRSWeaponData
+~~~~~~~~~~~~~~~~~~
+Record used to fetch weapon information
+*)
 type
-  TRSWeaponData = record(TSRLBaseRecord)
-    WikiSpecAttacks: String;
-
+  TRSWeaponData = record
+    Data: TJSONObject;
     IsSetup: Boolean;
   end;
 
-procedure TRSWeaponData.Setup;
+(*
+WeaponData.Setup()
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWeaponData.Setup();
+
+Internal method to setup TRSWeaponData.
+*)
+procedure TRSWeaponData.Setup();
 begin
   if Self.IsSetup then
     Exit;
-  Self.Name :='WeaponData';
-  Self.WikiSpecAttacks := GetPage('https://oldschool.runescape.wiki/w/Special_attacks').Lower.After('mw-headline');
+
+  WriteLn('Loading weapons.json.');
+
+  Self.Data.Init(ReadFileContents(WEAPONS_JSON));
+
+  AddOnTerminate(@Self.Data.Free);
+
+  Self.IsSetup := True;
 end;
 
-function TRSWeaponData.GetSpec(Weapon: TRSItem): Int32;
-var
-  WeaponStr: String;
-  Str: String;
+(*
+WeaponData.GetInt()
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWeaponData.GetInt(Weapon, Key: String): Int32;
+
+Method to fetch integer data from weapons.json.
+
+.. note:: Using this requires knowledge of the structure of weapons.json
+
+Example
+-------
+
+  WriteLn WeaponData.GetInt('Abyssal whip', 'special_attack'); //This will print 50.
+*)
+function TRSWeaponData.GetInt(Weapon, Key: String): Int32;
 begin
   if not Self.IsSetup then
     Self.Setup;
 
-  WeaponStr := ToStr(Weapon);
-  Self.DebugLn('Getting ' + WeaponStr + ' spec data from the wiki.');
-
-  Str :=  Self.WikiSpecAttacks.After(WeaponStr.Lower);
-
-  if Str = Self.WikiSpecAttacks then
-    Exit(200);
-
-  Result := StrToInt(Str.After('energy used').After('<td>').Before('%'));
-
-  Self.DebugLn(WeaponStr + ' spec setup with ' + ToStr(Result) + '% energy.');
+  Result := Self.Data.getJSONObject(Weapon).getInt(Key);
 end;
 
+(*
+WeaponData.GetAttackType()
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWeaponData.GetAttackType(Weapon: String): ERSAttackType;
+
+Returns the ERSAttackType of the weapon specified.
+
+Example
+-------
+
+  WriteLn WeaponData.GetAttackType('Abyssal whip'); //This will print MELEE_ATTACK_TYPE.
+*)
+function TRSWeaponData.GetAttackType(Weapon: String): ERSAttackType;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  case Self.Data.getJSONObject(Weapon).getString('type') of
+    'melee':  Result := MELEE_ATTACK_TYPE;
+    'ranged': Result := RANGED_ATTACK_TYPE;
+    'magic':  Result := MAGIC_ATTACK_TYPE;
+  end;
+end;
+
+(*
+WeaponData.IsTwoHanded()
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWeaponData.IsTwoHanded(Weapon: String): Boolean;
+
+Returns wether the weapon is two-handed or not.
+
+Example
+-------
+
+  WriteLn WeaponData.IsTwoHanded('Abyssal whip'); //This will print false.
+*)
+function TRSWeaponData.IsTwoHanded(Weapon: String): Boolean;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  Result := Self.Data.getJSONObject(Weapon).getBoolean('two-handed');
+end;
+
+(*
+WeaponData.GetRequirementsJSON()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWeaponData.GetRequirementsJSON(Weapon: String): TJSONObject;
+
+Returns a TJSONObject of the level requirements for the weapon.
+*)
+function TRSWeaponData.GetRequirementsJSON(Weapon: String): TJSONObject;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  Result := Self.Data.getJSONObject(Weapon).getJSONObject('level_requirements');
+end;
+
+(*
+var WeaponData
+~~~~~~~~~~~~~~
+  Global WeaponData variable.
+*)
+{$H-}
 var
   WeaponData: TRSWeaponData;
-
-
-
-begin
-  ItemData.SetupWikiPrices;
-  MonsterData.Setup;
-end;
-
+{$H+}

@@ -247,32 +247,19 @@ begin
     Antiban.Skills += ERSSkill.PRAYER;
 
   if Self.SpecWeapon <> 'Null' then
-  begin
-    case Self.SpecWeapon of
-      'Granite maul': Self.WeaponSpec := 50;
-      '4153', '12848': Self.WeaponSpec := 60;
-      else Self.WeaponSpec := WeaponData.GetSpec(Self.SpecWeapon);
-    end;
-
-    Self.DebugLn('Current spec weapon: ' + ToStr(Self.SpecWeapon) +
-            '. With ' + ToStr(Self.WeaponSpec) + '% spec.');
-  end
+    Self.WeaponSpec := WeaponData.GetInt(ToStr(Self.SpecWeapon), 'special_attack')
   else
   begin
-    case Self.Weapon of
-      'Granite maul': Self.WeaponSpec := 50;
-      '4153', '12848': Self.WeaponSpec := 60;
-      'Null': Self.WeaponSpec := 110; 
-      else Self.WeaponSpec := WeaponData.GetSpec(Self.Weapon);
-    end;
+    if Self.Weapon <> 'Null' then
+      Self.WeaponSpec := WeaponData.GetInt(Self.Weapon, 'special_attack');
 
-    if Self.WeaponSpec <= 100 then
-    begin
+    if (Self.WeaponSpec > 0) then
       Self.SpecWeapon := Self.Weapon;
-      Self.DebugLn('Current spec weapon: ' + ToStr(Self.SpecWeapon) +
-              '. With ' + ToStr(Self.WeaponSpec) + '% spec.');
-    end;
   end;
+
+  if Self.SpecWeapon <> 'Null' then
+    Self.DebugLn('Current spec weapon: ' + ToStr(Self.SpecWeapon) +
+                 '. With ' + ToStr(Self.WeaponSpec) + '% spec.');
 
   for Self.Bracelet in BRACELETS do
     if (Self.Bracelet = 'Null') or Inventory.FindItem(Self.Bracelet) then Break;
@@ -452,6 +439,9 @@ begin
     if not Self.GearIsSetup then
       Exit;
   end;
+
+  if (Self.WeaponSpec = 0) then
+    Exit;
 
   Result := (Minimap.GetSpecLevel >= Self.WeaponSpec) and
             ((Self.SpecWeapon = Self.Weapon) or Inventory.FindItem(Self.Weapon) or

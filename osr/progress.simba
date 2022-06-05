@@ -14,13 +14,46 @@ type
   TWaspProgressReport = record
     ClientBMP: TMufasaBitmap;
     BGImg: TMufasaBitmap;
+    TextColor: Int32;
     PreviousStrArray: TStringArray;
     IsSetup: Boolean;
     Terminated: Boolean;
   end;
 
+function TWaspProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
+var
+  R, G, B: Int32;
+begin
+  ColorToRGB(Color, R, G, B);
 
-procedure TWaspProgressReport.Terminate;
+  if (R = 255) and (G = 0) and (B < 255) then
+    B += Step
+  else if (R > 0)   and (G = 0)   and (B = 255) then
+    R -= Step
+  else if (R = 0)   and (G < 255) and (B = 255) then
+    G += Step
+  else if (R = 0)   and (G = 255) and (B > 0) then
+    B -= Step
+  else if (R < 255) and (G = 255) and (B = 0) then
+    R += Step
+  else if (R = 255) and (G > 0)   and (B = 0) then
+    G -= Step;
+
+  if R < 0    then R := 0;
+  if R > 255 then R := 255;
+
+  if G < 0    then G := 0;
+  if G > 255 then G := 255;
+
+  if B < 0    then B := 0;
+  if B > 255 then B := 255;
+
+  writeLn('R: ', R, ' G: ', G, ' B: ', B);
+  Result := RGBtoColor(R, G, B);
+end;
+
+
+procedure TWaspProgressReport.Terminate();
 begin
   if Self.Terminated then //avoids multiple terminations in case the script is chained.
     Exit;
@@ -53,6 +86,8 @@ begin
   Self.ClientBMP.setFontName('Courier New');
   {$ENDIF}
   Self.ClientBMP.setFontSize(13);
+
+  Self.TextColor := $006CFF;;
 
   AddOnTerminate(@Self.Terminate);
 end;
@@ -112,15 +147,16 @@ begin
 end;
 
 
-procedure TWaspProgressReport.Update(StrArray: TStringArray; FontColor: Int64 = $006CFF);
+procedure TWaspProgressReport.Update(StrArray: TStringArray);
 begin
   Self.ClientBMP.Clear;
 
   if StrArray = [] then
     Exit;
 
-  Self.DrawBackground(StrArray, FontColor);
-  Self.DrawProgress(StrArray, FontColor);
+  //Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);
+  Self.DrawBackground(StrArray, Self.TextColor);
+  Self.DrawProgress(StrArray, Self.TextColor);
 end;
 
 var

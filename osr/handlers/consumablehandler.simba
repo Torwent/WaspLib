@@ -9,6 +9,13 @@ ConsumableHandlers and Managers
 {$ENDIF}
 
 type
+(*
+type TConsumableHandler
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Consumable handler is the record responsible to handle `TRSConsumables <https://torwent.github.io/WaspLib/consumables.html>`_.
+This will handle caching all found consumables to this point, bank withdraw amounts, timer if the last consumable had a timer, etc.
+*)
   TConsumableHandler = record(TSRLBaseRecord)
     ConsumableType: ERSConsumable;
     ConsumableArray: TRSConsumableArray;
@@ -21,14 +28,32 @@ type
     IsSetup: Boolean;
   end;
 
+(*
+type PConsumableHandler
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Wrapper type of a TConsumableHandler pointer.
+*)
   PConsumableHandler = ^TConsumableHandler;
 
+(*
+ConsumableHandler.Setup()
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TConsumableHandler.Setup(Item: TRSItem): TRSConsumable;
+
+Used internally to add a TRSConumable to TConsumableHandler.ConsumableArray.
+
+Example
+-------
+
+  FoodHandler.Setup('Shark');
+*)
 function TConsumableHandler.Setup(Item: TRSItem): TRSConsumable;
 begin
   Result.Item := Item;
 
   case Self.ConsumableType of
-    ERSConsumable.FOOD_CONSUMABLE:    Result.SetupFood;
+    ERSConsumable.FOOD_CONSUMABLE:      Result.SetupFood;
     ERSConsumable.PRAYER_CONSUMABLE:    Result.SetupPrayer;
     ERSConsumable.ENERGY_CONSUMABLE:    Result.SetupEnergy;
     ERSConsumable.POISON_CONSUMABLE:    Result.SetupAntiPoison;
@@ -38,6 +63,13 @@ begin
   end;
 end;
 
+(*
+ConsumableHandler.FindInBank()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TConsumableHandler.FindInBank(): TRSConsumableArray;
+
+Returns an TRSConsumableArray of all TRSConsumables of **TConsumableHandler.ConsumableType** found in the bank window.
+*)
 function TConsumableHandler.FindInBank(): TRSConsumableArray;
 var
   Consumable: TRSConsumable;
@@ -61,6 +93,13 @@ begin
   end;
 end;
 
+(*
+ConsumableHandler.FindInInventory()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TConsumableHandler.FindInInventory(): TRSConsumableArray;
+
+Returns an TRSConsumableArray of all TRSConsumables of **TConsumableHandler.ConsumableType** found in the inventory.
+*)
 function TConsumableHandler.FindInInventory(): TRSConsumableArray;
 var
   Consumable: TRSConsumable;
@@ -83,7 +122,13 @@ begin
   end;
 end;
 
+(*
+ConsumableHandler.NeedToConsume()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TConsumableHandler.NeedToConsume(): Boolean;
 
+Returns an **True** if there's a timer setup and it has ran out.
+*)
 function TConsumableHandler.NeedToConsume(): Boolean;
 begin
   if not Self.IsSetup then
@@ -93,6 +138,15 @@ begin
             or Self.Timer.IsPaused();
 end;
 
+(*
+ConsumableHandler.Setup()
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TConsumableHandler.Setup(ConsumableType: ERSConsumable); overload;
+
+Overloaded function used to setup TConsumableHandler.ConsumableArray by TConsumableHandler.ConsumableType.
+This will use TConsumableHandler.FindInInventory() or TConsumableHandler.FindInBank() by that order to setup
+found TRSConsumables.
+*)
 procedure TConsumableHandler.Setup(ConsumableType: ERSConsumable); overload;
 var
   C: TRSConsumable;
@@ -125,6 +179,42 @@ begin
 end;
 
 var
+(*
+var FoodHandler
+~~~~~~~~~~~~~~~
+
+Global FoodHandler variable. This handler is the one responsible for handling FOOD_CONSUMABLE.
+
+var PrayerHandler
+~~~~~~~~~~~~~~~~~
+
+Global PrayerHandler variable. This handler is the one responsible for handling PRAYER_CONSUMABLE.
+
+var EnergyHandler
+~~~~~~~~~~~~~~~~~
+
+Global EnergyHandler variable. This handler is the one responsible for handling ENERGY_CONSUMABLE.
+
+var PoisonHandler
+~~~~~~~~~~~~~~~~~
+
+Global PoisonHandler variable. This handler is the one responsible for handling POISON_CONSUMABLE.
+
+var VenomHandler
+~~~~~~~~~~~~~~~~
+
+Global VenomHandler variable. This handler is the one responsible for handling VENOM_CONSUMABLE.
+
+var AntifireHandler
+~~~~~~~~~~~~~~~~~~~
+
+Global AntifireHandler variable. This handler is the one responsible for handling ANTI_FIRE_CONSUMABLE.
+
+var BoostHandler
+~~~~~~~~~~~~~~~~
+
+Global BoostHandler variable. This handler is the one responsible for handling BOOST_CONSUMABLE.
+*)
   FoodHandler: TConsumableHandler;
   PrayerHandler: TConsumableHandler;
   EnergyHandler: TConsumableHandler;
@@ -133,10 +223,17 @@ var
   AntifireHandler: TConsumableHandler;
   BoostHandler: TConsumableHandler;
 
+(*
+GetHandler()
+~~~~~~~~~~~~
+.. pascal:: function GetHandler(ConsumableType: ERSConsumable): PConsumableHandler;
+
+Method to return a pointer to the right handler for each ConsumableType passed in.
+*)
 function GetHandler(ConsumableType: ERSConsumable): PConsumableHandler;
 begin
   case ConsumableType of
-    ERSConsumable.FOOD_CONSUMABLE:    Result := @FoodHandler;
+    ERSConsumable.FOOD_CONSUMABLE:      Result := @FoodHandler;
     ERSConsumable.PRAYER_CONSUMABLE:    Result := @PrayerHandler;
     ERSConsumable.ENERGY_CONSUMABLE:    Result := @EnergyHandler;
     ERSConsumable.POISON_CONSUMABLE:    Result := @PoisonHandler;
@@ -148,6 +245,13 @@ begin
   Result^.Setup(ConsumableType);
 end;
 
+(*
+Inventory.FindItems()
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.FindItems(Items: TRSConsumableArray; out FoundItems: TRSConsumableArray; out Slots: TIntegerArray): Boolean; overload;
+
+Overloaded method used to find consumables in the inventory. Can be used directly but in most cases is used internally.
+*)
 function TRSInventory.FindItems(Items: TRSConsumableArray; out FoundItems: TRSConsumableArray; out Slots: TIntegerArray): Boolean; overload;
 var
   SingleItem: TRSItem;
@@ -188,6 +292,14 @@ begin
   Result := Length(Slots) > 0;
 end;
 
+(*
+Inventory.FindConsumable()
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.FindConsumable(ConsumableType: ERSConsumable; out FoundConsumables: TRSConsumableArray; out Slots: TIntegerArray): Boolean;
+.. pascal:: function TRSInventory.FindConsumable(ConsumableType: ERSConsumable): Boolean; overload;
+
+Method used to find already setup consumables in the inventory. Can be used directly but in most cases is used internally.
+*)
 function TRSInventory.FindConsumable(ConsumableType: ERSConsumable; out FoundConsumables: TRSConsumableArray; out Slots: TIntegerArray): Boolean;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
@@ -206,7 +318,19 @@ begin
   Result := Self.FindConsumable(ConsumableType, FoundItems, Slots);
 end;
 
+(*
+Inventory.Consume()
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.Consume(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
+.. pascal:: function TRSInventory.Consume(ConsumableType: ERSConsumable): Boolean; overload;
 
+Methods used to consume consumables.
+
+Example
+-------
+
+  Inventory.Consume(FOOD_CONSUMABLE);
+*)
 function TRSInventory.Consume(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
@@ -283,6 +407,18 @@ begin
 end;
 
 
+(*
+Inventory.CountConsumable()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.CountConsumable(ConsumableType: ERSConsumable): Int32;
+
+Method used to count each slot that has a consumable of **ConsumableType**.
+
+Example
+-------
+
+  WriteLn Inventory.CountConsumable(FOOD_CONSUMABLE);
+*)
 function TRSInventory.CountConsumable(ConsumableType: ERSConsumable): Int32;
 var
   FoundConsumables: TRSConsumableArray;
@@ -293,20 +429,43 @@ begin
   Result := Length(Slots);
 end;
 
-function TRSInventory.CountEachConsumable(ConsumableType: ERSConsumable): T2DIntegerArray;
+(*
+Inventory.CountEachConsumable()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.CountEachConsumable(ConsumableType: ERSConsumable): TIntegerArray;
+
+Method used to count each type of consumable of **ConsumableType**.
+
+Example
+-------
+
+  WriteLn Inventory.CountEachConsumable(FOOD_CONSUMABLE);
+*)
+function TRSInventory.CountEachConsumable(ConsumableType: ERSConsumable): TIntegerArray;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
   Item: TRSConsumable;
-  IntArray: TIntegerArray;
 begin
   if not ConsumableHandler^.IsSetup then
     Exit;
 
   for Item in ConsumableHandler^.ConsumableArray do
-    IntArray += Self.CountItem(Item.Item);
-  Result += IntArray;
+    Result += Self.CountItem(Item.Item);
 end;
 
+(*
+Inventory.CountPoints()
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.CountPoints(Consumable: TRSConsumable): Int32;
+.. pascal:: function TRSInventory.CountPoints(ConsumableType: ERSConsumable): Int32; overload;
+
+Method used to count the total points value of a **Consumable** or **ConsumableType**.
+
+Example
+-------
+
+  WriteLn Inventory.CountPoints(FOOD_CONSUMABLE); //Assumind you have 3 sharks in your inventory, 60 will be printed.
+*)
 function TRSInventory.CountPoints(Consumable: TRSConsumable): Int32;
 var
   i: Int32;
@@ -330,6 +489,19 @@ begin
     Result += Self.CountPoints(Consumable);
 end;
 
+(*
+Inventory.HasEnoughConsumable()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSInventory.HasEnoughConsumable(ConsumableType: ERSConsumable): Boolean;
+
+Method used to figure out if we are low on a type of consumable.
+
+Example
+-------
+
+  if not Inventory.HasEnoughConsumable(FOOD_CONSUMABLE) then
+    Bank.WithdrawItem(['Shark', 5, False], False);
+*)
 function TRSInventory.HasEnoughConsumable(ConsumableType: ERSConsumable): Boolean;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
@@ -338,6 +510,21 @@ begin
 end;
 
 
+(*
+Bank.FindConsumable()
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray; out Consumable: TRSConsumable): Boolean;
+.. pascal:: function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray): Boolean; overload;
+.. pascal:: function TRSBank.FindConsumable(ConsumableType: ERSConsumable; out Consumable: TRSConsumable): Boolean; overload;
+.. pascal:: function TRSBank.FindConsumable(ConsumableType: ERSConsumable): Boolean; overload;
+
+Method used to find already setup consumables in the bank. Can be used directly but in most cases is used internally.
+
+Example
+-------
+
+  WriteLn Bank.FindConsumable(FOOD_CONSUMABLE);
+*)
 function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray; out Consumable: TRSConsumable): Boolean;
 begin
   for Consumable in ConsumableArray do
@@ -373,7 +560,14 @@ begin
 end;
 
 
+(*
+Bank.CountPoints()
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSBank.CountPoints(Consumable: TRSConsumable): Int32;
 
+Method used to count the points of the first dose/portion of a consumable found in bank.
+This prioritizes higher dosage visible ones first and returns only just that one.
+*)
 function TRSBank.CountPoints(Consumable: TRSConsumable): Int32;
 var
   i: Int32;
@@ -386,19 +580,31 @@ begin
       Exit(Consumable.Points * Items[i].GetPortion());
 end;
 
+(*
+Bank.WithdrawConsumableAmount()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable): Int32;
+.. pascal:: function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable; Consumable: TRSConsumable): Int32; overload;
 
-function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable): TIntegerArray;
+Method used to return the amount we need to withdraw to meet the TRSConsumable.MinInvPoints.
+*)
+function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable): Int32;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
   Consumable: TRSConsumable;
 begin
   for Consumable in ConsumableHandler^.ConsumableArray do
+  begin
     case ConsumableHandler^.Amount of
-      BANK_WITHDRAW_ALL: Result += BANK_WITHDRAW_ALL;
-      BANK_WITHDRAW_ALL_BUT_ONE: Result += BANK_WITHDRAW_ALL_BUT_ONE;
+      BANK_WITHDRAW_ALL:         Result := BANK_WITHDRAW_ALL;
+      BANK_WITHDRAW_ALL_BUT_ONE: Result := BANK_WITHDRAW_ALL_BUT_ONE;
       else
-        Result += Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(ConsumableType)) / Self.CountPoints(Consumable));
+        Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(ConsumableType)) / Self.CountPoints(Consumable));
     end;
+
+    if Result > 0 then
+      Exit;
+  end;
 end;
 
 function TRSBank.WithdrawConsumableAmount(ConsumableType: ERSConsumable; Consumable: TRSConsumable): Int32; overload;
@@ -413,6 +619,20 @@ begin
     end;
 end;
 
+(*
+Bank.WithdrawConsumable()
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSBank.WithdrawConsumable(ConsumableType: ERSConsumable): Boolean;
+
+Method used to withdraw a consumable type.
+
+Example
+-------
+
+  FoodHandler.MinInvPoints := 100;
+
+  Bank.WithdrawConsumable(FOOD_CONSUMABLE); //This will withdraw FOOD_CONSUMABLEs until we have 100 points value of food in our inventory.
+*)
 function TRSBank.WithdrawConsumable(ConsumableType: ERSConsumable): Boolean;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
@@ -436,7 +656,7 @@ begin
   WithdrawAmount := Self.WithdrawConsumableAmount(ConsumableType, Consumable);
 
   if WithdrawAmount <= 0 then
-    Exit;
+    Exit(True); //We have enough food.
 
   Self.WithdrawItem(Consumable.BankTab, [Consumable.Item, WithdrawAmount, False], False);
 

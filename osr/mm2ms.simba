@@ -68,51 +68,6 @@ end;
 
 
 (*
-Minimap.GetZoomRectangle
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function Minimap.GetZoomRectangle: TRectangle;
-
-This function returns you a rectangle of what's visible on the MainScreen on the Minimap.
-
-Example
--------
-
-  Debug(Minimap.GetZoomRectangle);
-*)
-function Minimap.GetZoomRectangle: TRectangle;
-begin
-  if MM2MS.ZoomLevel = -1 then
-    MM2MS.ZoomLevel := Options.GetZoomLevel;
-
-  Result := [
-    MainScreen.PointToMM([MainScreen.Bounds.X1, MainScreen.Bounds.Y1]).ToPoint,
-    MainScreen.PointToMM([MainScreen.Bounds.X2, MainScreen.Bounds.Y1]).ToPoint,
-    MainScreen.PointToMM([MainScreen.Bounds.X2, MainScreen.Bounds.Y2]).ToPoint,
-    MainScreen.PointToMM([MainScreen.Bounds.X1, MainScreen.Bounds.Y2]).ToPoint
-  ];
-
-  Result := Result.FixOrder;
-end;
-
-(*
-Minimap.PointInZoomRectangle()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function Minimap.PointInZoomRectangle(P: TPoint): Boolean;
-
-Check if a given point is within our zoom rectangle.
-
-Example
--------
-
-  P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
-  WriteLn Minimap.PointInZoomRadius(P);
-*)
-function Minimap.PointInZoomRectangle(P: TPoint): Boolean;
-begin
-  Result := P.InRect(Self.GetZoomRectangle);
-end;
-
-(*
 Minimap.ZoomToPoint
 ~~~~~~~~~~~~~~~~~~~
 .. pascal:: function Minimap.ZoomToPoint(P: TPoint): Int32;
@@ -133,61 +88,6 @@ begin
 
   //- Random(5, 10) to give it some margin
   Result := Round((73 - Distance) / 0.8) - Random(25, 30);
-end;
-
-
-(*
-TRSMinimap.VecToMsRect
-~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.VecToMsRect(Vec: Vector3; Size: Double; Roll:Single): TRectangle; overload;
-.. pascal:: function TRSMinimap.VecToMsRect(Vec: Vector3; XMultiplier, YMultiplier: Double; Roll:Single): TRectangle; overload;
-
-Overloads that return multiple tiles in a single rectangle.
-If you want to get tiles for an object that is 2 by 2 tiles you can set **Size** to 2 and you will be returned a 2 by 2 square of tiles.
-For rectangular shaped tiles you can use **XSize** and **YSize**.
-**XSize is the size from **East to West** and **YSize** is the size from **North to South**.
-
-This is a internal function and most times you won't be using this directly.
-*)
-function TRSMinimap.VecToMsRect(Vec: Vector3; Size: Double; Roll:Single): TRectangle; overload;
-var
-  Arr: TPointArray;
-begin
-  if Size = 0.0 then
-    Size := 1.0;
-
-  Size := 2 * Size;
-
-  if (Roll = $FFFF) then Roll := Self.GetCompassAngle(False);
-  Vec := Vec.RotateXY(PI*2 - Roll, Minimap.Center.X, Minimap.Center.Y);
-
-  Arr := MM2MS.Run([Vec3(Vec.X-Size, Vec.Y-Size, Vec.z),
-                    Vec3(Vec.X+Size, Vec.Y-Size, Vec.z),
-                    Vec3(Vec.X+Size, Vec.Y+Size, Vec.z),
-                    Vec3(Vec.X-Size, Vec.Y+Size, Vec.z)], Roll);
-
-  Result := [Arr[0], Arr[1], Arr[2], Arr[3]];
-end;
-
-function TRSMinimap.VecToMsRect(Vec: Vector3; XSize, YSize: Double; Roll:Single): TRectangle; overload;
-var
-  Arr: TPointArray;
-begin
-  if XSize = 0 then XSize := 1;
-  if YSize = 0 then YSize := 1;
-
-  XSize := 2 * XSize;
-  YSize := 2 * YSize;
-
-  if (Roll = $FFFF) then Roll := Self.GetCompassAngle(False);
-  Vec := Vec.RotateXY(PI*2 - Roll, Minimap.Center.X, Minimap.Center.Y);
-
-  Arr := MM2MS.Run([Vec3(Vec.X-XSize, Vec.Y-YSize, Vec.z),
-                    Vec3(Vec.X+XSize, Vec.Y-YSize, Vec.z),
-                    Vec3(Vec.X+XSize, Vec.Y+YSize, Vec.z),
-                    Vec3(Vec.X-XSize, Vec.Y+YSize, Vec.z)], Roll);
-
-  Result := [Arr[0], Arr[1], Arr[2], Arr[3]];
 end;
 
 
@@ -215,7 +115,7 @@ Example
   P := Minimap.GetDots(ERSMinimapDot.NPC)[0]; //find an npc dot and returns it's coodinates.
   Debug(Minimap.GetTileMS(P, [2, 3, 0]));     //This will draw a recangle that is 2 by 3 tiles in the mainscreen where the NPC is.
 *)
-function TRSMinimap.GetTileMS(Loc: TPoint; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TRectangle;
+function TRSMinimap.GetTileMS(Loc: TPoint; TileVector: Vector3; Offset: Vector2 = [0, 0]; Angle: Single = $FFFF): TRectangle;
 begin
   if not Self.IsPointOn(Loc) then
     Exit;

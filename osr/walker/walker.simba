@@ -548,70 +548,22 @@ begin
 end;
 
 
-//overriden to prevent running out memory due to the points being too far
-function TRSWalker.GetTileMSEx(Me, Loc: TPoint; Height: Double = 0; OffX, OffY: Double = 0): TRectangle; override;
-var
-  Angle: Double;
-begin
-  Loc := Minimap.Center + (Loc - Me);
-  if not Minimap.IsPointOn(Loc) then Exit;
-
-  Angle := Minimap.GetCompassAngle(False);
-  Loc := Loc.Rotate(Angle, Minimap.Center);
-  Result := Minimap.VecToMSRect(Vec3(Loc.X - OffX, Loc.Y - OffY, Height), 1, 1, Angle);
-end;
-
-
-function TRSWalker.GetTileMS(Me, Loc: TPoint; TileVector: Vector3; Offset: Vector2 = [0, 0]): TRectangle; overload;
-var
-  Angle: Double;
-begin
-  Loc := Minimap.Center + (Loc - Me);
-  if not Minimap.IsPointOn(Loc) then Exit;
-
-  Angle  := Minimap.GetCompassAngle(False);
-  Loc    := Loc.Rotate(Angle, Minimap.Center);
-  Result := Minimap.VecToMSRect(
-                Vec3(Loc.X - Offset.X, Loc.Y - Offset.Y, TileVector.Z),
-                TileVector.X, TileVector.Y, Angle);
-end;
-
-function TRSWalker.GetTileMS(Me, Loc: TPoint;  Z: Double = 0): TRectangle; overload;
-begin
-  Result := Self.GetTileMS(Me, Loc, [1, 1, Z]);
-end;
-
-function TRSWalker.GetTileMS(Loc: TPoint; TileVector: Vector3): TRectangle; overload;
-begin
-  Result := Self.GetTileMS(Self.GetMyPos, Loc, TileVector);
-end;
-
-function TRSWalker.GetTileMS(Loc: TPoint; Z: Double): TRectangle; overload;
-begin
-  Result := Self.GetTileMS(Loc, [1, 1, Z]);
-end;
-
 
 function TRSWalker.GetTilePoly(Me, Loc: TPoint; TileVector: Vector3; Offset: TPoint = [0, 0]): TPoly;
 var
   Rect: TRectangle;
 begin
-  Rect := Self.GetTileMS(Me, Loc, [TileVector.Y, TileVector.X, 0], Offset);
+  Rect := Self.GetTileMSEx(Me, Loc, [TileVector.Y, TileVector.X, 0], Offset);
 
   if TileVector.Z = 0 then
     Result := Rect.ToTPA
   else
-    Result := Rect.GetPoly(Self.GetTileMS(Me, Loc, TileVector, Offset));
+    Result := Rect.GetPoly(Self.GetTileMSEx(Me, Loc, TileVector, Offset));
 end;
 
 function TRSWalker.GetTilePoly(Loc: TPoint; TileVector: Vector3): TPoly; overload;
 begin
   Result := Self.GetTilePoly(Self.GetMyPos, Loc, TileVector);
-end;
-
-function TRSWalker.GetTilePoly(Loc: TPoint; Z: Double = 0): TPoly; overload;
-begin
-  Result := Self.GetTilePoly(Loc, [1, 1, Z]);
 end;
 
 
@@ -620,8 +572,7 @@ var
   Loc: TPoint;
 begin
   for Loc in LocArray.Sorted(Me) do
-    Result += Self.GetTileMS(Me, Loc, TileVector, Offset);
-  //Writeln Result;
+    Result += Self.GetTileMSEx(Me, Loc, TileVector, Offset);
 end;
 
 function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3): TRectArray; overload;

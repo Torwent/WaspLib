@@ -13,23 +13,28 @@ begin
   ScriptDebugEnabled    := False; //Enables Script Debugging
 end;
 
+//Enum of tasks the script does.
 type
   ETask = (
     TASK_TO_DO
   );
 
+//setup current task in code. it also sets the default option in the GUI if everything is edited properly.
 var
   CurrentTask: ETask := ETask.TASK_TO_DO;
 
+//Enum of script states. used in the GetState() function to decide what we got to do next.
 type
   EState = (
     WAIT_STATE
   );
 
+//script record, all variables of the script should go here.
   TScript = record(TBaseWalkerScript)
     State: EState;
   end;
 
+//Extra antiban specifically for this script.
 procedure TAntiban.Setup; override;
 begin
   inherited;
@@ -39,47 +44,49 @@ begin
   Antiban.MaxZoom := 40;
 end;
 
+//Script init function, use this to setup your variables.
 procedure TScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   Self.Name :='Template Script';
 
   inherited;
 
-  RSW.Setup('mainland');
+  Self.RSW.Setup('mainland');
 
-  if not RSClient.IsLoggedIn then
-    Login.LoginPlayer;
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
 end;
 
-function TScript.GetState: EState;
+//GetState() is responsible for figuring out what we are doing and what we will be doing next.
+function TScript.GetState(): EState;
 begin
   Exit(EState.WAIT_STATE);
 end;
 
+//Main loop.
 procedure TScript.Run(MaxActions: Int32; MaxTime: Int64);
 begin
-  ClearDebug;
+  ClearDebug();
   Self.Init(MaxActions, MaxTime);
 
-  while not Self.ShouldStop do
-  begin
-    State := Self.GetState;
-    Action := ToStr(State);
-    Self.ProcessWhileWaiting;
+  repeat
+    Self.State := Self.GetState();
+    Self.Action := ToStr(Self.State);  //Action printed on the proggie. maybe I should unwrap this some day and just use strings in Script.GetState() anyway
 
-    case State of
+    //Run the appropiate command for each state.
+    case Self.State of
       WAIT_STATE: Wait(500, 800);
     end;
 
-    Self.DoAntiban;
-  end;
+    Self.DoAntiban();
+  until Self.ShouldStop();  //Stops if MaxAtions or MaxTime have been reached.
 end;
 
 var
   Script: TScript;
 
 type
-  TConfig = record(TScriptConfig)
+  TConfig = record(TScriptForm)
     Selector: TLabeledCombobox;
   end;
 
@@ -87,34 +94,34 @@ procedure TConfig.StartScript(Sender: TObject);
 begin
   Self.Init(Sender);
 
-  CurrentTask := ETask(Selector.Combobox.getItemIndex);
+  CurrentTask := ETask(Self.Selector.Combobox.getItemIndex());
 
-  MaxActions := StrToInt(Self.ActionLimit.GetText);
-  MaxTime    := StrToInt64(Self.TimeLimit.GetText);
+  MaxActions := StrToInt(Self.WLPanel.ActionLimit.GetText());
+  MaxTime    := StrToInt64(Self.WLPanel.TimeLimit.GetText());
 end;
 
 procedure TConfig.Setup; override;
 begin
   inherited;
 
-  with Selector do
+  with Self.Selector do
   begin
-    Init(ScriptSettingsPanel);
+    Init(Self.SSPanel.Panel);
     SetCaption('Task:');
-    SetLeft(ScriptSettingsLabel.getLeft + 5);
-    SetTop(ScriptSettingsLabel.getTop + ScriptSettingsLabel.getHeight + 5);
+    SetLeft(15);
+    SetTop(25);
     SetWidth(200);
     Combobox.setStyle(csDropDownList);
     Combobox.getItems.Add('Task to do');
     Combobox.setItemIndex(Ord(CurrentTask));
   end;
 
-  StartButton.setOnClick(@Self.StartScript);
+  Self.WLPanel.StartButton.setOnClick(@Self.StartScript);
 end;
 
 procedure TConfig.Run; override;
 begin
-  Self.Setup;
+  Self.Setup(); //Extra panels can be added here by adding parameters.
 
   inherited;
 end;

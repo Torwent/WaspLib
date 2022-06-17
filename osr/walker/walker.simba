@@ -548,26 +548,53 @@ begin
 end;
 
 
+(*
+TRSWalker.GetPolygonMS
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
+.. pascal:: function TRSWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
 
-function TRSWalker.GetTilePoly(Me, Loc: TPoint; TileVector: Vector3; Offset: TPoint = [0, 0]): TPoly;
+To understand what this does, you should read about **TRSMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
+This calls **TRSMinimap.GetPolygonMS()** internally which in turn will use both methods above.
+
+To put it simply, this will will first calculate a floor rectangle with **TileVector.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **TileVector.Z** you specified.
+
+After this 2 rectangles are calculated a polygon is then made out of the two, resulting in a ConvexHull which is returned.
+
+This is perfect to to get an accurate bounding polygon of objects and NPCs which you can use to accurately color search after.
+
+The example below will show you how it could be used to retrieve an accurate player bounding polygon:
+
+Example
+-------
+  Debug(RSW.GetPolygonMS([100, 100], [1, 1, 4], Offset));     //This will draw a polygon around the coordinate [100, 100].
+*)
+function TRSWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly;
 var
-  Rect: TRectangle;
+  Angle: Double;
 begin
-  Rect := Self.GetTileMSEx(Me, Loc, [TileVector.Y, TileVector.X, 0], Offset);
+  Angle := Minimap.GetCompassAngle(False);
+  Loc   := Self.WorldToMM(Me, Loc, Angle);
 
-  if TileVector.Z = 0 then
-    Result := Rect.ToTPA
-  else
-    Result := Rect.GetPoly(Self.GetTileMSEx(Me, Loc, TileVector, Offset));
+  Result := Minimap.GetPolygonMS(Loc, TileVector, Offset, Angle);
 end;
 
-function TRSWalker.GetTilePoly(Loc: TPoint; TileVector: Vector3): TPoly; overload;
+function TRSWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly; overload;
 begin
-  Result := Self.GetTilePoly(Self.GetMyPos, Loc, TileVector);
+  Result := Self.GetPolygonMS(Self.GetMyPos(), Loc, TileVector, Offset);
 end;
 
 
-function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3; Offset: TPoint = [0, 0]): TRectArray;
+(*
+TRSWalker.GetTileArrayMS
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
+.. pascal:: function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+
+This are wrapper functions to retrieve multiple tiles. Refer to SRL's TRSWalker.GetTileMSEx() and TRSWalker.GetTileMS() for more information.
+*)
+function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
 var
   Loc: TPoint;
 begin
@@ -575,34 +602,44 @@ begin
     Result += Self.GetTileMSEx(Me, Loc, TileVector, Offset);
 end;
 
-function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3): TRectArray; overload;
+function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
 begin
-  Result := Self.GetTileArrayMS(Self.GetMyPos, LocArray, TileVector);
-end;
-
-function TRSWalker.GetTileArrayMS(LocArray: TPointArray; Z: Double = 0): TRectArray; overload;
-begin
-  Result := Self.GetTileArrayMS(LocArray, [1, 1, Z]);
+  Result := Self.GetTileArrayMS(Self.GetMyPos, LocArray, TileVector, Offset);
 end;
 
 
-function TRSWalker.GetTileArrayPolys(Me: TPoint; LocArray: TPointArray; TileVector: Vector3; Offset: TPoint = [0, 0]): TPolyArray;
+(*
+TRSWalker.GetPolygonArrayMS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.GetPolygonArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+.. pascal:: function TRSWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+
+Gives you an array of mainscreen polygons. Read **Minimap.GetPolygonMS** for more information.
+
+Example
+-------
+
+  TPA := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
+  Debug(Minimap.GetPolygonArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
+*)
+function TRSWalker.GetPolygonArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray;
 var
-  Loc: TPoint;
+  Angle: Double;
+  i: Int32;
 begin
-  for Loc in LocArray do
-    Result += Self.GetTilePoly(Me, Loc, TileVector, Offset);
+  Angle := Minimap.GetCompassAngle(False);
+
+  for i := 0 to High(LocArray) do
+    LocArray[i] := Self.WorldToMM(Me, LocArray[i], Angle);
+
+  Result := Minimap.GetPolygonArrayMS(LocArray, TileVector, Offset, Angle);
 end;
 
-function TRSWalker.GetTileArrayPolys(LocArray: TPointArray; TileVector: Vector3): TPolyArray; overload;
+function TRSWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray; overload;
 begin
-    Result := Self.GetTileArrayPolys(Self.GetMyPos, LocArray, TileVector);
+  Result := Self.GetPolygonArrayMS(Self.GetMyPos(), LocArray, TileVector, Offset);
 end;
 
-function TRSWalker.GetTileArrayPolys(LocArray: TPointArray; Z: Double = 0): TPolyArray; overload;
-begin
-    Result := Self.GetTileArrayPolys(LocArray, [1, 1, Z]);
-end;
 
 
 

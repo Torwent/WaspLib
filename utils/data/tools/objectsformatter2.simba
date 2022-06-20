@@ -1,0 +1,73 @@
+const
+  PATH = IncludePath + 'WaspLib\utils\data\';
+
+var
+  Data, FinalData, InnerData: TJSONArray;
+  OuterObj, CurrentObj, TempObj, TempOuterObj: TJSONObject;
+  KeysDone: TIntegerArray;
+  CurrentID, i, j, l, MainDataLength, InnerDataLength: int32;
+  Str, CleanStr: String;
+begin
+  Data.Init(ReadFileContents(PATH + '\tools\objects-temp.json'));
+  TempOuterObj.Init();
+  AddOnTerminate(@Data.Free);
+
+  MainDataLength := Data.length;
+  DeleteFile(PATH + 'objects.json');
+
+  for i := 0 to MainDataLength-1 do
+  begin
+    WriteLn(i, ' of ', MainDataLength, ' done.');
+
+    TempOuterObj.Init();
+    FinalData.Init();
+    OuterObj := Data.getJSONObject(i);
+    InnerData := OuterObj.getJSONArray("type");
+    InnerDataLength := InnerData.length;
+
+    for j := 0 to InnerDataLength-1 do
+    begin
+      CurrentObj := InnerData.getJSONObject(j);
+      CurrentID := CurrentObj.getInt("id");
+
+      if KeysDone.Contains(CurrentID) then //if we already done this object skip it.
+        Continue;
+
+      for l := (j+1) to InnerDataLength-1 do
+      begin
+        if l > (InnerDataLength -1) then
+          Break;
+
+        TempObj := InnerData.getJSONObject(l);
+        if CurrentID = TempObj.getInt("id") then
+          CurrentObj.getJSONArray("position").put(TempObj.getJSONArray("position").get(0));
+      end;
+
+      KeysDone += CurrentID;
+
+      FinalData.put(CurrentObj);
+    end;
+
+    TempOuterObj.putOpt(OuterObj.getString('name'), FinalData);
+
+    CleanStr := TempOuterObj.toString(1).Replace('\u0020', ' ');
+    CleanStr := CleanStr.Replace(#10'  "','"').Replace(#10'   ','');
+    CleanStr := CleanStr.Replace(', ',',').Replace(#10'  ','').Replace(#10' }', '}');
+    CleanStr := CleanStr.Replace('[ ', '[');
+    CleanStr := CleanStr.Replace('[{','['#10' {').Replace(#10' "','"').Replace(#10' ]',']');
+    CleanStr := CleanStr.Replace(#10'}]}','}'#10']}');
+
+    if i < (MainDataLength - 1) then
+      CleanStr += ',' + LineEnding;
+
+    WriteFileContents(PATH + 'objects.json', CleanStr, True);
+
+    TempOuterObj.Remove(OuterObj.getString('name'));
+    TempOuterObj.clean;
+    FinalData.Free;
+  end;
+
+  TempObj.Free;
+  TempOuterObj.Free;
+  DeleteFile(PATH + '\tools\objects-temp.json');
+end.

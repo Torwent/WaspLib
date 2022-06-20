@@ -79,13 +79,14 @@ type
     TimeLimit: Int64;
     ActionLimit: Int32;
 
+    OnAntiban: Boolean;
     IsSetup: Boolean;
   end;
 
 {$H-}
 (*
-BaseScript.ShouldHandlePaint()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.ShouldHandlePaint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseScript.ShouldHandlePaint(): Boolean;
 
 Wrapper function used internally to decide if we should handle TWaspProgressReport.
@@ -96,8 +97,8 @@ begin
 end;
 
 (*
-BaseScript.ShouldDrawPaint()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.ShouldDrawPaint
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseScript.ShouldDrawPaint(): Boolean;
 
 Wrapper function used internally to decide if we should call TWaspProgressReport.Update().
@@ -110,8 +111,8 @@ begin
 end;
 
 (*
-BaseScript.PrintReport()
-~~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.PrintReport
+~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.PrintReport(Sender: TObject);
 
 Internal method to print our progress report ("proggie").
@@ -186,14 +187,14 @@ begin
         ProgressReport.Update(ProgressArray);
     {$ENDIF}
 
-    for Str in ProgressArray do
-      Writeln(Str);
+    if not Self.OnAntiban then
+      for Str in ProgressArray do
+        WriteLn(Str);
 
     Self.PreviousAction := Self.Action;
     Self.StatsDebugTick := GetTickCount;
 
-
-    if ScriptDebugEnabled then
+    if not Self.OnAntiban and ScriptDebugEnabled then
       SRL.Debug(RSClient.Image);
   except
     WriteLn(GetExceptionMessage());
@@ -202,8 +203,8 @@ end;
 {$H+}
 
 (*
-BaseScript.StartReportTimer()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.StartReportTimer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.StartReportTimer();
 
 Internal method used to start the timer in which TBaseScript.PrintReport() runs on.
@@ -218,8 +219,8 @@ begin
 end;
 
 (*
-BaseScript.StopReportTimer()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.StopReportTimer
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.StopReportTimer();
 
 Internal method used to temporarily stop TBaseScript.ReportTimer.
@@ -230,8 +231,8 @@ begin
 end;
 
 (*
-BaseScript.ResumeReportTimer()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.ResumeReportTimer
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.ResumeReportTimer();
 
 Internal method used to resume TBaseScript.ReportTimer.
@@ -243,8 +244,8 @@ end;
 
 
 (*
-BaseScript.Init()
-~~~~~~~~~~~~~~~~~
+BaseScript.Init
+~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
 
 Method used to setup the variables of TBaseScript.
@@ -316,8 +317,8 @@ begin
 end;
 
 (*
-BaseScript.DoAntiban()
-~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.DoAntiban
+~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
 
 Method used to call Antiban.DoAntiban(CheckBreaks, CheckSleeps).
@@ -332,14 +333,14 @@ begin
   Antiban.DismissRandom();
   Self.TimeRunning.Pause();
   WL.Activity.Pause();
-  Self.StopReportTimer();
+  Self.OnAntiban := True;
 
   try
     Result := Antiban.DoAntiban(CheckBreaks, CheckSleeps);
   finally
     Self.TimeRunning.Resume();
     WL.Activity.Resume();
-    Sync(@Self.ResumeReportTimer);
+    Self.OnAntiban := False;
 
     if not RSClient.IsLoggedIn() then
       Login.LoginPlayer();
@@ -347,8 +348,8 @@ begin
 end;
 
 (*
-BaseScript.ShouldStop()
-~~~~~~~~~~~~~~~~~~~~~~~
+BaseScript.ShouldStop
+~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseScript.ShouldStop(): Boolean;
 
 Method used to check if we reached the TBaseScript goals and it's time to stop it.
@@ -384,8 +385,8 @@ type
   end;
 
 (*
-BaseWalkerScript.Init()
-~~~~~~~~~~~~~~~~~~~~~~~
+BaseWalkerScript.Init
+~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 
 Method used to setup the variables of TBaseScript.
@@ -430,8 +431,8 @@ type
   end;
 
 (*
-BaseBankScript.Init()
-~~~~~~~~~~~~~~~~~~~~~
+BaseBankScript.Init
+~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 
 Method used to setup the variables of TBaseScript.
@@ -450,8 +451,8 @@ begin
 end;
 
 (*
-BaseBankScript.SetupWLBanks()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseBankScript.SetupWLBanks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseBankScript.SetupWLBanks();
 
 Method used to setup the **CurrentBank** of TBaseBankScript.
@@ -583,8 +584,8 @@ begin
 end;
 
 (*
-BaseBankScript.Terminate()
-~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseBankScript.Terminate
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseBankScript.Terminate(): Boolean;
 
 Helper method to be called at the end of the life cycle of a TBaseBankScript.
@@ -627,8 +628,8 @@ begin
 end;
 
 (*
-BaseBankScript.CountItemsLeft()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseBankScript.CountItemsLeft
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
 
 Set's TBaseBankScript.ItemLeftAmount to be used by TBaseBankScript.ShouldHover().
@@ -641,8 +642,8 @@ begin
 end;
 
 (*
-BaseBankScript.ShouldHover()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+BaseBankScript.ShouldHover
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseBankScript.ShouldHover(): Boolean;
 
 Method used to decide if we should pre-hover the bank or not.
@@ -670,8 +671,8 @@ begin
 end;
 
 (*
-BaseBankScript.Hover()
-~~~~~~~~~~~~~~~~~~~~~~
+BaseBankScript.Hover
+~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TBaseBankScript.Hover(): Boolean;
 
 Moves the mouse to the TBaseBankScript.CurrentBank RSObject.

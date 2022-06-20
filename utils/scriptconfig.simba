@@ -20,37 +20,45 @@ var
   ScriptDebugEnabled    = False; //Enables Script Debugging
   CurrentBankLocation   = EWLBankLocation.GRAND_EXCHANGE_BANK;
 
-function BuildCredentials: String;
-var
-  Player: TRSLoginPlayer;
-  World: Int32;
-begin
-  Result := 'begin'#13#10'';
-  for Player in Login.Players do
+(*
+RewriteCredentials
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure RewriteCredentials();
+
+Internal method used to rewrite the credentials.simba file.
+This will use whatever is stored at the moment in **Login.Players**
+*)
+procedure RewriteCredentials();
+  function BuildCredentials(): String;
+  var
+    Player: TRSLoginPlayer;
+    World: Int32;
   begin
-    Result += '  Login.AddPlayer('#13#10'';
-    Result += '    ''' + Player.User + ''','#13#10'';
-    Result += '    ''' + Player.Password + ''','#13#10'';
-    Result += '    ''' + Player.Pin + ''','#13#10'';
-
-    Result += '    [';
-
-    for World in Player.Worlds do
+    Result := 'begin'#13#10'';
+    for Player in Login.Players do
     begin
-      Result += ToStr(World);
-      if World <> Player.Worlds[High(Player.Worlds)] then
-        Result += ', ';
+      Result += '  Login.AddPlayer('#13#10'';
+      Result += '    ''' + Player.User + ''','#13#10'';
+      Result += '    ''' + Player.Password + ''','#13#10'';
+      Result += '    ''' + Player.Pin + ''','#13#10'';
+
+      Result += '    [';
+
+      for World in Player.Worlds do
+      begin
+        Result += ToStr(World);
+        if World <> Player.Worlds[High(Player.Worlds)] then
+          Result += ', ';
+      end;
+
+      Result += ']'#13#10'';
+
+      Result += '  );'#13#10'';
+      Result += ''#13#10''
     end;
-
-    Result += ']'#13#10'';
-
-    Result += '  );'#13#10'';
-    Result += ''#13#10''
+    Result += 'end;';
   end;
-  Result += 'end;';
-end;
 
-procedure RewriteCredentials;
 var
   FileHandle: Int32;
 begin
@@ -62,7 +70,7 @@ begin
 
     FileHandle := AppendFile(CREDENTIALS_FILE);
 
-    WriteFileString(FileHandle, BuildCredentials);
+    WriteFileString(FileHandle, BuildCredentials());
 
     CloseFile(FileHandle);
   except

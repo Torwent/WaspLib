@@ -1,0 +1,188 @@
+{$DEFINE WL_WALKER2_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  //Map record that olds information of a map "slice".
+  TRSMap = record
+    Name: String;
+    Plane: Int32;      //runescape has 4 planes. Plane 0 is where most things are, 1, 2 and 3 are upper floors in that order.
+    Coordinates: TBox; //coordinates of our map in relation to the raw map dump.
+  end;
+
+  TRSMapArray = array of TRSMap;
+
+function TRSMapArray.IndexOf(Name: String): Int32; overload;
+var
+  i: Int32;
+begin
+  Result := -1;
+
+  for i := 0 to High(Self) do
+    if Self[i].Name = Name then
+      Exit(i);
+end;
+
+//Setup a TRSMap.
+function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
+begin
+  Result.Name := Name.ToLower();
+
+  Result.Name := Name.ToLower();
+
+  if Coordinates.X2 = 0 then
+    Coordinates.X2 := Coordinates.X1 + 1000; //Automatically give the map 1000px width if we only gave it X1
+
+  if Coordinates.Y2 = 0 then
+    Coordinates.Y2 := Coordinates.Y1 + 1000; //Automatically give the map 1000px height if we only gave it Y1
+
+  Result.Coordinates := Coordinates;
+  Result.Plane := Plane;
+end;
+
+function TRSMap.Setup(Name: String; X, Y: Int32; Plane: Int32 = 0): TRSMap; static; overload;
+begin
+  Result := TRSMap.Setup(Name, [X, Y, 0, 0], Plane);
+end;
+
+type
+  //Walker with TRSMap support.
+  TWaspWalker = record(TRSWalker)
+    Map: TRSMap;
+    Offset: TPoint;
+  end;
+
+  TWaspWalkerArray = array of TWaspWalker;
+
+var
+  //Global var that will store pre defined maps.
+  WASP_MAP_ARRAY: TRSMapArray;
+  //Global walker array variable so I don't need so many pointers to walkers in other files.
+  WASP_WALKER_ARRAY: TWaspWalkerArray;
+
+function TWaspWalker.FindMap(Map: String): String; static; override;
+var
+  Mask: String = '.png;.bmp;';
+  Files: TStringArray;
+begin
+  if FileExists(Map) then
+    Exit(ExpandFileName(Map));
+
+  Mask := StringReplace(Mask, '.', Map + '.', [rfReplaceAll]);
+  Files := FindFile(ExtractFileDir(Map), Mask, False, False) +
+           FindFile({$MACRO CURRENT_DIRECTORY}, Mask, True, False);
+
+  if Length(Files) > 0 then
+    Result := Files[0];
+end;
+
+function TWaspWalker.FindMap(Map: TRSMap): String; static; overload;
+begin
+  //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
+  Result := {$MACRO CURRENT_DIRECTORY} + 'plane' + ToStr(Map.Plane) + ToStr(Map.Coordinates) + '.png';
+end;
+
+
+function TWaspWalker.LoadMap(Path: String; Map: TRSMap): TMufasaBitmap; static; overload;
+const
+  MAPS = {$MACRO CURRENT_DIRECTORY} + DirectorySeparator + 'maps' + DirectorySeparator;
+var
+  Cache: String;
+begin
+  Result := TMufasaBitmap.Create();
+
+  if ExtractFileExt(Path) <> '.bmp' then
+  begin
+    Cache := MAPS + 'cache' + DirectorySeparator + SHA1File(Path) + '.bmp';
+
+    // Save as bitmap for much faster loading
+    if not FileExists(Cache) then
+    begin
+      if Map = [] then
+        Result.LoadFromFile(Path)
+      else
+      begin
+        Result.LoadFromFile(MAPS + ToStr(Map.Plane) + '.bmp');
+        Result.Crop(Map.Coordinates.X1, Map.Coordinates.Y1,
+                    Map.Coordinates.X2, Map.Coordinates.Y2);
+      end;
+
+      Result.SaveToFile(Cache);
+    end;
+
+    if FileExists(Cache) then
+      Path := Cache;
+  end;
+
+  Result.LoadFromFile(Path);
+end;
+
+procedure TWaspWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
+var
+  Path: String;
+  Bitmap, Mask, Sample: TMufasaBitmap;
+  i: Int32;
+  X, Y: Int32;
+begin
+  Self.Name := Map.ToLower();
+
+  i := WASP_MAP_ARRAY.IndexOf(Self.Name);
+
+  if i > -1 then
+    Self.Map := WASP_MAP_ARRAY[i];
+
+  Self.ScreenWalk := True; //Make ScreenWalk on by default.
+
+  Self.Scaling := Scaling;
+  Self.ClickRandomness := 4;
+
+  if i = -1 then
+    Path := Self.FindMap(Map)
+  else
+    Path := Self.FindMap(Self.Map);
+
+  if (Path = '') then
+    Self.Fatal('Unable to find map: ' + Map);
+
+  if Self.Name.Contains('agility') then
+    Self.WebGraph := WaspAgility
+  else
+    Self.WebGraph := WaspWeb;
+
+  Self.World := Self.LoadMap(Path, Self.Map);
+
+  if Manage then
+    AddOnTerminate(@Self.Free);
+
+  //Self.HighlightFeatures(Self.World);
+
+  // Fixed or resizable, doesn't matter.
+  Sample := TMufasaBitmap.Create();
+  Self.World.Downsample(Sample, Self.Scaling);
+  Bitmap := Self.GetCleanMinimap();
+  Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
+
+  for X := 0 to Mask.getWidth() - 1 do
+    for Y := 0 to Mask.getHeight() - 1 do
+      if (Mask.GetPixel(X, Y) <> 0) then
+        Mask.SetPixel(X, Y, $FFFFFF);
+
+  Self.Cache := TMatchTemplateCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
+
+  Sample.Free();
+  Bitmap.Free();
+  Mask.Free();
+
+  WASP_WALKER_ARRAY += Self;
+
+  if Self.Map <> [] then
+    Self.Offset := [Self.Map.Coordinates.X1, Self.Map.Coordinates.Y1];
+end;
+
+
+//This are examples, the corodinates were roughly gathered.
+begin
+  WASP_MAP_ARRAY += TRSMap.Setup('zeah', [0, 34150, 3100, 36900]);
+  WASP_MAP_ARRAY += TRSMap.Setup('mainland', [3500, 33900, 11008, 4300]);
+end;

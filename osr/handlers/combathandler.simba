@@ -92,6 +92,8 @@ type
     MinPrayPoints: Int32;
     WeaponSpec: Int32;
     GearIsSetup: Boolean;
+    AutoRetaliateEnabled: Boolean;
+
 
     QuickPrayerIsSetup: Boolean;
 
@@ -181,6 +183,8 @@ begin
   if Self.HandleCannon then
     Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
 
+  Self.AutoRetaliateEnabled := Combat.GetAutoRetaliate();
+
   Self.IsSetup := True;
 end;
 
@@ -195,7 +199,7 @@ begin
 end;
 
 
-procedure TCombatHandler._SetupGear;
+procedure TCombatHandler._SetupGear();
 begin
   if Self.GearIsSetup then
     Exit;
@@ -294,13 +298,13 @@ begin
 end;
 
 
-procedure TCombatHandler.MarkCurrentEnemy;
+procedure TCombatHandler.MarkCurrentEnemy();
 begin
 
 end;
 
 
-function TCombatHandler.AttackMonster: Boolean;
+function TCombatHandler.AttackMonster(): Boolean;
 begin
   if Self.Monster^.SelectOption(['Attack'], 3) then
   begin
@@ -316,7 +320,7 @@ begin
   end;
 end;
 
-function TCombatHandler.WalkAttackMonster: Boolean;
+function TCombatHandler.WalkAttackMonster(): Boolean;
 begin
   if Self.Monster^.WalkSelectOption(['Attack'], 3) then
   begin
@@ -333,21 +337,22 @@ begin
 end;
 
 
-function TCombatHandler.Loot: Boolean;
+function TCombatHandler.Loot(): Boolean;
 begin
-  if Result := Self.LootHandler.CheckLoot then
+  if Result := Self.LootHandler.CheckLoot() then
   begin
     Wait(400, 600);
-    //TODO: FIX ALCHING
-    //if Inventory.FindItems(RSAction.AlchItemArray) and
-    //   RSAction.AlchItems(RSAction.AlchItemArray) then
-    //  Wait(600, 800);
+    if Inventory.ContainsAny(RSAction.AlchItemArray) and
+       RSAction.AlchItems(RSAction.AlchItemArray) then
+      Wait(600, 800);
+    if not Self.AutoRetaliateEnabled then
+      Self.InCombatTimer.Timeout := GetTickCount();
   end;
 end;
 
 
 
-function TCombatHandler.CheckBracelet: Boolean;
+function TCombatHandler.CheckBracelet(): Boolean;
 begin
   if not Self.ManageGear then
     Exit;
@@ -366,7 +371,7 @@ begin
     Self.BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
 end;
 
-function TCombatHandler.NeedBracelet: Boolean;
+function TCombatHandler.NeedBracelet(): Boolean;
 begin
   if not Self.ManageGear or not Self.GearIsSetup then
     Exit;
@@ -376,7 +381,7 @@ begin
             Inventory.ContainsItem(Self.Bracelet) and not Self.CheckBracelet;
 end;
 
-function TCombatHandler.EquipBracelet: Boolean;
+function TCombatHandler.EquipBracelet(): Boolean;
 begin
   if not Self.ManageGear or not Self.GearIsSetup or (Self.Bracelet = 'Null') then
     Exit;
@@ -386,12 +391,13 @@ begin
   if Result then
   begin
     Self.BraceletTimer.Restart;
-    Self.InCombatTimer.Timeout := GetTickCount;
+    if not Self.AutoRetaliateEnabled then
+      Self.InCombatTimer.Timeout := GetTickCount();
   end;
 end;
 
 
-function TCombatHandler.NeedRegear: Boolean;
+function TCombatHandler.NeedRegear(): Boolean;
 begin
   if not Self.ManageGear then
     Exit;
@@ -410,7 +416,7 @@ begin
   Self.DoingSpec := not Result;
 end;
 
-function TCombatHandler.ReGear: Boolean;
+function TCombatHandler.ReGear(): Boolean;
 begin
   if not Self.ManageGear or not Self.GearIsSetup then
     Exit;
@@ -424,11 +430,12 @@ begin
     Result := WaitUntil(not Self.NeedRegear, 100, 5000);
   until Result;
 
-  Self.InCombatTimer.Timeout := GetTickCount;
+  if not Self.AutoRetaliateEnabled then
+    Self.InCombatTimer.Timeout := GetTickCount();
 end;
 
 
-function TCombatHandler.CanSpec: Boolean;
+function TCombatHandler.CanSpec(): Boolean;
 begin
   if not Self.ManageGear then
     Exit;
@@ -450,7 +457,7 @@ begin
   Self.DoingSpec := Result;
 end;
 
-function TCombatHandler.DoSpec: Boolean;
+function TCombatHandler.DoSpec(): Boolean;
 begin
   if Self.ManageGear and not Self.GearIsSetup then
   begin
@@ -464,7 +471,7 @@ begin
     if not WaitUntil(Inventory.ContainsItem(Self.Weapon), 100, 4000) then
       Exit;
 
-  Self.InCombatTimer.Timeout := GetTickCount;
+  Self.InCombatTimer.Timeout := GetTickCount();
   Result := Self.DoingSpec := Minimap.EnableSpec(Self.WeaponSpec);
 
   case Self.SpecWeapon of
@@ -477,12 +484,12 @@ begin
       Wait(300, 400);
   end;
 
-  if Result and (Minimap.GetSpecLevel < Self.WeaponSpec) then
-    Self.Regear;
+  if Result and (Minimap.GetSpecLevel() < Self.WeaponSpec) then
+    Self.Regear();
 end;
 
 
-function TCombatHandler.BuryBones: Boolean;
+function TCombatHandler.BuryBones(): Boolean;
 var
   Slots: TIntegerArray;
   Slot: Int32;
@@ -498,7 +505,7 @@ begin
 end;
 
 
-function TCombatHandler.NeedAntiPoison: Boolean;
+function TCombatHandler.NeedAntiPoison(): Boolean;
 begin
   if not Self.HandlePoison and not Self.HandleVenom then
     Exit;
@@ -509,18 +516,18 @@ begin
             Minimap.IsEnvenomed;
 end;
 
-function TCombatHandler.NeedAntifire: Boolean;
+function TCombatHandler.NeedAntifire(): Boolean;
 begin
   Result := Self.HandleAntifire and AntifireHandler.NeedToConsume;
 end;
 
-function TCombatHandler.NeedBoost: Boolean;
+function TCombatHandler.NeedBoost(): Boolean;
 begin
   Result := Self.HandleBoosts and BoostHandler.NeedToConsume;
 end;
 
 
-function TCombatHandler.Terminate: Boolean;
+function TCombatHandler.Terminate(): Boolean;
 begin
   if not MainScreen.FindGrave then
   begin
@@ -533,7 +540,7 @@ begin
 end;
 
 
-procedure TCombatHandler.CheckSlayerTask;
+procedure TCombatHandler.CheckSlayerTask();
 begin
   if not Self.SlayerTaskFinishedVisible and Self.SlayerTaskFinished then
     Exit;
@@ -545,7 +552,7 @@ begin
 end;
 
 //Check for pending action combat handler is taking care of.
-function TCombatHandler.GetState: String;
+function TCombatHandler.GetState(): String;
 var
   PrayCache: Int32;
 begin
@@ -563,9 +570,9 @@ begin
 
   if Self.HandlePrayer then
   begin
-    PrayCache := Minimap.GetPrayerLevel;
+    PrayCache := Minimap.GetPrayerLevel();
 
-    if (PrayCache > 0) and not Minimap.IsPrayerEnabled then
+    if (PrayCache > 0) and not Minimap.IsPrayerEnabled() then
     begin
       Self.State := 'ENABLE_QPRAY';
       Exit(Self.State);
@@ -584,7 +591,7 @@ begin
     end;
   end;
 
-  if Self.NeedAntifire then
+  if Self.NeedAntifire() then
   begin
     if Inventory.FindConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE) then
     begin
@@ -596,7 +603,7 @@ begin
     Exit(Self.State);
   end;
 
-  if Self.NeedAntiPoison then
+  if Self.NeedAntiPoison() then
   begin
     if Self.HandleVenom and Inventory.FindConsumable(ERSConsumable.VENOM_CONSUMABLE) then
     begin
@@ -611,7 +618,7 @@ begin
     end;
   end;
 
-  if MainScreen.FindGrave then
+  if MainScreen.FindGrave() then
     Exit('PLAYER_DEAD');
 
   Self.CheckSlayerTask;
@@ -619,25 +626,25 @@ begin
   if Self.NeedBracelet then
     Exit('NEED_BRACELET');
 
-  if Self.NeedBoost then
+  if Self.NeedBoost() then
   begin
     Self.State := 'DRINK_BOOST';
     Exit(Self.State);
   end;
 
-  if Self.DoingSpec and Self.CanSpec then
+  if Self.DoingSpec and Self.CanSpec() then
   begin
     Self.State := 'SPEC_MONSTER';
     Exit(Self.State);
   end;
 
-  if Self.CanSpec then
+  if Self.CanSpec() then
   begin
     Self.State := 'USE_SPECIAL_ATT';
     Exit(Self.State);
   end;
 
-  if Self.NeedRegear then
+  if Self.NeedRegear() then
   begin
     Self.State := 'REEQUIP_GEAR';
     Exit(Self.State);
@@ -649,7 +656,7 @@ begin
     Exit(Self.State);
   end;
 
-  if not MainScreen.InCombat then
+  if not MainScreen.InCombat() then
   begin
     Self.State := 'ATTACK_MONSTER';
     Exit(Self.State);
@@ -689,14 +696,14 @@ begin
       'EAT_FOOD', 'DRINK_PRAYER', 'DRINK_ANTIFIRE', 'DRINK_ANTIVENOM',
       'DRINK_ANTIPOISON', 'DRINK_BOOST', 'ENABLE_QPRAY', 'NEED_BRACELET',
       'BURY_BONES', 'ATTACK_MONSTER', 'WAIT_IN_COMBAT':
-      Self.Loot;
+      Self.Loot();
     end;
 end;
 
 var
   CombatHandler: TCombatHandler;
 
-function TRSXPBar.EarnedXP: Boolean; override;
+function TRSXPBar.EarnedXP(): Boolean; override;
 begin
   Result := inherited;
 
@@ -705,7 +712,7 @@ begin
 end;
 
 
-function TRSMainScreen.FindHitsplats: TRSHitsplatArray; override;
+function TRSMainScreen.FindHitsplats(): TRSHitsplatArray; override;
 begin
   Result := inherited;
 
@@ -713,7 +720,7 @@ begin
     CombatHandler.InCombatTimer.Restart(Random(0, 3000));
 end;
 
-function TRSMainScreen.FindDepletedHPBar: Boolean;
+function TRSMainScreen.FindDepletedHPBar(): Boolean;
 var
   Bar: TRSHPBar;
 begin
@@ -722,7 +729,7 @@ begin
       Exit(True);
 end;
 
-function TRSMainScreen.InCombat: Boolean; override;
+function TRSMainScreen.InCombat(): Boolean; override;
 begin
   Result := (CombatHandler.IsSetup and not CombatHandler.InCombatTimer.IsFinished)
             or XPBar.EarnedXP or (Self.FindHitsplats <> []);

@@ -1,0 +1,389 @@
+{$DEFINE WL_WALKER2_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  //Map record that olds information of a map "slice".
+  TRSMap = record
+    Name: String;
+    Plane: Int32;      //runescape has 4 planes. Plane 0 is where most things are, 1, 2 and 3 are upper floors in that order.
+    Coordinates: TBox; //coordinates of our map in relation to the raw map dump.
+  end;
+
+  TRSMapArray = array of TRSMap;
+
+function TRSMapArray.IndexOf(Name: String): Int32; overload;
+var
+  i: Int32;
+begin
+  Result := -1;
+
+  for i := 0 to High(Self) do
+    if Self[i].Name = Name then
+      Exit(i);
+end;
+
+//Setup a TRSMap.
+function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
+begin
+  Result.Name := Name.ToLower();
+
+  Result.Name := Name.ToLower();
+
+  if Coordinates.X2 = 0 then
+    Coordinates.X2 := Coordinates.X1 + 1000; //Automatically give the map 1000px width if we only gave it X1
+
+  if Coordinates.Y2 = 0 then
+    Coordinates.Y2 := Coordinates.Y1 + 1000; //Automatically give the map 1000px height if we only gave it Y1
+
+  Result.Coordinates := Coordinates;
+  Result.Plane := Plane;
+end;
+
+function TRSMap.Setup(Name: String; X, Y: Int32; Plane: Int32 = 0): TRSMap; static; overload;
+begin
+  Result := TRSMap.Setup(Name, [X, Y, 0, 0], Plane);
+end;
+
+type
+  //Walker with TRSMap support.
+  TWaspWalker = record(TRSWalker)
+    Map: TRSMap;
+    Offset: TPoint;
+  end;
+
+  TWaspWalkerArray = array of TWaspWalker;
+
+var
+  //Global var that will store pre defined maps.
+  WASP_MAP_ARRAY: TRSMapArray;
+  //Global walker array variable so I don't need so many pointers to walkers in other files.
+  WASP_WALKER_ARRAY: TWaspWalkerArray;
+
+function TWaspWalker.FindMap(Map: String): String; static; override;
+var
+  Mask: String = '.png;.bmp;';
+  Files: TStringArray;
+begin
+  if FileExists(Map) then
+    Exit(ExpandFileName(Map));
+
+  Mask := StringReplace(Mask, '.', Map + '.', [rfReplaceAll]);
+  Files := FindFile(ExtractFileDir(Map), Mask, False, False) +
+           FindFile({$MACRO CURRENT_DIRECTORY}, Mask, True, False);
+
+  if Length(Files) > 0 then
+    Result := Files[0];
+end;
+
+function TWaspWalker.FindMap(Map: TRSMap): String; static; overload;
+begin
+  //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
+  Result := {$MACRO CURRENT_DIRECTORY} + 'plane' + ToStr(Map.Plane) + ToStr(Map.Coordinates) + '.png';
+end;
+
+
+function TWaspWalker.LoadMap(Path: String; Map: TRSMap): TMufasaBitmap; static; overload;
+const
+  MAPS = {$MACRO CURRENT_DIRECTORY} + DirectorySeparator + 'maps' + DirectorySeparator;
+var
+  Cache: String;
+begin
+  Result := TMufasaBitmap.Create();
+
+  if ExtractFileExt(Path) <> '.bmp' then
+  begin
+    Cache := MAPS + 'cache' + DirectorySeparator + SHA1File(Path) + '.bmp';
+
+    // Save as bitmap for much faster loading
+    if not FileExists(Cache) then
+    begin
+      if Map = [] then
+        Result.LoadFromFile(Path)
+      else
+      begin
+        Result.LoadFromFile(MAPS + ToStr(Map.Plane) + '.bmp');
+        Result.Crop(Map.Coordinates.X1, Map.Coordinates.Y1,
+                    Map.Coordinates.X2, Map.Coordinates.Y2);
+      end;
+
+      Result.SaveToFile(Cache);
+    end;
+
+    if FileExists(Cache) then
+      Path := Cache;
+  end;
+
+  Result.LoadFromFile(Path);
+end;
+
+procedure TWaspWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
+var
+  Path: String;
+  Bitmap, Mask, Sample: TMufasaBitmap;
+  i: Int32;
+  X, Y: Int32;
+begin
+  Self.Name := Map.ToLower();
+
+  i := WASP_MAP_ARRAY.IndexOf(Self.Name);
+
+  if i > -1 then
+    Self.Map := WASP_MAP_ARRAY[i];
+
+  Self.ScreenWalk := True; //Make ScreenWalk on by default.
+
+  Self.Scaling := Scaling;
+  Self.ClickRandomness := 4;
+
+  if i = -1 then
+    Path := Self.FindMap(Map)
+  else
+    Path := Self.FindMap(Self.Map);
+
+  if (Path = '') then
+    Self.Fatal('Unable to find map: ' + Map);
+
+  if Self.Name.Contains('agility') then
+    Self.WebGraph := WaspAgility
+  else
+    Self.WebGraph := WaspWeb;
+
+  Self.World := Self.LoadMap(Path, Self.Map);
+
+  if Manage then
+    AddOnTerminate(@Self.Free);
+
+  //Self.HighlightFeatures(Self.World);
+
+  // Fixed or resizable, doesn't matter.
+  Sample := TMufasaBitmap.Create();
+  Self.World.Downsample(Sample, Self.Scaling);
+  Bitmap := Self.GetCleanMinimap();
+  Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
+
+  for X := 0 to Mask.getWidth() - 1 do
+    for Y := 0 to Mask.getHeight() - 1 do
+      if (Mask.GetPixel(X, Y) <> 0) then
+        Mask.SetPixel(X, Y, $FFFFFF);
+
+  Self.Cache := TMatchTemplateCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
+
+  Sample.Free();
+  Bitmap.Free();
+  Mask.Free();
+
+  WASP_WALKER_ARRAY += Self;
+
+  if Self.Map <> [] then
+    Self.Offset := [Self.Map.Coordinates.X1, Self.Map.Coordinates.Y1];
+end;
+
+
+// overriden to take into account map offset
+function TWaspWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
+const
+  TEMPL_SIZE = 25;
+  SLICE_SIZE = TEMPL_SIZE + 45;
+  SCALING = 2;
+var
+  Slice, SliceScaled, TemplScaled: TMufasaBitmap;
+  Matrix: TSingleMatrix;
+  Area: TBox;
+begin
+  Area := [
+    Max(0, Position.X - SLICE_SIZE),
+    Max(0, Position.Y - SLICE_SIZE),
+    Min(World.GetWidth()  - 1, Position.X + SLICE_SIZE),
+    Min(World.GetHeight() - 1, Position.Y + SLICE_SIZE)
+  ];
+
+  Slice := World.Copy(Area.X1, Area.Y1, Area.X2, Area.Y2);
+  SliceScaled := Slice.Copy();
+  SliceScaled.Downsample(SCALING);
+
+  TemplScaled := Templ.Copy();
+  TemplScaled.Downsample(SCALING);
+  with TemplScaled.GetCenter() do
+    TemplScaled.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
+
+  Matrix := SliceScaled.MatchTemplate(TemplScaled, TM_CCOEFF_NORMED);
+
+  with Matrix.ArgMax() do
+  begin
+    Match := Matrix[Y, X];
+
+    Result.X := Area.X1 + (X + TEMPL_SIZE) * SCALING;
+    Result.Y := Area.Y1 + (Y + TEMPL_SIZE) * SCALING;
+    Result += Self.Offset;
+  end;
+
+  TemplScaled.Free();
+  SliceScaled.Free();
+  Slice.Free();
+end;
+
+// overriden to take into account map offset on debug
+procedure TWaspWalker.DebugPosition(EnsureVisible: Boolean = True);
+var
+  X1, Y1, X2, Y2, X, Y: Int32;
+  P: TPoint;
+  Bitmap, WorldBitmap, MinimapBitmap: TMufasaBitmap;
+  Time: Double;
+  Position, RemovedOffset: TPoint;
+  Lines: TStringArray;
+begin
+  Freeze();
+
+  Time := PerformanceTimer();
+  Position := Self.GetMyPos();
+  RemovedOffset := Position - Self.Offset; //because Self.GetMyPos() returns the position offset, we need to remove it for certain things.
+
+  Time := PerformanceTimer() - Time;
+
+  X1 := Max(0, RemovedOffset.X - 200);
+  Y1 := Max(0, RemovedOffset.Y - 200);
+  X2 := Min(X1 + 400, Self.World.GetWidth()  - 1);
+  Y2 := Min(Y1 + 400, Self.World.GetHeight() - 1);
+
+  X := RemovedOffset.X - X1;
+  Y := RemovedOffset.Y - Y1;
+
+  WorldBitmap := Self.World.Copy(X1, Y1, X2, Y2);
+  WorldBitmap.DrawLine(Point(0, Y), Point(X2 - X1, Y), $00FF00);
+  WorldBitmap.DrawLine(Point(X, 0), Point(X, Y2 - Y1), $00FF00);
+  WorldBitmap.DrawBox([X - 2, Y - 2, X + 2, Y + 2], $FFFFFF);
+
+  MinimapBitmap := Self.ScaleMinimap(Self.GetCleanMinimap(), 1);
+
+  P := MinimapBitmap.GetCenter();
+  if RSClient.Mode = ERSClientMode.FIXED then
+    P := P.Offset(0, 8).Rotate(-Minimap.GetCompassAngle(False), P);
+
+  MinimapBitmap.DrawBoxFilled([P.X - 1, P.Y - 1, P.X + 1, P.Y + 1], $FFFFFF);
+
+  Bitmap := TMufasaBitmap.Create();
+  Bitmap.SetSize(400 + MinimapBitmap.GetWidth() + 30, 420);
+  Bitmap.Fill($403027);
+
+  Lines := [
+    '('      + ToStr(Position.X, ', ', Position.Y) + ')',
+    'Acc: '  + ToStr(Round(Self.Similarity, 3)),
+    'Time: ' + ToStr(Round(Time)) + ' ms'
+  ];
+
+  Bitmap.SetFontName('Consolas');
+  Bitmap.SetFontSize(18);
+  Bitmap.SetFontAntialiasing(True);
+
+  Bitmap.DrawText(Lines[0], [420, 20 + MinimapBitmap.GetHeight()], $FFFFFF);
+  Bitmap.DrawText(Lines[1] + LineEnding + Lines[2], [420, 370], $FFFFFF);
+
+  Bitmap.DrawBitmap(WorldBitmap, [10, 10]);
+  WorldBitmap.Free();
+
+  Bitmap.DrawBitmap(MinimapBitmap, [420, 10]);
+  MinimapBitmap.Free();
+
+  Bitmap.Show(EnsureVisible);
+  Bitmap.Free();
+
+  UnFreeze();
+end;
+
+// overriden to properly screenwalk
+function TWaspWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
+var
+  MinimapPoint: TPoint;
+  R: TRectangle;
+begin
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Angle);
+
+  Result := Minimap.IsPointOn(MinimapPoint, -1);
+
+  if Result and Self.ScreenWalk then
+  begin
+    R := Minimap.PointToMSRect(MinimapPoint, Angle);
+    Result := MainScreen.IsVisible(R.Mean) and (CountColor($000000, R.Bounds.Expand(0, MainScreen.Bounds)) = 0);
+  end;
+end;
+
+// Checks if we are within Distance of Tile. Distance is measured in pixels
+function TWaspWalker.AtTile(Tile: TPoint; Distance: Int32 = 4): Boolean;
+begin
+  Result := Self.GetMyPos.DistanceTo(Tile) <= Distance;
+end;
+
+function TWaspWalker.AtTile(TileArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+var
+  Tile: TPoint;
+begin
+  for Tile in TileArray do
+    if Self.AtTile(Tile, Distance) then
+      Exit(True);
+end;
+
+
+// Returns the closest tile to the player
+// If the Distance is the same for more than one, a random one will be returned
+function TWaspWalker.GetClosestTile(Tiles: TPointArray): TPoint;
+var
+  Tile: TPoint;
+  ClosestDistances: TIntegerArray;
+  Distances: TExtendedArray;
+begin
+  if Tiles = [] then
+    Exit
+  else if Length(Tiles) = 1 then
+    Exit(Tiles[0]);
+
+  for Tile in Tiles do
+    Distances += Self.GetMyPos.DistanceTo(Tile);
+
+   ClosestDistances := Distances.IndicesOf(Distances.Min);
+
+  Result := Tiles[ClosestDistances[Random(0, High(ClosestDistances))]];
+end;
+
+function TWaspWalker.GetClosestTile(TilesArray: T2DPointArray): TPoint; overload;
+var
+  Tiles, ClosesTiles: TPointArray;
+begin
+  if TilesArray = [] then
+    Exit;
+
+  for Tiles in TilesArray do
+    ClosesTiles += Self.GetClosestTile(Tiles);
+
+  Result := Self.GetClosestTile(ClosesTiles);
+end;
+
+
+function TWaspWalker.WebWalk(Destination: TPointArray; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+begin
+  Result := Self.WebWalk(Self.GetClosestTile(Destination), WaitUntilDistance, PathRandomness);
+end;
+
+
+// Checks if the tile is currently visible
+function TWaspWalker.TileVisible(Tile: TPoint): Boolean;
+begin
+  Result := MainScreen.IsVisible(Self.GetTileMS(Tile));
+end;
+
+function TWaspWalker.TileVisible(Tiles: TPointArray): Boolean; overload;
+begin
+  Result := Self.TileVisible(Self.GetClosestTile(Tiles));
+end;
+
+
+
+
+
+
+//This are examples, the corodinates were roughly gathered.
+begin
+  WASP_MAP_ARRAY += TRSMap.Setup('zeah', [0, 34150, 3100, 36900]);
+  WASP_MAP_ARRAY += TRSMap.Setup('mainland', [3500, 33900, 11008, 4300]);
+end;

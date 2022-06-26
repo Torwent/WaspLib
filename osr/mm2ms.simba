@@ -34,9 +34,112 @@ end;
 
 
 (*
-Minimap.ZoomToPoint
-~~~~~~~~~~~~~~~~~~~
-.. pascal:: function Minimap.ZoomToPoint(P: TPoint): Int32;
+Minimap.PointWithinZoom
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.PointWithinZoom(P: TPoint; out Corner: TPoint): Boolean;
+.. pascal:: function TRSMinimap.PointWithinZoom(P: TPoint): Boolean; overload;
+.. pascal:: function TRSMinimap.PointWithinZoom(TPA: TPointArray): Boolean; overload;
+
+Method used to know if a point is within reach of the Zoom rectangle without adjusting the zoom level.
+Check TRSMinimap.GetZoomRectangle for information on the Zoom rectangle.
+
+Example
+-------
+
+  WriteLn Minimap.PointWithinZoom([620, 100]);
+*)
+function TRSMinimap.PointWithinZoom(P: TPoint; out Corner: TPoint): Boolean;
+var
+  TPA: TPointArray;
+begin
+  if not Self.IsPointOn(P) then
+    Exit;
+
+  TPA := Self.GetZoomRectangle().ToTPA().Sorted(P);
+  Corner := TPA[High(TPA)];
+
+  Result := Self.Center.DistanceTo(P) <= Self.Center.DistanceTo(Corner);
+end;
+
+function TRSMinimap.PointWithinZoom(P: TPoint): Boolean; overload;
+var
+  Corner: TPoint;
+begin
+  Result := Self.PointWithinZoom(P, Corner);
+end;
+
+function TRSMinimap.PointWithinZoom(TPA: TPointArray): Boolean; overload;
+begin
+  TPA.Sort(Self.Center);
+
+  Result := Self.PointWithinZoom(TPA[Low(TPA)]);
+end;
+
+
+(*
+Minimap.FacePoint
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+
+This method will rotate the camera so that **P** is within the zoom rectangle without adjusting the zoom level.
+
+Example
+-------
+
+  WriteLn Minimap.FacePoint([620, 100]); //keep in mind this example uses a static point, you will probably never do this.
+*)
+function TRSMinimap.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+var
+  TPA: TPointArray;
+  d1: Double;
+  i: Int32;
+begin
+  if not Self.IsPointOn(P) then
+    Exit;
+
+  TPA := Self.GetZoomRectangle().ToTPA();
+
+  if SRL.PointInPoly(P, TPA) then
+    Exit(True);
+
+  TPA.Sort(P);
+
+  d1 := Self.Center.DistanceTo(P);
+
+  for i := 0 to High(TPA) do
+  begin
+    if Result := d1 <= Self.Center.DistanceTo(TPA[i]) then
+      Break;
+
+    if i = High(TPA) then //the point is outside of the zoom rectangle reach.
+      Exit;
+  end;
+
+  Self.SetCompassAngle(Self.Center.AngleBetween(TPA[i]) - Self.Center.AngleBetween(P) + Randomness);
+end;
+
+(*
+MainScreen.FacePoint
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMainScreen.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean; override;
+
+TODO: ADD THIS TO SRL.
+
+Overriden for a more desirable functionality.
+The original function simply makes the point be straight up of the mainscreen, without regard wether it's visible or not.
+This version of the function instead just makes sure that the point is visible as long as it `Minimap.PointWithinZoom` is true.
+*)
+function TRSMainScreen.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean; override;
+begin
+  Result := Minimap.FacePoint(Self.PointToMM(P).ToPoint(), Randomness);
+end;
+
+(*
+Minimap.ZoomToVisiblePoint
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.ZoomToVisiblePoint(P: TPoint): Int32;
+
+TODO: THIS NEEDS TO BE REWORKED. IT'S NOT RELIABLE RIGHT NOW.
 
 This function gives us a zoom level where **P** would be visible in the MainScreen.
 
@@ -44,9 +147,9 @@ Example
 -------
 
   P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
-  Options.SetZoomLevel(Minimap.ZoomToPoint(P));
+  Options.SetZoomLevel(Minimap.ZoomToVisiblePoint(P));
 *)
-function Minimap.ZoomToPoint(P: TPoint): Int32;
+function TRSMinimap.ZoomToVisiblePoint(P: TPoint): Int32;
 var
   Distance: Int32;
 begin
@@ -55,6 +158,51 @@ begin
   //- Random(5, 10) to give it some margin
   Result := Round((73 - Distance) / 0.8) - Random(25, 30);
 end;
+
+(*
+Minimap.AdjustZoomToPoint
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.AdjustZoomToPoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+
+TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
+
+This function adjusts the zoom level so **P** TRSMinimap.PointWithinZoom() is true.
+*)
+function TRSMinimap.AdjustZoomToPoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+var
+  ZoomLevel: Int32;
+  MaxZoomLevel: Int32;
+begin
+  if Self.PointWithinZoom(P) then
+    Exit(True);
+
+  ZoomLevel := Self.ZoomToVisiblePoint(P) + Randomness;
+
+  if Antiban.MaxZoom > 0 then
+    MaxZoomLevel := Antiban.MaxZoom
+  else
+    MaxZoomLevel := 100;
+
+  if (ZoomLevel >= Antiban.MinZoom) and (ZoomLevel <= MaxZoomLevel) then
+    Result := Options.SetZoomLevel(ZoomLevel);
+end;
+
+
+(*
+Minimap.MakePointVisible
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.MakePointVisible(P: TPoint): Boolean;
+
+TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
+
+Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible on the Mainscreen.
+*)
+function TRSMinimap.MakePointVisible(P: TPoint): Boolean;
+begin
+  Result := Self.AdjustZoomToPoint(P, Random(-5, 5)) and Self.FacePoint(P, Random(-5, 5));
+end;
+
+
 
 (*
 Minimap.GetPolygonMS

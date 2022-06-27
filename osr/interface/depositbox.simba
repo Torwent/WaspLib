@@ -27,7 +27,14 @@ begin
   Result := Self.FindItem(Item, B);
 end;
 
-
+function TRSDepositBox.HoverItem(Item: TRSItem): Boolean;
+var
+  B: TBox;
+begin
+  Result := Self.FindItem(Item, B);
+  if Result then
+    Mouse.Move(B);
+end;
 
 function TRSDepositBox.DepositHelper(B: TBox; Amount: Int32; UseQuantityButtons: Boolean): Boolean;
 var
@@ -129,6 +136,56 @@ begin
       Exit(False);
 
   Result := True;
+end;
+
+(*
+TRSDepositBox.CountSlots
+~~~~~~~~~~
+.. pascal:: function TRSDepositBox.CountSlots(): Int32;
+
+Counts the total number of individual items in the depositbox
+
+.. note:: This is automatically called on the **Bank** variable.
+*)
+function TRSDepositBox.CountSlots(): Int32;
+var
+  Box: TBox;
+  Pt: TPoint;
+  TPA: TPointArray;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  if SRL.FindColors(TPA, RS_ITEM_BORDER, Self.Bounds) > 0 then
+    for Box in Self.GetSlotBoxes() do
+      for Pt in TPA do
+        if Pt.InBox(Box) then
+        begin
+          Inc(Result);
+          break;
+        end;
+end;
+
+function TRSDepositBox.CountItem(Item: TRSItem): Int32;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Result := Length(ItemFinder.Find(Item, Self.GetSlotBoxes()));
+end;
+
+function TRSDepositBox.CountItemStack(Item: TRSItem): Int32;
+var
+  B: TBox;
+begin
+  Result := -1;
+  if Self.FindItem(Item, B) then
+    Result := SRL.GetItemAmount(B);
+end;
+
+function TRSDepositBox.DepositAll: Boolean;
+begin
+  Result := (Self.CountSlots() = 0) or Self.GetButton(ERSDepositButton.DEPOSIT_INVENTORY).Click();
 end;
 
 

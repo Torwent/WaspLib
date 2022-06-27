@@ -1,0 +1,501 @@
+(*
+DotFilters
+==========
+Methods to handle DotFilters. Dot filters are filters that filter in or out ERSMinimapDots.
+*)
+
+{$DEFINE WL_DOTFILTERS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+(*
+type TRSDotFilter
+~~~~~~~~~~~~~~~~~
+  Used to filter mmdots
+*)
+type
+  TRSDotFilter = record
+    TPA: TPointArray;
+    Circle: TCircle;
+    Inside: Boolean;
+    HasTimer: Boolean;
+    Timer: TCountDown;
+  end;
+
+  TRSDotFilterArray = array of TRSDotFilter;
+
+
+procedure TRSDotFilterArray.Setup(TPA: TPointArray; C: TCircle; Inside: Boolean; Time: Int32 = -1);
+var
+  Timer: TCountDown;
+begin
+  Timer.Init(Time);
+  Self += [TPA, C, Inside, (Time > 0), Timer];
+end;
+
+procedure TRSDotFilterArray.Setup(TPA: TPointArray; Inside: Boolean; Time: Int32 = -1); overload;
+var
+  C: TCircle;
+begin
+  Self.Setup(TPA, C, Inside, Time);
+end;
+
+procedure TRSDotFilterArray.Setup(C: TCircle; Inside: Boolean; Time: Int32 = -1); overload;
+var
+  TPA: TPointArray;
+begin
+  Self.Setup(TPA, C, Inside, Time);
+end;
+
+
+procedure TRSDotFilterArray.ClearExpired;
+var
+  i, DelCount: Int32;
+begin
+  DelCount := 0;
+
+  for i := 0 to High(Self) do
+  begin
+    if Self[i - DelCount].HasTimer and Self[i - DelCount].Timer.IsFinished then
+    begin
+      Delete(Self, i - DelCount, 1);
+      DelCount += 1;
+    end;
+  end;
+end;
+
+
+//Filter circles circles within circles.
+//There are times we only want the inner circles, other's we want the outter ones.
+//not being used yet.
+function TRSDotFilterArray.FilterCircles(Inside: Boolean): TRSDotFilterArray;
+var
+  i, j: Int32;
+begin
+  Result := Self;
+
+  for i := 0 to High(Self) do
+    for j := 0 to High(Self) do
+      if j <> i then
+        if SRL.PointInCircle(Self[j].Circle.Mean, Self[i].Circle.Mean, Self[i].Circle.Radius) then
+          if Inside then
+            Delete(Result, i)
+          else
+            Delete(Result, j);
+end;
+
+
+
+function TRSDotFilterArray._DotValidIn(P: TPoint): Boolean;
+var
+  i: Int32;
+  InPoly: Boolean;
+  InCircle: Boolean;
+begin
+  for i := 0 to High(Self) do
+  begin
+    if Self[i].TPA <> [] then
+      InPoly := SRL.PointInPoly(P, Self[i].TPA);
+
+    if Self[i].Circle <> [] then
+      InCircle := SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius);
+
+    if InPoly or InCircle then
+      Exit(True);
+  end;
+
+  Result := False;
+end;
+
+function TRSDotFilterArray._DotValidOut(P: TPoint): Boolean;
+var
+  i: Int32;
+  InPoly: Boolean;
+  InCircle: Boolean;
+begin
+  for i := 0 to High(Self) do
+  begin
+    if Self[i].TPA <> [] then
+      InPoly := SRL.PointInPoly(P, Self[i].TPA);
+
+    if Self[i].Circle <> [] then
+      InCircle := SRL.PointInCircle(P, Self[i].Circle.Mean, Self[i].Circle.Radius);
+
+    if InPoly or InCircle then
+      Exit(False);
+  end;
+
+  Result := True;
+end;
+
+
+procedure Debug(DotFilterArray: TRSDotFilterArray); overload;
+var
+  Bitmap: TMufasaBitmap;
+  I: Int32;
+begin
+  Bitmap := TMufasaBitmap.CreateFromClient;
+
+  for I := 0 to High(DotFilterArray) do
+  begin
+    if DotFilterArray[I].TPA <> [] then
+    begin
+      if DotFilterArray[I].Inside then
+        Bitmap.DrawTPA(DotFilterArray[I].TPA.Connect, clLime)
+      else
+        Bitmap.DrawTPA(DotFilterArray[I].TPA.Connect, clRed);
+    end;
+
+    if DotFilterArray[I].Circle <> [] then
+    begin
+      if DotFilterArray[I].Inside then
+        Bitmap.DrawCircle(DotFilterArray[I].Circle.Mean, DotFilterArray[I].Circle.Radius, clLime)
+      else
+        Bitmap.DrawCircle(DotFilterArray[I].Circle.Mean, DotFilterArray[I].Circle.Radius, clRed);
+    end;
+  end;
+
+  Bitmap.Show(True);
+  Bitmap.Free();
+end;
+
+
+function TRSDotFilterArray.DotValid(P: TPoint; Clear: Boolean = True): Boolean;
+var
+  i: Int32;
+  InDotFilter: TRSDotFilterArray;
+  OutDotFilter: TRSDotFilterArray;
+begin
+  if Clear then
+    Self.ClearExpired;
+
+  for i := 0 to High(Self) do
+    if Self[i].Inside then
+      InDotFilter += Self[i]
+    else
+      OutDotFilter += Self[i];
+
+  //InDotFilter := InDotFilter.FilterCircles(True);
+  //OutDotFilter := OutDotFilter.FilterCircles(False);
+
+  Result := InDotFilter._DotValidIn(P) and OutDotFilter._DotValidOut(P);
+end;
+
+//return filtered valid dots. To be added to MMDot.Find later.
+function TRSDotFilterArray.FilterDots(TPA: TPointArray): TPointArray;
+var
+  P: TPoint;
+begin
+  Self.ClearExpired;
+
+  for P in TPA do
+    if Self.DotValid(P, False) then
+      Result += P;
+end;
+
+
+
+
+(*
+Minimap.GetCircle
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetCircle(Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TCircle;
+Returns a circle in the Minimap, **Loc** being the middle point of the circle.
+
+Example
+-------
+
+  var
+    P: TPoint;
+    Bitmap: TMufasaBitmap;
+
+  begin
+    P := Minimap.GetDots(ERSMinimapDots.NPC)[0];
+
+    Bitmap.FromClient;
+
+    Bitmap.DrawCircle(P.X, P.Y, Minimap.GetCircle(P, 5)); //Draws a circle in the minimap around an NPC of 5 radius.
+
+    ShowBitmap(Bitmap);
+    FreeBitmap(Bitmap);
+  end;
+*)
+function TRSMinimap.GetCircle(Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TCircle;
+begin
+  if (Self.Center.DistanceTo((Loc - Offset)) - Radius) > 80 then
+    Exit; //This means it's impossible the result will be in the minimap.
+
+  Loc := Loc - Offset;
+  Result := [Loc.X, Loc.Y, Radius * 4];
+end;
+
+(*
+Minimap.GetCircleArray
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetCircleArray(Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TCircleArray;
+Returns an array of circles in the minimap.
+
+Example
+-------
+
+  var
+    P: TPoint;
+    TPA: TPointArray;
+    Bitmap: TMufasaBitmap;
+
+  begin
+    TPA := Minimap.GetDots(ERSMinimapDots.NPC);
+
+    Bitmap.FromClient;
+
+    for P in TPA do
+      Bitmap.DrawCircle(P.X, P.Y, Minimap.GetRadius(P, 5));
+
+    ShowBitmap(Bitmap);
+    FreeBitmap(Bitmap);
+  end;
+*)
+function TRSMinimap.GetCircleArray(Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TCircleArray;
+var
+  Loc: TPoint;
+begin
+  for Loc in Locs do
+    Result += Self.GetCircle(Loc, Radius, Offset);
+end;
+
+(*
+Minimap.GetDotInCircle
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetDotInCircle(Dot: ERSMinimapDot; Loc, Radius: Int32; Offset: TPoint = [0, 0]): TPoint;
+
+Functions to get the **ERSMinimapDots** in a circle. Returns only the first dot found.
+This is useful to know if a minimap dot is within range for example.
+
+Example
+-------
+
+  var
+    Bitmap: TMufasaBitmap;
+
+  begin
+    Bitmap.FromClient;
+
+    //Draws a white cross on the first NPC dot found within our 8 pixel radius of the minimap center.
+    Bitmap.DrawCross(Minimap.GetDotInCircle(ERSMinimapDot.NPC, Minimap.Center, 8), 4, $FFFFFF);
+
+    ShowBitmap(Bitmap);
+    FreeBitmap(Bitmap);
+  end;
+*)
+function TRSMinimap.GetDotInCircle(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TPoint;
+var
+  i: Int32;
+  Dots: TPointArray;
+  Circle: TCircle;
+begin
+  Dots := Self.GetDots(Dot);
+
+  Dots.Sort(Self.Center);
+
+  Circle := Self.GetCircle(Loc, Radius, Offset);
+  for i := 0 to High(Dots) do
+    if SRL.PointInCircle(Dots[i], Circle.Mean, Circle.Radius) then
+      Exit(Dots[i]);
+end;
+
+(*
+Minimap.GetDotInCircleArray
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetDotInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+
+Same as above but for an array of circles.
+Returns only the first dot found in each circle in the array.
+It's a bit hard to explain it's uses but I personally use it in RSMMDots to accurately find the Minimap Dots while filtering out the ones I do not want.
+*)
+function TRSMinimap.GetDotInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+var
+  Loc: TPoint;
+begin
+  for Loc in Locs do
+    Result += Self.GetDotInCircle(Dot, Loc, Radius, Offset);
+end;
+
+(*
+Minimap.GetDotArrayInCircle
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetDotArrayInCircle(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+
+Functions to get the **ERSMinimapDots** in a circle. Returns all dots found.
+This is useful to know if minimap dots are within range for example.
+
+Example
+-------
+
+  var
+    P: TPoint;
+    TPA: TPointArray;
+    Bitmap: TMufasaBitmap;
+
+  begin
+    Bitmap.FromClient;
+
+    TPA := Minimap.GetDotArrayInCircle(ERSMinimapDot.NPC, Minimap.Center, 8); //Get all npc dots that are within 8 pixels of the minimap center;
+
+    for P in TPA do
+      Bitmap.DrawCross(P, 4, $FFFFFF); //Will draw a white cross in each npc dot
+
+    ShowBitmap(Bitmap);
+    FreeBitmap(Bitmap);
+  end;
+*)
+function TRSMinimap.GetDotArrayInCircle(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+var
+  i: Int32;
+  Dots: TPointArray;
+  Circle: TCircle;
+begin
+  Dots := Self.GetDots(Dot);
+
+  Dots.Sort(Self.Center);
+
+  Circle := Self.GetCircle(Loc, Radius, Offset);
+  for i := 0 to High(Dots) do
+    if SRL.PointInCircle(Dots[i], Circle.Mean, Circle.Radius) then
+      Result += Dots[i];
+end;
+
+(*
+Minimap.GetDotArrayInCircleArray
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetDotArrayInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+
+Same as above but for an array of circles.
+Returns all dots found in each circle in the array.
+It's a bit hard to explain it's uses but I personally use it in RSMMDots to accurately find the Minimap Dots while filtering out the ones I do not want.
+*)
+function TRSMinimap.GetDotArrayInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+var
+  i: Int32;
+  ATPA: T2DPointArray;
+begin
+  for i := 0 to High(Locs) do
+    ATPA += Self.GetDotArrayInCircle(Dot, Locs[i], Radius, Offset);
+
+  Result := ATPA.Merge;
+
+  Result.Sort(Self.Center);
+end;
+
+function TRSMinimap.GetFilteredDotArray(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray): TPointArray;
+begin
+  Result := DotFilters.FilterDots(Self.GetDots(Dot));
+end;
+
+function TRSMinimap.GetFilteredDot(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray): TPoint;
+var
+  Dots: TPointArray;
+begin
+  Dots := Self.GetFilteredDotArray(Dot, DotFilters);
+  if Dots <> [] then
+    Result := Dots[0];
+end;
+
+
+(*
+Minimap.GetDotTileMS
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectangle;
+.. pascal:: function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Z: Double = 0): TRectangle; overload;
+.. pascal:: function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectArray; overload;
+.. pascal:: function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Z: Double = 0): TRectArray; overload;
+
+I'm not going to be too detailed on this one, if you read the previous functions documentations you can understand what this does.
+Depending on the function you use it either:
+  Combines **Minimap.GetTileMS** with **Minimap.GetDotInCircle** to return a tile of a minimap dot within a circle.
+  Combines **Minimap.GetTileArrayMS** with **Minimap.GetDotInCircleArray** to return a tile of one minimap dot in each circle array we have.
+*)
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; TileVector: Vector3; RadiusOffset, Offset: TPoint = [0, 0]): TRectangle;
+begin
+  Result := Self.GetTileMS(
+              Self.GetDotInCircle(Dot, Loc, Radius, RadiusOffset),
+              TileVector, Offset, $FFFF);
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Z: Double = 0): TRectangle; overload;
+begin
+  Result := Self.GetDotTileMS(Dot, Loc, Radius, [1, 1, Z]);
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; TileVector: Vector3; RadiusOffset, Offset: TPoint = [0, 0]): TRectArray; overload;
+begin
+  Result := Self.GetTileArrayMS(Self.GetDotInCircleArray(Dot, Locs, Radius, RadiusOffset),
+                                TileVector, Offset, $FFFF);
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Z: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotTileMS(Dot, Locs, Radius, [1, 1, Z]);
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray; TileVector: Vector3; Offset: TPoint = [0, 0]): TRectangle; overload;
+begin
+  Result := Self.GetTileMS(
+              Self.GetFilteredDot(Dot, DotFilters),
+              TileVector, Offset, $FFFF);
+end;
+
+function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray; Z: Double = 0): TRectangle; overload;
+begin
+  Result := Self.GetDotTileMS(Dot, DotFilters, [1, 1, Z]);
+end;
+
+
+(*
+Minimap.GetDotArrayTilesMS
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectArray;
+.. pascal:: function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Z: Double = 0): TRectArray; overload;
+.. pascal:: function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectArray; overload;
+.. pascal:: function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Z: Double = 0): TRectArray; overload;
+
+I'm not going to be too detailed on this one, if you read the previous functions documentations you can understand what this does.
+Depending on the function you use it either:
+  Combines **Minimap.GetTileArrayMS** with **Minimap.GetDotArrayInCircle** to return the tiles of all minimap dots within a circle.
+  Combines **Minimap.GetTileArrayMS** with **Minimap.GetDotArrayInCircleArray** to return the tiles of all minimap dots in each circle array we have.
+*)
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; TileVector: Vector3; RadiusOffset, Offset: TPoint = [0, 0]): TRectArray;
+begin
+  Result := Self.GetTileArrayMS(
+                  Self.GetDotArrayInCircle(Dot, Loc, Radius, RadiusOffset),
+                  TileVector, Offset, $FFFF);
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Z: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotArrayTilesMS(Dot, Loc, Radius, [1, 1, Z]);
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; TileVector: Vector3; RadiusOffset, Offset: TPoint = [0, 0]): TRectArray; overload;
+begin
+  Result := Self.GetTileArrayMS(
+                  Self.GetDotArrayInCircleArray(Dot, Locs, Radius, RadiusOffset),
+                  TileVector, Offset, $FFFF);
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Z: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotArrayTilesMS(Dot, Locs, Radius, [1, 1, Z]);
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray; TileVector: Vector3; Offset: TPoint = [0, 0]): TRectArray; overload;
+begin
+  Result := Self.GetTileArrayMS(
+              Self.GetFilteredDotArray(Dot, DotFilters),
+              TileVector, Offset, $FFFF);
+end;
+
+function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray; Z: Double = 0): TRectArray; overload;
+begin
+  Result := Self.GetDotArrayTilesMS(Dot, DotFilters, [1, 1, Z]);
+end;

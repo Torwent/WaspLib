@@ -1,3 +1,10 @@
+(*
+WaspWalker and Walker extensions
+================================
+Methods to handle walking around OSRS.
+This file expands on SRL's walker file.
+*)
+
 {$DEFINE WL_WALKER_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
@@ -7,13 +14,15 @@
 {$I agility.graph}
 
 type
-  TRSWalkerArray = array of TRSWalker;
-
+(*
+type ERSMap
+~~~~~~~~~~~
+  Enumerator used for auto-completion of map names since the same cannot be achieved with strings directly.
+*)
   ERSMap = (
     WORLD_MAP,
     MAINLAND_MAP,
     ZEAH_MAP,
-    AGILITY_MAP,
 
     ABYSS_MAP,
     ASGARNIA_ICE_DUNGEON_MAP,
@@ -51,67 +60,124 @@ type
     ZULANDRA_MAP
   );
 
-  ERSMapArray = array of ERSMap;
-
-function TRSWalkerArray.Find(const Walker: TRSWalker): Integer;
+function ERSMap.Get(Map: ERSMap): String; Static;
 begin
-  for Result := 0 to High(Self) do
-    if (Walker.Name = Self[Result].Name) then
-      Exit;
-
-  Result := -1;
+  Result := ToStr(Map);
 end;
 
-var
-  WalkerArray: TRSWalkerArray;
-  WalkerOffsetArray: TPointArray;
+type
+(*
+type TRSMap
+~~~~~~~~~~~
+Type that holds information of RS Map in pre-extracted or to be extracted from the main image file.
 
-function GetMap(MAP: ERSMap): String;
-begin
-  case Map of
-    WORLD_MAP:    Exit('world');
-    MAINLAND_MAP: Exit('mainland');
-    ZEAH_MAP:     Exit('zeah');
-    AGILITY_MAP:  Exit('agility');
-
-    ABYSS_MAP: Exit('x9670y4424');
-    ASGARNIA_ICE_DUNGEON_MAP: Exit('x1771y1144');
-    BARBARIAN_VILLAGE_MAP: Exit('x7580y2516');
-    BRIMHAVEN_DUNGEON_MAP: Exit('x1272y4048');
-    CATACOMBS_OF_KOUREND_MAP: Exit('x0y2721');
-    CHASM_OF_FIRE_MAP: Exit('x0y0');
-    CORSAIR_COVE_DUNGEON_MAP: Exit('x8923y5104');
-    CRAFTING_GUILD_MAP: Exit('x6953y3166');
-    DEATH_PLATEU_MAP: Exit('x6650y1932');
-    FALADOR_MAP: Exit('x7051y2796');
-    FREMMENNIK_SLAYER_CAVE_MAP: Exit('x2348y2903');
-    GIANTS_DEN_MAP: Exit('x2560y3229');
-    GRAND_EXCHANGE_MAP, WEST_VARROCK_MAP: Exit('x7789y2306');
-    IORWERTH_DUNGEON_MAP: Exit('x3002y2756');
-    KALPHITE_CAVE_MAP: Exit('x212y3352');
-    KALPHITE_LAIR_MAP: Exit('x996y3340');
-    KARUULM_SLAYER_DUNGEON_MAP: Exit('x313y0');
-    KRAKEN_COVE_MAP: Exit('x10158y1010');
-    LUMBRIDGE_MAP: Exit('x7856y2972');
-    LUNAR_ISLAND_MAP: Exit('x4127y1027');
-    MOSLE_HARMLESS_CAVE_MAP: Exit('x0y3332');
-    MOURNER_TUNNELS_MAP: Exit('x7090y5135');
-    OTTOS_GROTTO_MAP: Exit('x5201y2030');
-    PISCARILIUS_MAP: Exit('x2444y1122');
-    SLAYER_TOWER_BASEMENT_AND_UPPERLEVEL_MAP: Exit('x4702y0');
-    SLAYER_TOWER_GROUNDFLOOR_MAP: Exit('x8931y2044');
-    SMOKE_DEVIL_DUNGEON_MAP: Exit('x5346y5184');
-    SMOKE_DUNGEON_MAP: Exit('x212y3352');
-    STRONGHOLD_SLAYER_DUNGEON_MAP: Exit('x3066y5085');
-    VARROCK_MAP: Exit('x7536y2363');
-    WC_GUILD_MAP: Exit('x1564y2293');
-    WINTERTODT_MAP: Exit('x1756y274');
-    ZULANDRA_MAP: Exit('x3969y4031');
+**TRSMap.Name** is simply an identifier for that TRSMap.
+**TRSMap.Plane** is the Z plane of RS to know which map to load. RS have 4 planes, plane 0 is where most ground and underground areas reside
+while 1, 2 and 3 contain upper levels in that order.
+**TRSMap.Coordinates** are the coordinate to crop from Simba/Includes/SRL/osr/walker/maps/#.bmp  where # is the plane we want to use.
+*)
+  TRSMap = record
+    Name: String;
+    Plane: Int32;      //runescape has 4 planes. Plane 0 is where most things are, 1, 2 and 3 are upper floors in that order.
+    Coordinates: TBox; //coordinates of our map in relation to the raw map dump.
   end;
+
+  TRSMapArray = array of TRSMap;
+
+(*
+var WASP_MAP_ARRAY
+~~~~~~~~~~~~~~~~~~~~
+Global variable used to store pre-defines TRSMap's.
+*)
+var
+  WASP_MAP_ARRAY: TRSMapArray;
+
+(*
+TRSMapArray.IndexOf
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMapArray.IndexOf(Name: String): Int32; overload;
+
+Overload to search for a TRSMap in a TRSMapArray only by name.
+*)
+function TRSMapArray.IndexOf(Name: String): Int32; overload;
+var
+  i: Int32;
+begin
+  Result := -1;
+
+  for i := 0 to High(Self) do
+    if Self[i].Name = Name then
+      Exit(i);
 end;
 
-// overriden just so I can load maps from WaspLib maps folder
-function TRSWalker.FindMap(Map: String): String; static; override;
+(*
+TRSMap.Setup
+~~~~~~~~~~~~
+.. pascal:: function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
+.. pascal:: function TRSMap.Setup(Name: String; X, Y: Int32; Plane: Int32 = 0): TRSMap; static; overload;
+
+Method used to setup a TRSMap. This will setup critical information about the TRSMap.
+*)
+function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
+begin
+  Result.Name := Name.ToLower();
+
+  Result.Name := Name.ToLower();
+
+  if Coordinates.X2 = 0 then
+    Coordinates.X2 := Coordinates.X1 + 1000; //Automatically give the map 1000px width if we only gave it X1
+
+  if Coordinates.Y2 = 0 then
+    Coordinates.Y2 := Coordinates.Y1 + 1000; //Automatically give the map 1000px height if we only gave it Y1
+
+  Result.Coordinates := Coordinates;
+  Result.Plane := Plane;
+  WASP_MAP_ARRAY += Result;
+end;
+
+function TRSMap.Setup(Name: String; X, Y: Int32; Plane: Int32 = 0): TRSMap; static; overload;
+begin
+  Result := TRSMap.Setup(Name, [X, Y, 0, 0], Plane);
+end;
+
+(*
+type TWaspWalker
+~~~~~~~~~~~~~~~~
+Type that extendes TRSWalker to give it the ability to use a **TRSMap** and a heightmap.
+*)
+type
+  TWaspWalker = record(TRSWalker)
+    Map: TRSMap;
+    HeightMap: TMufasaBitmap;
+
+    Offset: TPoint;
+  end;
+
+  TWaspWalkerArray = array of TWaspWalker;
+
+(*
+var WASP_WALKER_ARRAY
+~~~~~~~~~~~~~~~~~~~~~
+Global array used to store all TWaspWalkers being used at any given moment.
+*)
+var
+  WASP_WALKER_ARRAY: TWaspWalkerArray;
+
+(*
+TWaspWalker.FindMap
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWaspWalker.FindMap(Map: String): String; static;
+.. pascal:: function TWaspWalker.FindMap(Map: TRSMap): String; static; overload;
+
+Function used to return the path of the map we want to use.
+
+If you pass in a **String**, it will attempt to find the map file in Simba/Includes/SRL/osr/walker/maps/
+The map file has to be either a .png or a .bmp.
+
+If you pass a **TRSMap** instead, it will return a fictional path to an unexistent file that TWaspWalker
+will know how to handle in **TWaspWalker.LoadMap()** for more information read the docs in that function.
+*)
+function TWaspWalker.FindMap(Map: String): String; static; override;
 var
   Mask: String = '.png;.bmp;';
   Files: TStringArray;
@@ -120,7 +186,6 @@ begin
     Exit(ExpandFileName(Map));
 
   Mask := StringReplace(Mask, '.', Map + '.', [rfReplaceAll]);
-
   Files := FindFile(ExtractFileDir(Map), Mask, False, False) +
            FindFile({$MACRO CURRENT_DIRECTORY}, Mask, True, False);
 
@@ -128,29 +193,136 @@ begin
     Result := Files[0];
 end;
 
-// overriden to provide the ability to offset the map
-procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
+function TWaspWalker.FindMap(Map: TRSMap): String; static; overload;
+begin
+  //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
+  Result := {$MACRO CURRENT_DIRECTORY} + 'plane' + ToStr(Map.Plane) + ToStr(Map.Coordinates) + '.png';
+end;
+
+
+(*
+TWaspWalker.LoadMap
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWaspWalker.LoadMap(Path: String): TMufasaBitmap; static;
+.. pascal:: function TWaspWalker.LoadMap(Path: String; Map: TRSMap): TMufasaBitmap; static; overload;
+
+This method is responsible for returning our map as a **TMufasaBitmap** to be setup in **TWaspWalker.World**.
+
+If you only pass it a String, it will use that as the map image path.
+When doing this it will also make a version of the image in .bmp if you passed in a .png because those are much faster to load.
+
+If you also pass in a TRSMap it will assume that **Path** is a fictional file that doesn't exist,
+if there's an already cached version of this map, it will use that, if not, it will load "plane.bmp" instead
+(for more info on planes, read TRSMap documentation above) and then crop the coordinates that
+the TRSMap holds from "plane.bmp" and save it as a cache file for future uses.
+This process might be slow the first time you do it for a certain set of coordinates but once the cache maps are generated
+future runs will be fast.
+*)
+function TWaspWalker.LoadMap(Path: String): TMufasaBitmap; static; override;
+const
+  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
+var
+  Cache: String;
+begin
+  Result := TMufasaBitmap.Create();
+
+  if ExtractFileExt(Path) <> '.bmp' then
+  begin
+    Cache := MAPS + SHA1File(Path) + '.bmp';
+
+    // Save as bitmap for much faster loading
+    if not FileExists(Cache) then
+    begin
+      Result.LoadFromFile(Path);
+      Result.SaveToFile(Cache);
+    end;
+
+    if FileExists(Cache) then
+      Path := Cache;
+  end;
+
+  Result.LoadFromFile(Path);
+end;
+
+function TWaspWalker.LoadMap(Path: String; Map: TRSMap): TMufasaBitmap; static; overload;
+const
+  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
+var
+  Cache: String;
+begin
+  Result := TMufasaBitmap.Create();
+
+  if ExtractFileExt(Path) <> '.bmp' then
+  begin
+    Cache := MAPS + 'cache' + DirectorySeparator + SHA1String(Path) + '.bmp';
+
+    // Save as bitmap for much faster loading
+    if not FileExists(Cache) then
+    begin
+      if Map = [] then
+        Result.LoadFromFile(Path)
+      else
+      begin
+        if not FileExists(MAPS + ToStr(Map.Plane) + '.bmp') then
+        begin
+          WriteLn('Some files require to be extracted since this is your first run, this may take a while.');
+          UnZipFile(MAPS + 'maps.zip', MAPS);
+        end;
+
+        Result.LoadFromFile(MAPS + ToStr(Map.Plane) + '.bmp', Map.Coordinates);
+      end;
+
+      Result.SaveToFile(Cache);
+    end;
+
+    if FileExists(Cache) then
+      Path := Cache;
+  end;
+
+  Result.LoadFromFile(Path);
+end;
+
+(*
+TWaspWalker.Setup
+~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TWaspWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
+
+Override TRSWalker.Setup so TWaspWalker can make use of TRSMaps.
+*)
+procedure TWaspWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
 var
   Path: String;
   Bitmap, Mask, Sample: TMufasaBitmap;
+  i: Int32;
   X, Y: Int32;
 begin
   Self.Name := Map.ToLower();
-  Self.ScreenWalk := True;
 
-  Path := Self.FindMap(Map);
-  if (Path = '') then
-    Self.Fatal('Unable to find map: ' + Map);
+  i := WASP_MAP_ARRAY.IndexOf(Self.Name);
+
+  if i > -1 then
+    Self.Map := WASP_MAP_ARRAY[i];
+
+  Self.ScreenWalk := True; //Make ScreenWalk on by default.
 
   Self.Scaling := Scaling;
   Self.ClickRandomness := 4;
+
+  if i = -1 then
+    Path := Self.FindMap(Map)
+  else
+    Path := Self.FindMap(Self.Map);
+
+  if (Path = '') then
+    Self.Fatal('Unable to find map: ' + Map);
 
   if Self.Name.Contains('agility') then
     Self.WebGraph := WaspAgility
   else
     Self.WebGraph := WaspWeb;
 
-  Self.World := Self.LoadMap(Path);
+  Self.World := Self.LoadMap(Path, Self.Map);
+
   if Manage then
     AddOnTerminate(@Self.Free);
 
@@ -169,50 +341,116 @@ begin
 
   Self.Cache := TMatchTemplateCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
 
-  Sample.Free;
-  Bitmap.Free;
-  Mask.Free;
+  Sample.Free();
+  Bitmap.Free();
+  Mask.Free();
 
-  WalkerArray += Self;
-  if Self.Name.Contains('mainland') then
-    WalkerOffsetArray += [3583, 0]
-  else if Self.Name.ContainsAll(['x', 'y']) then
-  begin
-    X := StrToInt(Self.Name.After('x').Before('y'));
-    Y := StrToInt(Self.Name.After('y'));
-    WalkerOffsetArray += [X, Y];
-  end
-  else
-    WalkerOffsetArray += [0, 0];
+  WASP_WALKER_ARRAY += Self;
+
+  if Self.Map <> [] then
+    Self.Offset := [Self.Map.Coordinates.X1, Self.Map.Coordinates.Y1];
 end;
 
 
-// overriden to take into account map offset on debug
-procedure TRSWalker.DebugPosition(EnsureVisible: Boolean = True); override;
+(*
+TWaspWalker.Free
+~~~~~~~~~~~~~~~~
+.. pascal:: procedure TWaspWalker.Free(); override;
+
+Method used to free the memory used by a TWaspWalker. This method is overriden so we can also clear it from WASP_WALKER_ARRAY.
+*)
+procedure TWaspWalker.Free(); override;
+begin
+  WASP_WALKER_ARRAY.Delete(WASP_WALKER_ARRAY.IndexOf(Self), 1);
+
+  if Self.World <> nil then
+  begin
+    Self.World.Free();
+    Self.World := nil;
+  end;
+end;
+
+
+(*
+TWaspWalker.FullSearch
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWaspWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
+
+Overriden method to properly offset the player position if we are using a TRSMap.
+*)
+function TWaspWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
+const
+  TEMPL_SIZE = 25;
+  SLICE_SIZE = TEMPL_SIZE + 45;
+  SCALING = 2;
+var
+  Slice, SliceScaled, TemplScaled: TMufasaBitmap;
+  Matrix: TSingleMatrix;
+  Area: TBox;
+begin
+  Area := [
+    Max(0, Position.X - SLICE_SIZE),
+    Max(0, Position.Y - SLICE_SIZE),
+    Min(World.GetWidth()  - 1, Position.X + SLICE_SIZE),
+    Min(World.GetHeight() - 1, Position.Y + SLICE_SIZE)
+  ];
+
+  Slice := World.Copy(Area.X1, Area.Y1, Area.X2, Area.Y2);
+  SliceScaled := Slice.Copy();
+  SliceScaled.Downsample(SCALING);
+
+  TemplScaled := Templ.Copy();
+  TemplScaled.Downsample(SCALING);
+  with TemplScaled.GetCenter() do
+    TemplScaled.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
+
+  Matrix := SliceScaled.MatchTemplate(TemplScaled, TM_CCOEFF_NORMED);
+
+  with Matrix.ArgMax() do
+  begin
+    Match := Matrix[Y, X];
+
+    Result.X := Area.X1 + (X + TEMPL_SIZE) * SCALING;
+    Result.Y := Area.Y1 + (Y + TEMPL_SIZE) * SCALING;
+    Result += Self.Offset;
+  end;
+
+  TemplScaled.Free();
+  SliceScaled.Free();
+  Slice.Free();
+end;
+
+(*
+TWaspWalker.DebugPosition
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TWaspWalker.DebugPosition(EnsureVisible: Boolean = True);
+
+Overriden method to properly offset the player position if we are using a TRSMap.
+*)
+procedure TWaspWalker.DebugPosition(EnsureVisible: Boolean = True); override;
 var
   X1, Y1, X2, Y2, X, Y: Int32;
   P: TPoint;
   Bitmap, WorldBitmap, MinimapBitmap: TMufasaBitmap;
   Time: Double;
-  Position: TPoint;
+  Position, RemovedOffset: TPoint;
   Lines: TStringArray;
-  WalkerOffset: TPoint;
 begin
-  WalkerOffset := WalkerOffsetArray[WalkerArray.Find(Self)];
-
   Freeze();
 
   Time := PerformanceTimer();
   Position := Self.GetMyPos();
+  RemovedOffset := Position - Self.Offset; //because Self.GetMyPos() returns the position offset, we need to remove it for certain things.
+
   Time := PerformanceTimer() - Time;
 
-  X1 := Max(0, (Position.X - WalkerOffset.X) - 200);
-  Y1 := Max(0, (Position.Y - WalkerOffset.Y) - 200);
+  X1 := Max(0, RemovedOffset.X - 200);
+  Y1 := Max(0, RemovedOffset.Y - 200);
   X2 := Min(X1 + 400, Self.World.GetWidth()  - 1);
   Y2 := Min(Y1 + 400, Self.World.GetHeight() - 1);
 
-  X := (Position.X - WalkerOffset.X) - X1;
-  Y := (Position.Y - WalkerOffset.Y) - Y1;
+  X := RemovedOffset.X - X1;
+  Y := RemovedOffset.Y - Y1;
 
   WorldBitmap := Self.World.Copy(X1, Y1, X2, Y2);
   WorldBitmap.DrawLine(Point(0, Y), Point(X2 - X1, Y), $00FF00);
@@ -256,53 +494,17 @@ begin
   UnFreeze();
 end;
 
-// overriden to take into account map offset
-function TRSWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
-const
-  TEMPL_SIZE = 25;
-  SLICE_SIZE = TEMPL_SIZE + 45;
-  SCALING = 2;
-var
-  Slice, SliceScaled, TemplScaled: TMufasaBitmap;
-  Matrix: TSingleMatrix;
-  Area: TBox;
-  WalkerOffset: TPoint;
-begin
-  WalkerOffset := WalkerOffsetArray[WalkerArray.Find(Self)];
+(*
+TRSWalker.IsWalkable
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWaspWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
 
-  Area := [
-    Max(0, Position.X - SLICE_SIZE),
-    Max(0, Position.Y - SLICE_SIZE),
-    Min(World.GetWidth()  - 1, Position.X + SLICE_SIZE),
-    Min(World.GetHeight() - 1, Position.Y + SLICE_SIZE)
-  ];
+Overriden to change the default behavior of TRSWalker.IsWalkable(), specifically for ScreenWalking since I don't like the default behaviour.
+I find that minimap limits is extremely close to the render distance in the mainscreen, so personally I rather not
+have the function bother any further if **WorldPoint** is not on the minimap.
 
-  Slice := World.Copy(Area.X1, Area.Y1, Area.X2, Area.Y2);
-  SliceScaled := Slice.Copy();
-  SliceScaled.Downsample(SCALING);
-
-  TemplScaled := Templ.Copy();
-  TemplScaled.Downsample(SCALING);
-  with TemplScaled.GetCenter() do
-    TemplScaled.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
-
-  Matrix := SliceScaled.MatchTemplate(TemplScaled, TM_CCOEFF_NORMED);
-
-  with Matrix.ArgMax() do
-  begin
-    Match := Matrix[Y, X];
-
-    Result.X := Area.X1 + (X + TEMPL_SIZE) * SCALING;
-    Result.Y := Area.Y1 + (Y + TEMPL_SIZE) * SCALING;
-    Result := Result.Offset(WalkerOffset);
-  end;
-
-  TemplScaled.Free;
-  SliceScaled.Free;
-  Slice.Free;
-end;
-
-// overriden to properly screenwalk
+This override will affect both TRSWalker and TWaspWalker.
+*)
 function TRSWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
 var
   MinimapPoint: TPoint;
@@ -320,181 +522,79 @@ begin
 end;
 
 
+(*
+TRSWalker.AtTile
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.AtTile(WorldPoint: TPoint; Distance: Int32 = 4): Boolean;
+.. pascal:: function TRSWalker.AtTile(WorldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 
+Method used to quickly check if we are within distance of a certain **WorldPoint**. This distance is measure in pixels and in a radial way.
+You can optionally pass in a TPA to check if the closest point is within distance.
 
-// Checks if we are within Distance of Tile
-function TRSWalker.AtTile(Tile: TPoint; Distance: Int32 = 15): Boolean;
+This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
+*)
+function TRSWalker.AtTile(WorldPoint: TPoint; Distance: Int32 = 4): Boolean;
 begin
-  Result := Self.GetMyPos.DistanceTo(Tile) <= Distance;
+  Result := Self.GetMyPos.WithinDistance(WorldPoint, Distance);
 end;
 
-function TRSWalker.AtTile(TileArray: TPointArray; Distance: Int32 = 15): Boolean; overload;
-var
-  Tile: TPoint;
+function TRSWalker.AtTile(WorldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 begin
-  for Tile in TileArray do
-    if Self.AtTile(Tile, Distance) then
-      Exit(True);
-end;
-
-
-
-// Returns the closest tile to the player
-// If the Distance is the same for more than one, a random one will be returned
-function TRSWalker.GetClosestTile(Tiles: TPointArray): TPoint;
-var
-  Tile: TPoint;
-  ClosestDistances: TIntegerArray;
-  Distances: TExtendedArray;
-begin
-  if Tiles = [] then
-    Exit
-  else if Length(Tiles) = 1 then
-    Exit(Tiles[0]);
-
-  for Tile in Tiles do
-    Distances += Self.GetMyPos.DistanceTo(Tile);
-
-   ClosestDistances := Distances.IndicesOf(Distances.Min);
-
-  Result := Tiles[ClosestDistances[Random(0, High(ClosestDistances))]];
-end;
-
-function TRSWalker.GetClosestTile(TilesArray: T2DPointArray): TPoint; overload;
-var
-  Tiles, ClosesTiles: TPointArray;
-begin
-  if TilesArray = [] then
-    Exit;
-
-  for Tiles in TilesArray do
-    ClosesTiles += Self.GetClosestTile(Tiles);
-
-  Result := Self.GetClosestTile(ClosesTiles);
+  Result := Self.GetMyPos.WithinDistance(WorldPointArray, Distance);
 end;
 
 
+
+(*
+TRSWalker.GetClosestPoint
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.GetClosestPoint(WorldPointArray: TPointArray): TPoint;
+
+Method used to get the closest Point to the Player out of a TPA.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
+*)
+function TRSWalker.GetClosestPoint(WorldPointArray: TPointArray): TPoint;
+begin
+  if WorldPointArray <> [] then
+    Result := WorldPointArray.Sorted(Self.GetMyPos())[0];
+end;
+
+(*
+TRSWalker.WebWalk
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.WebWalk(Destination: TPointArray; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+
+Method used to webwalk to the closest Point to the player.
+An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
+You will likely want to use the closest bank booth to you, so you use this.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
+*)
 function TRSWalker.WebWalk(Destination: TPointArray; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
 begin
-  Result := Self.WebWalk(Self.GetClosestTile(Destination), WaitUntilDistance, PathRandomness);
+  Result := Self.WebWalk(Self.GetClosestPoint(Destination), WaitUntilDistance, PathRandomness);
 end;
 
 
-// Returns all the an array of tiles that have the closest distance to the player
-function TRSWalker.GetClosestTileCluster(TilesArray: T2DPointArray): TPointArray;
-var
-  Tiles: TPointArray;
-begin
-  if TilesArray = [] then
-    Exit;
+(*
+TRSWalker.WorldToMM
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.WorldToMM(PlayerPoint: TPoint; WorldPoints: TPointArray; Radians: Double): TPointArray; overload;
+.. pascal:: function TRSWalker.WorldToMM(WorldPoints: TPointArray): TPointArray; overload;
+.. pascal:: function TRSWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
+.. pascal:: function TRSWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
 
-  for Tiles in TilesArray do
-    Result += Self.GetClosestTile(Tiles);
-end;
+Overloaded methods required for TRSDotFilter. For more information on TRSDotFilter check their documentation.
 
-// Checks if the tile is currently visible
-function TRSWalker.TileVisible(Tile: TPoint): Boolean; overload;
-begin
-  Result := MainScreen.IsVisible(Self.GetTileMS(Tile));
-end;
-
-function TRSWalker.TileVisible(Tiles: TPointArray): Boolean; overload;
-var
-  Tile: TPoint := Self.GetClosestTile(Tiles);
-begin
-  Result := Self.TileVisible(Tile);
-end;
-
-// Checks if we can make the tile visible by zooming out
-function TRSWalker.TileWithinZoom(Tile: TPoint): Boolean;
-begin
-  Result := Minimap.PointInZoomRectangle(Self.WorldToMM(Tile));
-end;
-
-function TRSWalker.TileWithinZoom(Tiles: TPointArray): Boolean; overload;
-begin
-  Result := Self.TileWithinZoom(Self.GetClosestTile(Tiles));
-end;
-
-
-
-function TRSWalker.FacingTile(Tile: TPoint; Randomness: Int32 = 20): Boolean;
-var
-  Angle: Double;
-begin
-  Angle := MainScreen.PointToMM(Self.GetTileMS(Tile).Mean).ToPoint.AngleBetween(Minimap.Center);
-  Result := (Angle <= (0 + Randomness)) or (Angle >= (360 - Randomness));
-end;
-
-// Attempts to rotate the screen in order to make Tile visible.
-function TRSWalker.FaceTile(Tile: TPoint): Boolean;
-begin
-  if not Self.TileWithinZoom(Tile) then
-    Exit;
-
-  if not Self.FacingTile(Tile, 10) then
-  begin
-    MainScreen.FacePoint(Self.GetTileMS(Tile).Mean, 10);
-    Result := Self.FacingTile(Tile, 10);
-  end;
-end;
-
-function TRSWalker.FaceTile(Tiles: TPointArray): Boolean; overload;
-var
-  Tile: TPoint := Self.GetClosestTile(Tiles);
-begin
-  Result := Self.FaceTile(Tile);
-end;
-
-// Attempts to zoom out enough so Tile is visible.
-function TRSWalker.ZoomToTile(Tile: TPoint): Boolean;
-var
-  ZoomLevel: Int32;
-  MaxZoomLevel: Int32;
-begin
-  if Self.TileWithinZoom(Tile) then
-    Exit(True);
-
-  ZoomLevel := Minimap.ZoomToVisiblePoint(Self.WorldToMM(Tile));
-
-  if Antiban.MaxZoom > 0 then
-    MaxZoomLevel := Antiban.MaxZoom
-  else
-    MaxZoomLevel := 100;
-
-  if (ZoomLevel >= Antiban.MinZoom) and (ZoomLevel <= MaxZoomLevel) then
-    Options.SetZoomLevel(ZoomLevel);
-
-  Result := Self.TileWithinZoom(Tile);
-end;
-
-function TRSWalker.ZoomToTile(Tiles: TPointArray): Boolean; overload;
-var
-  Tile: TPoint := Self.GetClosestTile(Tiles);
-begin
-  Result := Self.ZoomToTile(Tile);
-end;
-
-// Attempt to make a tile visible.
-function TRSWalker.MakeTileVisible(Tile: TPoint): Boolean;
-begin
-  Result := Self.TileVisible(Tile) or Self.ZoomToTile(Tile) or
-            (Self.FaceTile(Tile) and Self.TileVisible(Tile));
-end;
-
-function TRSWalker.MakeTileVisible(Tiles: TPointArray): Boolean; overload;
-begin
-  Result := Self.MakeTileVisible(Self.GetClosestTile(Tiles));
-end;
-
-
-
+This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
+*)
 function TRSWalker.WorldToMM(PlayerPoint: TPoint; WorldPoints: TPointArray; Radians: Double): TPointArray; overload;
 var
-  WorldPoint: TPoint;
+  P: TPoint;
 begin
-  for WorldPoint in WorldPoints do
-    Result += Self.WorldToMM(PlayerPoint, WorldPoint, Radians);
+  for P in WorldPoints do
+    Result += Self.WorldToMM(PlayerPoint, P, Radians);
 end;
 
 function TRSWalker.WorldToMM(WorldPoints: TPointArray): TPointArray; overload;
@@ -528,10 +628,32 @@ end;
 
 
 (*
+TRSWalker.MakePointVisible
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.MakePointVisible(P: TPoint): Boolean;
+.. pascal:: function TRSWalker.MakePointVisible(TPA: TPointArray): Boolean; overload;
+
+Wrapper function used to attempt to make a Point visible on the MainScreen.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
+*)
+function TRSWalker.MakePointVisible(P: TPoint): Boolean;
+begin
+  Result := Minimap.MakePointVisible(Self.WorldToMM(P));
+end;
+
+function TRSWalker.MakePointVisible(TPA: TPointArray): Boolean; overload;
+begin
+  Result := Minimap.MakePointVisible(Self.WorldToMM(Self.GetClosestPoint(TPA)));
+end;
+
+(*
 TRSWalker.GetPolygonMS
 ~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
 .. pascal:: function TRSWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
+
+This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 
 To understand what this does, you should read about **TRSMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
 This calls **TRSMinimap.GetPolygonMS()** internally which in turn will use both methods above.
@@ -572,6 +694,8 @@ TRSWalker.GetTileArrayMS
 .. pascal:: function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
 
 This are wrapper functions to retrieve multiple tiles. Refer to SRL's TRSWalker.GetTileMSEx() and TRSWalker.GetTileMS() for more information.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 *)
 function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
 var
@@ -594,6 +718,8 @@ TRSWalker.GetPolygonArrayMS
 .. pascal:: function TRSWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
 
 Gives you an array of mainscreen polygons. Read **Minimap.GetPolygonMS** for more information.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 
 Example
 -------
@@ -622,7 +748,6 @@ begin
 end;
 
 
-
 (*
 TRSWalker.GetMMPoly
 ~~~~~~~~~~~~~~~~~~~
@@ -631,6 +756,8 @@ TRSWalker.GetMMPoly
 This function converts a list of points to their respective points in the minimap.
 This is extremely useful if you want to be sure you are within an area.
 To make a polygon or a polygon array easily you can use Simba/Includes/WaspLib/tools/walkerpolygon.simba.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 
 Example
 -------
@@ -647,9 +774,18 @@ TRSWalker.InPoly
 .. pascal:: function TRSWalker.InPoly(LocArray: TPointArray): Boolean;
 
 Checks if you are inside a polygon. If you need to debug the polygon check the example in TRSWalker.GetMMPoly.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
+
 *)
 function TRSWalker.InPoly(LocArray: TPointArray): Boolean;
 begin
   Result := SRL.PointInPoly(Self.GetMyPos(), LocArray);
 end;
 
+
+begin
+  TRSMap.Setup('zeah', [0, 34150, 3100, 36900]);
+  TRSMap.Setup('mainland', [3500, 33960, 11008, 40266]);
+  TRSMap.Setup('craftguildfloor', [7000, 37200, 7300, 37400]);
+end;

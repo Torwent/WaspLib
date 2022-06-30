@@ -58,7 +58,7 @@ begin
   TPA := Self.GetZoomRectangle().ToTPA().Sorted(P);
   Corner := TPA[High(TPA)];
 
-  Result := Self.Center.DistanceTo(P) <= Self.Center.DistanceTo(Corner);
+  Result := Self.Center().DistanceTo(P) <= Self.Center().DistanceTo(Corner);
 end;
 
 function TRSMinimap.PointWithinZoom(P: TPoint): Boolean; overload;
@@ -70,7 +70,7 @@ end;
 
 function TRSMinimap.PointWithinZoom(TPA: TPointArray): Boolean; overload;
 begin
-  TPA.Sort(Self.Center);
+  TPA.Sort(Self.Center());
 
   Result := Self.PointWithinZoom(TPA[Low(TPA)]);
 end;
@@ -104,18 +104,18 @@ begin
 
   TPA.Sort(P);
 
-  d1 := Self.Center.DistanceTo(P);
+  d1 := Self.Center().DistanceTo(P);
 
   for i := 0 to High(TPA) do
   begin
-    if Result := d1 <= Self.Center.DistanceTo(TPA[i]) then
+    if Result := d1 <= Self.Center().DistanceTo(TPA[i]) then
       Break;
 
     if i = High(TPA) then //the point is outside of the zoom rectangle reach.
       Exit;
   end;
 
-  Self.SetCompassAngle(Self.Center.AngleBetween(TPA[i]) - Self.Center.AngleBetween(P) + Randomness);
+  Self.SetCompassAngle(Self.Center().AngleBetween(TPA[i]) - Self.Center().AngleBetween(P) + Randomness);
 end;
 
 (*
@@ -192,6 +192,7 @@ end;
 Minimap.MakePointVisible
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSMinimap.MakePointVisible(P: TPoint): Boolean;
+.. pascal:: function TRSMinimap.MakePointVisible(TPA: TPointArray): Boolean; overload;
 
 TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
 
@@ -200,6 +201,11 @@ Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible 
 function TRSMinimap.MakePointVisible(P: TPoint): Boolean;
 begin
   Result := Self.AdjustZoomToPoint(P, Random(-5, 5)) and Self.FacePoint(P, Random(-5, 5));
+end;
+
+function TRSMinimap.MakePointVisible(TPA: TPointArray): Boolean; overload;
+begin
+  Result := Self.MakePointVisible(TPA.Sorted(Self.Center()));
 end;
 
 
@@ -263,7 +269,7 @@ var
 begin
   if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
 
-  for Loc in LocArray.Sorted(Self.Center) do
+  for Loc in LocArray.Sorted(Self.Center()) do
     Result += Self.GetTileMS(Loc, TileVector, Offset, Angle);
 end;
 

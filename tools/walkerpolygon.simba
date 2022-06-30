@@ -10,7 +10,7 @@ Tool to draw polygons in walker maps. This polygons can later be used to detect 
 {$H-}
 
 const
-  MAP_NAME: String = 'World';
+  MAP_NAME: String = 'agility';
 
 var
   NodeArray: T2DPointArray := [
@@ -28,7 +28,7 @@ type
     CoordinateEdit: TEdit;
     SelectedNode: Int32;
     Dragging: Boolean;
-    Map: String;
+    Map: TMufasaBitmap;
     Name: String;
 
     Offset: TPoint;
@@ -37,19 +37,40 @@ type
 var
   PolyDrawer: TPolyDrawerForm;
 
-begin
-  // Change the map here
-  PolyDrawer.Map := TRSWalker.FindMap(MAP_NAME);
 
-  if MAP_NAME.ContainsAll(['x', 'y']) then
-  begin
-    PolyDrawer.Offset.X := StrToInt(MAP_NAME.After('x').Before('y'));
-    PolyDrawer.Offset.Y := StrToInt(MAP_NAME.After('y'));
-  end
-  else if 'mainland' in MAP_NAME then
-    PolyDrawer.Offset := [3583, 0]
+procedure Setup(MapStr: String);
+var
+  Map: TRSMap;
+  Path: String;
+  Bitmap, Mask, Sample: TMufasaBitmap;
+  i: Int32;
+  X, Y: Int32;
+begin
+  Map := [];
+  MapStr := MapStr.ToLower();
+
+  i := WASP_MAP_ARRAY.IndexOf(MapStr);
+
+  if i > -1 then
+    Map := WASP_MAP_ARRAY[i];
+
+  WriteLn Map = [];
+
+  if i = -1 then
+    Path := TWaspWalker.FindMap(MapStr)
   else
-    PolyDrawer.Offset := [0, 0];
+    Path := TWaspWalker.FindMap(Map);
+
+  if (Path = '') then
+    TerminateScript('Unable to find map: ' + MapStr);
+
+  PolyDrawer.Map := TWaspWalker.LoadMap(Path, Map);
+  if Map <> [] then
+    PolyDrawer.Offset := [Map.Coordinates.X1, Map.Coordinates.Y1];
+end;
+
+begin
+  Setup(MAP_NAME);
 end;
 
 procedure TPolyDrawerForm.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Int32);

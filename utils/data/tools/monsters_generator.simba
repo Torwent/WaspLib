@@ -1,0 +1,331 @@
+(*
+Monster Generator
+=================
+
+This is tool used to generate monster.json and takes a few minutes to complete.
+It has 3 phases, you can see the progress in Simba's output.
+
+monster.json is a file that contains data about monsters.
+
+This combines the data you can get from the osrs cache file with position data provided by a JMod from what I've been told.
+Because the position data was provided by a JMod it might be outdated and never updated again.
+
+This data could also disappear someday so if you want to make sure it doesn't consider hosting it yourself.
+The **MONSTER_DATA_URL** and **NPC_DATA_URL** consts have the links to the original data I used.
+You can switch the link to another ones but if the jsons have a
+different structure you will need to update this file to work with it.
+*)
+
+const
+  MONSTER_DATA_URL = 'https://raw.githubusercontent.com/osrsbox/osrsbox-db/master/docs/monsters-complete.json';
+  MONSTERS_JSON  = IncludePath + 'WaspLib\utils\data\monsters.json';
+  NPC_DATA_URL = 'https://raw.githubusercontent.com/mejrs/data_osrs/682acd0ed9968c000a260a8f852e7bbe489f2f48/NPCList_OSRS.json';
+
+function GetDrops(Drops: TJSONArray): TJSONArray;
+var
+  drop: TJSONObject;
+  i: Int32;
+begin
+  Result.Init();
+
+  for i := 0 to Drops.length - 1 do
+  begin
+    drop.Init();
+    drop.put('id', Drops.getJSONObject(i).getInt('id'));
+    drop.put('name', Drops.getJSONObject(i).getString('name'));
+    drop.put('quantity', Drops.getJSONObject(i).getString('quantity'));
+    drop.put('noted', Drops.getJSONObject(i).getString('noted'));
+
+    Result.put(drop);
+  end;
+end;
+
+(*
+Phase1
+~~~~~~
+
+In this phase we will fetch the raw json file that contains all monsters data and with it we are going to clean the data up a little
+for our use case generating a temporary file named monster-raw.json.
+
+This file will contain an entry for every monsters even the ones with the same name.
+*)
+procedure Phase1();
+const
+  PATH = IncludePath + 'WaspLib\utils\data\tools\';
+var
+  DataStr: String;
+  Data, TempType, TempPos, TempPosSet: TJSONArray;
+  CurrentMonster, TempMonster, FinalMonster: TJSONObject;
+  id, combat, x, y, z, size, i, DataLength: int32;
+  Str, CleanStr: String;
+begin
+  DataStr := GetPage(NPC_DATA_URL);
+  Data.Init(DataStr);
+
+  DataLength := Data.length - 1;
+  DeleteFile(PATH + 'monster-raw.json');
+  WriteFileContents(PATH + 'monster-raw.json', '[' + LineEnding, True);
+
+  for i := 0 to DataLength do
+  begin
+    if (I mod 100 = 0) or (i=DataLength) then
+      WriteLn('Phase1: ', i, ' of ', DataLength, ' done.');
+    CurrentMonster := Data.getJSONObject(i);
+    FinalMonster.Init();
+    TempPosSet.Init();
+    TempPos.Init();
+    TempMonster.Init();
+    TempType.Init();
+
+    Str := '';
+    combat := 0;
+
+    if not CurrentMonster.isNull('name') then
+    begin
+      Str := CurrentMonster.getString('name').ToLower();
+      combat := CurrentMonster.optInt('combatLevel', 0);
+      if not CurrentMonster.isNull('isInteractable') and not CurrentMonster.getBoolean('isInteractable') then
+        combat := 0; //just so we filter this one out lol.
+    end;
+
+    if (Str <> '') and (combat > 0) then
+    begin
+      FinalMonster.put('name', Str);
+
+      id := CurrentMonster.getInt('id');
+
+      size := CurrentMonster.optInt('size', 1);
+
+      x := CurrentMonster.getInt('x') * 4 - 4608;
+      y := 50429 - CurrentMonster.getInt('y') * 4;
+      z := CurrentMonster.GetInt('p');
+
+      TempPosSet.put(0, x);
+      TempPosSet.put(1, y);
+      TempPosSet.put(2, z);
+      TempPos.put(0, TempPosSet);
+
+      TempMonster.put('id', id);
+      TempMonster.put('size', size);
+      TempMonster.put('position', TempPos);
+      TempType.put(0, TempMonster);
+
+      FinalMonster.put('type', TempType);
+
+      CleanStr := FinalMonster.toString(1).Replace('\u0020', ' ').Replace('\u003Ccol\u003Dff9040\u003E', '').Replace('\u003C\/col\u003E', '');
+      CleanStr := CleanStr.Replace('\u003Ccol\u003D00ffff\u003E', '');
+      if i < DataLength then
+        CleanStr += ',' + LineEnding;
+
+      WriteFileContents(PATH + 'monster-raw.json', CleanStr, True);
+    end;
+    FinalMonster.Free();
+  end;
+
+  WriteFileContents(PATH + 'monster-raw.json', ']', True);
+  Data.Free();
+end;
+
+(*
+Phase2
+~~~~~~
+
+In this phase we will load the previous generated monster-raw.json and join all monsters with the same name into a single one
+that contains an array of each "type" which is each monster "id". At this point you might still have several entries for the same "id".
+
+This will also create another temporary file named monster-temp.json and when finished will delete monster-raw.json.
+*)
+procedure Phase2();
+const
+  PATH = IncludePath + 'WaspLib\utils\data\tools\';
+var
+  Data: TJSONArray;
+  CurrentMonster, TempMonster: TJSONObject;
+  KeysDone: TStringArray;
+  i, j, DataLength: int32;
+  Str, CleanStr: String;
+begin
+  Data.Init(ReadFileContents(PATH + 'monster-raw.json'));
+
+  DataLength := Data.length - 1;
+  DeleteFile(PATH + 'monster-temp.json');
+  WriteFileContents(PATH + 'monster-temp.json', '[' + LineEnding, True);
+
+  for i := 0 to DataLength do
+  begin
+    if (I mod 100 = 0) or (i=DataLength) then
+      WriteLn('Phase2: ', i, ' of ', DataLength, ' done.');
+    CurrentMonster := Data.getJSONObject(i);
+    Str := CurrentMonster.getString("name");
+
+    if KeysDone.Contains(Str) then //if we already done this object skip it.
+      Continue;
+
+    for j := (i+1) to DataLength do
+    begin
+      TempMonster := Data.getJSONObject(j);
+      if Str = TempMonster.getString("name") then
+        CurrentMonster.getJSONArray("type").put(TempMonster.getJSONArray("type").get(0));
+    end;
+
+    KeysDone += Str;
+
+    CleanStr := CurrentMonster.toString(1).Replace('\u0020', ' ');
+
+    if i < DataLength then
+      CleanStr += ',' + LineEnding;
+
+    WriteFileContents(PATH + 'monster-temp.json', CleanStr, True);
+  end;
+
+  WriteFileContents(PATH + 'monster-temp.json', ']', True);
+  //DeleteFile(PATH + 'monster-raw.json');
+end;
+
+(*
+Phase3
+~~~~~~
+
+In this phase we will load the previous generated monster-temp.json and join all monsters with the same "id" into a single one,
+merging their positions into an array of positions.
+
+This will create the final file named monsters.json and when finished will delete monster-temp.json.
+*)
+procedure Phase3();
+const
+  PATH = IncludePath + 'WaspLib\utils\data\';
+var
+  Data, InnerData: TJSONArray;
+  OSRSBoxData, MonsterData, OuterObj, CurrentObj, TempObj, TempOuterObj, FinalData: TJSONObject;
+  MonsterDataKeys: TStringList;
+  KeysDone: TIntegerArray;
+  CurrentID, i, j, l, MainDataLength, InnerDataLength: int32;
+  hp, mh, att_sp, cmblvl, CleanStr: String;
+begin
+  OSRSBoxData.Init(GetPage(MONSTER_DATA_URL));
+  MonsterDataKeys := OSRSBoxData.keys;
+
+  Data.Init(ReadFileContents(PATH + '\tools\monster-temp.json'));
+  TempOuterObj.Init();
+  AddOnTerminate(@Data.Free);
+
+  MainDataLength := Data.length - 1;
+  DeleteFile(PATH + 'monsters.json');
+  WriteFileContents(PATH + 'monsters.json', '{', True);
+
+  for i := 500 to MainDataLength do
+  begin
+    if (i mod 100 = 0) or (i=MainDataLength) then
+      WriteLn('Phase3: ', i, ' of ', MainDataLength, ' done.');
+
+    TempOuterObj.Init();
+
+    FinalData.Init();
+    OuterObj := Data.getJSONObject(i);
+    InnerData := OuterObj.getJSONArray("type");
+    InnerDataLength := InnerData.length - 1;
+
+    for j := 0 to InnerDataLength do
+    begin
+      CurrentObj := InnerData.getJSONObject(j);
+
+      CurrentID := CurrentObj.getInt("id");
+
+      if KeysDone.Contains(CurrentID) then //if we already done this object skip it.
+        Continue;
+
+      for l := (j+1) to InnerDataLength do
+      begin
+        TempObj := InnerData.getJSONObject(l);
+
+        if CurrentID <> TempObj.getInt("id") then
+          Continue;
+
+        CurrentObj.getJSONArray("position").put(TempObj.getJSONArray("position").get(0));
+      end;
+
+      if not OSRSBoxData.has(ToStr(CurrentID)) then
+        Continue;
+
+      MonsterData := OSRSBoxData.getJSONObject(ToStr(CurrentID));
+
+      if not MonsterData.has('hitpoints') or not MonsterData.has('max_hit') or not MonsterData.has('attack_speed') then
+        Break;
+
+      hp := MonsterData.getString('hitpoints');
+      mh := MonsterData.getString('max_hit');
+      att_sp := MonsterData.getString('attack_speed');
+      cmblvl := MonsterData.getString('combat_level');
+
+      if hp = 'null' then hp := '0';
+      if mh = 'null' then mh := '0';
+      if att_sp = 'null' then att_sp := '0';
+      if cmblvl = 'null' then cmblvl := '0';
+
+      if (hp = '0') or (cmblvl = '0') or not MonsterData.has('aggressive') or not MonsterData.has('attack_type') then
+        Break;
+
+      if not MonsterData.has('drops') or (MonsterData.getJSONArray('drops').length = 0) then
+        Break;
+
+       if not CurrentObj.has('combat') then
+        CurrentObj.put('combat', StrToInt(cmblvl));
+
+      if not CurrentObj.has('hitpoints') then
+        CurrentObj.put('hitpoints', StrToInt(hp));
+
+      if not CurrentObj.has('max_hit') then
+        CurrentObj.put('max_hit', StrToInt(mh));
+
+      if not CurrentObj.has('attack_speed') then
+        CurrentObj.put('attack_speed', StrToInt(att_sp));
+
+      if not CurrentObj.has('aggressive') then
+        CurrentObj.put('aggressive', MonsterData.getBoolean('aggressive'));
+
+      if not CurrentObj.has('attack_type') then
+        CurrentObj.put('attack_type', MonsterData.getJSONArray('attack_type'));
+
+      if not CurrentObj.has('drops') then
+        CurrentObj.put('drops', GetDrops(MonsterData.getJSONArray('drops')));
+
+      KeysDone += CurrentID;
+
+      CurrentObj.remove("id");
+      if CurrentObj.has('hitpoints') then
+        FinalData.put(ToStr(CurrentID), CurrentObj);
+    end;
+
+    if FinalData.length > 0 then
+    begin
+      CleanStr := LineEnding + '"' + OuterObj.getString('name') + '": ' + FinalData.toString(1);
+      CleanStr := CleanStr.Replace('\u0020', ' '); //spaces when using json.toString() get converted to '\u0020'.
+
+      //the following is just to format things a little so it's more human friendly.
+      CleanStr := CleanStr.Replace(#10' "',#10'	"').Replace(#10'  "','"').Replace(#10'    ', '').Replace(#10'   ','');
+      CleanStr := CleanStr.Replace('"position": [[','"position": ['#10'			[').Replace(#10'  ]',#10'		]');
+      CleanStr := CleanStr.Replace('"hitpoints"',#10'		"hitpoints"').Replace('"drops"',#10'		"drops"');
+      CleanStr := CleanStr.Replace('"drops": [{','"drops": ['#10'			{').Replace(#10'  }]','}'#10'		]').Replace('"size"',#10'		"size"');
+      CleanStr := CleanStr.Replace('},{"id"', '},'#10'			{"id"').Replace(#10'	'#10,#10'').Replace(#10'  ', '');
+      CleanStr := CleanStr.Replace('": {"', '": {'#10'	"').Replace(#10'	"pos', ' "pos').Replace(#10' ]],', ']'#10'		],');
+      CleanStr := CleanStr.Replace(#10'	"m','"m').Replace(#10'	"a','"a').Replace('[{"id"','['#10'			{"id"');
+      CleanStr := CleanStr.Replace('},{"id"', '},'#10'			{"id"').Replace(' ]', '		]');
+
+      if i < MainDataLength then
+        CleanStr += ',' + LineEnding;
+
+      WriteFileContents(PATH + 'monster.json', CleanStr, True);
+    end;
+
+    TempOuterObj.clean;
+  end;
+
+  WriteFileContents(PATH + 'monsters.json', '}', True);
+  DeleteFile(PATH + '\tools\monster-temp.json');
+end;
+
+begin
+  Phase1();
+  Phase2();
+  Phase3();
+end;

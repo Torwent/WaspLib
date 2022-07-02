@@ -1,3 +1,12 @@
+## [8.0.8](https://github.com/Torwent/WaspLib/compare/v8.0.7...v8.0.8) (2022-07-02)
+
+
+### Bug Fixes
+
+* add d2h as a spec weapon ([db087e9](https://github.com/Torwent/WaspLib/commit/db087e9b3807efb03332cb257976cb3ffc6fce61))
+
+
+
 ## [8.0.7](https://github.com/Torwent/WaspLib/compare/v8.0.6...v8.0.7) (2022-05-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsobjects:** fix coordinates ([89fb01c](https://github.com/Torwent/WaspLib/commit/89fb01cafa40479ba5676f23177bbf5bbeb7565e))
-
-
-
-## [8.0.3](https://github.com/Torwent/WaspLib/compare/v8.0.2...v8.0.3) (2022-05-14)
-
-
-### Bug Fixes
-
-* **walker:** fixed piscarillius offset, oops. ([4a71c38](https://github.com/Torwent/WaspLib/commit/4a71c384938d7358919d97906288fc3a522c546d))
 
 
 

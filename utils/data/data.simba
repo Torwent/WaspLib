@@ -18,6 +18,7 @@ const OSRSBOX_URL
   Global OSRSBOX_URL constant. Can be changed to use a different items data json as long as it has follows OSRSBox's structure.
 *)
 const
+  OBJECTS_JSON  = {$macro CURRENT_DIRECTORY} + '/objects.json';
   MONSTERS_JSON  = {$macro CURRENT_DIRECTORY} + '/monsters.json';
   WEAPONS_JSON  = {$macro CURRENT_DIRECTORY} + '/weapons.json';
   PRICES_URL = 'https://prices.runescape.wiki/api/v1/osrs/latest';
@@ -808,3 +809,103 @@ var WeaponData
 var
   WeaponData: TRSWeaponData;
 {$H+}
+
+
+type
+  TRSObjectData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+
+(*
+ObjectData.Setup()
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSObjectData.Setup();
+
+Internal method to setup the TRSObjectData record.
+*)
+procedure TRSObjectData.Setup();
+begin
+  if Self.IsSetup then
+    Exit;
+
+  WriteLn('Loading objects.json.');
+  Self.Data.Init(ReadFileContents(OBJECTS_JSON));
+  AddOnTerminate(@Self.Data.Free);
+
+  Self.IsSetup := True;
+end;
+
+(*
+ObjectData.GetJSONObject()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSObjectData.GetJSONObject(Monster, Key: String): TJSONObject;
+
+Internal method to get a TJSONObject value from monsters.json.
+*)
+function TRSObjectData.GetObject(RSObject: String): TJSONObject;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  Result := Self.Data.getJSONObject(RSObject);
+end;
+
+function TRSObjectData.GetObject(RSObject, Id: String): TJSONObject; overload;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  Result := Self.Data.getJSONObject(RSObject).getJSONObject(Id);
+end;
+
+(*
+ObjectData.GetJSONObject()
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSObjectData.GetJSONObject(Monster, Key: String): TJSONObject;
+
+Internal method to get a TJSONObject value from monsters.json.
+*)
+function TRSObjectData.GetObjectIDs(RSObject: String): TStringArray;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  Result := Self.Data.getJSONObject(RSObject).keys.ToStringArray;
+end;
+
+function TRSObjectData.GetObjectShapes(RSObject: String): array of Vector3;
+var
+  RSObjectJSON: TJSONObject;
+  TempJSONShape: TJSONArray;
+  i: Int32;
+  Id: String;
+  V3: Vector3;
+begin
+  if not Self.IsSetup then
+    Self.Setup;
+
+  RSObjectJSON := Self.GetObject(RSObject);
+  for Id in RSObjectJSON.keys.ToStringArray() do
+  begin
+    TempJSONShape := RSObjectJSON.getJSONObject(Id).getJSONArray('shape');
+    V3 := [TempJSONShape.getInt(0), TempJSONShape.getInt(1), TempJSONShape.getInt(2)];
+    Result += V3;
+  end;
+end;
+
+
+(*
+var ObjectData
+~~~~~~~~~~~~~~
+  Global ObjectData variable.
+*)
+{$H-}
+var
+  ObjectData: TRSObjectData;
+{$H+}
+
+begin
+  ObjectData.Setup();
+  WriteLn ObjectData.GetObjectShapes('oak');
+end;

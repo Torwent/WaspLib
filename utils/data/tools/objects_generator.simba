@@ -1,0 +1,130 @@
+const
+  PATH = IncludePath + 'WaspLib\utils\data\';
+
+procedure Phase1();
+const
+  FINAL_PATH = PATH + 'tools\';
+var
+  Data: TJSONArray;
+  CurrentObj, TempObj: TJSONObject;
+  KeysDone: TStringArray;
+  i, j, DataLength: int32;
+  Str, CleanStr: String;
+begin
+  Data.Init(ReadFileContents(FINAL_PATH + 'objects-raw.json'));
+
+  DataLength := Data.length - 1;
+  DeleteFile(FINAL_PATH + 'objects-temp.json');
+  WriteFileContents(FINAL_PATH + 'objects-temp.json', '[' + LineEnding, True);
+
+  for i := 0 to DataLength do
+  begin
+    if (i mod 100 = 0) or (i=DataLength) then
+      WriteLn('Phase 1/2: ', i, ' of ', DataLength, ' done.');
+
+    CurrentObj := Data.getJSONObject(i);
+    Str := CurrentObj.getString("name");
+
+    if KeysDone.Contains(Str) then //if we already done this object skip it.
+      Continue;
+
+    for j := (i+1) to DataLength do
+    begin
+      TempObj := Data.getJSONObject(j);
+      if Str = TempObj.getString("name") then
+        CurrentObj.getJSONArray("type").put(TempObj.getJSONArray("type").get(0));
+    end;
+
+    KeysDone += Str;
+
+    CleanStr := CurrentObj.toString(1).Replace('\u0020', ' ');
+    CleanStr := CleanStr.Replace(#10' "', '"');
+    CleanStr := CleanStr.Replace(#10'   "', '"');
+    CleanStr := CleanStr.Replace(#10'    ', '');
+    CleanStr := CleanStr.Replace(#10'   ],"position": ', '],"position": ');
+    CleanStr := CleanStr.Replace(#10'  }', '}');
+    CleanStr := CleanStr.Replace(#10'   ]]}', ']]}');
+    CleanStr := CleanStr.Replace(#10'}', '}');
+
+    CleanStr := CleanStr.Replace(#10'  "', '"');
+    CleanStr := CleanStr.Replace(#10'   ', '');
+    CleanStr := CleanStr.Replace(#10'  ]', ']');
+    CleanStr := CleanStr.Replace(#10' }]}', '}]}');
+
+    if i < DataLength then
+      CleanStr += ',' + LineEnding;
+
+    WriteFileContents(FINAL_PATH + 'objects-temp.json', CleanStr, True);
+  end;
+
+  WriteFileContents(FINAL_PATH + 'objects-temp.json', ']', True);
+  DeleteFile(PATH + '\tools\objects-raw.json');
+end;
+
+procedure Phase2();
+var
+  Data, InnerData: TJSONArray;
+  OuterObj, CurrentObj, FinalData, TempObj, TempOuterObj: TJSONObject;
+  KeysDone: TIntegerArray;
+  CurrentID, i, j, l, MainDataLength, InnerDataLength: int32;
+  Str, CleanStr: String;
+begin
+  Data.Init(ReadFileContents(PATH + '\tools\objects-temp.json'));
+  TempOuterObj.Init();
+
+  MainDataLength := Data.length - 1;
+  DeleteFile(PATH + 'objects.json');
+
+  WriteFileContents(PATH + 'objects.json', '{', True);
+  for i := 0 to MainDataLength do
+  begin
+    if (i mod 100 = 0) or (i=MainDataLength) then
+      WriteLn('Phase 2/2: ', i, ' of ', MainDataLength, ' done.');
+
+    TempOuterObj.Init();
+    FinalData.Init();
+    OuterObj := Data.getJSONObject(i);
+    InnerData := OuterObj.getJSONArray("type");
+    InnerDataLength := InnerData.length - 1;
+
+    for j := 0 to InnerDataLength do
+    begin
+      CurrentObj := InnerData.getJSONObject(j);
+      CurrentID := CurrentObj.getInt("id");
+
+      if KeysDone.Contains(CurrentID) then //if we already done this object skip it.
+        Continue;
+
+      for l := (j+1) to InnerDataLength do
+      begin
+        TempObj := InnerData.getJSONObject(l);
+        if CurrentID = TempObj.getInt("id") then
+          CurrentObj.getJSONArray("position").put(TempObj.getJSONArray("position").get(0));
+      end;
+
+      KeysDone += CurrentID;
+
+      CurrentObj.remove("id");
+      FinalData.put(ToStr(CurrentID), CurrentObj);
+    end;
+
+    CleanStr := LineEnding + '"' + OuterObj.getString('name') + '": ' + FinalData.toString(1);
+    CleanStr := CleanStr.Replace('\u0020', ' ').Replace(#10' ', '').Replace(#10,'').Replace('  ','').Replace('   ','');
+    CleanStr := CleanStr.Replace(' "', '"').Replace('[ ', '[').Replace(' ]', ']').Replace('": {"', '":{'#10'  "');
+    CleanStr := CleanStr.Replace(']]},"',']]},'#10'  "').Replace('  "sh', '    "sh').Replace('"position"',#10'    "position"');
+    CleanStr := CleanStr.Replace(']]}', ']]'#10'  }').Replace('}}','}'#10'}');
+
+    if i < MainDataLength then
+      CleanStr += ',';
+
+    WriteFileContents(PATH + 'objects.json', CleanStr, True);
+  end;
+
+  WriteFileContents(PATH + 'objects.json', #10'}', True);
+  DeleteFile(PATH + '\tools\objects-temp.json');
+end;
+
+begin
+  Phase1();
+  Phase2();
+end;

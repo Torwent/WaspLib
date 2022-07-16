@@ -1,3 +1,12 @@
+## [8.0.9](https://github.com/Torwent/WaspLib/compare/v8.0.8...v8.0.9) (2022-07-16)
+
+
+### Bug Fixes
+
+* compatibility fix with latest SRL ([6b66b3d](https://github.com/Torwent/WaspLib/commit/6b66b3dcfa319b8c678e821792f9a8aeea7282ef))
+
+
+
 ## [8.0.8](https://github.com/Torwent/WaspLib/compare/v8.0.7...v8.0.8) (2022-07-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added more rsobjects ([47bbe56](https://github.com/Torwent/WaspLib/commit/47bbe56cd4a2c09e8b97ec514bb6a9afe6624d0b))
-
-
-
-## [8.0.4](https://github.com/Torwent/WaspLib/compare/v8.0.3...v8.0.4) (2022-05-14)
-
-
-### Bug Fixes
-
-* **rsobjects:** fix coordinates ([89fb01c](https://github.com/Torwent/WaspLib/commit/89fb01cafa40479ba5676f23177bbf5bbeb7565e))
 
 
 

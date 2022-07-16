@@ -1,3 +1,12 @@
+## [8.0.10](https://github.com/Torwent/WaspLib/compare/v8.0.9...v8.0.10) (2022-07-16)
+
+
+### Bug Fixes
+
+* temporary fix to SRL issue ([1dba83a](https://github.com/Torwent/WaspLib/commit/1dba83ae19f5957c1b4161eb95998455eeccb042))
+
+
+
 ## [8.0.9](https://github.com/Torwent/WaspLib/compare/v8.0.8...v8.0.9) (2022-07-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * improvements to fishing ([4c0597e](https://github.com/Torwent/WaspLib/commit/4c0597e8df9598fd4a9d53439ab79ca9bcf888ca))
-
-
-
-## [8.0.5](https://github.com/Torwent/WaspLib/compare/v8.0.4...v8.0.5) (2022-05-15)
-
-
-### Bug Fixes
-
-* added more rsobjects ([47bbe56](https://github.com/Torwent/WaspLib/commit/47bbe56cd4a2c09e8b97ec514bb6a9afe6624d0b))
 
 
 

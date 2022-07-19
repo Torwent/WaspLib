@@ -1,3 +1,12 @@
+## [8.0.11](https://github.com/Torwent/WaspLib/compare/v8.0.10...v8.0.11) (2022-07-19)
+
+
+### Bug Fixes
+
+* **rsobjects:** eternal fire coordinates update ([12cee0c](https://github.com/Torwent/WaspLib/commit/12cee0c57ee0e05e2471df88fd52cd1244c27098))
+
+
+
 ## [8.0.10](https://github.com/Torwent/WaspLib/compare/v8.0.9...v8.0.10) (2022-07-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **bank:** moved _SimplifyItemName and FindItemTab to SRL ([fe9de5d](https://github.com/Torwent/WaspLib/commit/fe9de5dd96669b990e16f9d510e5b89f35b2e0f5))
-
-
-
-## [8.0.6](https://github.com/Torwent/WaspLib/compare/v8.0.5...v8.0.6) (2022-05-21)
-
-
-### Bug Fixes
-
-* improvements to fishing ([4c0597e](https://github.com/Torwent/WaspLib/commit/4c0597e8df9598fd4a9d53439ab79ca9bcf888ca))
 
 
 

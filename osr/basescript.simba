@@ -111,6 +111,95 @@ begin
 end;
 
 (*
+BaseScript.BuildTextReport
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.BuildTextReport(): TStringArray;
+
+Internal method used to build our text progress report.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Keep in mind that editing this will probably mess up the HUD report so if you customize this you should also customize **TBaseScript.BuildHUDReport()**.
+
+Example
+-------
+
+  function TBaseScript.BuildTextReport(): TStringArray; override;
+  var
+    ElapsedTime: UInt64;
+    XPEarned: Int32;
+  begin
+    ElapsedTime := Self.TimeRunning.ElapsedTime();
+    XPEarned := WL.PreviousXP - WL.InitialXP;
+
+    //Keep in mind this is just a quick example without spacing adjustments. This won't look good unless you add some variable padding.
+
+    Result += '[===============================]';
+    Result += '[ ' + Self.Name + ' ]';                    //Self.Name is the script name, usually set in TBaseScript.Init();
+    Result += '[===============================]';
+    Result += '[ Runtime    :  ' + SRL.MsToTime(ElapsedTime, Time_Short) +' ];
+    Result += '[ Xp gained  : ' + XPEarned + '(' + ToStr(NumberPerHour(XPEarned, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Nuggets    : ' + NuggetsCount + '(' + ToStr(NumberPerHour(NuggetsCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Coal       : ' + CoalCount + '(' + ToStr(NumberPerHour(CoalCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Gold       : ' + GoldCount + '(' + ToStr(NumberPerHour(GoldCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Mithril    : ' + MithrilCount + '(' + ToStr(NumberPerHour(MithrilCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Adamantite : ' + AdamantiteCount + '(' + ToStr(NumberPerHour(AdamantiteCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Runite     : ' + RuniteCount + '(' + ToStr(NumberPerHour(RuniteCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[===============================]';
+    Result += '[ ' + Self.Name + SRL.MsToTime(ShutdownTimer.TimeRemaining, Time_Short) + ' ]';
+    Result += '[===============================]';
+  end;
+*)
+function TBaseScript.BuildTextReport(): TStringArray;
+var
+  ElapsedTime: UInt64;
+begin
+  if Self.Action = Self.PreviousAction then
+      Exit;
+
+  Self.DebugLn(Self.Action, Self.ExtraInfo);  //add action and extra info the the log.
+  ElapsedTime := Self.TimeRunning.ElapsedTime();
+
+  ProgressTitle := Self.Name;
+  PadLength := ProgressTitle.Len() + 6;
+  ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
+  ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
+
+  PadLength := ProgressTitle.Len();
+
+  Result += ProgressTitle;
+
+  Result += PadR((' Action        : ' + Self.Action), Round(PadLength/2), ' ') +
+                         ' Runtime       :' + SRL.MsToTime(ElapsedTime, Time_Short);
+
+  if (Self.ActionLimit = -1) then
+    Result += PadR((' Total Actions : ' + ToStr(Self.TotalActions)), Round(PadLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime))
+  else
+    Result += PadR((' Total Actions : ' + ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit)), Round(PadLength/2), ' ') +
+                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
+
+  Result += PadR((' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit)), Round(PadLength/2), ' ') +
+                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
+
+  Result += ' ' + Self.Welcome + ' waspscripts.com';
+
+  Result += Self.ExtraInfo;
+end;
+
+(*
+BaseScript.BuildHUDReport
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.BuildHUDReport(): TStringArray;
+
+Internal method used for custom HUD reports.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Overriding **TBaseScript.BuildTextReport()** to set a custom report will likely need you to override this as well.
+*)
+function TBaseScript.BuildHUDReport(): TStringArray;
+begin
+  Result := [];
+end;
+
+(*
 BaseScript.PrintReport
 ~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.PrintReport(Sender: TObject);
@@ -122,11 +211,11 @@ It also is responsible for debugging the script with SRL.Debug() if we enable it
 procedure TBaseScript.PrintReport(Sender: TObject);
 var
   Str: String;
-  ElapsedTime: UInt64;
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+{$IFNDEF SRL_DISABLE_REMOTEINPUT}
   MousePos: TPoint;
   PaintDisabled: Boolean;
-  {$ENDIF}
+  TmpArr: TStringArray;
+{$ENDIF}
 begin
   try
     {$IFNDEF SRL_DISABLE_REMOTEINPUT}
@@ -145,49 +234,17 @@ begin
     end;
     {$ENDIF}
 
-    if Self.Action = Self.PreviousAction then
-      Exit;
-
-    Self.TotalProfit := (Self.TotalActions * Self.ActionProfit) - TotalConsumableCost;
-
-    Self.DebugLn(Self.Action, Self.ExtraInfo);
-    ElapsedTime := Self.TimeRunning.ElapsedTime();
-
-    EnergyLevel := Max(Power(1 + (24 - ElapsedTime) / ONE_DAY, Sqr(Endurance+0.75*Patience+0.25)*1.33), 0);
-
-    ProgressTitle := Self.Name;
-    PadLength := ProgressTitle.Len + 6;
-
-    ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
-    ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
-
-    PadLength := ProgressTitle.Len();
-
-    ProgressArray := [];
-    ProgressArray += ProgressTitle;
-
-    Str := ' Action        : ' + Self.Action;
-
-    ProgressArray += PadR((' Action        : ' + Self.Action), Round(PadLength/2), ' ') +
-                           ' Runtime       :' + SRL.MsToTime(ElapsedTime, Time_Short);
-
-    if (Self.ActionLimit = -1) then
-      ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions)), Round(PadLength/2), ' ') +
-                             ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime))
-    else
-      ProgressArray += PadR((' Total Actions : ' + ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit)), Round(PadLength/2), ' ') +
-                             ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
-
-    ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit)), Round(PadLength/2), ' ') +
-                           ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
-
-    ProgressArray += ' ' + Self.Welcome + ' waspscripts.com';
-
-    ProgressArray += Self.ExtraInfo;
+    ProgressArray := Self.BuildTextReport();
 
     {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    if not PaintDisabled and Self.ShouldDrawPaint() then
-      ProgressReport.Update(ProgressArray);
+    if not PaintDisabled and not Self.OnAntiban and Self.ShouldDrawPaint() then
+    begin
+      TmpArr := Self.BuildHUDReport();
+      if TmpArr <> [] then
+        ProgressReport.Update(TmpArr)
+      else
+        ProgressReport.Update(ProgressArray);
+    end;
     {$ENDIF}
 
     if OutputReportEnabled and not Self.OnAntiban then
@@ -195,7 +252,7 @@ begin
         WriteLn(Str);
 
     Self.PreviousAction := Self.Action;
-    Self.StatsDebugTick := GetTickCount;
+    Self.StatsDebugTick := GetTickCount();
 
     if not Self.OnAntiban and ScriptDebugEnabled then
       SRL.Debug(RSClient.Image);

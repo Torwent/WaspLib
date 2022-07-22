@@ -13,6 +13,9 @@ This file expands on SRL's walker file.
 {$I waspweb.graph}
 {$I agility.graph}
 
+const
+  WALKER_MAPS_VERSION = '0'; // Inc if images have changed
+
 type
 (*
 type ERSMap
@@ -60,11 +63,6 @@ type ERSMap
     WINTERTODT_MAP,
     ZULANDRA_MAP
   );
-
-function ERSMap.Get(Map: ERSMap): String; Static;
-begin
-  Result := ToStr(Map).ToLower();
-end;
 
 type
 (*
@@ -118,7 +116,7 @@ end;
 TRSMap.Setup
 ~~~~~~~~~~~~
 .. pascal:: function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
-.. pascal:: function TRSMap.Setup(Name: String; X, Y: Int32; Plane: Int32 = 0): TRSMap; static; overload;
+.. pascal:: function TRSMap.Setup(Name: ERSMap; Coordinates: TBox; Base: String = 'world'): TRSMap; static; overload;
 
 Method used to setup a TRSMap. This will setup critical information about the TRSMap.
 *)
@@ -139,9 +137,9 @@ begin
   WASP_MAP_ARRAY += Result;
 end;
 
-function TRSMap.Setup(Name: String; X, Y: Int32; Base: String = 'world'): TRSMap; static; overload;
+function TRSMap.Setup(Map: ERSMap; Coordinates: TBox; Base: String = 'world'): TRSMap; static; overload;
 begin
-  Result := TRSMap.Setup(Name, [X, Y, 0, 0], Base);
+  Result := TRSMap.Setup(ToStr(Map), Coordinates, Base);
 end;
 
 
@@ -155,17 +153,77 @@ end;
 type
   TRSWalkerArray = array of TRSWalker;
 
-(*
-var WASP_WALKER_ARRAY
-~~~~~~~~~~~~~~~~~~~~~
-Global array used to store all TRSWalkers being used at any given moment.
-*)
 var
-  WalkerMap: TRSMap;
+(*
+var WALKER_ARRAY
+~~~~~~~~~~~~~~~~
+Global array used to store all TRSWalkers being used at any given moment.
+This is mostly used to avoid using too many pointers and have an easier time debugging issues.
+
+In places you would use a PRSWalker you can instead just use a normal Walker and then reference it by pulling it from the array.
+
+Example
+-------
+
+  var
+    RSW: TRSWalker;
+
+  procedure thisDoesNotWork(RSW: TRSWalker);
+  begin
+    RSW.ScreenWalk := not RSW.ScreenWalk;
+  end;
+
+  procedure toggleScreenWalkInPointer(PRSW: PRSWalker);
+  begin
+    PRSW^.ScreenWalk := not PRSW^.ScreenWalk;
+  end;
+
+  procedure toggleScreenWalkInARRAY(RSW: TRSWalker);
+  var
+    i: Int32;
+  begin
+    i := WALKER_ARRAY.IndexOf(RSW.Name); //you will want to use the string overloaded method for this or you will probably not find it's index.
+
+    if i = -1 then
+      Exit;
+
+    WALKER_ARRAY[i].ScreenWalk := not WALKER_ARRAY[i].ScreenWalk;
+  end;
+
+  begin
+    RSW.Setup('world');
+
+    thisDoesNotWork(RSW); //RSW will be unafected outside of the function.
+
+    toggleScreenWalkInPointer(@RSW); //RSW will have it's ScreenWalk toggled properly but we had to use pointers which can be hard to debug.
+
+    toggleScreenWalkInARRAY(RSW); //RSW will have it's ScreenWalk toggled and we didn't require pointers.
+  end;
+*)
   WALKER_ARRAY: TRSWalkerArray;
+(*
+var WALKER_OFFSET_ARRAY
+~~~~~~~~~~~~~~~~~~~~~~~
+Global array used to store all TRSWalkers offsets.
+
+This are used when we are using a **TRSMap**.
+*)
   WALKER_OFFSET_ARRAY: TPointArray;
 
 
+(*
+TRSWalkerArray.IndexOf
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerArray.IndexOf(Value: String): Int32; overload;
+
+Simple overload to helps us find a walker by name in WALKER_ARRAY.
+
+Example
+-------
+
+  WALKER_ARRAY[WALKER_ARRAY.IndexOf(RSW1)].AdaptiveWalk := True;
+  WALKER_ARRAY[WALKER_ARRAY.IndexOf(RSW2)].AdaptiveWalk := False;
+*)
 function TRSWalkerArray.IndexOf(Value: String): Int32; overload;
 var
   i: Int32;
@@ -177,6 +235,13 @@ begin
       Exit(i);
 end;
 
+(*
+TRSWalkerArray.Contains
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerArray.Contains(Value: String): Boolean; overload;
+
+Simple overload to helps us check if WALKER_ARRAY contains a TRSWalker by name.
+*)
 function TRSWalkerArray.Contains(Value: String): Boolean; overload;
 begin
   Result := Self.IndexOf(Value) > -1
@@ -214,12 +279,12 @@ end;
 
 function TRSWalker.FindMap(Map: TRSMap): String; static; overload;
 const
-  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
+  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION + DirectorySeparator;
 begin
   //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
   Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.Coordinates) + '.png';
 
-  if not FileExists(MAPS + 'cache' + DirectorySeparator + SHA1String(Result) + '.bmp') and not FileExists(Map.GetBasePath()) then
+  if not FileExists(MAPS + SHA1String(Result) + '.bmp') and not FileExists(Map.GetBasePath()) then
     Result := '';
 end;
 
@@ -244,7 +309,7 @@ future runs will be fast.
 *)
 function TRSWalker.LoadMap(Path: String): TMufasaBitmap; static; override;
 const
-  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
+  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION + DirectorySeparator;
 var
   Cache: String;
 begin
@@ -252,9 +317,9 @@ begin
 
   if ExtractFileExt(Path) <> '.bmp' then
   begin
-    Cache := MAPS + 'cache' + DirectorySeparator + SHA1File(Path) + '.bmp';
+    Cache := MAPS + SHA1File(Path) + '.bmp';
 
-    // Save as bitmap for much faster loading
+    // Save as bitmap for much faster loading next time.
     if not FileExists(Cache) then
     begin
       Result.LoadFromFile(Path);
@@ -278,7 +343,7 @@ begin
 
   if ExtractFileExt(Path) <> '.bmp' then
   begin
-    Cache := MAPS + 'cache' + DirectorySeparator + SHA1String(Path) + '.bmp';
+    Cache := MAPS + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION + DirectorySeparator + SHA1String(Path) + '.bmp';
 
     // Save as bitmap for much faster loading
     if not FileExists(Cache) then
@@ -288,7 +353,7 @@ begin
       else
         Result.LoadFromFile(MAPS + Map.Base + '.png', Map.Coordinates);
 
-      if ForceDirectories(MAPS + 'cache') then
+      if ForceDirectories(MAPS + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION) then
         Result.SaveToFile(Cache);
     end;
 
@@ -301,14 +366,17 @@ end;
 
 (*
 TRSWalker.Setup
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~
 .. pascal:: procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
+.. pascal:: procedure TRSWalker.Setup(Map: ERSMap, Manage: Boolean = True; Scaling: Int32 = 9); overload;
 
-Override TRSWalker.Setup so TRSWalker can make use of TRSMaps.
+Overriden so TRSWalker can be setup with TRSMaps.
+You can also optionally pass in a ERSMap variable directly.
 *)
 procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
 var
   Path: String;
+  WalkerMap: TRSMap;
   Bitmap, Mask, Sample: TMufasaBitmap;
   i: Int32;
   X, Y: Int32;
@@ -368,19 +436,24 @@ begin
     WALKER_OFFSET_ARRAY += [WalkerMap.Coordinates.X1, WalkerMap.Coordinates.Y1];
 end;
 
+procedure TRSWalker.Setup(Map: ERSMap; Manage: Boolean = True; Scaling: Int32 = 9); overload;
+begin
+  Self.Setup(ToStr(Map), Manage, Scaling);
+end;
 
 (*
 TRSWalker.Free
 ~~~~~~~~~~~~~~
 .. pascal:: procedure TRSWalker.Free(); override;
 
-Method used to free the memory used by a TRSWalker. This method is overriden so we can also clear it from WASP_WALKER_ARRAY.
+Method used to free the memory used by a TRSWalker.
+This method is overriden so we can also remove the walker from **WALKER_ARRAY** and it's offset from **WALKER_OFFSET_ARRAY**.
 *)
 procedure TRSWalker.Free(); override;
 var
   i: Int32;
 begin
-  i := WALKER_ARRAY.IndexOf(Self);
+  i := WALKER_ARRAY.IndexOf(Self.Name);
 
   WALKER_ARRAY.Delete(i, 1);
   WALKER_OFFSET_ARRAY.Delete(i, 1);
@@ -811,45 +884,45 @@ end;
 
 
 begin
-  TRSMap.Setup(ERSMap.Get(ZEAH_MAP), [0, 0, 3661, 3612]);
-  TRSMap.Setup(ERSMap.Get(MAINLAND_MAP), [3661, 33960, 10560, 5534]);
+  TRSMap.Setup(ZEAH_MAP, [0, 0, 3661, 3612]);
+  TRSMap.Setup(MAINLAND_MAP, [3661, 33960, 10560, 5534]);
 
-  TRSMap.Setup(ERSMap.Get(SLAYER_TOWER_BASEMENT_AND_UPPERLEVEL_MAP), [4702, 0, 902+4702, 357]);
-  TRSMap.Setup(ERSMap.Get(SLAYER_TOWER_GROUNDFLOOR_MAP), [8931, 2044, 8931+354, 2044+358]);
-  TRSMap.Setup(ERSMap.Get(CHASM_OF_FIRE_MAP), [0, 0, 397, 906]);
-  TRSMap.Setup(ERSMap.Get(CATACOMBS_OF_KOUREND_MAP), [0, 2721, 966, 688+2721]);
-  TRSMap.Setup(ERSMap.Get(KARUULM_SLAYER_DUNGEON_MAP), [313, 0, 1119+313, 814]);
-  TRSMap.Setup(ERSMap.Get(FREMMENNIK_SLAYER_CAVE_MAP), [2348, 2903, 2348+654, 2903+530]);
+  TRSMap.Setup(SLAYER_TOWER_BASEMENT_AND_UPPERLEVEL_MAP, [4702, 0, 902+4702, 357]);
+  TRSMap.Setup(SLAYER_TOWER_GROUNDFLOOR_MAP, [8931, 2044, 8931+354, 2044+358]);
+  TRSMap.Setup(CHASM_OF_FIRE_MAP, [0, 0, 397, 906]);
+  TRSMap.Setup(CATACOMBS_OF_KOUREND_MAP, [0, 2721, 966, 688+2721]);
+  TRSMap.Setup(KARUULM_SLAYER_DUNGEON_MAP, [313, 0, 1119+313, 814]);
+  TRSMap.Setup(FREMMENNIK_SLAYER_CAVE_MAP, [2348, 2903, 2348+654, 2903+530]);
 
-  TRSMap.Setup(ERSMap.Get(LUNAR_ISLAND_MAP), [4127, 1027, 4127+620, 1027+622]);
-  TRSMap.Setup(ERSMap.Get(ASGARNIA_ICE_DUNGEON_MAP), [5374, 1144, 5374+553, 1144+421]);
-  TRSMap.Setup(ERSMap.Get(SMOKE_DUNGEON_MAP), [212, 3352, 212+828, 3352+1205]);
-  TRSMap.Setup(ERSMap.Get(IORWERTH_DUNGEON_MAP), [3002, 2756, 3002+604, 2756+664]);
-  TRSMap.Setup(ERSMap.Get(MOURNER_TUNNELS_MAP), [7090, 5135, 7090+378, 5135+402]);
+  TRSMap.Setup(LUNAR_ISLAND_MAP, [4127, 1027, 4127+620, 1027+622]);
+  TRSMap.Setup(ASGARNIA_ICE_DUNGEON_MAP, [5374, 1144, 5374+553, 1144+421]);
+  TRSMap.Setup(SMOKE_DUNGEON_MAP, [212, 3352, 212+828, 3352+1205]);
+  TRSMap.Setup(IORWERTH_DUNGEON_MAP, [3002, 2756, 3002+604, 2756+664]);
+  TRSMap.Setup(MOURNER_TUNNELS_MAP, [7090, 5135, 7090+378, 5135+402]);
 
-  TRSMap.Setup(ERSMap.Get(CORSAIR_COVE_DUNGEON_MAP), [8923, 5104, 8923+445, 5104+394]);
-  TRSMap.Setup(ERSMap.Get(MOSLE_HARMLESS_CAVE_MAP), [0, 3332, 652, 648+3332]);
-  TRSMap.Setup(ERSMap.Get(GIANTS_DEN_MAP), [2560, 3229, 2560+388, 3229+394]);
-  TRSMap.Setup(ERSMap.Get(STRONGHOLD_SLAYER_DUNGEON_MAP), [3066, 5085, 3066+596, 5085+448]);
-  TRSMap.Setup(ERSMap.Get(KALPHITE_CAVE_MAP), [212, 3352, , ]);     //MISSING X2 and Y2
-  TRSMap.Setup(ERSMap.Get(KALPHITE_LAIR_MAP), [996, 3340, 996+385, 3340+351]);
-  TRSMap.Setup(ERSMap.Get(KRAKEN_COVE_MAP), [10158, 1010, 10158+402, 1010+394]);
-  TRSMap.Setup(ERSMap.Get(GRAND_EXCHANGE_MAP), [7789, 2306, 7789+557, 2306+605]);
-  TRSMap.Setup(ERSMap.Get(WEST_VARROCK_MAP), [7789, 2306, 7789+557, 2306+605]);
-  TRSMap.Setup(ERSMap.Get(WINTERTODT_MAP), [1756, 274, 1756+316, 274+540]);
+  TRSMap.Setup(CORSAIR_COVE_DUNGEON_MAP, [8923, 5104, 8923+445, 5104+394]);
+  TRSMap.Setup(MOSLE_HARMLESS_CAVE_MAP, [0, 3332, 652, 648+3332]);
+  TRSMap.Setup(GIANTS_DEN_MAP, [2560, 3229, 2560+388, 3229+394]);
+  TRSMap.Setup(STRONGHOLD_SLAYER_DUNGEON_MAP, [3066, 5085, 3066+596, 5085+448]);
+  TRSMap.Setup(KALPHITE_CAVE_MAP, [212, 3352, , ]);     //MISSING X2 and Y2
+  TRSMap.Setup(KALPHITE_LAIR_MAP, [996, 3340, 996+385, 3340+351]);
+  TRSMap.Setup(KRAKEN_COVE_MAP, [10158, 1010, 10158+402, 1010+394]);
+  TRSMap.Setup(GRAND_EXCHANGE_MAP, [7789, 2306, 7789+557, 2306+605]);
+  TRSMap.Setup(WEST_VARROCK_MAP, [7789, 2306, 7789+557, 2306+605]);
+  TRSMap.Setup(WINTERTODT_MAP, [1756, 274, 1756+316, 274+540]);
 
-  TRSMap.Setup(ERSMap.Get(LUMBRIDGE_MAP), [7856, 2972, 7856+758, 2972+1010]);
-  TRSMap.Setup(ERSMap.Get(BARBARIAN_VILLAGE_MAP), [7580, 2516, 7580+417, 2516+472]);
-  TRSMap.Setup(ERSMap.Get(OTTOS_GROTTO_MAP), [5201, 2030, 5201+600, 2030+659]);
-  TRSMap.Setup(ERSMap.Get(ZULANDRA_MAP), [3969, 4031, 3969+387, 4031+354]);
-  TRSMap.Setup(ERSMap.Get(PISCARILIUS_MAP), [2444, 1122, 2444+436, 1122+352]);
-  TRSMap.Setup(ERSMap.Get(SMOKE_DEVIL_DUNGEON_MAP), [5346, 5184, 5346+432, 5184+320]);
-  TRSMap.Setup(ERSMap.Get(WC_GUILD_MAP), [1564, 2293, 1564+541, 2293+349]);
+  TRSMap.Setup(LUMBRIDGE_MAP, [7856, 2972, 7856+758, 2972+1010]);
+  TRSMap.Setup(BARBARIAN_VILLAGE_MAP, [7580, 2516, 7580+417, 2516+472]);
+  TRSMap.Setup(OTTOS_GROTTO_MAP, [5201, 2030, 5201+600, 2030+659]);
+  TRSMap.Setup(ZULANDRA_MAP, [3969, 4031, 3969+387, 4031+354]);
+  TRSMap.Setup(PISCARILIUS_MAP, [2444, 1122, 2444+436, 1122+352]);
+  TRSMap.Setup(SMOKE_DEVIL_DUNGEON_MAP, [5346, 5184, 5346+432, 5184+320]);
+  TRSMap.Setup(WC_GUILD_MAP, [1564, 2293, 1564+541, 2293+349]);
 
-  TRSMap.Setup(ERSMap.Get(BRIMHAVEN_DUNGEON_MAP), [1272, 4048, 1272+658, 4048+910]);
-  TRSMap.Setup(ERSMap.Get(VARROCK_MAP), [7536, 2363, 7536+1166, 2363+803]);
-  TRSMap.Setup(ERSMap.Get(ABYSS_MAP), [9670, 4424, 9670+889, 4424+914]);
-  TRSMap.Setup(ERSMap.Get(FALADOR_MAP), [7051, 2796, 7051+661, 2796+445]);
-  TRSMap.Setup(ERSMap.Get(CRAFTING_GUILD_MAP), [6953, 3166, 6953+493, 3166+569]);
-  TRSMap.Setup(ERSMap.Get(CRAFTING_GUILD_UPSTAIRS_MAP), [9906, 5330, 9906+188, 5330+192]);
+  TRSMap.Setup(BRIMHAVEN_DUNGEON_MAP, [1272, 4048, 1272+658, 4048+910]);
+  TRSMap.Setup(VARROCK_MAP, [7536, 2363, 7536+1166, 2363+803]);
+  TRSMap.Setup(ABYSS_MAP, [9670, 4424, 9670+889, 4424+914]);
+  TRSMap.Setup(FALADOR_MAP, [7051, 2796, 7051+661, 2796+445]);
+  TRSMap.Setup(CRAFTING_GUILD_MAP, [6953, 3166, 6953+493, 3166+569]);
+  TRSMap.Setup(CRAFTING_GUILD_UPSTAIRS_MAP, [9906, 5330, 9906+188, 5330+192]);
 end;

@@ -1130,7 +1130,11 @@ function TRSWalker.WalkPath(Path: TPointArray; UpText: TStringArray; out RedClic
       begin
         Result += Line[J];
 
-        Inc(J, Random(5, 15));
+        // keep the steps low, as mainscreen walking might just have a few tiles visible when NearZoomMode is set True
+        if (Self.NearZoomMode) and ((Self.ScreenWalk) or (Self.AdaptiveWalk)) then
+          Inc(J, Random(1, 4))
+        else
+          Inc(J, Random(3, 12));
       end;
     end;
 
@@ -1153,12 +1157,14 @@ function TRSWalker.WalkPath(Path: TPointArray; UpText: TStringArray; out RedClic
     while (Furthest < High(Self.Path)) and Self.IsWalkable(Self.Path[Furthest+1], PlayerPoint, Angle) do
       Inc(Furthest);
 
-    // 15% chance of randomness else furthest
     Index := Furthest;
+
+    // do the result check before randomness to avoid false error
+    Result := (Index > Previous);
+
+    // 15% chance of randomness else furthest
     if Random() < 0.15 then
       Index := Random(Nearest, Furthest);
-
-    Result := Index > Previous;
   end;
 
 var
@@ -1166,7 +1172,15 @@ var
   Index, Fails: Int32;
 begin
   Self.Enabled := True;
-  Self.Path := BuildPath([Self.GetMyPos()] + Path);
+  PlayerPoint := Self.GetMyPos();
+  Self.Path := BuildPath([PlayerPoint] + Path);
+
+  if Self.AdaptiveWalk then
+  begin
+    Self.AdaptiveToggleDistances.X := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.X + Random(-6,6);
+    Self.AdaptiveToggleDistances.Y := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.Y + Random(-16,16);
+    Self.AdaptiveWalkCheck(PlayerPoint);
+  end;
 
   while Self.Enabled and (Fails < 10) do
   begin
@@ -1179,11 +1193,18 @@ begin
       Inc(Fails);
 
       // Likely haven't moved far enough to advance to next point
-      if (Fails < 5) then
-      begin
+      if (Fails < 5) then begin
         Wait(300);
-
         Continue;
+      end else begin
+        // screen walking struggles, so disable it
+        if Self.AdaptiveWalk then
+          Self.ScreenWalk := False
+        else if (Fails = 5) then
+          case SRL.Dice(50) of
+            True:  Minimap.SetCompassAngle(Minimap.GetCompassAngle() - SRL.TruncatedGauss(30, 360, 3));
+            False: Minimap.SetCompassAngle(Minimap.GetCompassAngle() + SRL.TruncatedGauss(30, 360, 3));
+          end;
       end;
 
       if (Fails mod 2 = 0) then

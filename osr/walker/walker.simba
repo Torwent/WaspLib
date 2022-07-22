@@ -104,6 +104,9 @@ function TRSMapArray.IndexOf(Name: String): Int32; overload;
 var
   i: Int32;
 begin
+  if not Name.EndsWith('_map', True) then
+    Name += '_map';
+
   Result := -1;
 
   for i := 0 to High(Self) do
@@ -379,52 +382,40 @@ end;
 
 
 (*
-TWaspWalker.FullSearch
-~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TWaspWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
+TWaspWalker.GetMyPos
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWaspWalker.GetMyPos(): TPoint; override;
 
 Overriden method to properly offset the player position if we are using a TRSMap.
 *)
-function TWaspWalker.FullSearch(Templ, World: TMufasaBitmap; Position: TPoint; out Match: Single): TPoint; override;
+function TWaspWalker.GetMyPos(): TPoint; override;
 const
-  TEMPL_SIZE = 25;
-  SLICE_SIZE = TEMPL_SIZE + 45;
-  SCALING = 2;
+  SAMPLES = 3;
 var
-  Slice, SliceScaled, TemplScaled: TMufasaBitmap;
-  Matrix: TSingleMatrix;
-  Area: TBox;
+  Bitmap: TMufasaBitmap;
+  TPA: TPointArray;
+  I: Int32;
+  Hit: TPoint;
+  Match: Single;
 begin
-  Area := [
-    Max(0, Position.X - SLICE_SIZE),
-    Max(0, Position.Y - SLICE_SIZE),
-    Min(World.GetWidth()  - 1, Position.X + SLICE_SIZE),
-    Min(World.GetHeight() - 1, Position.Y + SLICE_SIZE)
-  ];
+  Self.Similarity := 0;
 
-  Slice := World.Copy(Area.X1, Area.Y1, Area.X2, Area.Y2);
-  SliceScaled := Slice.Copy();
-  SliceScaled.Downsample(SCALING);
+  Bitmap := Self.GetCleanMinimap();
 
-  TemplScaled := Templ.Copy();
-  TemplScaled.Downsample(SCALING);
-  with TemplScaled.GetCenter() do
-    TemplScaled.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
-
-  Matrix := SliceScaled.MatchTemplate(TemplScaled, TM_CCOEFF_NORMED);
-
-  with Matrix.ArgMax() do
+  TPA := Self.ScaledSearch(Bitmap, SAMPLES);
+  for I := 0 to High(TPA) do
   begin
-    Match := Matrix[Y, X];
+    Hit := Self.FullSearch(Bitmap, Self.World, TPA[I], Match);
 
-    Result.X := Area.X1 + (X + TEMPL_SIZE) * SCALING;
-    Result.Y := Area.Y1 + (Y + TEMPL_SIZE) * SCALING;
-    Result += Self.Offset;
+    if Match > Self.Similarity then
+    begin
+      Self.Similarity := Match;
+
+      Result := Hit.Offset(Self.Offset);
+    end;
   end;
 
-  TemplScaled.Free();
-  SliceScaled.Free();
-  Slice.Free();
+  Bitmap.Free();
 end;
 
 (*
@@ -512,7 +503,7 @@ have the function bother any further if **WorldPoint** is not on the minimap.
 
 This override will affect both TRSWalker and TWaspWalker.
 *)
-function TRSWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
+function TWaspWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
 var
   MinimapPoint: TPoint;
   R: TRectangle;
@@ -540,12 +531,12 @@ You can optionally pass in a TPA to check if the closest point is within distanc
 
 This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
 *)
-function TRSWalker.AtTile(WorldPoint: TPoint; Distance: Int32 = 4): Boolean;
+function TWaspWalker.AtTile(WorldPoint: TPoint; Distance: Int32 = 4): Boolean;
 begin
   Result := Self.GetMyPos.WithinDistance(WorldPoint, Distance);
 end;
 
-function TRSWalker.AtTile(WorldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+function TWaspWalker.AtTile(WorldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 begin
   Result := Self.GetMyPos.WithinDistance(WorldPointArray, Distance);
 end;
@@ -561,7 +552,7 @@ Method used to get the closest Point to the Player out of a TPA.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
 *)
-function TRSWalker.GetClosestPoint(WorldPointArray: TPointArray): TPoint;
+function TWaspWalker.GetClosestPoint(WorldPointArray: TPointArray): TPoint;
 begin
   if WorldPointArray <> [] then
     Result := WorldPointArray.Sorted(Self.GetMyPos())[0];
@@ -578,7 +569,7 @@ You will likely want to use the closest bank booth to you, so you use this.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
 *)
-function TRSWalker.WebWalk(Destination: TPointArray; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+function TWaspWalker.WebWalk(Destination: TPointArray; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
 begin
   Result := Self.WebWalk(Self.GetClosestPoint(Destination), WaitUntilDistance, PathRandomness);
 end;
@@ -596,7 +587,7 @@ Overloaded methods required for TRSDotFilter. For more information on TRSDotFilt
 
 This is a TRSWalker method so it will exist both on TRSWalker and TWaspWalker.
 *)
-function TRSWalker.WorldToMM(PlayerPoint: TPoint; WorldPoints: TPointArray; Radians: Double): TPointArray; overload;
+function TWaspWalker.WorldToMM(PlayerPoint: TPoint; WorldPoints: TPointArray; Radians: Double): TPointArray; overload;
 var
   P: TPoint;
 begin
@@ -604,12 +595,12 @@ begin
     Result += Self.WorldToMM(PlayerPoint, P, Radians);
 end;
 
-function TRSWalker.WorldToMM(WorldPoints: TPointArray): TPointArray; overload;
+function TWaspWalker.WorldToMM(WorldPoints: TPointArray): TPointArray; overload;
 begin
   Result := Self.WorldToMM(Self.GetMyPos(), WorldPoints, Minimap.GetCompassAngle(False));
 end;
 
-function TRSWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
+function TWaspWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
 var
   P: TPoint;
 begin
@@ -625,7 +616,7 @@ begin
   Result.Timer    := DotFilter.Timer;
 end;
 
-function TRSWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
+function TWaspWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
 var
   DotFilter: TRSDotFilter;
 begin
@@ -644,12 +635,12 @@ Wrapper function used to attempt to make a Point visible on the MainScreen.
 
 This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 *)
-function TRSWalker.MakePointVisible(P: TPoint): Boolean;
+function TWaspWalker.MakePointVisible(P: TPoint): Boolean;
 begin
   Result := Minimap.MakePointVisible(Self.WorldToMM(P));
 end;
 
-function TRSWalker.MakePointVisible(TPA: TPointArray): Boolean; overload;
+function TWaspWalker.MakePointVisible(TPA: TPointArray): Boolean; overload;
 begin
   Result := Minimap.MakePointVisible(Self.WorldToMM(Self.GetClosestPoint(TPA)));
 end;
@@ -678,7 +669,7 @@ Example
 -------
   Debug(RSW.GetPolygonMS([100, 100], [1, 1, 4], Offset));     //This will draw a polygon around the coordinate [100, 100].
 *)
-function TRSWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly;
+function TWaspWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly;
 var
   Angle: Double;
 begin
@@ -688,7 +679,7 @@ begin
   Result := Minimap.GetPolygonMS(Loc, TileVector, Offset, Angle);
 end;
 
-function TRSWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly; overload;
+function TWaspWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly; overload;
 begin
   Result := Self.GetPolygonMS(Self.GetMyPos(), Loc, TileVector, Offset);
 end;
@@ -704,7 +695,7 @@ This are wrapper functions to retrieve multiple tiles. Refer to SRL's TRSWalker.
 
 This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 *)
-function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
+function TWaspWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
 var
   Loc: TPoint;
 begin
@@ -712,7 +703,7 @@ begin
     Result += Self.GetTileMSEx(Me, Loc, TileVector, Offset);
 end;
 
-function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+function TWaspWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
 begin
   Result := Self.GetTileArrayMS(Self.GetMyPos, LocArray, TileVector, Offset);
 end;
@@ -734,7 +725,7 @@ Example
   TPA := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
   Debug(Minimap.GetPolygonArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
 *)
-function TRSWalker.GetPolygonArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray;
+function TWaspWalker.GetPolygonArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray;
 var
   Angle: Double;
   i: Int32;
@@ -749,7 +740,7 @@ begin
   Result := Minimap.GetPolygonArrayMS(tmpArray, TileVector, Offset, Angle);
 end;
 
-function TRSWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray; overload;
+function TWaspWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray; overload;
 begin
   Result := Self.GetPolygonArrayMS(Self.GetMyPos(), LocArray, TileVector, Offset);
 end;
@@ -770,7 +761,7 @@ Example
 -------
   Debug(RSW.GetMMPoly(TPA).Connect());    //This will draw your TPA on the minimap.
 *)
-function TRSWalker.GetMMPoly(LocArray: TPointArray): TPointArray;
+function TWaspWalker.GetMMPoly(LocArray: TPointArray): TPointArray;
 begin
   Result := Self.WorldToMM(LocArray);
 end;
@@ -785,7 +776,7 @@ Checks if you are inside a polygon. If you need to debug the polygon check the e
 This are TRSWalker methods so they will exist both on TRSWalker and TWaspWalker.
 
 *)
-function TRSWalker.InPoly(LocArray: TPointArray): Boolean;
+function TWaspWalker.InPoly(LocArray: TPointArray): Boolean;
 begin
   Result := SRL.PointInPoly(Self.GetMyPos(), LocArray);
 end;

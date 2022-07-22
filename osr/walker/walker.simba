@@ -140,6 +140,14 @@ begin
   Result := TRSMap.Setup(Name, [X, Y, 0, 0], Base);
 end;
 
+
+function TRSMap.GetBasePath: String;
+const
+  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
+begin
+  Result := MAPS + Self.Base + '.png';
+end;
+
 (*
 type TWaspWalker
 ~~~~~~~~~~~~~~~~
@@ -194,9 +202,14 @@ begin
 end;
 
 function TWaspWalker.FindMap(Map: TRSMap): String; static; overload;
+const
+  MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
 begin
   //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
   Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.Coordinates) + '.png';
+
+  if not FileExists(MAPS + 'cache' + DirectorySeparator + SHA1String(Result) + '.bmp') and not FileExists(Map.GetBasePath()) then
+    Result := '';
 end;
 
 
@@ -262,9 +275,7 @@ begin
       if Map = [] then
         Result.LoadFromFile(Path)
       else
-      begin
         Result.LoadFromFile(MAPS + Map.Base + '.png', Map.Coordinates);
-      end;
 
       if ForceDirectories(MAPS + 'cache') then
         Result.SaveToFile(Cache);

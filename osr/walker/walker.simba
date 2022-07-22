@@ -78,7 +78,7 @@ while 1, 2 and 3 contain upper levels in that order.
 *)
   TRSMap = record
     Name: String;
-    Plane: Int32;      //runescape has 4 planes. Plane 0 is where most things are, 1, 2 and 3 are upper floors in that order.
+    Base: String;      //Base map to crop from
     Coordinates: TBox; //coordinates of our map in relation to the raw map dump.
   end;
 
@@ -118,7 +118,7 @@ TRSMap.Setup
 
 Method used to setup a TRSMap. This will setup critical information about the TRSMap.
 *)
-function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
+function TRSMap.Setup(Name: String; Coordinates: TBox; Base: String = 'world'): TRSMap; static;
 begin
   Result.Name := Name.ToLower();
 
@@ -131,13 +131,13 @@ begin
     Coordinates.Y2 := Coordinates.Y1 + 1000; //Automatically give the map 1000px height if we only gave it Y1
 
   Result.Coordinates := Coordinates;
-  Result.Plane := Plane;
+  Result.Base := Base;
   WASP_MAP_ARRAY += Result;
 end;
 
-function TRSMap.Setup(Name: String; X, Y: Int32; Plane: Int32 = 0): TRSMap; static; overload;
+function TRSMap.Setup(Name: String; X, Y: Int32; Base: String = 'world'): TRSMap; static; overload;
 begin
-  Result := TRSMap.Setup(Name, [X, Y, 0, 0], Plane);
+  Result := TRSMap.Setup(Name, [X, Y, 0, 0], Base);
 end;
 
 (*
@@ -196,7 +196,7 @@ end;
 function TWaspWalker.FindMap(Map: TRSMap): String; static; overload;
 begin
   //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
-  Result := {$MACRO CURRENT_DIRECTORY} + 'plane' + ToStr(Map.Plane) + ToStr(Map.Coordinates) + '.png';
+  Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.Coordinates) + '.png';
 end;
 
 
@@ -228,7 +228,7 @@ begin
 
   if ExtractFileExt(Path) <> '.bmp' then
   begin
-    Cache := MAPS + SHA1File(Path) + '.bmp';
+    Cache := MAPS + 'cache' + DirectorySeparator + SHA1File(Path) + '.bmp';
 
     // Save as bitmap for much faster loading
     if not FileExists(Cache) then
@@ -263,19 +263,11 @@ begin
         Result.LoadFromFile(Path)
       else
       begin
-        if not FileExists(MAPS + ToStr(Map.Plane) + '.bmp') then
-        begin
-          WriteLn('Some files require to be extracted since this is your first run, this may take a while.');
-          UnZipFile(MAPS + 'maps.zip', MAPS);
-        end;
-
-        Result.LoadFromFile(MAPS + ToStr(Map.Plane) + '.bmp', Map.Coordinates);
+        Result.LoadFromFile(MAPS + Map.Base + '.png', Map.Coordinates);
       end;
 
-      if not DirectoryExists(MAPS + 'cache') then
-        CreateDirectory(Maps + 'cache');
-
-      Result.SaveToFile(Cache);
+      if ForceDirectories(MAPS + 'cache') then
+        Result.SaveToFile(Cache);
     end;
 
     if FileExists(Cache) then
@@ -306,7 +298,7 @@ begin
   if i > -1 then
     Self.Map := WASP_MAP_ARRAY[i];
 
-  Self.ScreenWalk := True; //Make ScreenWalk on by default.
+  Self.ScreenWalk := True; //Make ScreenWalk True by default.
 
   Self.Scaling := Scaling;
   Self.ClickRandomness := 4;

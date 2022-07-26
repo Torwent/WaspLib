@@ -1,3 +1,12 @@
+## [8.0.12](https://github.com/Torwent/WaspLib/compare/v8.0.11...v8.0.12) (2022-07-26)
+
+
+### Bug Fixes
+
+* add monks and dwarfs to wasplib ([f738281](https://github.com/Torwent/WaspLib/commit/f738281a166ba8ce4a7eede11e2ef5ba87af7ad1))
+
+
+
 ## [8.0.11](https://github.com/Torwent/WaspLib/compare/v8.0.10...v8.0.11) (2022-07-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add d2h as a spec weapon ([db087e9](https://github.com/Torwent/WaspLib/commit/db087e9b3807efb03332cb257976cb3ffc6fce61))
-
-
-
-## [8.0.7](https://github.com/Torwent/WaspLib/compare/v8.0.6...v8.0.7) (2022-05-30)
-
-
-### Bug Fixes
-
-* **bank:** moved _SimplifyItemName and FindItemTab to SRL ([fe9de5d](https://github.com/Torwent/WaspLib/commit/fe9de5dd96669b990e16f9d510e5b89f35b2e0f5))
 
 
 

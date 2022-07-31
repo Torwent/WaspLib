@@ -40,7 +40,6 @@ The variables that are part of **TBaseScript** are the following:
  - **Version**: String that holds the script version to be displayed in the log and on screen progress report.
  - **Self.IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
  - **TimeRunning**: TStopwatch variable that holds how long our **TBaseScript** has been running.
- - **StatsDebugTick**: Integer variabled used to register the last tick we printed a progress report.
  - **Action**: String variable used to print in Simba output or on screen progress report the current action the script is performing.
  - **PreviousAction**: String variable used to register the previous action. This is used to avoid spamming the logs.
  - **ExtraInfo**: String variable we can use to print extra information in Simba output or in on screen progress report. E.G. current state of variables.
@@ -64,7 +63,6 @@ type
     Welcome: String;
 
     TimeRunning: TStopwatch;
-    StatsDebugTick: UInt64;
     ReportTimer: TTimer;
 
     Action: String;
@@ -83,7 +81,6 @@ type
     IsSetup: Boolean;
   end;
 
-{$H-}
 (*
 BaseScript.ShouldHandlePaint
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -151,6 +148,7 @@ Example
 function TBaseScript.BuildTextReport(): TStringArray;
 var
   ElapsedTime: UInt64;
+  ProgressTitle: String;
 begin
   if Self.Action = Self.PreviousAction then
       Exit;
@@ -208,103 +206,38 @@ Internal method to print our progress report ("proggie").
 This is run on a timer setup by TBaseScript and also handles drawing the HUD progress report if it is enabled.
 It also is responsible for debugging the script with SRL.Debug() if we enable it.
 *)
-procedure TBaseScript.PrintReport(Sender: TObject);
+procedure TBaseScript.PrintReport();
 var
   Str: String;
 {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  MousePos: TPoint;
-  PaintDisabled: Boolean;
   TmpArr: TStringArray;
 {$ENDIF}
 begin
-  try
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    if Self.ShouldHandlePaint() then
-    begin
-      EIOS_GetRealMousePosition(RSClient.RemoteInput.EIOS, MousePos.X, MousePos.Y);
-      PaintDisabled := PointInBox(MousePos, DisableHoverBox);
-      if PaintDisabled then
-      begin
-        ProgressReport.ClientBMP.Clear;
-        ProgressReport.IsSetup := False;
+  ProgressArray := Self.BuildTextReport();
 
-        ProgressReport.ClientBMP.DrawBoxFilled(Chat.GetDisplayNameBox(), $819DAC);
-        ProgressReport.DrawDisableButton('Show');
-      end;
-    end;
-    {$ENDIF}
-
-    ProgressArray := Self.BuildTextReport();
-
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    if not PaintDisabled and not Self.OnAntiban and Self.ShouldDrawPaint() then
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if not Self.OnAntiban then
+  begin
+    if ScriptDebugEnabled then
+      SRL.Debug(RSClient.Image)
+    else if Self.ShouldDrawPaint() then
     begin
       TmpArr := Self.BuildHUDReport();
+
       if TmpArr <> [] then
         ProgressReport.Update(TmpArr)
       else
         ProgressReport.Update(ProgressArray);
     end;
-    {$ENDIF}
-
-    if OutputReportEnabled and not Self.OnAntiban then
-      for Str in ProgressArray do
-        WriteLn(Str);
-
-    Self.PreviousAction := Self.Action;
-    Self.StatsDebugTick := GetTickCount();
-
-    if not Self.OnAntiban and ScriptDebugEnabled then
-      SRL.Debug(RSClient.Image);
-  except
-    WriteLn(GetExceptionMessage());
   end;
+  {$ENDIF}
+
+  if OutputReportEnabled and not Self.OnAntiban then
+    for Str in ProgressArray do
+      WriteLn(Str);
+
+  Self.PreviousAction := Self.Action;
 end;
-{$H+}
-
-(*
-BaseScript.StartReportTimer
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TBaseScript.StartReportTimer();
-
-Internal method used to start the timer in which TBaseScript.PrintReport() runs on.
-*)
-procedure TBaseScript.StartReportTimer();
-begin
-  if not OutputReportEnabled and not ProgressReportEnabled then
-    Exit;
-
-  Self.ReportTimer.Init(nil);
-  Self.ReportTimer.SetInterval(1000);
-  Self.ReportTimer.SetOnTimer(@Self.PrintReport);
-  Self.ReportTimer.SetEnabled(True);
-  addOnTerminate(@Self.ReportTimer.Free);
-end;
-
-(*
-BaseScript.StopReportTimer
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TBaseScript.StopReportTimer();
-
-Internal method used to temporarily stop TBaseScript.ReportTimer.
-*)
-procedure TBaseScript.StopReportTimer();
-begin
-  Self.ReportTimer.SetEnabled(False);
-end;
-
-(*
-BaseScript.ResumeReportTimer
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TBaseScript.ResumeReportTimer();
-
-Internal method used to resume TBaseScript.ReportTimer.
-*)
-procedure TBaseScript.ResumeReportTimer();
-begin
-  Self.ReportTimer.SetEnabled(True);
-end;
-
 
 (*
 BaseScript.Init
@@ -350,7 +283,7 @@ begin
   if MaxActions > -1 then
     Self.ActionLimit := Self.TotalActions + MaxActions;
 
-  Self.TimeRunning.Start;
+  Self.TimeRunning.Start();
   PTimeRunning := @Self.TimeRunning;
 
   if MaxTime > -1 then
@@ -375,10 +308,14 @@ begin
   end;
   {$ENDIF}
 
-  Antiban.Setup;
-
-  Sync(@Self.StartReportTimer);
+  Antiban.Setup();
   //override me to add more stuff.
+end;
+
+procedure TBaseScript.SetAction(Action: String);
+begin
+  Self.Action := Action;
+  Self.PrintReport();
 end;
 
 (*
@@ -402,14 +339,16 @@ begin
 
   try
     Result := Antiban.DoAntiban(CheckBreaks, CheckSleeps);
-  finally
-    Self.TimeRunning.Resume();
-    WL.Activity.Resume();
-    Self.OnAntiban := False;
-
-    if not RSClient.IsLoggedIn() then
-      Login.LoginPlayer();
+  except
+    WriteLn(GetExceptionMessage());
   end;
+
+  Self.TimeRunning.Resume();
+  WL.Activity.Resume();
+  Self.OnAntiban := False;
+
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
 end;
 
 (*
@@ -534,7 +473,7 @@ begin
   case CurrentBankLocation of
     EWLBankLocation.AL_KHARID_BANK:
       begin
-		    Self.RSW.Setup('mainland');
+		    Self.RSW.Setup(ERSMap.MAINLAND_MAP);
 		    Self.ScriptBank := RSObjects.AlKharidBank;
       end;
 
@@ -552,19 +491,19 @@ begin
 
     EWLBankLocation.CASTLE_WARS_BANK:
       begin
-		    Self.RSW.Setup('mainland');
+		    Self.RSW.Setup(ERSMap.MAINLAND_MAP);
 		    Self.ScriptBank := RSObjects.CastleWarsBank;
       end;
 
     EWLBankLocation.CATHERBY_BANK:
       begin
-		    Self.RSW.Setup('mainland');
+		    Self.RSW.Setup(ERSMap.MAINLAND_MAP);
 		    Self.ScriptBank := RSObjects.CatherbyBank;
       end;
 
     EWLBankLocation.CRAFT_GUILD_BANK:
       begin
-		    Self.RSW.Setup('x6953y3166');
+		    Self.RSW.Setup(ERSMap.CRAFTING_GUILD_MAP);
 		    Self.ScriptBank := RSObjects.CraftGuildBank;
       end;
 
@@ -576,7 +515,7 @@ begin
 
     EWLBankLocation.EDGEVILLE_BANK:
       begin
-		    Self.RSW.Setup('x7536y2363');
+		    Self.RSW.Setup(ERSMap.VARROCK_MAP);
 		    Self.ScriptBank := RSObjects.EdgevilleBank;
       end;
 
@@ -594,13 +533,13 @@ begin
 
     EWLBankLocation.GRAND_EXCHANGE_BANK:
       begin
-		    Self.RSW.Setup('x7789y2306');
+		    Self.RSW.Setup(ERSMap.GRAND_EXCHANGE_MAP);
 		    Self.ScriptBank := RSObjects.GEBank;
       end;
 
     EWLBankLocation.LUNAR_ISLAND_BANK:
       begin
-		    Self.RSW.Setup('x4127y1027');
+		    Self.RSW.Setup(ERSMap.LUNAR_ISLAND_MAP);
 		    Self.ScriptBank := RSObjects.LunarBank;
       end;
 
@@ -636,7 +575,7 @@ begin
 
     EWLBankLocation.VARROCK_WEST_BANK:
       begin
-		    Self.RSW.Setup('x7789y2306');
+		    Self.RSW.Setup(ERSMap.WEST_VARROCK_MAP);
 		    Self.ScriptBank := RSObjects.VarrockWestBank;
       end;
 

@@ -60,19 +60,22 @@ Example
 *)
 function TRSMainScreen.IsVisible(P: TPoint): Boolean; override;
 begin
-  Result := Self.Bounds.Expand(-10).Contains(P);
+  if P = [] then
+    Exit;
+
+  Result := Self.Bounds.Expand(-2).Contains(P);
 
   if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface then
     begin
-      if Bank.Bounds.Expand(5).Contains(P) and Bank.IsOpen then
+      if Bank.Bounds.Expand(5).Contains(P) and Bank.IsOpen() then
         Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(P) and Anvil.IsOpen then
+      if Anvil.Bounds.Expand(5).Contains(P) and Anvil.IsOpen() then
         Exit(False);
     end;
 
-    if Chat.Bounds.Expand(5).Contains(P) and Chat.IsOpen then
+    if Chat.Bounds.Expand(5).Contains(P) and Chat.IsOpen() then
       Exit(False);
     if ChatButtons.Bounds.Expand(5).Contains(P) then
       Exit(False);
@@ -85,19 +88,24 @@ end;
 
 function TRSMainScreen.IsVisible(TPA: TPointArray): Boolean; overload;
 begin
-  Result := Self.Bounds.Expand(-10).Contains(TPA.FilterBox(Self.Bounds));
+  TPA := TPA.FilterBox(Self.Bounds);
+
+  if TPA = [] then
+    Exit;
+
+  Result := Self.Bounds.Expand(-2).Contains(TPA);
 
   if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface then
     begin
-      if Bank.Bounds.Expand(5).Contains(TPA) and Bank.IsOpen then
+      if Bank.Bounds.Expand(5).Contains(TPA) and Bank.IsOpen() then
         Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(TPA) and Anvil.IsOpen then
+      if Anvil.Bounds.Expand(5).Contains(TPA) and Anvil.IsOpen() then
         Exit(False);
     end;
 
-    if Chat.Bounds.Expand(5).Contains(TPA) and Chat.IsOpen then
+    if Chat.Bounds.Expand(5).Contains(TPA) and Chat.IsOpen() then
       Exit(False);
     if ChatButtons.Bounds.Expand(5).Contains(TPA) then
       Exit(False);
@@ -110,59 +118,12 @@ end;
 
 function TRSMainScreen.IsVisible(B: TBox): Boolean; overload;
 begin
-  Result := Self.Bounds.Expand(-10).Contains(B.ToRectangle.ToTPA.FilterBox(Self.Bounds));
-
-  if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
-  begin
-    if Self.HasInterface then
-    begin
-      if Bank.Bounds.Expand(5).Contains(B) and Bank.IsOpen then
-        Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(B) and Anvil.IsOpen then
-        Exit(False);
-    end;
-
-    if Chat.Bounds.Expand(5).Contains(B) and Chat.IsOpen then
-      Exit(False);
-    if ChatButtons.Bounds.Expand(5).Contains(B) then
-      Exit(False);
-    if Minimap.Bounds.Expand(55).Contains(B) then
-      Exit(False);
-    if GameTabs.Bounds.Expand(5).Contains(B) then
-      Exit(False);
-  end;
+  Result := Self.IsVisible(B.ToRectangle().ToTPA());
 end;
 
 function TRSMainScreen.IsVisible(Rect: TRectangle): Boolean; overload;
-var
-  TPA: TPointArray := Rect.ToTPA;
 begin
-  TPA := TPA.FilterBox(Self.Bounds.Expand(-10));
-
-  if TPA = [] then
-    Exit;
-
-  Result := Self.Bounds.Expand(-10).Contains(TPA.FilterBox(Self.Bounds.Expand(-10)));
-
-  if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
-  begin
-    if Self.HasInterface then
-    begin
-      if Bank.Bounds.Expand(5).Contains(Rect) and Bank.IsOpen then
-        Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(Rect) and Anvil.IsOpen then
-        Exit(False);
-    end;
-
-    if Chat.Bounds.Expand(5).Contains(Rect) and Chat.IsOpen then
-      Exit(False);
-    if ChatButtons.Bounds.Expand(5).Contains(Rect) then
-      Exit(False);
-    if Minimap.Bounds.Expand(55).Contains(Rect) then
-      Exit(False);
-    if GameTabs.Bounds.Expand(5).Contains(Rect) then
-      Exit(False);
-  end;
+  Result := Self.IsVisible(Rect.ToTPA());
 end;
 
 
@@ -192,7 +153,7 @@ begin
         Result.Delete(Result.IndexOf(P));
     end;
 
-    if Chat.IsOpen then
+    if Chat.IsOpen() then
     begin
       TPA := Result.FilterBox(Chat.Bounds);
       for P in TPA do

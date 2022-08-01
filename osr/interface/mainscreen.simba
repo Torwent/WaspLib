@@ -140,56 +140,26 @@ Filters the given TPointArray, TBoxArray, TRectArray or TPolyArray and returns o
 *)
 function TRSMainScreen.Filter(TPA: TPointArray): TPointArray;
 var
-  P: TPoint;
+  ChatB: TBox;
 begin
   Result := TPA := TPA.FilterBox(Self.Bounds);
 
   if (Result <> []) and (RSClient.Mode <> ERSClientMode.FIXED) then
   begin
-    if Self.HasInterface then
-    begin
-      TPA := Result.FilterBox(InterfaceArea.Bounds);
-      for P in TPA do
-        Result.Delete(Result.IndexOf(P));
-    end;
+    if Self.HasInterface() then
+      Result := Result.Difference(Result.FilterBox(InterfaceArea.Bounds));
 
     if Chat.IsOpen() then
     begin
-      TPA := Result.FilterBox(Chat.Bounds);
-      for P in TPA do
-        Result.Delete(Result.IndexOf(P));
+      ChatB := Chat.Bounds;
+      ChatB.Y2 += 2;
+      Result := Result.Difference(Result.FilterBox(ChatB));
     end;
 
-    TPA := Result.FilterBox(ChatButtons.Bounds);
-    for P in TPA do
-      Result.Delete(Result.IndexOf(P));
-
-    TPA := Result.FilterBox(Minimap.Bounds.Expand(50));
-    for P in TPA do
-      Result.Delete(Result.IndexOf(P));
-
-    TPA := Result.FilterBox(GameTabs.Bounds);
-    for P in TPA do
-      Result.Delete(Result.IndexOf(P));
+    Result := Result.Difference(Result.FilterBox(ChatButtons.Bounds));
+    Result := Result.Difference(Result.FilterBox(Minimap.Bounds.Expand(54, 13)));
+    Result := Result.Difference(Result.FilterBox(GameTabs.Bounds));
   end;
-end;
-
-function TRSMainScreen.Filter(BoxArray: TBoxArray): TBoxArray; overload;
-var
-  B: TBox;
-begin
-  for B in BoxArray do
-    if Self.IsVisible(B) then
-      Result += B;
-end;
-
-function TRSMainScreen.Filter(RectArray: TRectArray): TRectArray; overload;
-var
-  Rect: TRectangle;
-begin
-  for Rect in RectArray do
-    if Self.IsVisible(Rect) then
-      Result += Rect;
 end;
 
 function TRSMainScreen.Filter(PolyArray: TPolyArray): TPolyArray; overload;
@@ -209,20 +179,11 @@ MainScreen.GetAdjacentTiles
 Returns the 4 tiles adjacent to the player in form of a TRectArray.
 *)
 function TRSMainScreen.GetAdjacentTiles: TRectArray;
-var
-  Tiles: TPointArray;
-  Tile: TPoint;
 begin
-
-  Tiles := [
-    [Minimap.Center.X + 4, Minimap.Center.Y],
-    [Minimap.Center.X - 4, Minimap.Center.Y],
-    [Minimap.Center.X, Minimap.Center.Y + 4],
-    [Minimap.Center.X, Minimap.Center.Y - 4]
-  ];
-
-  for Tile in Tiles do
-    Result += Minimap.StaticToMsRect(Tile, 0);
+  Result += Minimap.StaticToMsRect([Minimap.Center().X + 4, Minimap.Center().Y]);
+  Result += Minimap.StaticToMsRect([Minimap.Center().X - 4, Minimap.Center().Y]);
+  Result += Minimap.StaticToMsRect([Minimap.Center().X, Minimap.Center().Y + 4]);
+  Result += Minimap.StaticToMsRect([Minimap.Center().X, Minimap.Center().Y - 4]);
 end;
 
 (*
@@ -237,18 +198,18 @@ Example
 
   MainScreen.DebugAdjacentTiles;
 *)
-procedure TRSMainScreen.DebugAdjacentTiles;
+procedure TRSMainScreen.DebugAdjacentTiles();
 var
   Bitmap: TMufasaBitmap;
   Rect: TRectangle;
 begin
-  Bitmap := TMufasaBitmap.CreateFromClient;
+  Bitmap := TMufasaBitmap.CreateFromClient();
 
-  for Rect in Self.GetAdjacentTiles do
+  for Rect in Self.GetAdjacentTiles() do
     Bitmap.DrawTPA(Rect.ToTPA().Connect(), $ffffff);
 
   Bitmap.Show(True);
-  Bitmap.Free;
+  Bitmap.Free();
 end;
 
 (*
@@ -263,7 +224,7 @@ Example
 
   Writeln MainScreen.InMultiCombat;
 *)
-function TRSMainScreen.InMultiCombat: Boolean;
+function TRSMainScreen.InMultiCombat(): Boolean;
 var
   B: TBox;
 begin
@@ -298,7 +259,7 @@ Example
 
   Writeln MainScreen.FindGrave;
 *)
-function TRSMainScreen.FindGrave: Boolean;
+function TRSMainScreen.FindGrave(): Boolean;
 var
   A: TPoint;
   B: TBox;
@@ -381,7 +342,7 @@ Example
 
   Writeln MainScreen.InCombat;
 *)
-function TRSMainScreen.InCombat: Boolean;
+function TRSMainScreen.InCombat(): Boolean;
 begin
   Result := XPBar.EarnedXP or (Self.FindHitsplats <> []);
 end;
@@ -430,7 +391,7 @@ begin
     TPA := Self.Filter(TempTPA);
 end;
 
-function TRSMainScreen.FindArrow: Boolean; overload;
+function TRSMainScreen.FindArrow(): Boolean; overload;
 var
   TPA: TPointArray;
 begin

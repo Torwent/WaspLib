@@ -142,13 +142,22 @@ begin
   Result := TRSMap.Setup(ToStr(Map), Coordinates, Base);
 end;
 
+function TRSMap.GetHeightMap(): TRSMap;
+var
+  TempMap: TRSMap;
+begin
+  TempMap := Self;
+  TempMap.Base += '-h';
+  Result := TempMap;
+end;
 
-function TRSMap.GetBasePath: String;
+function TRSMap.GetBasePath(): String;
 const
   MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
 begin
   Result := MAPS + Self.Base + '.png';
 end;
+
 
 type
   TRSWalkerArray = array of TRSWalker;
@@ -201,6 +210,8 @@ Example
   end;
 *)
   WALKER_ARRAY: TRSWalkerArray;
+
+  WALKER_HEIGHT_ARRAY: array of TMufasaBitmap;
 (*
 var WALKER_OFFSET_ARRAY
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -209,6 +220,8 @@ Global array used to store all TRSWalkers offsets.
 This are used when we are using a **TRSMap**.
 *)
   WALKER_OFFSET_ARRAY: TPointArray;
+
+  MAX_WALKER_HEIGHT = 30;
 
 
 (*
@@ -375,15 +388,17 @@ You can also optionally pass in a ERSMap variable directly.
 *)
 procedure TRSWalker.Setup(Map: String; Manage: Boolean = True; Scaling: Int32 = 9); override;
 var
+  HPath: String;
   Path: String;
   WalkerMap: TRSMap;
-  Bitmap, Mask, Sample: TMufasaBitmap;
+  Bitmap, Mask, Sample, HSample: TMufasaBitmap;
   i: Int32;
   X, Y: Int32;
 begin
-  Self.Name := Map.ToLower();
+  Map := Map.ToLower();
+  Self.Name := Map;
 
-  i := WASP_MAP_ARRAY.IndexOf(Self.Name);
+  i := WASP_MAP_ARRAY.IndexOf(Map);
 
   if i > -1 then
     WalkerMap := WASP_MAP_ARRAY[i];
@@ -394,19 +409,26 @@ begin
   Self.ClickRandomness := 4;
 
   if i = -1 then
-    Path := Self.FindMap(Map)
+  begin
+    Path := Self.FindMap(Map);
+    HPath := Self.FindMap(Map + '-h');
+  end
   else
+  begin
     Path := Self.FindMap(WalkerMap);
+    HPath := Self.FindMap(WalkerMap.GetHeightMap());
+  end;
 
   if (Path = '') then
     Self.Fatal('Unable to find map: ' + Map);
 
-  if Self.Name.Contains('agility') then
+  if Map.Contains('agility') then
     Self.WebGraph := WaspAgility
   else
     Self.WebGraph := WaspWeb;
 
   Self.World := Self.LoadMap(Path, WalkerMap);
+  WALKER_HEIGHT_ARRAY += Self.LoadMap(HPath, WalkerMap.GetHeightMap())
 
   if Manage then
     AddOnTerminate(@Self.Free);
@@ -415,7 +437,11 @@ begin
 
   // Fixed or resizable, doesn't matter.
   Sample := TMufasaBitmap.Create();
+  HSample := TMufasaBitmap.Create();
+
   Self.World.Downsample(Sample, Self.Scaling);
+  WALKER_HEIGHT_ARRAY[High(WALKER_HEIGHT_ARRAY)].Downsample(HSample, Self.Scaling);
+
   Bitmap := Self.GetCleanMinimap();
   Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
 
@@ -457,6 +483,14 @@ begin
 
   WALKER_ARRAY.Delete(i, 1);
   WALKER_OFFSET_ARRAY.Delete(i, 1);
+
+  if WALKER_HEIGHT_ARRAY[i] <> nil then
+  begin
+    WALKER_HEIGHT_ARRAY[i].Free();
+    WALKER_HEIGHT_ARRAY[i] := nil;
+  end;
+
+  WALKER_HEIGHT_ARRAY.Delete(i, 1);
 
   if Self.World <> nil then
   begin
@@ -592,6 +626,114 @@ begin
 
   UnFreeze();
 end;
+
+
+function TRSWalker.GetHeight(P: TPoint = []): Double;
+var
+  i: Int32;
+  Color: Int64;
+  HeightMap: TMufasaBitmap;
+begin
+  if P = [] then
+    P := Self.GetMyPos();
+
+  i := WALKER_ARRAY.IndexOf(Self.Name);
+  HeightMap := WALKER_HEIGHT_ARRAY[i];
+
+  P -= WALKER_OFFSET_ARRAY[i];
+
+  Color := HeightMap.GetPixel(P.X, P.Y);
+
+  Result := Color * MAX_WALKER_HEIGHT / $FFFFFF;
+end;
+
+
+function TRSWalker.GetHeightDiff(P1, P2: TPoint): Double;
+begin
+  Result := Self.GetHeight(P1)-Self.GetHeight(P2);
+end;
+
+function TRSWalker.GetHeightColor(P: TPoint = []): Int64;
+var
+  i: Int32;
+  Color: Int64;
+  HeightMap: TMufasaBitmap;
+begin
+  if P = [] then
+    P := Self.GetMyPos();
+
+  i := WALKER_ARRAY.IndexOf(Self.Name);
+  HeightMap := WALKER_HEIGHT_ARRAY[i];
+
+  P -= WALKER_OFFSET_ARRAY[i];
+
+  Result := HeightMap.GetPixel(P.X, P.Y);
+end;
+
+procedure TRSWalker.DebugHeightPosition();
+var
+  P: TPoint;
+  TPA: TPointArray;
+  i: Int32;
+  Color: Int64;
+  HeightMap: TMufasaBitmap;
+begin
+  i := WALKER_ARRAY.IndexOf(Self.Name);
+
+  HeightMap := TMufasaBitmap.Create();
+  HeightMap.LoadFromBitmap(WALKER_HEIGHT_ARRAY[i]);
+
+  P := (Self.GetMyPos() - WALKER_OFFSET_ARRAY[i]);
+
+  Color := HeightMap.GetPixel(P.X, P.Y);
+  WriteLn Color * MAX_WALKER_HEIGHT / $FFFFFF;
+
+  HeightMap.DrawCross(P, 4, 1, $00FFFF);
+  HeightMap.Show();
+
+  HeightMap.Free();
+end;
+
+procedure TRSWalker.DebugHeightTiles(Angle: Double = -1);
+var
+  Position: TPoint;
+  TempTile: TPoint;
+  CurrentHeight, TileHeight, HeightDiff: Double;
+
+  BMP: TMufasaBitmap;
+  X, Y: Int32;
+  Tile: Vector3;
+  TPA: TPointArray;
+  Dot: TPoint;
+begin
+  if Angle = -1 then
+    Angle := Minimap.GetCompassAngle(False);
+
+  Position := Self.GetMyPos();
+  CurrentHeight := Self.GetHeight(Position);
+
+  BMP := TMufasaBitmap.CreateFromClient();
+
+  for X := Minimap.Center.X - 25 * 4 to Minimap.Center.X + 25 * 4 with 4 do
+    for Y := Minimap.Center.Y - 25 * 4 to Minimap.Center.Y + 25 * 4 with 4 do
+    begin
+
+      TempTile := Position + ([X, Y] - Minimap.Center);
+      TempTile := TempTile.Rotate(-Angle, Position);
+      TileHeight := Self.GetHeight(TempTile);
+      HeightDiff := CurrentHeight-TileHeight;
+
+      Tile := Vec3(X, Y, HeightDiff).RotateXY(Angle, Minimap.Center.X, Minimap.Center.Y);
+      TPA := Minimap.VecToMsRect(Tile, 1, 1, Angle).ToTPA().Connect();
+
+      if MainScreen.IsVisible(TPA) then
+        BMP.DrawTPA(TPA, Round(TileHeight * ($00ff00 + $00ff00)/ MAX_WALKER_HEIGHT));
+    end;
+
+  BMP.Show();
+  BMP.Free();
+end;
+
 
 (*
 TRSWalker.IsWalkable

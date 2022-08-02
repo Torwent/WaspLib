@@ -10,7 +10,7 @@ Tool to draw polygons in walker maps. This polygons can later be used to detect 
 {$H-}
 
 const
-  MAP_NAME: String = 'mainland_map';
+  MAP_NAME: String = 'world';
 
 var
   NodeArray: T2DPointArray := [
@@ -54,17 +54,15 @@ begin
   if i > -1 then
     Map := WASP_MAP_ARRAY[i];
 
-  WriteLn Map = [];
-
   if i = -1 then
-    Path := TWaspWalker.FindMap(MapStr)
+    Path := TRSWalker.FindMap(MapStr)
   else
-    Path := TWaspWalker.FindMap(Map);
+    Path := TRSWalker.FindMap(Map);
 
   if (Path = '') then
     TerminateScript('Unable to find map: ' + MapStr);
 
-  PolyDrawer.Map := TWaspWalker.LoadMap(Path, Map);
+  PolyDrawer.Map := TRSWalker.LoadMap(Path, Map);
   if Map <> [] then
     PolyDrawer.Offset := [Map.Coordinates.X1, Map.Coordinates.Y1];
 end;
@@ -77,12 +75,51 @@ procedure TPolyDrawerForm.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y:
 begin
   if Self.Dragging and (Self.SelectedNode > -1) then
   begin
+    if X < 0 then X := 0;
+    if X > Self.ImageBox.GetCanvas().GetWidth() then X := Self.ImageBox.GetCanvas().GetWidth();
+
+    if Y < 0 then Y := 0;
+    if Y > Self.ImageBox.GetCanvas().GetHeight() then Y := Self.ImageBox.GetCanvas().GetHeight();
+
+
     NodeArray[Self.SelectedPolygon][Self.SelectedNode].X := X;
     NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y := Y;
-    NodeArray[Self.SelectedPolygon][Self.SelectedNode] := NodeArray[Self.SelectedPolygon][Self.SelectedNode] + Self.Offset;
+    NodeArray[Self.SelectedPolygon][Self.SelectedNode] += Self.Offset;
+
+    if Self.SelectedNode = 0 then
+    begin
+      if Length(NodeArray[Self.SelectedPolygon]) > 1 then
+        NodeArray[Self.SelectedPolygon][1].Y := NodeArray[Self.SelectedPolygon][0].Y;
+
+      if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+        NodeArray[Self.SelectedPolygon][3].X := NodeArray[Self.SelectedPolygon][0].X;
+    end;
+
+    if Self.SelectedNode = 1 then
+    begin
+      NodeArray[Self.SelectedPolygon][0].Y := NodeArray[Self.SelectedPolygon][1].Y;
+
+      if Length(NodeArray[Self.SelectedPolygon]) > 2 then
+        NodeArray[Self.SelectedPolygon][2].X := NodeArray[Self.SelectedPolygon][1].X;
+    end;
+
+    if Self.SelectedNode = 2 then
+    begin
+      NodeArray[Self.SelectedPolygon][1].X := NodeArray[Self.SelectedPolygon][2].X;
+
+      if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+        NodeArray[Self.SelectedPolygon][3].Y := NodeArray[Self.SelectedPolygon][2].Y;
+    end;
+
+    if Self.SelectedNode = 3 then
+    begin
+      NodeArray[Self.SelectedPolygon][0].X := NodeArray[Self.SelectedPolygon][3].X;
+      NodeArray[Self.SelectedPolygon][2].Y := NodeArray[Self.SelectedPolygon][3].Y;
+    end;
+
     Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
     Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y));
-    Self.ImageBox.Update;
+    Self.ImageBox.Update();
   end;
 end;
 
@@ -93,7 +130,7 @@ begin
   SetLength(NodeArray, Self.SelectedPolygon + 1);
 end;
 
-procedure TPolyDrawerForm.RemoveFromArray;
+procedure TPolyDrawerForm.RemoveFromArray();
 begin
   Delete(NodeArray, Self.SelectedPolygon, 1);
   Self.SelectedPolygon := High(NodeArray);
@@ -112,12 +149,48 @@ begin
     SetLength(NodeArray, n + 1);
 
   c := Length(NodeArray[Self.SelectedPolygon]);
-  SetLength(NodeArray[Self.SelectedPolygon], c + 1);
+  if c < 4 then
+    SetLength(NodeArray[Self.SelectedPolygon], c + 1);
+
+  if c > 3 then
+    c := 3;
 
   NodeArray[Self.SelectedPolygon][c] := p + Self.Offset;
 
   Self.SelectedNode := c;
-  Self.ImageBox.Update;
+
+  if Self.SelectedNode = 0 then
+  begin
+    if Length(NodeArray[Self.SelectedPolygon]) > 1 then
+      NodeArray[Self.SelectedPolygon][1].Y := NodeArray[Self.SelectedPolygon][0].Y;
+
+    if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+      NodeArray[Self.SelectedPolygon][3].X := NodeArray[Self.SelectedPolygon][0].X;
+  end;
+
+  if Self.SelectedNode = 1 then
+  begin
+    NodeArray[Self.SelectedPolygon][0].Y := NodeArray[Self.SelectedPolygon][1].Y;
+
+    if Length(NodeArray[Self.SelectedPolygon]) > 2 then
+      NodeArray[Self.SelectedPolygon][2].X := NodeArray[Self.SelectedPolygon][1].X;
+  end;
+
+  if Self.SelectedNode = 2 then
+  begin
+    NodeArray[Self.SelectedPolygon][1].X := NodeArray[Self.SelectedPolygon][2].X;
+
+    if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+      NodeArray[Self.SelectedPolygon][3].Y := NodeArray[Self.SelectedPolygon][2].Y;
+  end;
+
+  if Self.SelectedNode = 3 then
+  begin
+    NodeArray[Self.SelectedPolygon][0].X := NodeArray[Self.SelectedPolygon][3].X;
+    NodeArray[Self.SelectedPolygon][2].Y := NodeArray[Self.SelectedPolygon][3].Y;
+  end;
+
+  Self.ImageBox.Update();
   Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
   Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y));
 end;
@@ -132,7 +205,7 @@ begin
   marked += n;
 
   repeat
-    curr := marked.Pop;
+    curr := marked.Pop();
 
     for i:=0 to High(marked) do
       if marked[i] > curr then Dec(marked[i]);
@@ -142,10 +215,10 @@ begin
   until Length(marked) = 0;
 
   if NodeArray[Self.SelectedPolygon] = [] then
-    Self.RemoveFromArray;
+    Self.RemoveFromArray();
 
   Self.SelectedNode := High(NodeArray[Self.SelectedPolygon]);
-  Self.ImageBox.Update;
+  Self.ImageBox.Update();
 
   if Self.SelectedPolygon > -1 then
   begin
@@ -180,7 +253,7 @@ begin
         Self.SelectedNode := J;
         Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
         Self.CoordinateEdit.setCaption(ToStr(NodeArray[I][J].X) + ', ' + ToStr(NodeArray[I][J].Y));
-        Self.ImageBox.Update;
+        Self.ImageBox.Update();
         Exit;
       end;
     end;
@@ -194,14 +267,11 @@ begin
     Self.Dragging := False;
 end;
 
-(*
-TODO: FIX THIS.... OLLY FAULT?
-procedure TPolyDrawerForm.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+procedure TPolyDrawerForm.OnKeyDown(Sender: TObject; var Key: Int16; Shift: TShiftState);
 begin
-  if (Key = VK_DELETE) and (SelectedNode > -1) then
-    DeleteNode(SelectedNode);
+  if (Key = VK_DELETE) and (Self.SelectedNode > -1) then
+    Self.DeleteNode(Self.SelectedNode);
 end;
-*)
 
 procedure TPolyDrawerForm.DrawPolygons(Area: TBox);
 var
@@ -290,41 +360,50 @@ end;
 
 procedure TPolyDrawerForm.OnPrintNodeArray(Sender: TObject);
 var
-  I, J: Int32;
+  i: Int32;
   Str: String;
+  B: TBox;
 begin
+  Str += STR_NEW_LINE + 'Add this to the end of Simba/Includes/WaspLib/osr/walker/walker.simba:' + STR_NEW_LINE;
+
   if Length(NodeArray) > 1 then
   begin
-    Str := '[' + STR_NEW_LINE;
-    for J := 0 to High(NodeArray) do
+    for i := 0 to High(NodeArray) do
     begin
-      Str += '[';
-      for I := 0 to High(NodeArray[J]) do
-      begin
-        Str += '[' + ToStr(NodeArray[J][I].X) + ', ' + ToStr(NodeArray[J][I].Y) + ']';
-        if I < High(NodeArray[J]) then
-          Str += ', ';
-      end;
+      B := NodeArray[i].Bounds();
 
-      Str += ']';
-      if J < High(NodeArray) then
-        Str += ',';
+      if B.Height() < 200 then
+        Str += '  Your box height (' + ToStr(B.Height()) + 'px) is too small to be a map, you will have issues with this.'
+      else if B.Width() < 200 then
+        Str += '  Your box width (' + ToStr(B.Width()) + 'px) is too small to be a map, you will have issues with this.'
+      else
+      begin
+        Str += '  TRSMap.Setup(_MAP, [';
+
+        Str += ToStr(B.X1) + ', ' + ToStr(B.Y1) + ', ' + ToStr(B.X2) + ', ' + ToStr(B.Y2);
+
+        Str += ']);';
+      end;
 
       Str += STR_NEW_LINE;
     end;
-
-    Str += ']';
   end
-  else
+  else if Length(NodeArray) = 1 then
   begin
-      Str := '[';
-      for I := 0 to High(NodeArray[0]) do
+      B := NodeArray[0].Bounds();
+
+      if B.Height() < 200 then
+        Str += '  Your box height (' + ToStr(B.Height()) + 'px) is too small to be a map, you will have issues with this.'
+      else if B.Width() < 200 then
+        Str += '  Your box width (' + ToStr(B.Width()) + 'px) is too small to be a map, you will have issues with this.'
+      else
       begin
-        Str += '[' + ToStr(NodeArray[0][I].X) + ', ' + ToStr(NodeArray[0][I].Y) + ']';
-        if I < High(NodeArray[0]) then
-          Str += ', ';
+        Str += '  TRSMap.Setup(_MAP, [';
+
+        Str += ToStr(B.X1) + ', ' + ToStr(B.Y1) + ', ' + ToStr(B.X2) + ', ' + ToStr(B.Y2);
+
+        Str += ']);';
       end;
-      Str += ']';
   end;
 
   WriteLn Str;
@@ -333,7 +412,7 @@ end;
 
 procedure TPolyDrawerForm.OnFormShow(Sender: TObject);
 begin
-  Self.ImageBox.Update;
+  Self.ImageBox.Update();
   Self.PolyIndexEdit.setCaption('null');
   Self.CoordinateEdit.setCaption('null, null');
 end;
@@ -350,11 +429,11 @@ var
   PrintButton, NewButton, ResetButton: TButton;
 begin
   try
-    Self.Name :='PolygonDrawer';
+    Self.Name :='MapMaker';
 
     Self.Form.Init(nil);
     Self.Form.SetPosition(poScreenCenter);
-    Self.Form.SetCaption('Walker Polygon Drawer');
+    Self.Form.SetCaption('Map Maker');
     Self.Form.SetWidth(1000);
     Self.Form.SetHeight(1000);
     Self.Form.GetFont.SetSize(10);
@@ -385,7 +464,7 @@ begin
     IndexLabel.Init(Panel);
     IndexLabel.setParent(Panel);
     IndexLabel.setAutoSize(True);
-    IndexLabel.setCaption(' Selected polygon: ');
+    IndexLabel.setCaption(' Selected map: ');
     IndexLabel.setAlign(alLeft);
 
     ResetButton.Init(Panel);
@@ -398,14 +477,14 @@ begin
     NewButton.Init(Panel);
     NewButton.SetParent(Panel);
     NewButton.SetAutoSize(True);
-    NewButton.SetCaption('New Polygon');
+    NewButton.SetCaption('New map');
     NewButton.SetOnClick(@Self.OnNewNodeArray);
     NewButton.setAlign(alLeft);
 
     PrintButton.Init(Panel);
     PrintButton.SetParent(Panel);
     PrintButton.SetAutoSize(True);
-    PrintButton.SetCaption('Print Polygons');
+    PrintButton.SetCaption('Print maps');
     PrintButton.SetOnClick(@Self.OnPrintNodeArray);
     PrintButton.setAlign(alLeft);
 
@@ -416,7 +495,7 @@ begin
     Self.ImageBox.SetOnMouseMove(@Self.OnMouseMove);
     Self.ImageBox.SetOnMouseDown(@Self.OnMouseDown);
     Self.ImageBox.SetOnMouseUp(@Self.OnMouseUp);
-    //Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
+    Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
     Self.ImageBox.SetBackground(Self.Map);
 
     WriteLn('Click:                Add or select node'    + LineEnding +

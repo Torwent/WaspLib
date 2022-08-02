@@ -54,8 +54,6 @@ begin
   if i > -1 then
     Map := WASP_MAP_ARRAY[i];
 
-  WriteLn Map = [];
-
   if i = -1 then
     Path := TRSWalker.FindMap(MapStr)
   else
@@ -77,26 +75,33 @@ procedure TPolyDrawerForm.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y:
 begin
   if Self.Dragging and (Self.SelectedNode > -1) then
   begin
+    if X < 0 then X := 0;
+    if X > Self.ImageBox.GetCanvas().GetWidth() then X := Self.ImageBox.GetCanvas().GetWidth();
+
+    if Y < 0 then Y := 0;
+    if Y > Self.ImageBox.GetCanvas().GetHeight() then Y := Self.ImageBox.GetCanvas().GetHeight();
+
     NodeArray[Self.SelectedPolygon][Self.SelectedNode].X := X;
     NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y := Y;
     NodeArray[Self.SelectedPolygon][Self.SelectedNode] := NodeArray[Self.SelectedPolygon][Self.SelectedNode] + Self.Offset;
     Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
     Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y));
-    Self.ImageBox.Update;
+    Self.ImageBox.Update();
   end;
 end;
 
 
-procedure TPolyDrawerForm.AddToArray;
+procedure TPolyDrawerForm.AddToArray();
 begin
   Self.SelectedPolygon := Length(NodeArray);
   SetLength(NodeArray, Self.SelectedPolygon + 1);
 end;
 
-procedure TPolyDrawerForm.RemoveFromArray;
+procedure TPolyDrawerForm.RemoveFromArray();
 begin
   Delete(NodeArray, Self.SelectedPolygon, 1);
   Self.SelectedPolygon := High(NodeArray);
+  Self.SelectedNode := -1;
 end;
 
 
@@ -117,7 +122,7 @@ begin
   NodeArray[Self.SelectedPolygon][c] := p + Self.Offset;
 
   Self.SelectedNode := c;
-  Self.ImageBox.Update;
+  Self.ImageBox.Update();
   Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
   Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y));
 end;
@@ -145,7 +150,7 @@ begin
     Self.RemoveFromArray;
 
   Self.SelectedNode := High(NodeArray[Self.SelectedPolygon]);
-  Self.ImageBox.Update;
+  Self.ImageBox.Update();
 
   if Self.SelectedPolygon > -1 then
   begin
@@ -180,7 +185,7 @@ begin
         Self.SelectedNode := J;
         Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
         Self.CoordinateEdit.setCaption(ToStr(NodeArray[I][J].X) + ', ' + ToStr(NodeArray[I][J].Y));
-        Self.ImageBox.Update;
+        Self.ImageBox.Update();
         Exit;
       end;
     end;
@@ -194,14 +199,12 @@ begin
     Self.Dragging := False;
 end;
 
-(*
-TODO: FIX THIS.... OLLY FAULT?
-procedure TPolyDrawerForm.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+
+procedure TPolyDrawerForm.OnKeyDown(Sender: TObject; var Key: Int16; Shift: TShiftState);
 begin
-  if (Key = VK_DELETE) and (SelectedNode > -1) then
-    DeleteNode(SelectedNode);
+  if (Key = VK_DELETE) and (Self.SelectedNode > -1) then
+    Self.DeleteNode(Self.SelectedNode);
 end;
-*)
 
 procedure TPolyDrawerForm.DrawPolygons(Area: TBox);
 var
@@ -315,7 +318,7 @@ begin
 
     Str += ']';
   end
-  else
+  else if Length(NodeArray) = 1 then
   begin
       Str := '[';
       for I := 0 to High(NodeArray[0]) do
@@ -333,7 +336,7 @@ end;
 
 procedure TPolyDrawerForm.OnFormShow(Sender: TObject);
 begin
-  Self.ImageBox.Update;
+  Self.ImageBox.Update();
   Self.PolyIndexEdit.setCaption('null');
   Self.CoordinateEdit.setCaption('null, null');
 end;
@@ -416,7 +419,7 @@ begin
     Self.ImageBox.SetOnMouseMove(@Self.OnMouseMove);
     Self.ImageBox.SetOnMouseDown(@Self.OnMouseDown);
     Self.ImageBox.SetOnMouseUp(@Self.OnMouseUp);
-    //Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
+    Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
     Self.ImageBox.SetBackground(Self.Map);
 
     WriteLn('Click:                Add or select node'    + LineEnding +

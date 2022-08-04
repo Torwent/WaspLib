@@ -67,32 +67,37 @@ type ERSMap
     ZULANDRA_MAP
   );
 
-type
 (*
 type TRSMap
 ~~~~~~~~~~~
 Type that holds information of RS Map in pre-extracted or to be extracted from the main image file.
 
 **TRSMap.Name** is simply an identifier for that TRSMap.
-**TRSMap.Plane** is the Z plane of RS to know which map to load. RS have 4 planes, plane 0 is where most ground and underground areas reside
-while 1, 2 and 3 contain upper levels in that order.
-**TRSMap.Coordinates** are the coordinate to crop from Simba/Includes/SRL/osr/walker/maps/#.bmp  where # is the plane we want to use.
+**TRSMap.Base** is the base map we use to build this TRSMap. Unless you specify otherwise on TRSMap.Setup it will be 'world' by default.
+**TRSMap.CropCoordinates** are the coordinate to crop from base map we want to use.
+**TRSMap.LocalCoordinates** are the local coordinates used by TRSWalker, this way we can use several TRSMaps and stitch them together.
 *)
   TRSMap = record
     Name: String;
-    Base: String;      //Base map to crop from
-    Coordinates: TBox; //coordinates of our map in relation to the raw map dump.
+    Base: String;
+    CropCoordinates: TBox;
+    LocalCoordinates: TBox;
   end;
 
   TRSMapArray = array of TRSMap;
 
 (*
 var WASP_MAP_ARRAY
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 Global variable used to store pre-defines TRSMap's.
+
+var LOADED_MAP_ARRAY
+~~~~~~~~~~~~~~~~~~~~
+Global variable used to store loaded TRSMaps.
 *)
 var
   WASP_MAP_ARRAY: TRSMapArray;
+  LOADED_MAP_ARRAY: TRSMapArray;
 
 (*
 TRSMapArray.IndexOf
@@ -118,8 +123,8 @@ end;
 (*
 TRSMap.Setup
 ~~~~~~~~~~~~
-.. pascal:: function TRSMap.Setup(Name: String; Coordinates: TBox; Plane: Int32 = 0): TRSMap; static;
-.. pascal:: function TRSMap.Setup(Name: ERSMap; Coordinates: TBox; Base: String = 'world'): TRSMap; static; overload;
+.. pascal:: function TRSMap.Setup(Name: String; Coordinates: TBox; Base: String = 'world'): TRSMap; static;
+.. pascal:: function TRSMap.Setup(Map: ERSMap; Coordinates: TBox; Base: String = 'world'): TRSMap; static; overload;
 
 Method used to setup a TRSMap. This will setup critical information about the TRSMap.
 *)
@@ -135,7 +140,7 @@ begin
   if Coordinates.Y2 = 0 then
     Coordinates.Y2 := Coordinates.Y1 + 1000; //Automatically give the map 1000px height if we only gave it Y1
 
-  Result.Coordinates := Coordinates;
+  Result.CropCoordinates := Coordinates;
   Result.Base := Base;
   WASP_MAP_ARRAY += Result;
 end;
@@ -298,7 +303,7 @@ const
   MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION + DirectorySeparator;
 begin
   //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
-  Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.Coordinates) + '.png';
+  Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.CropCoordinates) + '.png';
 
   if not FileExists(MAPS + SHA1String(Result) + '.bmp') and not FileExists(Map.GetBasePath()) then
     Result := '';
@@ -367,7 +372,7 @@ begin
       if Map = [] then
         Result.LoadFromFile(Path)
       else
-        Result.LoadFromFile(MAPS + Map.Base + '.png', Map.Coordinates);
+        Result.LoadFromFile(MAPS + Map.Base + '.png', Map.CropCoordinates);
 
       if ForceDirectories(MAPS + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION) then
         Result.SaveToFile(Cache);
@@ -431,6 +436,9 @@ begin
     Self.WebGraph := WaspWeb;
 
   Self.World := Self.LoadMap(Path, WalkerMap);
+  if WalkerMap <> [] then
+    WalkerMap.LocalCoordinates := [0, 0, WalkerMap.CropCoordinates.Width(), WalkerMap.CropCoordinates.Height()];
+
   WALKER_HEIGHT_ARRAY += Self.LoadMap(HPath, WalkerMap.GetHeightMap())
 
   if Manage then
@@ -462,12 +470,115 @@ begin
   WALKER_ARRAY += Self;
 
   if WalkerMap <> [] then
-    WALKER_OFFSET_ARRAY += [WalkerMap.Coordinates.X1, WalkerMap.Coordinates.Y1];
+    WALKER_OFFSET_ARRAY += [WalkerMap.CropCoordinates.X1, WalkerMap.CropCoordinates.Y1];
+
+  LOADED_MAP_ARRAY += WalkerMap;
 end;
 
 procedure TRSWalker.Setup(Map: ERSMap; Manage: Boolean = True; Scaling: Int32 = 9); overload;
 begin
   Self.Setup(ToStr(Map), Manage, Scaling);
+end;
+
+procedure TRSWalker.Setup(Maps: array of ERSMap; Manage: Boolean = True; Scaling: Int32 = 9); overload;
+var
+  HPaths: TStringArray;
+  Paths: TStringArray;
+  Path: String;
+  WalkerMap: TRSMap;
+  WalkerMapArray: TRSMapArray;
+  Slice, WorldH, Bitmap, Mask, Sample, HSample: TMufasaBitmap;
+  i, j: Int32;
+  X, Y: Int32;
+begin
+  Self.Name := 'walker';
+  Self.ScreenWalk := True; //Make ScreenWalk True by default.
+  Self.Scaling := Scaling;
+  Self.ClickRandomness := 4;
+  Self.WebGraph := WaspWeb;
+
+  for i := 0 to High(Maps) do
+  begin
+    j := WASP_MAP_ARRAY.IndexOf(ToStr(Maps[i]).ToLower());
+
+    if j > -1 then
+      WalkerMapArray += WASP_MAP_ARRAY[i];
+  end;
+
+  if WalkerMapArray = [] then
+    Self.Fatal('Unable to find maps specified');
+
+  for WalkerMap in WalkerMapArray do
+  begin
+    Path := Self.FindMap(WalkerMap);
+    if Path = '' then
+      Self.Fatal('Unable to find map: ' + ExtractFileName(Path));
+    Paths += Path;
+
+    Path := Self.FindMap(WalkerMap.GetHeightMap());
+    if Path = '' then
+      Self.Fatal('Unable to find map: ' + ExtractFileName(Path));
+    HPaths += Path;
+  end;
+
+  Self.World := TMufasaBitmap.Create();
+  WorldH := TMufasaBitmap.Create();
+
+  for i := 0 to High(WalkerMapArray) do
+  begin
+    Slice := Self.LoadMap(Paths[i], WalkerMapArray[i]);
+
+    X := Self.World.GetWidth();
+    if X > 0 then X += 1;
+
+    if Slice.GetHeight() > Self.World.GetHeight() then
+      Y := Slice.GetHeight()
+    else
+      Y := Self.World.GetHeight();
+
+    Self.World.SetSize(X + Slice.GetWidth(), Y);
+    WorldH.SetSize(X + Slice.GetWidth(), Y);
+
+    Self.World.DrawBitmap(Slice, [X, 0]);
+    WorldH.DrawBitmap(Self.LoadMap(HPaths[i], WalkerMapArray[i].GetHeightMap()), [X, 0]);
+
+    WalkerMapArray[i].LocalCoordinates := [X, 0, WalkerMap.CropCoordinates.Width(), WalkerMap.CropCoordinates.Height()];
+  end;
+
+  WALKER_HEIGHT_ARRAY += WorldH;
+
+  if Manage then
+    AddOnTerminate(@Self.Free);
+
+  //Self.HighlightFeatures(Self.World);
+
+  // Fixed or resizable, doesn't matter.
+  Sample := TMufasaBitmap.Create();
+  HSample := TMufasaBitmap.Create();
+
+  Self.World.Downsample(Sample, Self.Scaling);
+  WALKER_HEIGHT_ARRAY[High(WALKER_HEIGHT_ARRAY)].Downsample(HSample, Self.Scaling);
+
+  Bitmap := Self.GetCleanMinimap();
+  Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
+
+  for X := 0 to Mask.getWidth() - 1 do
+    for Y := 0 to Mask.getHeight() - 1 do
+      if (Mask.GetPixel(X, Y) <> 0) then
+        Mask.SetPixel(X, Y, $FFFFFF);
+
+  Self.Cache := TMatchTemplateCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
+
+  Sample.Free();
+  Bitmap.Free();
+  Mask.Free();
+
+  WALKER_ARRAY += Self;
+
+  if WalkerMap <> [] then
+    WALKER_OFFSET_ARRAY += [WalkerMap.CropCoordinates.X1, WalkerMap.CropCoordinates.Y1];
+
+  LOADED_MAP_ARRAY += WalkerMap;
 end;
 
 (*

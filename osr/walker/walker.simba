@@ -47,6 +47,7 @@ type ERSMap
     KALPHITE_CAVE_MAP,
     KALPHITE_LAIR_MAP,
     KARUULM_SLAYER_DUNGEON_MAP,
+    KOUREND_RUNECRAFTING_MAP,
     KRAKEN_COVE_MAP,
     LUMBRIDGE_MAP,
     LUNAR_ISLAND_MAP,
@@ -74,14 +75,12 @@ Type that holds information of RS Map in pre-extracted or to be extracted from t
 
 **TRSMap.Name** is simply an identifier for that TRSMap.
 **TRSMap.Base** is the base map we use to build this TRSMap. Unless you specify otherwise on TRSMap.Setup it will be 'world' by default.
-**TRSMap.CropCoordinates** are the coordinate to crop from base map we want to use.
-**TRSMap.LocalCoordinates** are the local coordinates used by TRSWalker, this way we can use several TRSMaps and stitch them together.
+**TRSMap.Coordinates** are the coordinate to crop from base map we want to use.
 *)
   TRSMap = record
     Name: String;
     Base: String;
-    CropCoordinates: TBox;
-    LocalCoordinates: TBox;
+    Coordinates: TBox;
   end;
 
   TRSMapArray = array of TRSMap;
@@ -140,7 +139,7 @@ begin
   if Coordinates.Y2 = 0 then
     Coordinates.Y2 := Coordinates.Y1 + 1000; //Automatically give the map 1000px height if we only gave it Y1
 
-  Result.CropCoordinates := Coordinates;
+  Result.Coordinates := Coordinates;
   Result.Base := Base;
   WASP_MAP_ARRAY += Result;
 end;
@@ -303,7 +302,7 @@ const
   MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION + DirectorySeparator;
 begin
   //This file is never created but we add ".png" at the end so we don't need to rewrite much of TRSWalker.LoadMap().
-  Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.CropCoordinates) + '.png';
+  Result := {$MACRO CURRENT_DIRECTORY} + Map.Base + ToStr(Map.Coordinates) + '.png';
 
   if not FileExists(MAPS + SHA1String(Result) + '.bmp') and not FileExists(Map.GetBasePath()) then
     Result := '';
@@ -372,7 +371,7 @@ begin
       if Map = [] then
         Result.LoadFromFile(Path)
       else
-        Result.LoadFromFile(MAPS + Map.Base + '.png', Map.CropCoordinates);
+        Result.LoadFromFile(MAPS + Map.Base + '.png', Map.Coordinates);
 
       if ForceDirectories(MAPS + 'cache' + DirectorySeparator + WALKER_MAPS_VERSION) then
         Result.SaveToFile(Cache);
@@ -436,8 +435,6 @@ begin
     Self.WebGraph := WaspWeb;
 
   Self.World := Self.LoadMap(Path, WalkerMap);
-  if WalkerMap <> [] then
-    WalkerMap.LocalCoordinates := [0, 0, WalkerMap.CropCoordinates.Width(), WalkerMap.CropCoordinates.Height()];
 
   WALKER_HEIGHT_ARRAY += Self.LoadMap(HPath, WalkerMap.GetHeightMap())
 
@@ -470,7 +467,7 @@ begin
   WALKER_ARRAY += Self;
 
   if WalkerMap <> [] then
-    WALKER_OFFSET_ARRAY += [WalkerMap.CropCoordinates.X1, WalkerMap.CropCoordinates.Y1];
+    WALKER_OFFSET_ARRAY += [WalkerMap.Coordinates.X1, WalkerMap.Coordinates.Y1];
 
   LOADED_MAP_ARRAY += WalkerMap;
 end;
@@ -478,107 +475,6 @@ end;
 procedure TRSWalker.Setup(Map: ERSMap; Manage: Boolean = True; Scaling: Int32 = 9); overload;
 begin
   Self.Setup(ToStr(Map), Manage, Scaling);
-end;
-
-procedure TRSWalker.Setup(Maps: array of ERSMap; Manage: Boolean = True; Scaling: Int32 = 9); overload;
-var
-  HPaths: TStringArray;
-  Paths: TStringArray;
-  Path: String;
-  WalkerMap: TRSMap;
-  WalkerMapArray: TRSMapArray;
-  Slice, WorldH, Bitmap, Mask, Sample, HSample: TMufasaBitmap;
-  i, j: Int32;
-  X, Y: Int32;
-begin
-  Self.Name := 'walker';
-  Self.ScreenWalk := True; //Make ScreenWalk True by default.
-  Self.Scaling := Scaling;
-  Self.ClickRandomness := 4;
-  Self.WebGraph := WaspWeb;
-
-  for i := 0 to High(Maps) do
-  begin
-    j := WASP_MAP_ARRAY.IndexOf(ToStr(Maps[i]).ToLower());
-
-    if j > -1 then
-      WalkerMapArray += WASP_MAP_ARRAY[i];
-  end;
-
-  if WalkerMapArray = [] then
-    Self.Fatal('Unable to find maps specified');
-
-  for WalkerMap in WalkerMapArray do
-  begin
-    Path := Self.FindMap(WalkerMap);
-    if Path = '' then
-      Self.Fatal('Unable to find map: ' + ExtractFileName(Path));
-    Paths += Path;
-
-    Path := Self.FindMap(WalkerMap.GetHeightMap());
-    if Path = '' then
-      Self.Fatal('Unable to find map: ' + ExtractFileName(Path));
-    HPaths += Path;
-  end;
-
-  Self.World := TMufasaBitmap.Create();
-  WorldH := TMufasaBitmap.Create();
-
-  for i := 0 to High(WalkerMapArray) do
-  begin
-    Slice := Self.LoadMap(Paths[i], WalkerMapArray[i]);
-
-    X := Self.World.GetWidth();
-    if X > 0 then X += 1;
-
-    if Slice.GetHeight() > Self.World.GetHeight() then
-      Y := Slice.GetHeight()
-    else
-      Y := Self.World.GetHeight();
-
-    Self.World.SetSize(X + Slice.GetWidth(), Y);
-    WorldH.SetSize(X + Slice.GetWidth(), Y);
-
-    Self.World.DrawBitmap(Slice, [X, 0]);
-    WorldH.DrawBitmap(Self.LoadMap(HPaths[i], WalkerMapArray[i].GetHeightMap()), [X, 0]);
-
-    WalkerMapArray[i].LocalCoordinates := [X, 0, WalkerMap.CropCoordinates.Width(), WalkerMap.CropCoordinates.Height()];
-  end;
-
-  WALKER_HEIGHT_ARRAY += WorldH;
-
-  if Manage then
-    AddOnTerminate(@Self.Free);
-
-  //Self.HighlightFeatures(Self.World);
-
-  // Fixed or resizable, doesn't matter.
-  Sample := TMufasaBitmap.Create();
-  HSample := TMufasaBitmap.Create();
-
-  Self.World.Downsample(Sample, Self.Scaling);
-  WALKER_HEIGHT_ARRAY[High(WALKER_HEIGHT_ARRAY)].Downsample(HSample, Self.Scaling);
-
-  Bitmap := Self.GetCleanMinimap();
-  Mask := Self.ScaleMinimap(Bitmap, Self.Scaling);
-
-  for X := 0 to Mask.getWidth() - 1 do
-    for Y := 0 to Mask.getHeight() - 1 do
-      if (Mask.GetPixel(X, Y) <> 0) then
-        Mask.SetPixel(X, Y, $FFFFFF);
-
-  Self.Cache := TMatchTemplateCache.Create(Sample.ToMatrix(), Mask.ToMatrix());
-
-  Sample.Free();
-  Bitmap.Free();
-  Mask.Free();
-
-  WALKER_ARRAY += Self;
-
-  if WalkerMap <> [] then
-    WALKER_OFFSET_ARRAY += [WalkerMap.CropCoordinates.X1, WalkerMap.CropCoordinates.Y1];
-
-  LOADED_MAP_ARRAY += WalkerMap;
 end;
 
 (*
@@ -1182,4 +1078,5 @@ begin
   TRSMap.Setup(GUARDIANS_OF_THE_RIFT_MAP, [7484, 5232, 7878, 5640]);
   TRSMap.Setup(ALTARS_MAP, [6937, 0, 10559, 376]);
   TRSMap.Setup(MOTHERLOAD_MAP, [7423, 4735, 7827, 5133]);
+  TRSMap.Setup(KOUREND_RUNECRAFTING_MAP, [1860, 737, 2818, 1259]);
 end;

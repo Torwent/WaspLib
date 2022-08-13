@@ -1,3 +1,17 @@
+# [9.0.0](https://github.com/Torwent/WaspLib/compare/v8.0.12...v9.0.0) (2022-08-13)
+
+
+### Bug Fixes
+
+* update to latest SRL remote input ([66cca3a](https://github.com/Torwent/WaspLib/commit/66cca3a4b68227d4da9624d20e7aec61fb131927))
+
+
+### BREAKING CHANGES
+
+* This requires you to update SRL and if you are using the official SRL you might need to use mine instead for a while
+
+
+
 ## [8.0.12](https://github.com/Torwent/WaspLib/compare/v8.0.11...v8.0.12) (2022-07-26)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * compatibility fix with latest SRL ([6b66b3d](https://github.com/Torwent/WaspLib/commit/6b66b3dcfa319b8c678e821792f9a8aeea7282ef))
-
-
-
-## [8.0.8](https://github.com/Torwent/WaspLib/compare/v8.0.7...v8.0.8) (2022-07-02)
-
-
-### Bug Fixes
-
-* add d2h as a spec weapon ([db087e9](https://github.com/Torwent/WaspLib/commit/db087e9b3807efb03332cb257976cb3ffc6fce61))
 
 
 

@@ -185,7 +185,7 @@ begin
     Timer.Setup(C.Timer);
 end;
 
-procedure TConsumableManager.SetupAmount;
+procedure TConsumableManager.SetupAmount();
 var
   i: Int32;
 begin
@@ -197,14 +197,31 @@ begin
     if Amount = 0 then
       case MinInvPoints of
          0:  TerminateScript('FATAL: MinInvPoints or Amount have to be different from 0.');
-        -1:  Handlers[i].Amount := BANK_WITHDRAW_ALL;
-        -2:  Handlers[i].Amount := BANK_WITHDRAW_ALL_BUT_ONE;
+        -1, -2:  Handlers[i].Amount := MinInvPoints;
         else Handlers[i].Amount := Round(MinInvPoints / Handlers[i].GetPoints);
       end
     else
       Handlers[i].Amount := Amount;
   end;
 end;
+
+procedure TConsumableManager.SetupMinInvPoints();
+var
+  i: Int32;
+begin
+  for i := 0 to High(Handlers) do
+  begin
+    if Self.MinInvPoints <> 0 then
+      Exit;
+
+    case Amount of
+       0:  TerminateScript('FATAL: MinInvPoints or Amount have to be different from 0.');
+      -1, -2:  Self.MinInvPoints := Amount;
+      else Self.MinInvPoints := Round(Amount * Handlers[i].GetPoints);
+    end;
+  end;
+end;
+
 
 procedure TConsumableManager.Setup(ConsumableType: ERSConsumable);
 var
@@ -230,7 +247,12 @@ begin
   begin
     Handlers += Handler;
     ItemArray := Handler.ItemArray;
-    Self.SetupAmount;
+
+    if Self.Amount = 0 then
+      Self.SetupAmount()
+    else if Self.MinInvPoints = 0 then
+      Self.SetupMinInvPoints();
+
     Index := High(Handlers);
   end;
 
@@ -250,7 +272,12 @@ begin
         Exit;
     Handlers += Handler;
     ItemArray.Extend(Handler.ItemArray);
-    Self.SetupAmount;
+
+    if Self.Amount = 0 then
+      Self.SetupAmount()
+    else if Self.MinInvPoints = 0 then
+      Self.SetupMinInvPoints();
+
     Index := High(Handlers);
   end;
 end;

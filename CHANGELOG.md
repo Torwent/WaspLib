@@ -1,3 +1,12 @@
+## [9.0.1](https://github.com/Torwent/WaspLib/compare/v9.0.0...v9.0.1) (2022-08-14)
+
+
+### Bug Fixes
+
+* ConsumableHandlers withdraw issues fixed ([cf93276](https://github.com/Torwent/WaspLib/commit/cf93276f34abf0088e9d47a78181b82e02778306))
+
+
+
 # [9.0.0](https://github.com/Torwent/WaspLib/compare/v8.0.12...v9.0.0) (2022-08-13)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * temporary fix to SRL issue ([1dba83a](https://github.com/Torwent/WaspLib/commit/1dba83ae19f5957c1b4161eb95998455eeccb042))
-
-
-
-## [8.0.9](https://github.com/Torwent/WaspLib/compare/v8.0.8...v8.0.9) (2022-07-16)
-
-
-### Bug Fixes
-
-* compatibility fix with latest SRL ([6b66b3d](https://github.com/Torwent/WaspLib/commit/6b66b3dcfa319b8c678e821792f9a8aeea7282ef))
 
 
 

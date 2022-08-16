@@ -1,3 +1,13 @@
+## [9.0.2](https://github.com/Torwent/WaspLib/compare/v9.0.1...v9.0.2) (2022-08-16)
+
+
+### Bug Fixes
+
+* improvements to agility webgraph ([34f1e8a](https://github.com/Torwent/WaspLib/commit/34f1e8ad52ebf26dacf1eee3d3dcad819cbc18b8))
+* initiate WL.PreviousXP ([48d0ed9](https://github.com/Torwent/WaspLib/commit/48d0ed9dd72dab732880e370caaeceb6fb7d3a39))
+
+
+
 ## [9.0.1](https://github.com/Torwent/WaspLib/compare/v9.0.0...v9.0.1) (2022-08-14)
 
 
@@ -36,15 +46,6 @@
 ### Bug Fixes
 
 * **rsobjects:** eternal fire coordinates update ([12cee0c](https://github.com/Torwent/WaspLib/commit/12cee0c57ee0e05e2471df88fd52cd1244c27098))
-
-
-
-## [8.0.10](https://github.com/Torwent/WaspLib/compare/v8.0.9...v8.0.10) (2022-07-16)
-
-
-### Bug Fixes
-
-* temporary fix to SRL issue ([1dba83a](https://github.com/Torwent/WaspLib/commit/1dba83ae19f5957c1b4161eb95998455eeccb042))
 
 
 

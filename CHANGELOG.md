@@ -1,3 +1,12 @@
+## [9.0.3](https://github.com/Torwent/WaspLib/compare/v9.0.2...v9.0.3) (2022-08-18)
+
+
+### Bug Fixes
+
+* bankpin issues fixed with iNeedBots fix ([13850bd](https://github.com/Torwent/WaspLib/commit/13850bde6b3d7f92505279cad180b6c456d73a1f))
+
+
+
 ## [9.0.2](https://github.com/Torwent/WaspLib/compare/v9.0.1...v9.0.2) (2022-08-16)
 
 
@@ -37,15 +46,6 @@
 ### Bug Fixes
 
 * add monks and dwarfs to wasplib ([f738281](https://github.com/Torwent/WaspLib/commit/f738281a166ba8ce4a7eede11e2ef5ba87af7ad1))
-
-
-
-## [8.0.11](https://github.com/Torwent/WaspLib/compare/v8.0.10...v8.0.11) (2022-07-19)
-
-
-### Bug Fixes
-
-* **rsobjects:** eternal fire coordinates update ([12cee0c](https://github.com/Torwent/WaspLib/commit/12cee0c57ee0e05e2471df88fd52cd1244c27098))
 
 
 

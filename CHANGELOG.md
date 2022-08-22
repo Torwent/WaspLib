@@ -1,3 +1,12 @@
+## [9.0.4](https://github.com/Torwent/WaspLib/compare/v9.0.3...v9.0.4) (2022-08-22)
+
+
+### Bug Fixes
+
+* **consumable handler:** now deselects selected inventory item before consuming anything ([7e6fc76](https://github.com/Torwent/WaspLib/commit/7e6fc7650683303de23dccaa801c06c102be95d4))
+
+
+
 ## [9.0.3](https://github.com/Torwent/WaspLib/compare/v9.0.2...v9.0.3) (2022-08-18)
 
 
@@ -37,15 +46,6 @@
 ### BREAKING CHANGES
 
 * This requires you to update SRL and if you are using the official SRL you might need to use mine instead for a while
-
-
-
-## [8.0.12](https://github.com/Torwent/WaspLib/compare/v8.0.11...v8.0.12) (2022-07-26)
-
-
-### Bug Fixes
-
-* add monks and dwarfs to wasplib ([f738281](https://github.com/Torwent/WaspLib/commit/f738281a166ba8ce4a7eede11e2ef5ba87af7ad1))
 
 
 

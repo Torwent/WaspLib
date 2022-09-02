@@ -1,3 +1,12 @@
+## [9.0.5](https://github.com/Torwent/WaspLib/compare/v9.0.4...v9.0.5) (2022-09-02)
+
+
+### Bug Fixes
+
+* coordinates of zeah mine obstacles ([c01bdd9](https://github.com/Torwent/WaspLib/commit/c01bdd9beb905d67fa3407a7da2508bdc5884ad9))
+
+
+
 ## [9.0.4](https://github.com/Torwent/WaspLib/compare/v9.0.3...v9.0.4) (2022-08-22)
 
 
@@ -32,20 +41,6 @@
 ### Bug Fixes
 
 * ConsumableHandlers withdraw issues fixed ([cf93276](https://github.com/Torwent/WaspLib/commit/cf93276f34abf0088e9d47a78181b82e02778306))
-
-
-
-# [9.0.0](https://github.com/Torwent/WaspLib/compare/v8.0.12...v9.0.0) (2022-08-13)
-
-
-### Bug Fixes
-
-* update to latest SRL remote input ([66cca3a](https://github.com/Torwent/WaspLib/commit/66cca3a4b68227d4da9624d20e7aec61fb131927))
-
-
-### BREAKING CHANGES
-
-* This requires you to update SRL and if you are using the official SRL you might need to use mine instead for a while
 
 
 

@@ -1,3 +1,12 @@
+## [9.0.6](https://github.com/Torwent/WaspLib/compare/v9.0.5...v9.0.6) (2022-09-04)
+
+
+### Bug Fixes
+
+* edited the readme to add extra info and to force bump the version ([e25d39a](https://github.com/Torwent/WaspLib/commit/e25d39a1472835a10d485cd03cf038a17afe58b1))
+
+
+
 ## [9.0.5](https://github.com/Torwent/WaspLib/compare/v9.0.4...v9.0.5) (2022-09-02)
 
 
@@ -32,15 +41,6 @@
 
 * improvements to agility webgraph ([34f1e8a](https://github.com/Torwent/WaspLib/commit/34f1e8ad52ebf26dacf1eee3d3dcad819cbc18b8))
 * initiate WL.PreviousXP ([48d0ed9](https://github.com/Torwent/WaspLib/commit/48d0ed9dd72dab732880e370caaeceb6fb7d3a39))
-
-
-
-## [9.0.1](https://github.com/Torwent/WaspLib/compare/v9.0.0...v9.0.1) (2022-08-14)
-
-
-### Bug Fixes
-
-* ConsumableHandlers withdraw issues fixed ([cf93276](https://github.com/Torwent/WaspLib/commit/cf93276f34abf0088e9d47a78181b82e02778306))
 
 
 

@@ -58,8 +58,9 @@
  - [x] Anvil
  - [x] Collect box
  - [x] Furniture builder
- - [ ] NMZ Reward chest
- - [ ] NMZ Dream Setup
-
+ - [x] Crafting
+ - [x] Silver
+ - [x] Shop
+ - [ ] NMZ reward chest
 
 

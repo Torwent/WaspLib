@@ -10,29 +10,6 @@ Methods related to biometrics that make your account behave in a unique way.
 {$ENDIF}
 
 (*
-var Login.Players[Login.PlayerIndex].BioHash
-~~~~~~~~~~~
-  Global Login.Players[Login.PlayerIndex].BioHash variable.
-  Login.Players[Login.PlayerIndex].BioHash is sort of a unique ID of each account and can be used to influence several things.
-*)
-
-var
-  AntibanEnabled: Boolean := True;
-  BreaksEnabled:  Boolean := True;
-  SleepEnabled:   Boolean := True;
-
-  SleepHour: String;
-  SleepLength: Double;
-
-  SleepLengthOverride: Double;
-  SleepHourOverride: String;
-
-  ABCamera:   Boolean := True;
-  ABMouse:    Boolean := True;
-  ABChat:     Boolean := True;
-  ABGameTabs: Boolean := True;
-  ABBank:     Boolean := True;
-(*
 Antiban.SetupBiometrics
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TAntiban.SetupBiometrics;
@@ -77,7 +54,7 @@ end;
 
 (*
 Antiban.GetInfluencer
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TAntiban.GetInfluencer: Extended;
 
 This generates a random number that is influenced by Login.Players[Login.PlayerIndex].BioHash.
@@ -93,7 +70,7 @@ var
   hash: Double;
 begin
   hash := Login.Players[Login.PlayerIndex].BioHash;
-  Result := (Random + hash) * hash * hash;
+  Result := (Random() + hash) * hash * hash;
 end;
 
 (*
@@ -114,24 +91,24 @@ Example
 
   FoodAmount := Antiban.GetUniqueNumber(7, 3, 15);
 *)
-function TAntiban.GetUniqueNumber(Input: Extended): Extended;
+function TAntiban.GetUniqueNumber(input: Extended): Extended;
 begin
-  Result := Input * Self.GetInfluencer;
+  Result := input * Self.GetInfluencer();
 end;
 
-function TAntiban.GetUniqueNumber(Input, Sum: Extended): Extended; overload;
+function TAntiban.GetUniqueNumber(input, sum: Extended): Extended; overload;
 begin
-  Result := Self.GetUniqueNumber(Input) + Sum;
+  Result := Self.GetUniqueNumber(input) + sum;
 end;
 
-function TAntiban.GetUniqueNumber(Input, Min, Max: Extended): Extended; overload;
+function TAntiban.GetUniqueNumber(input, min, max: Extended): Extended; overload;
 begin
-  Result := Input * Self.GetInfluencer;
+  Result := input * Self.GetInfluencer();
 
-  if Result < Min then
-    Result := Min
-  else if Result > Max then
-    Result := Max;
+  if Result < min then
+    Result := min
+  else if Result > max then
+    Result := max;
 end;
 
 
@@ -139,9 +116,9 @@ end;
 Antiban.GetUniqueAverage
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal::
-  function TAntiban.GetUniqueAverage(Input: Extended; Iterations: Integer): Extended;
-  function TAntiban.GetUniqueAverage(Input, Sum: Extended; Iterations: Integer): Extended; overload;
-  function TAntiban.GetUniqueAverage(Input, Min, Max: Extended; Iterations: Integer): Extended; overload;
+  function TAntiban.GetUniqueAverage(input: Extended; Iterations: Integer): Extended;
+  function TAntiban.GetUniqueAverage(input, sum: Extended; Iterations: Integer): Extended; overload;
+  function TAntiban.GetUniqueAverage(input, min, max: Extended; Iterations: Integer): Extended; overload;
 
 Functions to test **Antiban.GetUniqueNumber**.
 It will run Antiban.GetUniqueNumber for how many **Iterations** you specify and average the results out.
@@ -152,34 +129,34 @@ Example
 
   WriteLn Antiban.GetUniqueAverage(7, 3, 15, 500);
 *)
-function TAntiban.GetUniqueAverage(Input: Extended; Iterations: Integer): Extended;
+function TAntiban.GetUniqueAverage(input: Extended; Iterations: Integer): Extended;
 var
-  RandomCases: TExtendedArray;
+  randomCases: TExtendedArray;
 begin
   for 1 to Iterations do
-    RandomCases += Self.GetUniqueNumber(Input);
+    randomCases += Self.GetUniqueNumber(input);
 
-  Result := RandomCases.Mean();
+  Result := randomCases.Mean();
 end;
 
-function TAntiban.GetUniqueAverage(Input, Sum, Iterations: Integer): Extended; overload;
+function TAntiban.GetUniqueAverage(input, sum, Iterations: Integer): Extended; overload;
 var
-  RandomCases: TExtendedArray;
+  randomCases: TExtendedArray;
 begin
   for 1 to Iterations do
-    RandomCases += Self.GetUniqueNumber(Input, Sum);
+    randomCases += Self.GetUniqueNumber(input, sum);
 
-  Result := RandomCases.Mean();
+  Result := randomCases.Mean();
 end;
 
-function TAntiban.GetUniqueAverage(Input, Min, Max, Iterations: Integer): Extended; overload;
+function TAntiban.GetUniqueAverage(input, min, max, Iterations: Integer): Extended; overload;
 var
-  RandomCases: TExtendedArray;
+  randomCases: TExtendedArray;
 begin
   for 1 to Iterations do
-    RandomCases += Self.GetUniqueNumber(Input, Min, Max);
+    randomCases += Self.GetUniqueNumber(input, min, max);
 
-  Result := RandomCases.Mean();
+  Result := randomCases.Mean();
 end;
 
 
@@ -238,33 +215,33 @@ begin
 end;
 
 
-procedure TAntiban.SetSleepHour;
+procedure TAntiban.SetSleepHour();
 var
   Sleep: UInt64;
 begin
-  if SleepHourOverride <> '' then
+  if WLSettings.Sleep.HourOverride <> '' then
   begin
-    SleepHour := SleepHourOverride;
+    WLSettings.Sleep.Hour := WLSettings.Sleep.HourOverride;
     Exit;
   end;
 
   Sleep := (((22 + Round(5 * Login.Players[Login.PlayerIndex].BioHash)) * ONE_HOUR) +
-    (Round(59 * Login.Players[Login.PlayerIndex].BioHash) * ONE_MINUTE));
+           (Round(59 * Login.Players[Login.PlayerIndex].BioHash) * ONE_MINUTE));
 
   if Sleep > ONE_DAY then
     Sleep -= ONE_DAY;
 
-  SleepHour := SRL.MsToTime(Sleep, Time_Bare);
+  WLSettings.Sleep.Hour := SRL.MsToTime(Sleep, Time_Bare);
 end;
 
-procedure TAntiban.SetSleepLength;
+procedure TAntiban.SetSleepLength();
 begin
-  if SleepLengthOverride <> 0 then
+  if WLSettings.Sleep.LengthOverride > 0 then
   begin
-    SleepLength := SleepLengthOverride * ONE_HOUR;
+    WLSettings.Sleep.Length := WLSettings.Sleep.LengthOverride * ONE_HOUR;
     Exit;
   end;
 
-  SleepLength := (5 * ONE_HOUR) + ((200 * ONE_MINUTE) * Login.Players[Login.PlayerIndex].BioHash);
+  WLSettings.Sleep.Length := (5 * ONE_HOUR) + ((200 * ONE_MINUTE) * Login.Players[Login.PlayerIndex].BioHash);
 end;
 

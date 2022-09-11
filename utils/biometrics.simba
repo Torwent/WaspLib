@@ -10,15 +10,13 @@ Methods related to biometrics that make your account behave in a unique way.
 {$ENDIF}
 
 (*
-var BioHash
+var Login.Players[Login.PlayerIndex].BioHash
 ~~~~~~~~~~~
-  Global BioHash variable.
-  BioHash is sort of a unique ID of each account and can be used to influence several things.
+  Global Login.Players[Login.PlayerIndex].BioHash variable.
+  Login.Players[Login.PlayerIndex].BioHash is sort of a unique ID of each account and can be used to influence several things.
 *)
 
 var
-  BioHash: Extended;
-
   AntibanEnabled: Boolean := True;
   BreaksEnabled:  Boolean := True;
   SleepEnabled:   Boolean := True;
@@ -40,13 +38,13 @@ Antiban.SetupBiometrics
 .. pascal:: procedure TAntiban.SetupBiometrics;
 
 This comes straight from older SRL versions.
-This basically sets up our **BioHash** which is a hash of the current player login username. Because usernames are unique, so will the BioHash.
+This basically sets up our **Login.Players[Login.PlayerIndex].BioHash** which is a hash of the current player login username. Because usernames are unique, so will the Login.Players[Login.PlayerIndex].BioHash.
 It also sets up **Endurance** and **Patience** which are also unique to each login username.
 *)
 
 type
   EBioBehavior = (
-    MOUSE_SPEED=1,
+    MOUSE_SPEED,
     MOUSE_GRAVITY,
     MOUSE_WIND,
     MOUSE_MISS,
@@ -62,40 +60,18 @@ type
     ADAPTIVE_WALK
   );
 
-procedure TAntiban.SetupBiometrics();
+
+function TAntiban.GetBehavior(behavior: EBioBehavior): Int32;
+begin
+  Result := GetDigit(Login.Players[Login.PlayerIndex].BioHash, Ord(behavior) + 1); //+1 because all BioHashes start with "0."
+end;
+
+function TAntiban.GetChance(behavior: EBioBehavior): Double;
 var
-  h, i: UInt32;
-  k: String;
+  hash: Double;
 begin
-
-  if BioHash = 1 then
-    BioHash := 0.9999999999999999999999
-  else if BioHash = 0 then
-  begin
-    if (Length(Login.Players) = 0) or (BioHash <> 0) then
-      Exit;
-
-    k := Login.GetPlayer().User;
-    h := $811C9DC5;
-    for i:=1 to Length(k) do
-      h := (h * $1000193) xor Ord(k[i]);
-
-    BioHash := h / $FFFFFFFF;
-  end;
-
-  Self.DebugLn('Biohash: ' + ToStr(BioHash));
-end;
-
-
-
-function TAntiban.GetBehavior(Behavior: EBioBehavior): Int32;
-begin
-  Result := GetDigit(BioHash, Ord(Behavior));
-end;
-
-function TAntiban.GetChance(Behavior: EBioBehavior): Double;
-begin
-  Result := GetDigit(BioHash, Ord(Behavior)) / 10;
+  hash := Login.Players[Login.PlayerIndex].BioHash;
+  Result := (GetDigit(hash, Ord(behavior) + 1) * 10 + GetDigit(hash, Ord(behavior) + 2)) / 100;
 end;
 
 
@@ -104,17 +80,20 @@ Antiban.GetInfluencer
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TAntiban.GetInfluencer: Extended;
 
-This generates a random number that is influenced by BioHash.
-There are times you will not want to use BioHash itself because it's value is static, this function let's you get a number that is random but heavily influenced by BioHash.
+This generates a random number that is influenced by Login.Players[Login.PlayerIndex].BioHash.
+There are times you will not want to use Login.Players[Login.PlayerIndex].BioHash itself because it's value is static, this function let's you get a number that is random but heavily influenced by Login.Players[Login.PlayerIndex].BioHash.
 
 Example
 -------
 
   Wait(Round(3000 * Antiban.GetInfluencer)));
 *)
-function TAntiban.GetInfluencer: Extended;
+function TAntiban.GetInfluencer(): Extended;
+var
+  hash: Double;
 begin
-  Result := (Random + BioHash) * BioHash * BioHash;
+  hash := Login.Players[Login.PlayerIndex].BioHash;
+  Result := (Random + hash) * hash * hash;
 end;
 
 (*
@@ -205,11 +184,11 @@ end;
 
 
 (*
-Antiban.BioDice
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TAntiban.BioDice: Boolean;
+Antiban.BioDice()
+~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.BioDice(): Boolean;
 
-Throws a **SRL.Dice** heavily skewed in certain directions depending on your BioHash.
+Throws a **SRL.Dice** heavily skewed in certain directions depending on your TRSPlayer.BioHash.
 BioHashes smaller than **0.15** will always return **False**.
 BioHashes bigger than **0.80** will always return **True**.
 BioHashes between 0.15 and 0.80 will randomly return True or False with true being more probable for higher BioHashes.
@@ -217,14 +196,14 @@ BioHashes between 0.15 and 0.80 will randomly return True or False with true bei
 Example
 -------
 
-  UseBankEarly := Antiban.BioDice;
+  UseBankEarly := Antiban.BioDice();
 *)
-function TAntiban.BioDice: Boolean;
+function TAntiban.BioDice(): Boolean;
 begin
-  case BioHash of
+  case Login.Players[Login.PlayerIndex].BioHash of
     0.00..0.15: Result := False;
-    0.15..0.50: Result := SRL.Dice(BioHash * 90);
-    0.50..0.80: Result := SRL.Dice(BioHash * 110);
+    0.15..0.50: Result := SRL.Dice(Login.Players[Login.PlayerIndex].BioHash * 90);
+    0.50..0.80: Result := SRL.Dice(Login.Players[Login.PlayerIndex].BioHash * 110);
     else        Result := True;
   end;
 end;
@@ -246,11 +225,11 @@ Antiban.InvertedBioDice
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TAntiban.InvertedBioDice: Boolean;
 
-Inverted **Antiban.BioDice**.
+Inverted **Antiban.BioDice()**.
 *)
-function TAntiban.InvertedBioDice: Boolean;
+function TAntiban.InvertedBioDice(): Boolean;
 begin
-  Result := not Self.BioDice;
+  Result := not Self.BioDice();
 end;
 
 function TAntiban.InvertedBioDice(Behaviour: EBioBehavior): Boolean; overload;
@@ -269,8 +248,8 @@ begin
     Exit;
   end;
 
-  Sleep := (((22 + Round(5 * BioHash)) * ONE_HOUR) +
-    (Round(59 * BioHash) * ONE_MINUTE));
+  Sleep := (((22 + Round(5 * Login.Players[Login.PlayerIndex].BioHash)) * ONE_HOUR) +
+    (Round(59 * Login.Players[Login.PlayerIndex].BioHash) * ONE_MINUTE));
 
   if Sleep > ONE_DAY then
     Sleep -= ONE_DAY;
@@ -286,6 +265,6 @@ begin
     Exit;
   end;
 
-  SleepLength := (5 * ONE_HOUR) + ((200 * ONE_MINUTE) * BioHash);
+  SleepLength := (5 * ONE_HOUR) + ((200 * ONE_MINUTE) * Login.Players[Login.PlayerIndex].BioHash);
 end;
 

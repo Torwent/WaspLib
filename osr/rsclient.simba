@@ -29,18 +29,7 @@ begin
 end;
 
 procedure TRemoteInput.Setup(); override;
-const
-  WARNING = 'You don''t seem to be using the official osrs client.'+ LineEnding +
-            'Only the official osrs client is supported.' + LineEnding + LineEnding +
-            'Please don''t make bug reports if you are using any other client.';
-var
-  exePath: String;
 begin
-  exePath := GetProcessPath(GetSimbaTargetPID()).ToLower();
-
-  if not exePath.ContainsAny(['jagex', 'java', '.jar']) then
-    ShowDialog('Warning!', WARNING, mtWarning, [mbOK]);
-
   inherited;
 
   if WLSettings.RemoteInput.BlockInput then
@@ -57,9 +46,39 @@ end;
 
 {$ENDIF}
 
+
+procedure TRSClient.FixFocusedClient();
+const
+  WARNING = 'You don''t seem to be using the official osrs client.'+ LineEnding +
+            'Only the official osrs client is supported.' + LineEnding + LineEnding +
+            'Please don''t make bug reports if you are using any other client.';
+var
+  path: String;
+  child: TWindowHandle;
+  children: TWindowHandleArray;
+begin
+  path := GetProcessPath(GetSimbaTargetPID()).ToLower();
+
+  if not path.ContainsAny(['jagex', 'java', '.jar']) then
+    ShowDialog('Warning!', WARNING, mtWarning, [mbOK]);
+
+  child := GetSimbaTargetWindow();
+  children := child.GetChildren(True);
+
+  while children <> [] do
+  begin
+    child    := children[0];
+    children := child.GetChildren(True);
+  end;
+
+  SetTargetWindow(child);
+end;
+
 procedure TRSClient.Setup(); override;
 begin
   Self.Name :='RSClient';
+
+  Self.FixFocusedClient();
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
     {$IFNDEF SCRIPT_GUI}

@@ -131,7 +131,7 @@ TWaspObject is the base record used by **TRSObjects and TRSMMDots**.
 *)
 
   TWaspObject = record
-    WalkerIndex: Int32;
+    Walker: PRSWalker;
     ShapeArray: array of TRSObjectShape;
     TileArray: TPointArray;
     Finder: TRSObjectFinder;
@@ -353,20 +353,22 @@ begin
   Self.DotType := ERSMinimapDot.PLAYER;
 end;
 
-function TRSObject.GetPolys(out FloorTiles, RoofTiles: TRectArray): TPolyArray;
+function TRSObject.GetPolys(out floorTiles, RoofTiles: TRectArray): TPolyArray;
 var
-  Me: TPoint := WALKER_ARRAY[Self.WalkerIndex].GetMyPos;
+  me: TPoint;
   i: Int32;
 begin
+  me := Self.Walker^.GetMyPos();
+
   for i := 0 to High(Self.ShapeArray) do
   begin
-    FloorTiles.Extend(WALKER_ARRAY[Self.WalkerIndex].GetTileArrayMS(
-          Me, Self.ShapeArray[i].TileArray,
+    floorTiles.Extend(Self.Walker^.GetTileArrayMSEx(
+          me, Self.ShapeArray[i].TileArray,
           [Self.ShapeArray[i].TileVector.X, Self.ShapeArray[i].TileVector.Y, 0]));
 
     if Self.ShapeArray[i].TileVector.Z > 0 then
     begin
-      RoofTiles.Extend(WALKER_ARRAY[Self.WalkerIndex].GetTileArrayMS(
+      RoofTiles.Extend(Self.Walker^.GetTileArrayMS(
           Me, Self.ShapeArray[i].TileArray, Self.ShapeArray[i].TileVector));
 
       Result := FloorTiles.GetPolys(RoofTiles);
@@ -382,7 +384,7 @@ var
   APA: array of TPolyArray;
 begin
   for i := 0 to High(Self.ShapeArray) do
-    APA += WALKER_ARRAY[Self.WalkerIndex].GetPolygonArrayMS(WALKER_ARRAY[Self.WalkerIndex].GetMyPos, Self.ShapeArray[i].TileArray,
+    APA += Self.Walker^.GetPolygonArrayMS(Self.Walker^.GetMyPos, Self.ShapeArray[i].TileArray,
                                       Self.ShapeArray[i].TileVector, [0, 0]);
   for i := 0 to High(APA) do
     for x := 0 to High(APA[i]) do
@@ -393,12 +395,12 @@ end;
 
 function TRSMMDot._GetWMMPolys(out MMPoints, Dots: TPointArray; out DotFilters: TRSDotFilterArray; out Tiles, FloorTiles, RoofTiles: TRectArray): TPolyArray;
 begin
-  MMPoints := WALKER_ARRAY[Self.WalkerIndex].WorldToMM(Self.TileArray);
+  MMPoints := Self.Walker^.WorldToMM(Self.TileArray);
   DotFilters.ClearExpired;
-  DotFilters := WALKER_ARRAY[Self.WalkerIndex].WorldToMM(Self.DotFilter);
+  DotFilters := Self.Walker^.WorldToMM(Self.DotFilter);
   Dots := Minimap.GetFilteredDotArray(Self.DotType, DotFilters);
 
-  Tiles := WALKER_ARRAY[Self.WalkerIndex].GetTileArrayMS(
+  Tiles := Self.Walker^.GetTileArrayMS(
                    MMPoints, [Self.ShapeArray[0].TileVector.X, Self.ShapeArray[0].TileVector.Y, 0]);
 
   FloorTiles := Minimap.GetTileArrayMS(Dots, [Self.ShapeArray[0].TileVector.X, Self.ShapeArray[0].TileVector.Y, 0], [-2, -2]);
@@ -414,14 +416,14 @@ end;
 
 function TRSMMDot._GetWPolys(out FloorTiles, RoofTiles: TRectArray): TPolyArray;
 var
-  Me: TPoint := WALKER_ARRAY[Self.WalkerIndex].GetMyPos;
+  Me: TPoint := Self.Walker^.GetMyPos;
 begin
-  FloorTiles := WALKER_ARRAY[Self.WalkerIndex].GetTileArrayMS(Me, Self.ShapeArray[0].TileArray,
+  FloorTiles := Self.Walker^.GetTileArrayMS(Me, Self.ShapeArray[0].TileArray,
                         [Self.ShapeArray[0].TileVector.X, Self.ShapeArray[0].TileVector.Y, 0], [0, 0]);
 
   if Self.ShapeArray[0].TileVector.Z > 0 then
   begin
-    RoofTiles := WALKER_ARRAY[Self.WalkerIndex].GetTileArrayMS(Me, Self.ShapeArray[0].TileArray,
+    RoofTiles := Self.Walker^.GetTileArrayMS(Me, Self.ShapeArray[0].TileArray,
                                         Self.ShapeArray[0].TileVector, [0, 0]);
 
     Result := FloorTiles.GetPolys(RoofTiles);
@@ -464,7 +466,7 @@ begin
   if Self.Filter.Walker and Self.Filter.MinimapDot then
   begin
     Dots := Minimap.GetFilteredDotArray(Self.DotType,
-                    WALKER_ARRAY[Self.WalkerIndex].WorldToMM(Self.DotFilter));
+                    Self.Walker^.WorldToMM(Self.DotFilter));
 
     if Dots <> [] then
       Result := Minimap.GetPolygonArrayMS(Dots, Self.ShapeArray[0].TileVector, [-2, -2]);
@@ -476,7 +478,7 @@ begin
                 (Self.ShapeArray[0].TileVector.Y + Self.ShapeArray[0].TileVector.X) / 2);
 
     Result := Minimap.GetPolygonArrayMS(
-                        WALKER_ARRAY[Self.WalkerIndex].WorldToMM(Self.ShapeArray[0].TileArray),
+                        Self.Walker^.WorldToMM(Self.ShapeArray[0].TileArray),
                         [Expand, Expand, Self.ShapeArray[0].TileVector.Z]);
   end
 
@@ -638,7 +640,7 @@ begin
   begin
     ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
     if Self.WalkerIndex < 0 then
-      Self.ClosestDot := WALKER_ARRAY[Self.WalkerIndex].MSToWorld(ATPA[0].Mean);
+      Self.ClosestDot := Self.Walker^.MSToWorld(ATPA[0].Mean);
   end;
 end;
 
@@ -665,7 +667,7 @@ begin
   begin
     ATPA.SortByMiddle(MainScreen.GetPlayerBox.Middle);
     if Self.WalkerIndex < 0 then
-      Self.ClosestDot := WALKER_ARRAY[Self.WalkerIndex].MSToWorld(ATPA[0].Mean);
+      Self.ClosestDot := Self.Walker^.MSToWorld(ATPA[0].Mean);
   end;
 end;
 
@@ -891,7 +893,7 @@ begin
   WriteLn('Send ', filePath, ' to Torwent on discord!');
   Bitmap.Show();
 
-  WriteLn('Position: ', WALKER_ARRAY[Self.WalkerIndex].GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
+  WriteLn('Position: ', Self.Walker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
   WriteLn('RSObject: ', Self);
   Bitmap.Free();
 end;
@@ -1315,19 +1317,19 @@ begin
 
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True)
-    else if not WALKER_ARRAY[Self.WalkerIndex].AtTile(Self.TileArray, 50) then
+    else if not Self.Walker^.AtTile(Self.TileArray, 50) then
     begin
       if Self.Filter.UpText then
-        WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.15)
+        Self.Walker^.WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.15)
       else
-        WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, 30, 0.15);
+        Self.Walker^.WebWalk(Self.TileArray, 30, 0.15);
     end
     else if Attempt = (Attempts - 1) then
     begin
-      if not WALKER_ARRAY[Self.WalkerIndex].AtTile(Self.TileArray, 25) then
+      if not Self.Walker^.AtTile(Self.TileArray, 25) then
       begin
-        if (Self.Filter.UpText and WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.15)) or
-          WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, 30, 0.15) then
+        if (Self.Filter.UpText and Self.Walker^.WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.15)) or
+          Self.Walker^.WebWalk(Self.TileArray, 30, 0.15) then
           Continue;
       end;
 
@@ -1460,19 +1462,19 @@ begin
 
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True)
-    else if not WALKER_ARRAY[Self.WalkerIndex].AtTile(Self.TileArray, 50) then
+    else if not Self.Walker^.AtTile(Self.TileArray, 50) then
     begin
       if Self.Filter.UpText then
-        WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.2)
+        Self.Walker^.WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.2)
       else
-        WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, 30, 0.2);
+        Self.Walker^.WebWalk(Self.TileArray, 30, 0.2);
     end
     else if Attempt = (Attempts - 1) then
     begin
-      if not WALKER_ARRAY[Self.WalkerIndex].AtTile(Self.TileArray, 25) then
+      if not Self.Walker^.AtTile(Self.TileArray, 25) then
       begin
-        if (Self.Filter.UpText and WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.2)) or
-          WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, 30, 0.2) then
+        if (Self.Filter.UpText and Self.Walker^.WebWalk(Self.TileArray, StrArray, Self.RedClicked, 30, 0.2)) or
+          Self.Walker^.WebWalk(Self.TileArray, 30, 0.2) then
           Continue;
       end;
 
@@ -1553,7 +1555,7 @@ begin
     ChooseOption.Close;
   end;
 
-  if Self.Filter.Walker and not WALKER_ARRAY[Self.WalkerIndex].MakePointVisible(Self.TileArray) then
+  if Self.Filter.Walker and not Self.Walker^.MakePointVisible(Self.TileArray) then
     Exit(False);
 
   Result := Self._HoverHelper(Attempts);
@@ -1594,8 +1596,8 @@ begin
   if not Self.Filter.Walker then
     Exit;
 
-  if not WALKER_ARRAY[Self.WalkerIndex].MakePointVisible(Self.TileArray) then
-    if not WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, Self.UpText, Self.RedClicked, 30, 0.15) then
+  if not Self.Walker^.MakePointVisible(Self.TileArray) then
+    if not Self.Walker^.WebWalk(Self.TileArray, Self.UpText, Self.RedClicked, 30, 0.15) then
       Exit(False);
 
   Result := Self._WalkHoverHelper(Attempts);
@@ -1649,7 +1651,7 @@ begin
     ChooseOption.Close;
   end;
 
-  if Self.Filter.Walker and not WALKER_ARRAY[Self.WalkerIndex].MakePointVisible(Self.TileArray) then
+  if Self.Filter.Walker and not Self.Walker^.MakePointVisible(Self.TileArray) then
     Exit(False);
 
   Result := Self._HoverHelper(Attempts);
@@ -1689,10 +1691,10 @@ begin
   if not Self.Filter.Walker then
     Exit;
 
-  if not WALKER_ARRAY[Self.WalkerIndex].MakePointVisible(Self.TileArray) then
+  if not Self.Walker^.MakePointVisible(Self.TileArray) then
   begin
-    if (Self.Filter.UpText and not WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, Self.UpText, Self.RedClicked, 30, 0.2))or
-      not WALKER_ARRAY[Self.WalkerIndex].WebWalk(Self.TileArray, 30, 0.2) then
+    if (Self.Filter.UpText and not Self.Walker^.WebWalk(Self.TileArray, Self.UpText, Self.RedClicked, 30, 0.2))or
+      not Self.Walker^.WebWalk(Self.TileArray, 30, 0.2) then
       Exit(False);
   end;
 

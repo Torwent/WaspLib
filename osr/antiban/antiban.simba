@@ -220,7 +220,7 @@ begin
   B := Box(Mouse.Position, 350, 350);
   repeat
     P := SRL.RandomPoint(B);
-  until P.DistanceTo(B.Middle()) < 50; // Make sure we move at least 50 distance
+  until P.DistanceTo(B.Center()) < 50; // Make sure we move at least 50 distance
 
   ASyncMouse.Move(P);
 end;
@@ -291,7 +291,7 @@ begin
   GameTabs.Open(CurrentTab);
 end;
 
-procedure TAntiban.CheckCharges;
+procedure TAntiban.CheckCharges();
 const
   ITEM_LIST: TRSItemArray = [
     'Infernal axe', 'Crystal axe', 'Infernal harpoon', 'Crystal harpoon',
@@ -306,11 +306,11 @@ var
   EquippedArray: TRSItemArray;
   Item: TRSItem;
 begin
-  if not Equipment.Open then
+  if not Equipment.Open() then
     Exit;
 
   for Item in ITEM_LIST do
-    if Equipment.ContainsItem(Item) then
+    if Equipment.Contains(Item) then
       EquippedArray += Item;
 
   if EquippedArray = [] then
@@ -320,7 +320,7 @@ begin
 
   Self.DebugLn('Checking ' + ToStr(Item) + ' charges');
 
-  Equipment.ClickItem(Item, 'Check');
+  Equipment.InteractItem(Item, 'Check');
 end;
 
 procedure TAntiban.CheckSlayerHelm();
@@ -343,7 +343,7 @@ begin
 
   for i := 0 to High(ITEM_LIST) do
   begin
-    if Equipment.ContainsItem(ITEM_LIST[i]) then
+    if Equipment.Contains(ITEM_LIST[i]) then
       Break;
     if i = High(ITEM_LIST) then
       Exit;
@@ -351,7 +351,7 @@ begin
 
   Self.DebugLn('Checking slayer task progress in' + ToStr(ITEM_LIST[i]) + '.');
 
-  Equipment.ClickItem(ITEM_LIST[i], 'Check');
+  Equipment.InteractItem(ITEM_LIST[i], 'Check');
 end;
 
 procedure TAntiban.CheckSlayerBracelet(); //TODO: Add equipping if it expired in the equipment
@@ -373,9 +373,9 @@ begin
 
   if (Item = 'null') and Equipment.Open then
   begin
-    if Equipment.ContainsItem('Bracelet of slaughter') then
+    if Equipment.Contains('Bracelet of slaughter') then
       Item := 'Bracelet of slaughter'
-    else if Equipment.ContainsItem('Expeditious bracelet') then
+    else if Equipment.Contains('Expeditious bracelet') then
       Item := 'Expeditious bracelet';
 
     InInventory := False;
@@ -387,9 +387,9 @@ begin
   Self.DebugLn('Checking ' + ToStr(Item) + ' state.');
 
   if InInventory then
-    Inventory.ClickItem(Item, 'Check')
+    Inventory.InteractItem(Item, 'Check')
   else
-    Equipment.ClickItem(Item, 'Check');
+    Equipment.InteractItem(Item, 'Check');
 end;
 
 
@@ -485,23 +485,24 @@ end;
 
 procedure TAntiban.RandomChatButton();
 var
-  ChatButton: ERSChatButton := ERSChatButton(Random(0, (Length(ERSChatButton) - 2)));
+  ChatTab := ERSChatTab(Random(1, 7));
 begin
-  Self.DebugLn('[RND] Opening ' + ToStr(ChatButton) + ' chat button');
+  Self.DebugLn('[RND] Opening ' + ToStr(ChatTab) + ' chat button');
 
-  ChatButtons.Open(ChatButton);
+  Chat.OpenTab(ChatTab);
 end;
 
 procedure TAntiban.ToggleChatButton();
 var
-  CurrentButton: ERSChatButton := ChatButtons.GetActive;
+  CurrentTab: ERSChatTab := Chat.GetCurrentTab();
 begin
   Self.DebugLn('[RND] Toggling chat buttons');
-  Self.RandomChatButton;
+  Self.RandomChatButton();
   Wait(3000 * Login.Players[Login.PlayerIndex].BioHash, 5000 * Login.Players[Login.PlayerIndex].BioHash);
-  ChatButtons.Open(CurrentButton);
+  Chat.OpenTab(CurrentTab);
 end;
 
+(* TODO: ChatButtons State.
 procedure TAntiban.RandomChatButtonState();
 var
   RandomButton: ERSChatButton := ERSChatButton(Random(2, (Length(ERSChatButton) - 2)));
@@ -519,13 +520,14 @@ begin
   Self.DebugLn('[RND] Changing ' + ToStr(RandomButton) + ' state to ' + ToStr(RandomState));
   ChatButtons.ChangeState(RandomButton, RandomState);
 end;
+*)
 
 procedure TAntiban.RandomChatTask();
 begin
   case Random(20) of
     0..5:   Self.RandomChatButton;
     6..17:  Self.ToggleChatButton;
-    18..19: Self.RandomChatButtonState;
+    //18..19: Self.RandomChatButtonState;
   end;
 end;
 
@@ -568,6 +570,7 @@ begin
   Bank.OpenTab(CurrentTab);
 end;
 
+(* TODO: Fix bank buttons
 procedure TAntiban.RandomBankButton();
 var
   RandomButton: ERSBankButton;
@@ -581,6 +584,7 @@ begin
   Self.DebugLn('[RND] Clicking ' + ToStr(RandomButton) + ' bank button');
   BankButton.Enable;
 end;
+*)
 
 procedure TAntiban.RandomBankTask();
 begin
@@ -644,8 +648,8 @@ begin
     0:
       begin
         if not WLSettings.Antiban.Chat then Exit
-        else if (Random(20) <= 17) then Self.RandomChatButton()
-        else Self.RandomChatButtonState();
+        else if (Random(20) <= 17) then Self.RandomChatButton();
+        //else Self.RandomChatButtonState();    //TODO...
       end;
 
     1..5:

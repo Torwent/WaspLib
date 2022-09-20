@@ -11,24 +11,22 @@ type
 
 function TRSBank.FindItem(Item: TRSItem; out Bounds: TBox): Boolean; override;
 var
-  Boxes: TBoxArray;
-  TempItem: TRSItem;
-  Indices: TIntegerArray;
+  tempItem: TRSItem;
 begin
   if not Self.IsOpen() then
     Exit;
 
-  Boxes := Self.FindItemBoundaries();
-
-  for TempItem in Item.GetArray() do
+  for tempItem in Item.GetArray() do
   begin
-    Indices := ItemFinder.Find(TempItem, Boxes, 1);
-    if Indices <> [] then
-    begin
-      Bounds := Boxes[Indices[0]];
-      Exit(True);
-    end;
+    Result := inherited(tempItem, Bounds);
+    if Result then
+      Exit;
   end;
+end;
+
+function TRSBank.FindItem(Item: TRSItem; out Box: TBox): Boolean; override;
+begin
+  Result := Self.ItemFinder.Find([Item], Box);
 end;
 
 function TRSBank.ContainsItem(Item: TRSBankWithdrawItem): Boolean; overload;
@@ -68,59 +66,51 @@ begin
   Result := SRL.GetItemAmount(Self.GetSlotBoxes[Slot]);
 end;
 
-var
-  WithdrawXCache: Int32;
-
 function TRSBank.WithdrawHelper(B: TBox; Amount: Int32; Noted: Boolean; UseQuantityButtons: Boolean): Boolean; override;
-var
-  Button: TRSButton;
 begin
-  if Noted then
-    Button := Self.GetButton(ERSBankButton.NOTE)
-  else
-    Button := Self.GetButton(ERSBankButton.ITEM);
-
-  if not Button.Enable() then
-    Exit;
+  case Noted of
+    True:  if (not Self.ElementFinder.Toggle(Self.ELEMENT_NOTE, RSColors.BUTTON_RED, 5)) then Exit;
+    False: if (not Self.ElementFinder.Toggle(Self.ELEMENT_ITEM, RSColors.BUTTON_RED, 5)) then Exit;
+  end;
 
   if UseQuantityButtons then
   begin
     if Self.IsCustomQuantity(Amount) then
     begin
-      Button := Self.GetButton(ERSBankButton.QUANTITY_CUSTOM);
+      if not Self.ElementFinder.Toggle(Self.ELEMENT_QUANTITY_X, RSColors.BUTTON_RED, 5) then
+        Exit;
 
-      if Button.Enable then
+      Mouse.Move(B);
+
+      if Result := MainScreen.IsUpText('Withdraw-' + ToString(Amount)) then
+        Mouse.Click(MOUSE_LEFT)
+      else
+        Result := (ChooseOption.Select('Withdraw-' + ToString(Amount), MOUSE_LEFT, True, False)) or
+                  (ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 4000)));
+
+      if (WL.Cache.WithdrawX = Amount) or MainScreen.IsUpText('Withdraw-' + ToString(Amount)) then
       begin
-        Mouse.Move(B);
-
-        if (WithdrawXCache = Amount) or MainScreen.IsUpText('Withdraw-' + ToString(Amount)) then
-        begin
-          Mouse.Click(MOUSE_LEFT);
-
-          Result := True;
-        end else
-        begin
-          Result := ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 4000));
-          if Result then
-            WithdrawXCache := Amount;
-        end;
+        Mouse.Click(MOUSE_LEFT);
+        Result := True;
+      end else
+      begin
+        Result := (ChooseOption.Select('Withdraw-' + ToString(Amount), MOUSE_LEFT, True, False)) or
+                  (ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 4000)));
+        if Result then
+          WL.Cache.WithdrawX := Amount;
       end;
     end else
     begin
       case Amount of
-        1:  Button := Self.GetButton(ERSBankButton.QUANTITY_1);
-        5:  Button := Self.GetButton(ERSBankButton.QUANTITY_5);
-        10: Button := Self.GetButton(ERSBankButton.QUANTITY_10);
+        1:  Result := Self.ElementFinder.Toggle(Self.ELEMENT_QUANTITY_1, RSColors.BUTTON_RED, 5);
+        5:  Result := Self.ElementFinder.Toggle(Self.ELEMENT_QUANTITY_5, RSColors.BUTTON_RED, 5);
+        10: Result := Self.ElementFinder.Toggle(Self.ELEMENT_QUANTITY_10, RSColors.BUTTON_RED, 5);
         else
-            Button := Self.GetButton(ERSBankButton.QUANTITY_ALL)
+            Result := Self.ElementFinder.Toggle(Self.ELEMENT_QUANTITY_ALL, RSColors.BUTTON_RED, 5);
       end;
 
-      if Button.Enable() then
-      begin
-        Result := True;
-
+      if Result then
         Mouse.Click(B, MOUSE_LEFT);
-      end;
     end;
   end else
   begin
@@ -132,13 +122,11 @@ begin
       BANK_WITHDRAW_ALL_BUT_ONE:
         Result := ChooseOption.Select('Withdraw-All-but-1');
       else
-        Result := ChooseOption.Select('Withdraw-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False) or
-                  ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 2500));
+        Result := (ChooseOption.Select('Withdraw-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False)) or
+                  (ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 2500)));
     end;
   end;
 end;
-
-
 
 
 function TRSBank.WithdrawSlot(Tab: Int32; Item: TRSBankWithdrawSlot; UseQuantityButtons: Boolean): Boolean; overload;
@@ -270,9 +258,9 @@ begin
     Self.OpenTab(Tab);
 
   for Item in Items do
-    Inventory.FindItem(Item, Slots);
+    Slots += Inventory.FindItem(Item);
 
-  DepositSlots := Slots.SymmetricDifference(Inventory.GetUsedSlots);
+  DepositSlots := Slots.SymmetricDifference(Inventory.GetUsedSlots());
 
   if DepositSlots <> [] then
   repeat
@@ -288,7 +276,7 @@ end;
 
 function TRSBank.Close(PressEscape: Boolean = False): Boolean; override;
 begin
-  if not Self.IsOpen(False) then
+  if not Self.IsOpen() then
     Exit(True);
 
   Result := MainScreen.CloseInterface(PressEscape);

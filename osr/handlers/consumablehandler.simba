@@ -250,44 +250,57 @@ Inventory.FindItems()
 
 Overloaded method used to find consumables in the inventory. Can be used directly but in most cases is used internally.
 *)
-function TRSInventory.FindItems(Items: TRSConsumableArray; out FoundItems: TRSConsumableArray; out Slots: TIntegerArray): Boolean; overload;
+function TRSInventory.FindItems(consumables: TRSConsumableArray; out foundConsumable: TRSConsumableArray): TIntegerArray; overload;
 var
-  SingleItem: TRSItem;
-  Item: TRSConsumable;
+  singleItem: TRSItem;
+  consumable: TRSConsumable;
   i: Int32;
-  TBA, tmp: TBoxArray;
-  UsedSlots, TempSlots, CurrentSearch: TIntegerArray;
+  usedSlots, tempSlots, currentSearch: TIntegerArray;
 begin
   if not Self.Open() then
     Exit;
 
-  TBA := Self.GetSlotBoxes();
-  for i:=0 to High(TBA) do
-    if Self.IsSlotUsed(TBA[i]) then
-    begin
-      tmp += TBA[i];
-      UsedSlots += i;
-    end;
+  for i in Self.GetUsedSlots() do
+    usedSlots += i;
 
-  for Item in Items do
+  for consumable in consumables do
   begin
-    for SingleItem in Item.Item.GetArray() do
+    for singleItem in consumable.Item.GetArray() do
     begin
-      CurrentSearch := ItemFinder.Find(SingleItem, tmp);
-      if CurrentSearch <> [] then
+      currentSearch := Self.ItemFinder.IndicesOf([singleItem]);
+      if currentSearch <> [] then
       begin
-        FoundItems += Item;
-        TempSlots += CurrentSearch;
+        foundConsumable += consumable;
+        tempSlots += currentSearch;
       end;
     end;
   end;
 
-  for i in TempSlots do
-    Slots += UsedSlots[i];
+  for i in tempSlots do
+    Result += usedSlots[i];
 
-  Slots.ClearDuplicates();
+  Result := Result.Unique();
+end;
 
-  Result := Length(Slots) > 0;
+function TRSInventory.ContainsItem(consumables: TRSConsumableArray): Boolean; overload;
+var
+  singleItem: TRSItem;
+  consumable: TRSConsumable;
+  i: Int32;
+  usedSlots, tempSlots, currentSearch: TIntegerArray;
+begin
+  if not Self.Open() then
+    Exit;
+
+  for consumable in consumables do
+  begin
+    for singleItem in consumable.Item.GetArray() do
+    begin
+      currentSearch := Self.ItemFinder.IndicesOf([singleItem]);
+      if currentSearch <> [] then
+        Exit(True);
+    end;
+  end;
 end;
 
 (*
@@ -298,23 +311,35 @@ Inventory.FindConsumable()
 
 Method used to find already setup consumables in the inventory. Can be used directly but in most cases is used internally.
 *)
-function TRSInventory.FindConsumable(ConsumableType: ERSConsumable; out FoundConsumables: TRSConsumableArray; out Slots: TIntegerArray): Boolean;
+function TRSInventory.FindConsumable(ConsumableType: ERSConsumable; out FoundConsumables: TRSConsumableArray): TIntegerArray;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
 begin
   if not ConsumableHandler^.IsSetup then
     Exit;
 
-  Result := Self.FindItems(ConsumableHandler^.ConsumableArray.Reversed, FoundConsumables, Slots);
+  Result := Self.FindItems(ConsumableHandler^.ConsumableArray.Reversed, FoundConsumables);
 end;
 
-function TRSInventory.FindConsumable(ConsumableType: ERSConsumable): Boolean; overload;
+function TRSInventory.FindConsumable(ConsumableType: ERSConsumable): TIntegerArray; overload;
 var
   FoundItems: TRSConsumableArray;
   Slots: TIntegerArray;
 begin
-  Result := Self.FindConsumable(ConsumableType, FoundItems, Slots);
+  Result := Self.FindConsumable(ConsumableType, FoundItems);
 end;
+
+
+function TRSInventory.ContainsConsumable(ConsumableType: ERSConsumable): Boolean;
+var
+  ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
+begin
+  if not ConsumableHandler^.IsSetup then
+    Exit;
+
+  Result := Self.ContainsItem(ConsumableHandler^.ConsumableArray.Reversed);
+end;
+
 
 (*
 Inventory.Consume()
@@ -350,7 +375,9 @@ begin
       StartingPoints := Minimap.GetRunEnergy;
   end;
 
-  if not Self.FindConsumable(ConsumableType, FoundConsumables, Slots) then
+  Slots := Self.FindConsumable(ConsumableType, FoundConsumables)
+
+  if Slots.Length() = 0 then
     Exit;
 
   if not Antiban.BioDice(EBioBehavior.CONSUME_IN_BANK) and
@@ -388,12 +415,14 @@ begin
 
     TotalConsumableCost += FoundConsumables[0].Cost;
 
-    if Inventory.FindItems(TRASH_ARRAY, TrashSlots) then
+    TrashSlots := Self.FindItems(TRASH_ARRAY);
+
+    if TrashSlots.Length() > 0 then
     begin
-      if Bank.IsOpen then
+      if Bank.IsOpen() then
         Bank.DepositSlot([TrashSlots[0], BANK_DEPOSIT_ALL], False)
       else
-        Inventory.ShiftDrop(TrashSlots.Intersection(Inventory.RandomPattern()));
+        Self.ShiftDrop(TrashSlots.Intersection(Self.RandomPattern()));
 
       Slots := Slots.Difference(TrashSlots); //Delete TrashSlots from Slots.
     end;
@@ -420,14 +449,11 @@ Example
 
   WriteLn Inventory.CountConsumable(FOOD_CONSUMABLE);
 *)
-function TRSInventory.CountConsumable(ConsumableType: ERSConsumable): Int32;
+function TRSInventory.CountConsumable(consumableType: ERSConsumable): Int32;
 var
-  FoundConsumables: TRSConsumableArray;
-  Slots: TIntegerArray;
+  foundConsumables: TRSConsumableArray;
 begin
-  Self.FindConsumable(ConsumableType, FoundConsumables, Slots);
-
-  Result := Length(Slots);
+  Result := Length(Self.FindConsumable(consumableType, foundConsumables));
 end;
 
 (*
@@ -475,7 +501,7 @@ begin
   Items := Consumable.Item.GetArray();
 
   for i := 0 to High(Items) do
-    Result += Inventory.CountItem(Items[i]) * Consumable.Points * (i + 1);
+    Result += Self.CountItem(Items[i]) * Consumable.Points * (i + 1);
 end;
 
 function TRSInventory.CountPoints(ConsumableType: ERSConsumable): Int32; overload;

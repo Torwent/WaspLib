@@ -101,35 +101,23 @@ ItemData.GetIDs
 Internal method called automatically when we require item data.
 This is based of ItemFinder.GetItemIDs() and it's used to retrieve item ids.
 *)
-function TRSItemData.GetIDs(Item: String): TStringArray;
-type
-  TStringList = TStringList;
-
-  function TStringList.NameFromIndex(Index: Int32): String; override;
-  begin
-    if (Index >= 0) and (Index < Self.GetCount()) then
-      Result := Self.GetStrings(Index).Before('=');
-  end;
-
-  function TStringList.ValueFromIndex(Index: Int32): String; override;
-  begin
-    if (Index >= 0) and (Index < Self.GetCount()) then
-      Result := Self.GetStrings(Index).After('=');
-  end;
-
+function TRSItemData.GetIDs(item: String): TIntegerArray;
 var
-  ItemID: Int32;
+  itemID: Int32;
 begin
-  if Item.IsInteger() then
-    Result := Result + Item
+  if item.IsInteger() then
+    Result := Result + Item.ExtractInteger()
   else
   begin
-    ItemID := Self.ItemNames.IndexOfName(Item);
-    while SameText(Item, Self.ItemNames.NameFromIndex(ItemID)) do
-    begin
-      Result := Result + Self.ItemNames.ValueFromIndex(ItemID);
+    itemID := Self.ItemNames.IndexOfName(item);
+    if itemID = -1 then
+      Exit;
 
-      Inc(ItemID);
+    while SameText(item, Self.ItemNames.GetNames(itemID)) do
+    begin
+      Result := Result + StrToInt(Self.ItemNames.GetValueFromIndex(itemID));
+
+      Inc(itemID);
     end;
   end;
 end;
@@ -142,7 +130,7 @@ ItemData.GetData()
 Internal method used to retrieve a TJSONObject of the Item we want information on.
 **Item** should be an item ID.
 *)
-function TRSItemData.GetData(Item: String): TJSONObject;
+function TRSItemData.GetData(Item: Integer): TJSONObject;
 var
   JSON: String;
 begin
@@ -152,10 +140,10 @@ begin
   if not Self.PriceIsSetup then
     Self.SetupPrices();
 
-  if Item = '' then
+  if Item = -1 then
     Exit;
 
-  JSON := TryGetPage(OSRSBOX_URL + Item + '.json');
+  JSON := TryGetPage(OSRSBOX_URL + ToStr(Item) + '.json');
   if JSON = '' then
   begin
     WriteLn 'We don''t seem to be able to connect to the osrsbox data provider';
@@ -182,12 +170,14 @@ Internal method used to retrieve only the tradeable version of an item if it exi
 Some items have versions of themselves that are not tradeable and can't be used to fetch item prices,
 such as degraded items, ornamented items, etc.
 *)
-function TRSItemData.GetTradeableID(Item: TRSItem): String;
+function TRSItemData.GetTradeableID(Item: TRSItem): Integer;
 var
-  IDs: TStringArray;
-  ID: String;
+  IDs: TIntegerArray;
+  ID: Integer;
   OSRSBoxJSON: TJSONObject;
 begin
+  Result := -1;
+
   if not Self.PriceIsSetup then
     Self.SetupPrices();
 
@@ -212,19 +202,19 @@ Internal method used to fetch a price data TJSONObject of a certain item.
 *)
 function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
 var
-  ID: String;
+  id: Integer;
   WikiJSON: TJSONObject;
 begin
   if Self.ReloadTimer.IsPaused or Self.ReloadTimer.IsFinished() then
     Self.SetupPrices();
 
-  ID := Self.GetTradeableID(Item);
+  id := Self.GetTradeableID(Item);
 
-  if ID <> '' then
+  if id > -1 then
   begin
     WikiJSON := Self.PriceData.getJSONObject('data');
     if WikiJSON <> nil then
-      Result := WikiJSON.getJSONObject(ID);
+      Result := WikiJSON.getJSONObject(ToStr(id));
   end;
 end;
 
@@ -302,23 +292,24 @@ Example
 *)
 function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
 var
-  Str: String;
+  id: Integer;
+  str: String;
   OSRSBoxJSON: TJSONObject;
 begin
-  Str := Self.GetTradeableID(Item);
-  if Str = '' then
+  id := Self.GetTradeableID(Item);
+  if id = -1 then
     Exit;
 
-  OSRSBoxJSON := Self.GetData(Str);
+  OSRSBoxJSON := Self.GetData(id);
   if OSRSBoxJSON = nil then
     Exit;
 
-  Str := OSRSBoxJSON.getString(Key); //we use .getString instead of .getInt to handle "null" values.
+  str := OSRSBoxJSON.getString(Key); //we use .getString instead of .getInt to handle "null" values.
 
-  if Str.Contains('null') then
+  if str.Contains('null') then
     Result := 0
   else
-    Result := StrToInt(Str);
+    Result := StrToInt(str);
 end;
 
 (*
@@ -335,14 +326,14 @@ Example
 *)
 function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
 var
-  Str: String;
+  id: Integer;
   OSRSBoxJSON: TJSONObject;
 begin
-  Str := Self.GetTradeableID(Item);
-  if Str = '' then
+  id := Self.GetTradeableID(Item);
+  if id = -1 then
     Exit;
 
-  OSRSBoxJSON := Self.GetData(Str);
+  OSRSBoxJSON := Self.GetData(id);
   if OSRSBoxJSON = nil then
     Exit;
 
@@ -360,12 +351,12 @@ Example
 -------
   WriteLn ItemData.GetHighAlch('Magic longbow');
 *)
-function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
+function TRSItemData.GetHighAlch(item: TRSItem): Int32;
 var
-  Str: String := Self.GetTradeableID(Item);
+  id: Integer := Self.GetTradeableID(item);
 begin
-  if Str <> '' then
-    Result := Self.GetOSRSBoxInt(Str, 'highalch') - Self.GetAverage('561');
+  if id > -1 then
+    Result := Self.GetOSRSBoxInt(id, 'highalch') - Self.GetAverage('561');
 end;
 
 (*
@@ -381,13 +372,13 @@ Example
 -------
   WriteLn ItemData.GetHighAlchProfit('Magic longbow');
 *)
-function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
+function TRSItemData.GetHighAlchProfit(item: TRSItem): Int32;
 var
-  Str: String := Self.GetTradeableID(Item);
+  id: Integer := Self.GetTradeableID(item);
 begin
-  if Str <> '' then
-    Result := Self.GetOSRSBoxInt(Str, 'highalch') -
-              Self.GetAverage(Item) - Self.GetAverage('561');
+  if id > -1 then
+    Result := Self.GetOSRSBoxInt(id, 'highalch') -
+              Self.GetAverage(id) - Self.GetAverage('561');
 end;
 
 (*
@@ -403,13 +394,13 @@ Example
 -------
   WriteLn ItemData.GetLowAlchProfit('Magic longbow');
 *)
-function TRSItemData.GetLowAlchProfit(Item: TRSItem): Int32;
+function TRSItemData.GetLowAlchProfit(item: TRSItem): Int32;
 var
-  Str: String := Self.GetTradeableID(Item);
+  id: Integer := Self.GetTradeableID(item);
 begin
-  if Str <> '' then
-    Result := Self.GetOSRSBoxInt(Str, 'lowalch') -
-              Self.GetAverage(Item) - Self.GetAverage('561');
+  if id > -1 then
+    Result := Self.GetOSRSBoxInt(id, 'lowalch') -
+              Self.GetAverage(id) - Self.GetAverage('561');
 end;
 
 (*

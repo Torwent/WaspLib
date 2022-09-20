@@ -4,96 +4,6 @@
 {$ENDIF}
 
 (*
-var PadLength
-~~~~~~~~~~~~~
-Internal variable used to set control the PadLength in the progress report. This is usually set by `TBaseScript.BuildTextReport()`.
-
-var PTimeRunning
-~~~~~~~~~~~~~~~~
-Internal StopWatch pointer to the TBaseScript.TimeRunning. This is required so antiban tasks/breaks/sleeps can modify TWaspProgressReport.
-
-var ProgressArray
-~~~~~~~~~~~~~~~~~
-TODO: ADD INFO. Forgot what this was for exactly but something to do with antiban tasks same as above.
-*)
-var
-  PadLength: Int32;
-  PTimeRunning: ^TStopwatch;
-  ProgressArray: TStringArray;
-
-(*
-type THoverButton
-~~~~~~~~~~~~~~~~~
-
-Type used to represent an "HoverButton". An HoverButton is drawn button that is enabled by hovering it and disabled by moving the mouse away from it.
-*)
-type
-  THoverButton = record
-    Bounds: TBox;
-
-    Color: Integer;
-    Border: Integer;
-
-    Enabled: Boolean;
-  end;
-
-(*
-HoverButton.Setup
-~~~~~~~~~~~~~~~~~
-.. pascal:: procedure THoverButton.Setup(Bounds: TBox; Color: Integer = $292929; Border: Integer = $178FEC);
-
-Internal method used to setup the hover button.
-*)
-procedure THoverButton.Setup(Bounds: TBox; Color: Integer = $292929; Border: Integer = $178FEC);
-begin
-  Self.Bounds := Bounds;
-  Self.Color := Color;
-  Self.Border := Border;
-end;
-
-(*
-HoverButton.IsHovered
-~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function THoverButton.IsHovered(P: TPoint): Boolean;
-
-Method used to check if **P** is within the THoverButton.Bounds.
-**P** usually would be your mouse position.
-The mouse position is not checked within the function on purpose, that we can check multiple HoverButtons with a single MousePosition check.
-
-Example
--------
-
-  MousePos: Mouse.Position;
-
-  HoverBtn1.IsHover(MousePos);
-  HoverBtn2.IsHover(MousePos);
-  HoverBtn3.IsHover(MousePos);
-  HoverBtn4.IsHover(MousePos);
-*)
-function THoverButton.IsHovered(P: TPoint): Boolean;
-begin
-  Result := Self.Enabled := Self.Bounds.Contains(P);
-end;
-
-(*
-HoverButton.Draw
-~~~~~~~~~~~~~~~~
-.. pascal:: procedure THoverButton.Draw(Bitmap: TMufasaBitmap; Str: String = '');
-
-Draw the hover button on **Bitmap**. Optionally, text can be drawn on it too.
-*)
-procedure THoverButton.Draw(Bitmap: TMufasaBitmap; Str: String = '');
-begin
-  if Self.Color > -1 then
-    Bitmap.DrawBoxFilled(Self.Bounds, Self.Color);
-  if Self.Border > -1 then
-    Bitmap.DrawBox(Self.Bounds, Self.Border);
-
-  if Str <> '' then
-    Bitmap.DrawTextShadow(Str, [Self.Bounds.X1 + Round(Self.Bounds.Width()/4), Self.Bounds.Y1 + Round(Self.Bounds.Height()/5)], $006CFF, False);
-end;
-
-(*
 type TWaspProgressReport
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
@@ -109,7 +19,6 @@ type
 
     Timer: TTimer;
     UsernameBox: TBox;
-    DisableButton: THoverButton;
 
     Terminated: Boolean;
     IsSetup: Boolean;
@@ -184,8 +93,6 @@ ProgressReport.Setup
 Internal method called when we need to setup TWaspProgressReport.
 *)
 procedure TWaspProgressReport.Setup();
-var
-  B: TBox;
 begin
   Self.BGImg := TMufasaBitmap.Create();
   Self.BGImg.Clear();
@@ -205,11 +112,6 @@ begin
   Self.TextColor := $006CFF;
 
   Self.UsernameBox := Chat.GetDisplayNameBox();
-  B := Chat.GetLineBoxes()[CHAT_INPUT_LINE];
-  B.X1 := B.X2 - Round(B.Width()/8);
-  B.X2 := Chat.Bounds.X2 - 5;
-
-  Self.DisableButton.Setup(B);
 
   AddOnTerminate(@Self.Terminate);
 end;
@@ -242,7 +144,6 @@ begin
   end;
 
   Self.ClientImg.DrawBitmap(Self.BGImg, [Chat.Bounds.X1, Chat.Bounds.Y1]);
-  Self.DisableButton.Draw(Self.ClientImg, 'Hide');
 end;
 
 (*
@@ -287,7 +188,6 @@ begin
   Self.IsSetup := False;
 
   Self.ClientImg.DrawBoxFilled(Self.UsernameBox, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
-  Self.DisableButton.Draw(Self.ClientImg, 'Show');
 end;
 
 (*
@@ -304,63 +204,12 @@ procedure TWaspProgressReport.Update(StrArray: TStringArray);
 begin
   Self.ClientImg.Clear();
 
-  if Self.DisableButton.Enabled then
-  begin
-    if Self.IsSetup then
-      Self.HideProgress();
-    Exit;
-  end;
-
   if StrArray = [] then
     Exit;
 
   //Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);
   Self.DrawBackground(StrArray, Self.TextColor);
   Self.DrawProgress(StrArray, Self.TextColor);
-end;
-
-(*
-ProgressReport.CheckButtons
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.CheckButtons(Sender: TObject);
-
-Internal method run automatically with TWaspProgressReport.Timer.
-This is used to check if the mouse is currently hovering any hover button.
-*)
-{$H-}
-procedure TWaspProgressReport.CheckButtons(Sender: TObject);
-var
-  MousePos: TPoint;
-begin
-  try
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    EIOS_GetRealMousePosition(RSClient.RemoteInput.EIOS, MousePos.X, MousePos.Y);
-    {$ENDIF}
-    Self.DisableButton.IsHovered(MousePos);
-
-    if (Self.DisableButton.Enabled and Self.IsSetup) or (not Self.DisableButton.Enabled and not Self.IsSetup) then
-      Self.Update(Self.PreviousStrArray);
-  except
-    WriteLn(GetExceptionMessage());
-  end;
-end;
-
-{$H+}
-
-(*
-ProgressReport.StartTimer
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.StartTimer(Sender: TObject);
-
-Required wrapper method so we can sync the timer.
-*)
-procedure TWaspProgressReport.StartTimer;
-begin
-  Self.Timer.Init(nil);
-  Self.Timer.SetInterval(1000);
-  Self.Timer.SetOnTimer(@Self.CheckButtons);
-  Self.Timer.SetEnabled(True);
-  AddOnTerminate(@Self.Timer.Free);
 end;
 
 (*
@@ -375,12 +224,7 @@ procedure TWaspProgressReport.Setup(); override;
 begin
   inherited;
 
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if not WLSettings.TextReport and not WLSettings.RemoteInput.HUDReport then
-  {$ENDIF}
-    Exit;
-
-  //Sync(@Self.StartTimer); Disabled do to constant crashes!
+  AddOnPause(@Self.HideProgress);
 end;
 
 (*

@@ -59,38 +59,51 @@ Example
   Writeln MainScreen.IsVisible(P);
 *)
 function TRSMainScreen.IsVisible(P: TPoint): Boolean; override;
+var
+  b: TBox;
 begin
   if P = [] then
     Exit;
 
   Result := Self.Bounds.Expand(-2).Contains(P);
 
-  if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
+  if Result and (Self.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface() then
     begin
       if Bank.Bounds.Expand(5).Contains(P) and Bank.IsOpen() then
         Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(P) and Anvil.IsOpen() then
+      //if Anvil.Bounds.Expand(5).Contains(P) and Anvil.IsOpen() then
+      //  Exit(False);
+    end;
+
+    if Chat.IsOpen() then
+    begin
+      if Chat.Bounds.Expand(5).Contains(P) then
+        Exit(False);
+    end
+    else
+    begin
+      b := Chat.Bounds();
+      b.Y1 += 142;
+
+      if  b.Expand(5).Contains(P) then
         Exit(False);
     end;
 
-    if Chat.Bounds.Expand(5).Contains(P) and Chat.IsOpen() then
-      Exit(False);
-    if ChatButtons.Bounds.Expand(5).Contains(P) then
-      Exit(False);
-    if Minimap.Bounds.Expand(55).Contains(P) then
-      Exit(False);
-    if GameTabs.Bounds.Expand(5).Contains(P) then
+    if Minimap.Bounds().Expand(55).Contains(P) then
       Exit(False);
 
-    if (GameTabs.Mode = ERSClientMode.RESIZABLE_MODERN) and (RootInterface.Width >= 948) and
-        GameTabs.GetTabBoxes().Merge().Expand(5).Contains(P) then
-      Exit(False);
+    if GameTabs.Bounds().Expand(5).Contains(P) then
+      if (P.Y >= Inventory.Bounds().Y2) or Inventory.Bounds().Expand(5).Contains(P) then
+        Exit(False);
   end;
 end;
 
 function TRSMainScreen.IsVisible(TPA: TPointArray): Boolean; overload;
+var
+  temp: TPointArray;
+  b: TBox;
 begin
   TPA := TPA.FilterBox(Self.Bounds);
 
@@ -99,28 +112,40 @@ begin
 
   Result := Self.Bounds.Expand(-2).Contains(TPA);
 
-  if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
+  if Result and (Self.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface() then
     begin
       if Bank.Bounds.Expand(5).Contains(TPA) and Bank.IsOpen() then
         Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(TPA) and Anvil.IsOpen() then
+      //if Anvil.Bounds.Expand(5).Contains(TPA) and Anvil.IsOpen() then
+      //  Exit(False);
+    end;
+
+    if Chat.IsOpen() then
+    begin
+      if Chat.Bounds.Expand(5).Contains(TPA) then
+        Exit(False);
+    end
+    else
+    begin
+      b := Chat.Bounds();
+      b.Y1 += 142;
+
+      if  b.Expand(5).Contains(TPA) then
         Exit(False);
     end;
 
-    if Chat.Bounds.Expand(5).Contains(TPA) and Chat.IsOpen() then
-      Exit(False);
-    if ChatButtons.Bounds.Expand(5).Contains(TPA) then
-      Exit(False);
     if Minimap.Bounds.Expand(55).Contains(TPA) then
       Exit(False);
-    if GameTabs.Bounds.Expand(5).Contains(TPA) then
-      Exit(False);
 
-    if (GameTabs.Mode = ERSClientMode.RESIZABLE_MODERN) and (RootInterface.Width >= 948) and
-        GameTabs.GetTabBoxes().Merge().Expand(5).Contains(TPA) then
-      Exit(False);
+    if GameTabs.Bounds().Expand(5).Contains(TPA) then
+    begin
+      temp := TPA;
+      temp.SortByY();
+      if (temp[0].Y >= Inventory.Bounds().Y2) or Inventory.Bounds().Expand(5).Contains(TPA) then
+        Exit(False);
+    end;
   end;
 end;
 
@@ -148,23 +173,21 @@ Filters the given TPointArray, TBoxArray, TRectArray or TPolyArray and returns o
 *)
 function TRSMainScreen.Filter(TPA: TPointArray): TPointArray;
 var
-  ChatB: TBox;
+  b: TBox;
 begin
   Result := TPA := TPA.FilterBox(Self.Bounds);
 
-  if (Result <> []) and (RSClient.Mode <> ERSClientMode.FIXED) then
+  if (Result <> []) and (Self.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface() then
       Result := Result.Difference(Result.FilterBox(InterfaceArea.Bounds));
 
-    if Chat.IsOpen() then
-    begin
-      ChatB := Chat.Bounds;
-      ChatB.Y2 += 2;
-      Result := Result.Difference(Result.FilterBox(ChatB));
-    end;
+    b := Chat.Bounds();
 
-    Result := Result.Difference(Result.FilterBox(ChatButtons.Bounds));
+    if not Chat.IsOpen() then
+      b.Y1 += 142;
+
+    Result := Result.Difference(Result.FilterBox(b));
     Result := Result.Difference(Result.FilterBox(Minimap.Bounds.Expand(54, 13)));
     Result := Result.Difference(Result.FilterBox(GameTabs.Bounds));
   end;
@@ -236,7 +259,7 @@ function TRSMainScreen.InMultiCombat(): Boolean;
 var
   B: TBox;
 begin
-  case RSClient.Mode of
+  case Self.Mode of
     ERSClientMode.FIXED:
       begin
         B := InterfaceArea.Bounds;
@@ -272,7 +295,7 @@ var
   A: TPoint;
   B: TBox;
 begin
-  case RSClient.Mode of
+  case Self.Mode of
     ERSClientMode.FIXED:
       begin
         B := InterfaceArea.Bounds;

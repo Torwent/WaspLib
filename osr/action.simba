@@ -263,7 +263,7 @@ var
   Slots: TIntegerArray;
   I: Int32;
 begin
-  Inventory.FindItems(Items, Slots);
+  Slots := Inventory.FindItems(Items);
   for I := 0 to High(Pattern) do
     if Slots.Contains(Pattern[I]) then
       Self.DropSlots += Pattern[I];
@@ -359,7 +359,7 @@ begin
   if SpotColor <> CTS2(7902610, 8, 0.24, 0.36) then
     FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
 
-  FinalTPA.Sort(MainScreen.GetPlayerBox.Middle);
+  FinalTPA.Sort(MainScreen.GetPlayerBox.Center());
 
   ATPA := FinalTPA.Cluster(10);
   ATPA.FilterSize(12, __GT__);
@@ -433,8 +433,8 @@ function TRSAction.IsFishing: Boolean;
 var
   WaterDirections: TIntegerArray;
   Rect1, Rect2: TRectangle;
-  ATPA: T2DPointArray;
-  TPA, SearchPoly: TPointArray;
+  atpa: T2DPointArray;
+  tpa, searchPoly: TPointArray;
 begin
   WaterDirections := Self.FindWaterDirection;
   if WaterDirections = [] then
@@ -444,40 +444,44 @@ begin
   begin
     Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
     Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
-    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+    tpa := Rect1.ToTPA() + Rect2.ToTPA();
+    atpa += tpa.ConvexHull().Connect();
   end;
 
   if WaterDirections.Contains(1) then
   begin
     Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
     Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
-    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+    tpa := Rect1.ToTPA() + Rect2.ToTPA();
+    atpa += tpa.ConvexHull().Connect();
   end;
 
   if WaterDirections.Contains(2) then
   begin
     Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
     Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
-    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+    tpa := Rect1.ToTPA() + Rect2.ToTPA();
+    atpa += tpa.ConvexHull().Connect();
   end;
 
   if WaterDirections.Contains(3) then
   begin
     Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
     Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
-    ATPA += Rect1.ToTPA.Combine(Rect2.ToTPA).ConvexHull.Connect;
+    tpa := Rect1.ToTPA() + Rect2.ToTPA();
+    atpa += tpa.ConvexHull().Connect();
   end;
 
-  for SearchPoly in ATPA do
+  for searchPoly in atpa do
   begin
-    SearchPoly.Fill;
-    SearchPoly := SearchPoly.Erode(5).Edges();
+    searchPoly.Fill();
+    searchPoly := searchPoly.Erode(5).Edges();
 
-    Result := (SRL.FindColors(TPA, CTS2(10036, 7, 0.13, 0.01), SearchPoly) > 15)
+    Result := (SRL.FindColors(TPA, CTS2(10036, 7, 0.13, 0.01), searchPoly) > 15)
               or
-              (SRL.FindColors(TPA, CTS2(11581, 2, 0.14, 0.01), SearchPoly) > 15) //regular rod
+              (SRL.FindColors(TPA, CTS2(11581, 2, 0.14, 0.01), searchPoly) > 15) //regular rod
               or
-              (SRL.FindColors(TPA, CTS2(5860468, 14, 0.06, 0.35), SearchPoly) > 15); //barbarian rod
+              (SRL.FindColors(TPA, CTS2(5860468, 14, 0.06, 0.35), searchPoly) > 15); //barbarian rod
 
     if Result then
       Exit;
@@ -491,7 +495,7 @@ var
 begin
   Bitmap.FromClient;
   Bitmap.DrawBox(TPA.Bounds, $ffffff);
-  ShowBitmap(Bitmap);
+  Bitmap.Show(True);
   Bitmap.Free;
 end;
 
@@ -501,7 +505,7 @@ var
 begin
   Bitmap.FromClient;
   Bitmap.DrawBoxes(ATPA.ToTBA, $ffffff);
-  ShowBitmap(Bitmap);
+  Bitmap.Show(True);
   Bitmap.Free;
 end;
 

@@ -6,25 +6,16 @@
 var
   EscapeCloseEnabled: Boolean;
 
-//Get buttons on any interface
-function TRSMainScreen.GetButton: TRSButton;
-var
-  Buttons: TRSButtonArray := Self.FindButtons([[21,21], [24,23]]);
-begin
-  if Buttons <> [] then
-    Result := Buttons[High(Buttons)];
-end;
-
 //Checks for open classic interface
 function TRSMainScreen.IsClassicOpen: Boolean;
 begin
-  Result := (SRL.CountColor(CTS0(3358536, 2), InterfaceArea.Bounds) > 10000);
+  Result := (SRL.CountColor(CTS0(3358536, 2), InterfaceArea.Bounds()) > 10000);
 end;
 
 //Checks for open scroll interface
-function TRSMainScreen.IsScrollOpen: Boolean;
+function TRSMainScreen.IsScrollOpen(): Boolean;
 begin
-  Result := (SRL.CountColor(CTS2(8693433, 5, 0.10, 1.17), InterfaceArea.Bounds) > 35000);
+  Result := (SRL.CountColor(CTS2(8693433, 5, 0.10, 1.17), InterfaceArea.Bounds()) > 35000);
 end;
 
 //Checks for any open interface
@@ -33,18 +24,42 @@ begin
   Result := Self.IsClassicOpen() or Self.IsScrollOpen();
 end;
 
-
-function TRSMainScreen.ClickCloseButton(PressEscape: Boolean = False): Boolean;
+function TRSMainScreen.ClickCloseButton(pressEscape: Boolean): Boolean;
 var
-  CloseButton: TRSButton := Self.GetButton;
+  b: TBox;
+  x1, y1, x2, y2: Integer;
 begin
-  Result := CloseButton <> [];
+  // Top right corner
+  b := InterfaceArea.Bounds();
+  b.X1 += Round(b.Width()/2);
+  b.Y2 -= Round(b.Height()/2);
+
+  if Result := FindBitmapToleranceIn(RSBitmaps.CloseInterfaceButton, x1, y1, b, 45) then
+  begin
+    if PressEscape then
+    begin
+      Keyboard.PressKey(VK_ESCAPE);
+      Exit;
+    end;
+
+    x2 := x1 + RSBitmaps.CloseInterfaceButton.GetWidth();
+    y2 := y1 + RSBitmaps.CloseInterfaceButton.GetHeight();
+  end
+  else
+  if Result := FindBitmapToleranceIn(RSBitmaps.CloseScrollInterfaceButton, x1, y1, b, 25) then
+  begin
+    if PressEscape then
+    begin
+      Keyboard.PressKey(VK_ESCAPE);
+      Exit;
+    end;
+
+    x2 := x1 + RSBitmaps.CloseScrollInterfaceButton.GetWidth();
+    y2 := y1 + RSBitmaps.CloseScrollInterfaceButton.GetHeight();
+  end;
 
   if Result then
-    case (PressEscape and EscapeCloseEnabled) of
-      False: CloseButton.Click;
-      True:  Keyboard.PressKey(VK_ESCAPE);
-    end;
+    Mouse.Click(Box(x1, y1, x2, y2), MOUSE_LEFT);
 end;
 
 

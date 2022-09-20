@@ -3,31 +3,9 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-function CreatePath(const Path: String): Boolean;
-var
-  CurrentPath: String;
-  StrArray: TStringArray;
-  i: Int32;
+function GetFileCount(path, ext: String): Int32;
 begin
-  if DirectoryExists(Path) then
-    Exit(True);
-
-  StrArray := Path.Explode('/');
-
-  for i := 0 to High(StrArray) do
-  begin
-    CurrentPath += StrArray[i] + '/';
-    if not DirectoryExists(CurrentPath) then
-      if not CreateDirectory(CurrentPath) then
-        Exit;
-  end;
-
-  Result := DirectoryExists(Path);
-end;
-
-function GetFileCount(Path, Ext: String): Int32;
-begin
-  Result := Length(GetFiles(Path, Ext));
+  Result := Length(GetFiles(path, ext));
 end;
 
 function GetAgeSortedFiles(Path, Ext: String): TStringArray;
@@ -65,82 +43,42 @@ begin
     DeleteFile(Path + FileArray[i]);
 end;
 
-procedure SaveScreenshot(FileName: String); override;
+function SaveScreenshot(FileName: String): String; override;
 var
-  Path: String;
-  FileExt: String;
-  FileTime: String;
+  path: String;
+  fileExt: String;
+  fileTime: String;
 begin
-  Path := ExtractFilePath(FileName);
+  if not FileName.Contains('Screenshots/') then
+    FileName := 'Screenshots/' + FileName;
+
+  path := ExtractFilePath(FileName);
+  if not ForceDirectories(path) then
+    Exit;
+
   FileName := ExtractFileName(FileName);
+  fileExt := ExtractFileExt(FileName);
 
-  if FileName.Pos('.') = 0 then
-    FileExt := '.png'
-  else
-  begin
-    FileExt := '.' + FileName.After('.');
-    FileName := FileName.Before('.');
-  end;
+  if fileExt = '' then
+    fileExt := '.png';
 
-  if Path.Pos('Screenshots/') = 0 then
-  begin
-    if Path.StartsWith('/') then
-      Path := Path.After('/');
+  FileName := FileName.Before(fileExt);
 
-    Path := 'Screenshots/' + Path;
+  fileTime := '_' + FormatDateTime('yyyy-mm-dd_hh-mm-ss', Now());
 
-    if Path.EndsWith('/') then
-      Path += '/';
-  end;
+  DeleteOldFiles(path, fileExt, 300);
 
-  if not DirectoryExists(Path) then
-    CreatePath(Path);
+  path += FileName + fileTime + fileExt;
 
-  if FileName.Pos('-') = 0 then
-    FileTime := '-' + ToStr(UnixTime);
-
-  DeleteOldFiles(Path, FileExt, 300);
-
-  Path += FileName + FileTime + FileExt;
-
-  inherited(Path);
+  Result := inherited(Path);
 end;
 
-procedure SaveScreenshot(FileName: String; MessageUser: Boolean); overload;
-var
-  Path: String;
+function SaveScreenshot(FileName: String; MessageUser: Boolean): String; overload;
 begin
-  Path := ExtractFilePath(FileName);
-  FileName := ExtractFileName(FileName);
-
-  if Path.Pos('Screenshots/') = 0 then
-  begin
-    if Path.StartsWith('/') then
-      Path := Path.After('/');
-
-    Path := 'Screenshots/' + Path;
-
-    if not Path.EndsWith('/') then
-      Path += '/';
-  end;
-
-  if not DirectoryExists(Path) then
-    CreatePath(Path);
-
-  if FileName.Pos('.') = 0 then
-    Path += FileName + '-' + ToStr(UnixTime) + '.png'
-  else
-    Path += FileName.Before('.') + '-' + ToStr(UnixTime) + '.' + FileName.After('.');
-
-  SaveScreenshot(Path);
+  Result := SaveScreenshot(FileName);
 
   if MessageUser then
-    WriteLn 'Screenshot saved: ' + Path;
-end;
-
-procedure SaveScreenshot; overload;
-begin
-  SaveScreenshot('screenshot');
+    WriteLn 'Screenshot saved: ' + Result;
 end;
 
 
@@ -153,7 +91,8 @@ begin
     Exit;
 
   Path := AppPath + 'Logs/';
-  CreatePath(Path);
+  if not ForceDirectories(Path) then
+    Exit;
 
   DeleteOldFiles(Path, 'txt', 100);
 

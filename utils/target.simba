@@ -3,44 +3,45 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
+
 function GetFileCount(path, ext: String): Int32;
 begin
-  Result := Length(GetFiles(path, ext));
+  Result := Length(FindFiles(path, [ext]));
 end;
 
-function GetAgeSortedFiles(Path, Ext: String): TStringArray;
-  function SortFilesByAge(Files: TStringArray; LowToHigh: Boolean = True): TStringArray;
+function GetAgeSortedFiles(path, ext: String): TStringArray;
+  function SortFilesByAge(files: TStringArray; lowToHigh: Boolean = True): TStringArray;
   var
-    Weights: TIntegerArray;
-    I: Integer;
+    weights: TIntegerArray;
+    i: Integer;
   begin
-    SetLength(Weights, Length(Files));
-    for I := 0 to High(Weights) do
-      Weights[I] := FileAge(Files[I]);
+    SetLength(weights, Length(files));
+    for I := 0 to High(weights) do
+      weights[I] := FileAge(files[i]);
 
-    Result := Sorted(Files, Weights, LowToHigh);
+    Result := Sorted(files, weights, lowToHigh);
   end;
 begin
-  Result := SortFilesByAge(GetFiles(Path, Ext));
+  Result := SortFilesByAge(FindFiles(path, [ext]));
 end;
 
 
-procedure DeleteOldFiles(Path, Ext: String; KeepAmount: Int32);
+procedure DeleteOldFiles(path, ext: String; keepAmount: Int32);
 var
-  TotalAmount: Int32;
-  FileArray: TStringArray;
+  totalAmount: Int32;
+  fileArray: TStringArray;
   i: Int32;
 begin
-  Ext := Ext.After('.');
+  ext := ext.After('.');
 
-  TotalAmount := Length(GetFiles(Path, Ext));
-  if TotalAmount < KeepAmount then
+  totalAmount := Length(FindFiles(path, [ext]));
+  if totalAmount < keepAmount then
     Exit;
 
-  FileArray := GetAgeSortedFiles(Path, Ext);
+  fileArray := GetAgeSortedFiles(path, Ext);
 
-  for i := 0 to (TotalAmount - KeepAmount - 1) do
-    DeleteFile(Path + FileArray[i]);
+  for i := 0 to (totalAmount - keepAmount - 1) do
+    DeleteFile(path + fileArray[i]);
 end;
 
 function SaveScreenshot(FileName: String): String; override;
@@ -82,26 +83,22 @@ begin
 end;
 
 
-procedure GenerateLog(FileName: String);
+procedure GenerateLog(fileName: String);
 var
-  Path: String;
-  F: Int32;
+  path: String;
 begin
   if WL.LogFile <> '' then
     Exit;
 
-  Path := AppPath + 'Logs/';
-  if not ForceDirectories(Path) then
+  path := SimbaPath + 'Logs/';
+  if not ForceDirectories(path) then
     Exit;
 
-  DeleteOldFiles(Path, 'txt', 100);
+  DeleteOldFiles(path, 'txt', 100);
 
-  WL.LogFile := Path + FileName.Replace(' ', '_').ToLower() + '-' + ToStr(UnixTime) + '.txt';
+  WL.LogFile := path + fileName.Replace(' ', '_').ToLower() + '-' + ToStr(UnixTime) + '.txt';
 
   if not FileExists(WL.LogFile) then
-  begin
-    F := CreateFile(WL.LogFile);
-    CloseFile(F);
-  end;
+    CreateFile(WL.LogFile);
 end;
 

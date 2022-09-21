@@ -132,53 +132,53 @@ begin
   if not RSClient.IsLoggedIn then
     Login.LoginPlayer;
 
-  ChatButtons.Open(ERSChatButton.GAME_CHAT);
+  Chat.OpenTab(ERSChatTab.GAME_CHAT);
   Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
 
-  if Self.HandleHealth := Inventory.ContainsAny(FOOD_ARRAY) then
+  if Self.HandleHealth := Inventory.ContainsAnyItem(FOOD_ARRAY) then
   begin
     Self.DebugLn('Food detected and will be used.');
     FoodHandler.MinInvPoints := 1;
     FoodHandler.Setup(ERSConsumable.FOOD_CONSUMABLE);
   end;
 
-  if Self.HandleBoosts := Inventory.ContainsAny(BOOST_ARRAY) then
+  if Self.HandleBoosts := Inventory.ContainsAnyItem(BOOST_ARRAY) then
   begin
     Self.DebugLn('Boost potions detected, they will be used.');
     BoostHandler.MinInvPoints := 1;
     BoostHandler.Setup(ERSConsumable.BOOST_CONSUMABLE);
   end;
 
-  if Self.HandlePrayer := Inventory.ContainsAny(PRAYER_ARRAY) then
+  if Self.HandlePrayer := Inventory.ContainsAnyItem(PRAYER_ARRAY) then
   begin
     Self.DebugLn('Prayer potions detected, prayer will be used.');
     PrayerHandler.MinInvPoints := 1;
     PrayerHandler.Setup(ERSConsumable.PRAYER_CONSUMABLE);
   end;
 
-  if Self.HandlePoison := Inventory.ContainsAny(ANTI_POISON_ARRAY) then
+  if Self.HandlePoison := Inventory.ContainsAnyItem(ANTI_POISON_ARRAY) then
   begin
     Self.DebugLn('Anti poison potions detected, they will be used.');
     PoisonHandler.MinInvPoints := 1;
     PoisonHandler.Setup(ERSConsumable.POISON_CONSUMABLE);
   end;
 
-  if Self.HandleVenom := Inventory.ContainsAny(ANTI_VENOM_ARRAY) then
+  if Self.HandleVenom := Inventory.ContainsAnyItem(ANTI_VENOM_ARRAY) then
   begin
     Self.DebugLn('Anti venom potions detected, they will be used.');
     VenomHandler.MinInvPoints := 1;
     VenomHandler.Setup(ERSConsumable.VENOM_CONSUMABLE);
   end;
 
-  if Self.HandleAntifire := Inventory.ContainsAny(ANTI_FIRE_ARRAY) then
+  if Self.HandleAntifire := Inventory.ContainsAnyItem(ANTI_FIRE_ARRAY) then
   begin
     Self.DebugLn('Anti fire potions detected, they will be used.');
     AntifireHandler.MinInvPoints := 1;
     AntifireHandler.Setup(ERSConsumable.ANTI_FIRE_CONSUMABLE);
   end;
 
-  Self.HandleCannon := Inventory.FindAllItems(DWARF_CANNON) and
-               Inventory.ContainsAny(CANNON_BALLS);
+  Self.HandleCannon := Inventory.ContainsAllItems(DWARF_CANNON) and
+                       Inventory.ContainsAnyItem(CANNON_BALLS);
 
   if Self.HandleCannon then
     Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
@@ -210,7 +210,7 @@ begin
   begin
     if (Self.Weapon = 'Null') then
       Break;
-    if Equipment.ContainsItem(Self.Weapon) then
+    if Equipment.Contains(Self.Weapon) then
     begin
 
       AlchItemArray.Delete(AlchItemArray.IndexOf(Self.Weapon), 1);
@@ -223,7 +223,7 @@ begin
   begin
     if (Self.Shield = 'Null') then
       Break;
-    if Equipment.ContainsItem(Self.Shield) then
+    if Equipment.Contains(Self.Shield) then
     begin
       AlchItemArray.Delete(AlchItemArray.IndexOf(Self.Shield), 1);
       Break;
@@ -231,7 +231,7 @@ begin
   end;
   Self.DebugLn('Current shield: ' + ToStr(Self.Shield) + '.');
 
-  if Equipment.ContainsItem('Bonecrusher necklace') then
+  if Equipment.Contains('Bonecrusher necklace') then
     Antiban.Skills += ERSSkill.PRAYER;
 
   for Self.SpecWeapon in SPEC_WEAPONS do
@@ -245,7 +245,7 @@ begin
     end;
   end;
 
-  if Inventory.ContainsAny(
+  if Inventory.ContainsAnyItem(
      ['Bonecrusher',
       'Bonecrusher necklace',
       'Ash sanctifier']) then
@@ -342,7 +342,7 @@ begin
   if Result := Self.LootHandler.CheckLoot() then
   begin
     Wait(400, 600);
-    if Inventory.ContainsAny(RSAction.AlchItemArray) and
+    if Inventory.ContainsAnyItem(RSAction.AlchItemArray) and
        RSAction.AlchItems(RSAction.AlchItemArray) then
       Wait(600, 800);
     if not Self.AutoRetaliateEnabled then
@@ -365,7 +365,7 @@ begin
       Exit;
   end;
 
-  Result := (Self.Bracelet <> 'Null') and Equipment.ContainsItem(Self.Bracelet);
+  Result := (Self.Bracelet <> 'Null') and Equipment.Contains(Self.Bracelet);
 
   if Result then
     Self.BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
@@ -494,7 +494,8 @@ var
   Slots: TIntegerArray;
   Slot: Int32;
 begin
-  if not Inventory.FindItems(REMAINS, Slots) then
+  Slots := Inventory.FindItems(REMAINS);
+  if Slots = []  then
     Exit;
 
   Slot := Slots[0];
@@ -580,7 +581,7 @@ begin
 
     if (PrayCache <= Self.MinPrayPoints) then
     begin
-      if Inventory.FindConsumable(ERSConsumable.PRAYER_CONSUMABLE) then
+      if Inventory.ContainsConsumable(ERSConsumable.PRAYER_CONSUMABLE) then
       begin
         Self.State := 'DRINK_PRAYER';
         Exit(Self.State);
@@ -593,7 +594,7 @@ begin
 
   if Self.NeedAntifire() then
   begin
-    if Inventory.FindConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE) then
+    if Inventory.ContainsConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE) then
     begin
       Self.State := 'DRINK_ANTIFIRE';
       Exit(Self.State);
@@ -605,13 +606,13 @@ begin
 
   if Self.NeedAntiPoison() then
   begin
-    if Self.HandleVenom and Inventory.FindConsumable(ERSConsumable.VENOM_CONSUMABLE) then
+    if Self.HandleVenom and Inventory.ContainsConsumable(ERSConsumable.VENOM_CONSUMABLE) then
     begin
       Self.State := 'DRINK_ANTIVENOM';
       Exit(Self.State);
     end;
 
-    if Self.HandlePoison and Inventory.FindConsumable(ERSConsumable.POISON_CONSUMABLE) then
+    if Self.HandlePoison and Inventory.ContainsConsumable(ERSConsumable.POISON_CONSUMABLE) then
     begin
       Self.State := 'DRINK_ANTIPOISON';
       Exit(Self.State);
@@ -650,7 +651,7 @@ begin
     Exit(Self.State);
   end;
 
-  if Self.BuryBones and Inventory.ContainsAny(REMAINS) then
+  if Self.BuryBones and Inventory.ContainsAnyItem(REMAINS) then
   begin
     Self.State := 'BURY_BONES';
     Exit(Self.State);

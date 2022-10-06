@@ -1,3 +1,12 @@
+## [9.0.7](https://github.com/Torwent/WaspLib/compare/v9.0.6...v9.0.7) (2022-09-21)
+
+
+### Bug Fixes
+
+* **maps:** agility map brightness ([8ed4a38](https://github.com/Torwent/WaspLib/commit/8ed4a3805a99cea1b5ac6d5d6d2c82786709a5ab))
+
+
+
 ## [9.0.6](https://github.com/Torwent/WaspLib/compare/v9.0.5...v9.0.6) (2022-09-04)
 
 
@@ -31,16 +40,6 @@
 ### Bug Fixes
 
 * bankpin issues fixed with iNeedBots fix ([13850bd](https://github.com/Torwent/WaspLib/commit/13850bde6b3d7f92505279cad180b6c456d73a1f))
-
-
-
-## [9.0.2](https://github.com/Torwent/WaspLib/compare/v9.0.1...v9.0.2) (2022-08-16)
-
-
-### Bug Fixes
-
-* improvements to agility webgraph ([34f1e8a](https://github.com/Torwent/WaspLib/commit/34f1e8ad52ebf26dacf1eee3d3dcad819cbc18b8))
-* initiate WL.PreviousXP ([48d0ed9](https://github.com/Torwent/WaspLib/commit/48d0ed9dd72dab732880e370caaeceb6fb7d3a39))
 
 
 

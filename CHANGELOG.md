@@ -1,3 +1,12 @@
+## [9.0.8](https://github.com/Torwent/WaspLib/compare/v9.0.7...v9.0.8) (2022-10-06)
+
+
+### Bug Fixes
+
+* minor fix to sawmill operator in priff ([c61eed3](https://github.com/Torwent/WaspLib/commit/c61eed3e6426048661f8a96e095fa6444c2694fd))
+
+
+
 ## [9.0.7](https://github.com/Torwent/WaspLib/compare/v9.0.6...v9.0.7) (2022-09-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **consumable handler:** now deselects selected inventory item before consuming anything ([7e6fc76](https://github.com/Torwent/WaspLib/commit/7e6fc7650683303de23dccaa801c06c102be95d4))
-
-
-
-## [9.0.3](https://github.com/Torwent/WaspLib/compare/v9.0.2...v9.0.3) (2022-08-18)
-
-
-### Bug Fixes
-
-* bankpin issues fixed with iNeedBots fix ([13850bd](https://github.com/Torwent/WaspLib/commit/13850bde6b3d7f92505279cad180b6c456d73a1f))
 
 
 

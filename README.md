@@ -61,6 +61,6 @@
  - [x] Crafting
  - [x] Silver
  - [x] Shop
+ - [ ] Tanner
  - [ ] NMZ reward chest
-
 

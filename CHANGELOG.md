@@ -1,3 +1,12 @@
+## [9.0.9](https://github.com/Torwent/WaspLib/compare/v9.0.8...v9.0.9) (2022-10-09)
+
+
+### Bug Fixes
+
+* **itemfinder:** fixed all tithe farm seeds ([d36217d](https://github.com/Torwent/WaspLib/commit/d36217d4e87c045611bda6d1f7be22d149f72170))
+
+
+
 ## [9.0.8](https://github.com/Torwent/WaspLib/compare/v9.0.7...v9.0.8) (2022-10-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * coordinates of zeah mine obstacles ([c01bdd9](https://github.com/Torwent/WaspLib/commit/c01bdd9beb905d67fa3407a7da2508bdc5884ad9))
-
-
-
-## [9.0.4](https://github.com/Torwent/WaspLib/compare/v9.0.3...v9.0.4) (2022-08-22)
-
-
-### Bug Fixes
-
-* **consumable handler:** now deselects selected inventory item before consuming anything ([7e6fc76](https://github.com/Torwent/WaspLib/commit/7e6fc7650683303de23dccaa801c06c102be95d4))
 
 
 

@@ -1,3 +1,12 @@
+## [9.0.11](https://github.com/Torwent/WaspLib/compare/v9.0.10...v9.0.11) (2022-10-10)
+
+
+### Bug Fixes
+
+* **maps:** zeah tithe farm ([0caf4ff](https://github.com/Torwent/WaspLib/commit/0caf4ff0df018eafe1389e0f41fb516d87494906))
+
+
+
 ## [9.0.10](https://github.com/Torwent/WaspLib/compare/v9.0.9...v9.0.10) (2022-10-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** agility map brightness ([8ed4a38](https://github.com/Torwent/WaspLib/commit/8ed4a3805a99cea1b5ac6d5d6d2c82786709a5ab))
-
-
-
-## [9.0.6](https://github.com/Torwent/WaspLib/compare/v9.0.5...v9.0.6) (2022-09-04)
-
-
-### Bug Fixes
-
-* edited the readme to add extra info and to force bump the version ([e25d39a](https://github.com/Torwent/WaspLib/commit/e25d39a1472835a10d485cd03cf038a17afe58b1))
 
 
 

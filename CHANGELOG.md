@@ -1,3 +1,12 @@
+## [9.0.12](https://github.com/Torwent/WaspLib/compare/v9.0.11...v9.0.12) (2022-10-12)
+
+
+### Bug Fixes
+
+* **maps:** agility map was missing an obstacle in alkharid, oops. ([ddd6540](https://github.com/Torwent/WaspLib/commit/ddd65405ad3efd5afbbb1fe5c105fd58c6952881))
+
+
+
 ## [9.0.11](https://github.com/Torwent/WaspLib/compare/v9.0.10...v9.0.11) (2022-10-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * minor fix to sawmill operator in priff ([c61eed3](https://github.com/Torwent/WaspLib/commit/c61eed3e6426048661f8a96e095fa6444c2694fd))
-
-
-
-## [9.0.7](https://github.com/Torwent/WaspLib/compare/v9.0.6...v9.0.7) (2022-09-21)
-
-
-### Bug Fixes
-
-* **maps:** agility map brightness ([8ed4a38](https://github.com/Torwent/WaspLib/commit/8ed4a3805a99cea1b5ac6d5d6d2c82786709a5ab))
 
 
 

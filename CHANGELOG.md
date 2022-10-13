@@ -1,3 +1,12 @@
+## [9.0.13](https://github.com/Torwent/WaspLib/compare/v9.0.12...v9.0.13) (2022-10-13)
+
+
+### Bug Fixes
+
+* **map:** fixed wintertodt map ([9d11154](https://github.com/Torwent/WaspLib/commit/9d11154e6bb707c73f04fb341131e1c43c8bc071))
+
+
+
 ## [9.0.12](https://github.com/Torwent/WaspLib/compare/v9.0.11...v9.0.12) (2022-10-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **itemfinder:** fixed all tithe farm seeds ([d36217d](https://github.com/Torwent/WaspLib/commit/d36217d4e87c045611bda6d1f7be22d149f72170))
-
-
-
-## [9.0.8](https://github.com/Torwent/WaspLib/compare/v9.0.7...v9.0.8) (2022-10-06)
-
-
-### Bug Fixes
-
-* minor fix to sawmill operator in priff ([c61eed3](https://github.com/Torwent/WaspLib/commit/c61eed3e6426048661f8a96e095fa6444c2694fd))
 
 
 

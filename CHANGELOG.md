@@ -1,3 +1,12 @@
+## [9.0.14](https://github.com/Torwent/WaspLib/compare/v9.0.13...v9.0.14) (2022-10-18)
+
+
+### Bug Fixes
+
+* **coordinates:** fixed coordinates of rogues den ([e42e7a2](https://github.com/Torwent/WaspLib/commit/e42e7a23c4bb6ec6d734319cdb43765db8049c5c))
+
+
+
 ## [9.0.13](https://github.com/Torwent/WaspLib/compare/v9.0.12...v9.0.13) (2022-10-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump version ([f288be4](https://github.com/Torwent/WaspLib/commit/f288be445d0f8c520bc694a4b0f792e5c63fffd0))
-
-
-
-## [9.0.9](https://github.com/Torwent/WaspLib/compare/v9.0.8...v9.0.9) (2022-10-09)
-
-
-### Bug Fixes
-
-* **itemfinder:** fixed all tithe farm seeds ([d36217d](https://github.com/Torwent/WaspLib/commit/d36217d4e87c045611bda6d1f7be22d149f72170))
 
 
 

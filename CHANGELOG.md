@@ -1,3 +1,12 @@
+## [9.0.16](https://github.com/Torwent/WaspLib/compare/v9.0.15...v9.0.16) (2022-10-25)
+
+
+### Bug Fixes
+
+* **maps:** small fix for agility ([ab065b4](https://github.com/Torwent/WaspLib/commit/ab065b4eccdb315322f5f0e924e8259bf3bd1995))
+
+
+
 ## [9.0.15](https://github.com/Torwent/WaspLib/compare/v9.0.14...v9.0.15) (2022-10-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** agility map was missing an obstacle in alkharid, oops. ([ddd6540](https://github.com/Torwent/WaspLib/commit/ddd65405ad3efd5afbbb1fe5c105fd58c6952881))
-
-
-
-## [9.0.11](https://github.com/Torwent/WaspLib/compare/v9.0.10...v9.0.11) (2022-10-10)
-
-
-### Bug Fixes
-
-* **maps:** zeah tithe farm ([0caf4ff](https://github.com/Torwent/WaspLib/commit/0caf4ff0df018eafe1389e0f41fb516d87494906))
 
 
 

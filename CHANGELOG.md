@@ -1,3 +1,12 @@
+## [9.0.15](https://github.com/Torwent/WaspLib/compare/v9.0.14...v9.0.15) (2022-10-25)
+
+
+### Bug Fixes
+
+* **maps:** minor fix to pollnivneach rooftop map ([72ab30b](https://github.com/Torwent/WaspLib/commit/72ab30ba10d9af20df94e857f243d24d3347db62))
+
+
+
 ## [9.0.14](https://github.com/Torwent/WaspLib/compare/v9.0.13...v9.0.14) (2022-10-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** zeah tithe farm ([0caf4ff](https://github.com/Torwent/WaspLib/commit/0caf4ff0df018eafe1389e0f41fb516d87494906))
-
-
-
-## [9.0.10](https://github.com/Torwent/WaspLib/compare/v9.0.9...v9.0.10) (2022-10-09)
-
-
-### Bug Fixes
-
-* force bump version ([f288be4](https://github.com/Torwent/WaspLib/commit/f288be445d0f8c520bc694a4b0f792e5c63fffd0))
 
 
 

@@ -1,3 +1,12 @@
+## [9.0.17](https://github.com/Torwent/WaspLib/compare/v9.0.16...v9.0.17) (2022-10-25)
+
+
+### Bug Fixes
+
+* rollback coordinates edit ([80a7e34](https://github.com/Torwent/WaspLib/commit/80a7e346ef8167bb7600739c2e428b225128879d))
+
+
+
 ## [9.0.16](https://github.com/Torwent/WaspLib/compare/v9.0.15...v9.0.16) (2022-10-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **map:** fixed wintertodt map ([9d11154](https://github.com/Torwent/WaspLib/commit/9d11154e6bb707c73f04fb341131e1c43c8bc071))
-
-
-
-## [9.0.12](https://github.com/Torwent/WaspLib/compare/v9.0.11...v9.0.12) (2022-10-12)
-
-
-### Bug Fixes
-
-* **maps:** agility map was missing an obstacle in alkharid, oops. ([ddd6540](https://github.com/Torwent/WaspLib/commit/ddd65405ad3efd5afbbb1fe5c105fd58c6952881))
 
 
 

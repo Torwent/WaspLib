@@ -1,3 +1,12 @@
+## [9.0.18](https://github.com/Torwent/WaspLib/compare/v9.0.17...v9.0.18) (2022-11-04)
+
+
+### Bug Fixes
+
+* **walker:** improved webgraph in zeah ([d3f9816](https://github.com/Torwent/WaspLib/commit/d3f981639c0cfbde99e88db99548947267aa2b87))
+
+
+
 ## [9.0.17](https://github.com/Torwent/WaspLib/compare/v9.0.16...v9.0.17) (2022-10-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **coordinates:** fixed coordinates of rogues den ([e42e7a2](https://github.com/Torwent/WaspLib/commit/e42e7a23c4bb6ec6d734319cdb43765db8049c5c))
-
-
-
-## [9.0.13](https://github.com/Torwent/WaspLib/compare/v9.0.12...v9.0.13) (2022-10-13)
-
-
-### Bug Fixes
-
-* **map:** fixed wintertodt map ([9d11154](https://github.com/Torwent/WaspLib/commit/9d11154e6bb707c73f04fb341131e1c43c8bc071))
 
 
 

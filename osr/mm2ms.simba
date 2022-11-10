@@ -9,6 +9,78 @@ Methods to handle MM2MS (Minimap to MainScreen). Extends SRL's MM2MS.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+type
+(*
+type TRSMainScreenShape
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This record holds information about the shape of a TRSWalkerObject and it's rotation.
+
+TRSMainScreenShape.Shape has 3 values, X, Y and Z. X and Y are how wide a object is, measured in game tiles.
+Z is the object height which has to be guessed and tested for a good value.
+
+For example, a bank chest would be roughly [1, 1, 4].
+A bank booth would be roughly [1, 1, 8].
+
+Angle is used to rotate an object and should be done in radians.
+*)
+  TRSMainScreenShape = record
+    Tile: Vector3;
+    Angle: Double;
+  end;
+  TRSMainScreenShapeArray = array of TRSMainScreenShape;
+
+procedure TRSMainScreenShapeArray.SetShape(tile: Vector3; index: Int32 = -1);
+begin
+
+  if index > -1 then
+  begin
+    Self[index].Tile := tile;
+    Exit;
+  end;
+
+  for index := 0 to High(Self) do
+    Self[index].Tile := tile;
+end;
+
+procedure TRSMainScreenShapeArray.SetAngle(angle: Double; index: Int32 = -1);
+begin
+  if index > -1 then
+  begin
+    Self[index].Angle := angle;
+    Exit;
+  end;
+
+  for index := 0 to High(Self) do
+    Self[index].Angle := angle;
+end;
+
+function TRSMainScreenShapeArray.GetShape(height: Double): TRSMainScreenShapeArray;
+var
+  i: Int32;
+  temp: TRSMainScreenShape;
+begin
+  for i := 0 to High(Self) do
+  begin
+    temp := Self[i];
+    temp.Tile.Z := height;
+    Result += temp;
+  end;
+end;
+
+function TRSMainScreenShapeArray.ZeroHeight(): Boolean;
+var
+  i: Int32;
+begin
+  Result := True;
+  for i := 0 to High(Self) do
+    if Self[i].Tile.Z <> 0 then
+      Exit(False);
+end;
+
+
+
+
 (*
 MM2MS.SetupZoom
 ~~~~~~~~~~~~~~~
@@ -22,7 +94,7 @@ Example
   MM2MS.SetupZoom;
   WriteLn MM2MS.ZoomLevel;
 *)
-procedure TMM2MS.SetupZoom;
+procedure TMM2MS.SetupZoom();
 begin
   if (Self.ZoomLevel = -1) then
   begin
@@ -34,11 +106,50 @@ end;
 
 
 (*
+Minimap.GetFaceablePoints
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetFaceablePoints(): TPointArray;
+
+Gives the center point of the 8 tiles that are directly close to the player.
+This are the tiles the player can "face".
+*)
+function TRSMinimap.GetFaceablePoints(): TPointArray;
+var
+  p: TPoint;
+begin
+  p := Self.Center();
+  Result := [
+    [p.X, p.Y - 4], [p.X + 4, p.Y - 4], [p.X + 4, p.Y], [p.X + 4, p.Y + 4],
+    [p.X, p.Y + 4], [p.X - 4, p.Y + 4], [p.X - 4, p.Y], [p.X - 4, p.Y - 4]
+  ];
+
+  Result := Result.Rotate(Self.GetCompassAngle(False), p.X, p.Y);
+end;
+
+(*
+Minimap.GetCardinalPoints
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetCardinalPoints(): TPointArray;
+
+Gives the center point of the 4 cardinal points (North, West, South and East) that are directly close to the player.
+This are the tiles the player can "face".
+*)
+function TRSMinimap.GetCardinalPoints(): TPointArray;
+var
+  p: TPoint;
+begin
+  p := Self.Center();
+  Result := [[p.X, p.Y - 4], [p.X + 4, p.Y], [p.X, p.Y + 4], [p.X - 4, p.Y]];
+  Result := Result.Rotate(Self.GetCompassAngle(False), p.X, p.Y);
+end;
+
+
+(*
 Minimap.PointWithinZoom
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.PointWithinZoom(P: TPoint; out Corner: TPoint): Boolean;
-.. pascal:: function TRSMinimap.PointWithinZoom(P: TPoint): Boolean; overload;
-.. pascal:: function TRSMinimap.PointWithinZoom(TPA: TPointArray): Boolean; overload;
+.. pascal:: function TRSMinimap.PointWithinZoom(p: TPoint; out Corner: TPoint): Boolean;
+.. pascal:: function TRSMinimap.PointWithinZoom(p: TPoint): Boolean; overload;
+.. pascal:: function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
 
 Method used to know if a point is within reach of the Zoom rectangle without adjusting the zoom level.
 Check TRSMinimap.GetZoomRectangle for information on the Zoom rectangle.
@@ -48,38 +159,38 @@ Example
 
   WriteLn Minimap.PointWithinZoom([620, 100]);
 *)
-function TRSMinimap.PointWithinZoom(P: TPoint; out Corner: TPoint): Boolean;
+function TRSMinimap.PointWithinZoom(p: TPoint; out Corner: TPoint): Boolean;
 var
-  TPA: TPointArray;
+  tpa: TPointArray;
 begin
   if not Self.IsPointOn(P) then
     Exit;
 
-  TPA := Self.GetZoomRectangle().ToTPA().Sorted(P);
-  Corner := TPA[High(TPA)];
+  tpa := Self.GetZoomRectangle().Totpa().Sorted(P);
+  Corner := tpa[High(tpa)];
 
   Result := Self.Center().DistanceTo(P) <= Self.Center().DistanceTo(Corner);
 end;
 
-function TRSMinimap.PointWithinZoom(P: TPoint): Boolean; overload;
+function TRSMinimap.PointWithinZoom(p: TPoint): Boolean; overload;
 var
   Corner: TPoint;
 begin
   Result := Self.PointWithinZoom(P, Corner);
 end;
 
-function TRSMinimap.PointWithinZoom(TPA: TPointArray): Boolean; overload;
+function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
 begin
-  TPA.Sort(Self.Center());
+  tpa.Sort(Self.Center());
 
-  Result := Self.PointWithinZoom(TPA[Low(TPA)]);
+  Result := Self.PointWithinZoom(tpa[Low(tpa)]);
 end;
 
 
 (*
 Minimap.FacePoint
 ~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+.. pascal:: function TRSMinimap.FacePoint(p: TPoint; randomness: Int32 = 0): Boolean;
 
 This method will rotate the camera so that **P** is within the zoom rectangle without adjusting the zoom level.
 
@@ -88,40 +199,40 @@ Example
 
   WriteLn Minimap.FacePoint([620, 100]); //keep in mind this example uses a static point, you will probably never do this.
 *)
-function TRSMinimap.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+function TRSMinimap.FacePoint(p: TPoint; randomness: Int32 = 0): Boolean;
 var
-  TPA: TPointArray;
+  tpa: TPointArray;
   d1: Double;
   i: Int32;
 begin
   if not Self.IsPointOn(P) then
     Exit;
 
-  TPA := Self.GetZoomRectangle().ToTPA();
+  tpa := Self.GetZoomRectangle().Totpa();
 
-  if SRL.PointInPoly(P, TPA) then
+  if SRL.PointInPoly(P, tpa) then
     Exit(True);
 
-  TPA.Sort(P);
+  tpa.Sort(P);
 
   d1 := Self.Center().DistanceTo(P);
 
-  for i := 0 to High(TPA) do
+  for i := 0 to High(tpa) do
   begin
-    if Result := d1 <= Self.Center().DistanceTo(TPA[i]) then
+    if Result := d1 <= Self.Center().DistanceTo(tpa[i]) then
       Break;
 
-    if i = High(TPA) then //the point is outside of the zoom rectangle reach.
+    if i = High(tpa) then //the point is outside of the zoom rectangle reach.
       Exit;
   end;
 
-  Self.SetCompassAngle(Self.Center().AngleBetween(TPA[i]) - Self.Center().AngleBetween(P) + Randomness);
+  Self.SetCompassAngle(Self.Center().AngleBetween(tpa[i]) - Self.Center().AngleBetween(P) + randomness);
 end;
 
 (*
 MainScreen.FacePoint
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMainScreen.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean; override;
+.. pascal:: function TRSMainScreen.FacePoint(p: TPoint; randomness: Int32 = 0): Boolean; override;
 
 TODO: ADD THIS TO SRL.
 
@@ -129,15 +240,15 @@ Overriden for a more desirable functionality.
 The original function simply makes the point be straight up of the mainscreen, without regard wether it's visible or not.
 This version of the function instead just makes sure that the point is visible as long as it `Minimap.PointWithinZoom` is true.
 *)
-function TRSMainScreen.FacePoint(P: TPoint; Randomness: Int32 = 0): Boolean; override;
+function TRSMainScreen.FacePoint(p: TPoint; randomness: Int32 = 0): Boolean; override;
 begin
-  Result := Minimap.FacePoint(Self.PointToMM(P).ToPoint(), Randomness);
+  Result := Minimap.FacePoint(Self.PointToMM(P).ToPoint(), randomness);
 end;
 
 (*
 Minimap.ZoomToVisiblePoint
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.ZoomToVisiblePoint(P: TPoint): Int32;
+.. pascal:: function TRSMinimap.ZoomToVisiblePoint(p: TPoint): Int32;
 
 TODO: THIS NEEDS TO BE REWORKED. IT'S NOT RELIABLE RIGHT NOW.
 
@@ -149,7 +260,7 @@ Example
   P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
   Options.SetZoomLevel(Minimap.ZoomToVisiblePoint(P));
 *)
-function TRSMinimap.ZoomToVisiblePoint(P: TPoint): Int32;
+function TRSMinimap.ZoomToVisiblePoint(p: TPoint): Int32;
 var
   Distance: Int32;
 begin
@@ -162,13 +273,13 @@ end;
 (*
 Minimap.AdjustZoomToPoint
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.AdjustZoomToPoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+.. pascal:: function TRSMinimap.AdjustZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
 
 TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
 
 This function adjusts the zoom level so **P** TRSMinimap.PointWithinZoom() is true.
 *)
-function TRSMinimap.AdjustZoomToPoint(P: TPoint; Randomness: Int32 = 0): Boolean;
+function TRSMinimap.AdjustZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
 var
   ZoomLevel: Int32;
   MaxZoomLevel: Int32;
@@ -176,7 +287,7 @@ begin
   if Self.PointWithinZoom(P) then
     Exit(True);
 
-  ZoomLevel := Self.ZoomToVisiblePoint(P) + Randomness;
+  ZoomLevel := Self.ZoomToVisiblePoint(P) + randomness;
 
   if Antiban.MaxZoom > 0 then
     MaxZoomLevel := Antiban.MaxZoom
@@ -191,34 +302,34 @@ end;
 (*
 Minimap.MakePointVisible
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.MakePointVisible(P: TPoint): Boolean;
-.. pascal:: function TRSMinimap.MakePointVisible(TPA: TPointArray): Boolean; overload;
+.. pascal:: function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
+.. pascal:: function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;
 
 TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
 
 Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible on the Mainscreen.
 *)
-function TRSMinimap.MakePointVisible(P: TPoint): Boolean;
+function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
 begin
   Result := Self.AdjustZoomToPoint(P, Random(-5, 5)) and Self.FacePoint(P, Random(-5, 5));
 end;
 
-function TRSMinimap.MakePointVisible(TPA: TPointArray): Boolean; overload;
+function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;
 begin
-  Result := Self.MakePointVisible(TPA.Sorted(Self.Center()));
+  Result := Self.MakePointVisible(tpa.Sorted(Self.Center()));
 end;
 
 
 
 (*
-Minimap.GetPolygonMS
-~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]; Roll: Single = $FFFF): TPointArray;
+Minimap.GetCuboidMS
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]; roll: Single = $FFFF): TPointArray;
 
 To understand what this does, you should read about **TRSMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
 
-To put it simply, this will will first calculate a floor rectangle with **TileVector.Z**, or **height** if you prefer
-of 0 and then calculate the top rectangle of the **TileVector.Z** you specified.
+To put it simply, this will will first calculate a floor rectangle with **tile.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **tile.Z** you specified.
 
 After this 2 rectangles are calculated a polygon is then made out of the two, resulting in a ConvexHull which is returned.
 
@@ -230,31 +341,41 @@ Example
 -------
 
   P := Minimap.GetDots(ERSMinimapDot.PLAYER)[0];         //find a player dot and returns it's coodinates.
-  Offset := [2 , 2];                                     //Minimap dots are actually returned with a slight offset of -2, -2 when converting them to the mainscreen.
-  Debug(Minimap.GetPolygonMS(P, [1, 1, 7], Offset));     //This will draw a polygon around the nearest player.
+  offset := [2 , 2];                                     //Minimap dots are actually returned with a slight offset of -2, -2 when converting them to the mainscreen.
+  Debug(Minimap.GetCuboidMS(P, [1, 1, 7], offset));     //This will draw a polygon around the nearest player.
 *)
-function TRSMinimap.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]; Roll: Single = $FFFF): TPoly;
+function TRSMinimap.GetCuboidMS(loc: TPoint; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]; roll: Single = $FFFF): TCuboid;
 var
-  TPA: TPointArray;
+  tile: Vector3;
+  tpa: TPointArray;
 begin
-  if (Roll = $FFFF) then
-    Roll := Self.GetCompassAngle(False);
+  if (roll = $FFFF) then
+    roll := Self.GetCompassAngle(False);
 
-  TPA := Self.GetTileMs(Loc, [TileVector.Y, TileVector.X, 0], Offset, Roll).ToTPA();
+  roll += shape.Angle;
 
-  if TileVector.Z = 0 then
-    Exit(TPA);
+  tile := shape.Tile;
+  tpa := Self.GetTileMs(loc, [tile.X, tile.Y, 0], offset, roll).ToTPA();
+  if tile.Z <> 0 then
+    tpa += Self.GetTileMS(loc, tile, offset, roll).ToTPA();
 
-  TPA.Extend(Self.GetTileMS(Loc, TileVector, Offset, Roll).ToTPA());
-  TPA.ClearDuplicates();
-  Result := TPA.ConvexHull();
+  Result := tpa;
+  Result := tpa.ConvexHull();
 end;
+
+function TRSMinimap.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]; roll: Single = $FFFF): TCuboid; overload;
+var
+  shape: TRSMainScreenShape;
+begin
+  shape := [tile, 0];
+  Result := Self.GetCuboidMS(loc, shape, offset, roll);
+end;
+
 
 (*
 Minimap.GetTileArrayMS
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TRectArray;
-.. pascal:: function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; Z: Double = 0): TRectArray; overload;
+.. pascal:: function TRSMinimap.GetTileArrayMS(locArray: TPointArray; tile: Vector3; offset: TPoint = [0, 0]; angle: Single = $FFFF): TQuadArray;
 
 Gives you an array of rectangles of several tiles and they can be multiple tiles each.
 For an explanation of parameters check Minimap.GetTileMS.
@@ -262,40 +383,72 @@ For an explanation of parameters check Minimap.GetTileMS.
 Example
 -------
 
-  TPA := Minimap.GetDots(ERSMinimapDot.NPC);   //find all npc dots and returns their coodinates.
+  tpa := Minimap.GetDots(ERSMinimapDot.NPC);   //find all npc dots and returns their coodinates.
   Debug(Minimap.GetTileArrayMS(P, [2, 3, 0])); //This will draw a recangle that is 2 by 3 tiles in the mainscreen where each NPC is.
 *)
-function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TRectArray;
+function TRSMinimap.GetTileArrayMS(locArray: TPointArray; shapeArray: TRSMainScreenShapeArray; offset: TPoint = [0, 0]; angle: Single = $FFFF): TQuadArray;
 var
-  Loc: TPoint;
+  i: Int32;
 begin
-  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
 
-  for Loc in LocArray.Sorted(Self.Center()) do
-    Result += Self.GetTileMS(Loc, TileVector, Offset, Angle);
+  locArray.Sort(Self.Center());
+
+  for i := 0 to High(locArray) do
+    Result += Self.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle);
+end;
+
+function TRSMinimap.GetTileArrayMS(locArray: TPointArray; tile: Vector3; offset: TPoint = [0, 0]; angle: Single = $FFFF): TQuadArray; overload;
+var
+  loc: TPoint;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  for loc in locArray.Sorted(Self.Center()) do
+    Result += Self.GetTileMS(loc, tile, offset, angle);
 end;
 
 (*
-Minimap.GetPolygonArrayMS
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3; Offset: Vector2 = [0, 0]; Angle: Single = $FFFF): T2DPointArray;
+Minimap.GetCuboidArrayMS
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3; offset: Vector2 = [0, 0]; angle: Single = $FFFF): T2DPointArray;
 
-Gives you an array of mainscreen polygons. Read **Minimap.GetPolygonMS** for more information.
+Gives you an array of mainscreen polygons. Read **Minimap.GetCuboidMS** for more information.
 
 Example
 -------
 
-  TPA := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
-  Debug(Minimap.GetPolygonArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
+  tpa := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
+  Debug(Minimap.GetCuboidArrayMS(tpa, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
 *)
-function TRSMinimap.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3; Offset: Vector2 = [0, 0]; Angle: Single = $FFFF): TPolyArray;
+function TRSMinimap.GetCuboidArrayMS(locArray: TPointArray; shapeArray: TRSMainScreenShapeArray; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidArray;
 var
-  Loc: TPoint;
+  i: Int32;
 begin
-  if (Angle = $FFFF) then Angle := Self.GetCompassAngle(False);
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
 
-  for Loc in LocArray do
-    Result += Self.GetPolygonMS(Loc, TileVector, Offset, Angle);
+  for i := 0 to High(locArray) do
+    Result += Self.GetCuboidMS(locArray[i], shapeArray[i], offset, angle);
 end;
 
+function TRSMinimap.GetCuboidArrayMS(locArray: TPointArray; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidArray; overload;
+var
+  i: Int32;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
 
+  for i := 0 to High(locArray) do
+    Result += Self.GetCuboidMS(locArray[i], shape, offset, angle);
+end;
+
+function TRSMinimap.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidArray; overload;
+var
+  shape: TRSMainScreenShape;
+begin
+  shape := [tile, 0];
+  Result := Self.GetCuboidArrayMS(locArray, shape, offset, angle);
+end;

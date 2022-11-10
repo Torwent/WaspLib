@@ -1,7 +1,7 @@
 (*
 WaspWalker and Walker extensions
 ================================
-Methods to handle walking around OSRS.
+methods to handle walking around OSRS.
 This file expands on SRL's walker file.
 *)
 
@@ -10,33 +10,273 @@ This file expands on SRL's walker file.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-{.$I waspweb.graph}
+{$I walker_regions.simba}
+{$I waspweb.graph}
 {.$I agility.graph}
+
+const
+  WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
+  WALKER_MAP_VERSION = '1'; // Inc if images have changed
+
+type
+  RSHeightMap = record(TSRLBaseRecord)
+  class var
+    Enabled = True;
+    Map: TMufasaBitmap;
+    MaxHeight = 30;
+    MathCache: Double;
+  end;
+
+function RSHeightMap.GetColor(p: TPoint): Int64; static;
+begin
+  Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
+end;
+
+
+procedure TRSWalker.InternalSetup(); override;
+var
+  MinimapImage, MinimapSample: TMufasaBitmap;
+begin
+  Self.Name := 'Walker';
+
+  MinimapImage := Self.GetCleanMinimap();
+  MinimapSample := Self.ScaleMinimap(MinimapImage, Self.Scaling);
+
+  Self.Cache := TMatchTemplateCache.Create(Self.Map.ScaledMap, MinimapSample, TM_CCOEFF_NORMED);
+  Self.Cache.FreeOnTerminate(True);
+  Self.WebGraph := WaspWeb;
+
+  MinimapSample.Free();
+  MinimapImage.Free();
+end;
+
+procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+var
+  Bitmaps, HBitmaps: TMufasaBitmapArray;
+  I: Integer;
+  hFileName: String;
+begin
+  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
+  RSHeightMap.Enabled := RSHeightMap.Enabled and (RSHeightMap.MaxHeight > 0) and FileExists(hFileName);
+
+  SetLength(Self.Regions, Length(ARegions));
+  SetLength(Self.RegionOffsets, Length(ARegions));
+
+  SetLength(Bitmaps, Length(Self.Regions));
+  SetLength(HBitmaps, Length(Self.Regions));
+  for I := 0 to High(Bitmaps) do
+  begin
+    Self.RegionOffsets[I] := TPoint.Create(ARegions[I].X1, ARegions[I].Y1);
+
+    Bitmaps[I] := Self.InternalLoadMap(FileName, ARegions[I]);
+    if RSHeightMap.Enabled then
+      HBitmaps[I] := Self.InternalLoadMap(hFileName, ARegions[I]);
+
+    if (ARegions[I] <> RSWalkerRegions.WORLD) then
+    begin
+      Self.RegionOffsets[I].X -= Padding;
+      Self.RegionOffsets[I].Y -= Padding;
+
+      Bitmaps[I].Pad(Padding);
+      if RSHeightMap.Enabled then
+        HBitmaps[I].Pad(Padding);
+    end;
+
+    Self.Regions[I] := TBox.Create(0, 0, Bitmaps[I].GetWidth(), Bitmaps[I].GetHeight());
+  end;
+
+  Self.Regions := Self.Regions.Pack();
+  Self.Map := TMufasaBitmap.Create(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+  Self.Map.FreeOnTerminate(True);
+
+  if RSHeightMap.Enabled then
+  begin
+    RSHeightMap.Map := TMufasaBitmap.Create(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+    RSHeightMap.Map.FreeOnTerminate(True);
+  end;
+
+  for I := 0 to High(Self.Regions) do
+  begin
+    Self.Map.DrawBitmap(Bitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+    if RSHeightMap.Enabled then
+      RSHeightMap.Map.DrawBitmap(HBitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+  end;
+
+  Self.ScaledMap := TMufasaBitmap.Create();
+  Self.ScaledMap.FreeOnTerminate(True);
+  Self.Map.Downsample(Self.ScaledMap, Scaling);
+
+  for I := 0 to High(Bitmaps) do
+    Bitmaps[I].Free();
+
+  if RSHeightMap.Enabled then
+    for I := 0 to High(HBitmaps) do
+      HBitmaps[I].Free();
+end;
+
+procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
+begin
+  Self.Scaling := Scaling;
+
+  Self.Map.Load(WL_WALKER_MAP, Regions, Scaling);
+
+  Self.InternalSetup();
+end;
+
+
+function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
+begin
+  if p = [] then
+  begin
+    global := True;
+    p := Self.GetMyPos();
+  end;
+
+  if global then
+    p := Self.Map.GlobalToRegion(Self.RegionIndex, p);
+
+  if RSHeightMap.MathCache = 0 then
+    RSHeightMap.MathCache := RSHeightMap.MaxHeight / $FFFFFF;
+  Result := RSHeightMap.GetColor(p) * RSHeightMap.MathCache;
+end;
+
+
+(*
+procedure TRSWalker.DebugHeightTiles(Angle: Double = -1);
+var
+  Position: TPoint;
+  TempTile: TPoint;
+  CurrentHeight, TileHeight, HeightDiff: Double;
+
+  BMP: TMufasaBitmap;
+  X, Y: Int32;
+  Tile: Vector3;
+  TPA: TPointArray;
+begin
+  if Angle = -1 then
+    Angle := Minimap.GetCompassAngle(False);
+
+  Position := Self.GetMyPos();
+  CurrentHeight := Self.GetHeight(Position);
+
+  BMP := TMufasaBitmap.CreateFromClient();
+
+  for X := Minimap.Center.X - 25 * 4 to Minimap.Center.X + 25 * 4 with 4 do
+    for Y := Minimap.Center.Y - 25 * 4 to Minimap.Center.Y + 25 * 4 with 4 do
+    begin
+
+      TempTile := Position + ([X, Y] - Minimap.Center);
+      TempTile := TempTile.Rotate(-Angle, Position);
+      TileHeight := Self.GetHeight(TempTile);
+      HeightDiff := CurrentHeight-TileHeight;
+
+      Tile := Vec3(X, Y, HeightDiff).RotateXY(Angle, Minimap.Center.X, Minimap.Center.Y);
+      TPA := Minimap.VecToMsRect(Tile, 1, 1, Angle).ToTPA().Connect();
+
+      if MainScreen.IsVisible(TPA) then
+        BMP.DrawTPA(TPA, Round(TileHeight * ($00ff00 + $00ff00)/ MAX_WALKER_HEIGHT));
+    end;
+
+  BMP.Show();
+  BMP.Free();
+end;
+*)
+
+
+function TRSWalker.GetMyPos(out height: Double): TPoint; overload;
+const
+  SAMPLES = 3;
+var
+  bitmap: TMufasaBitmap;
+  tpa: TPointArray;
+  i: Int32;
+  hit: TPoint;
+  match: Single;
+begin
+  Self.RegionIndex := -1;
+  Self.Region := [];
+  Self.Similarity := 0;
+
+  bitmap := Self.GetCleanMinimap();
+
+  tpa := Self.ScaledSearch(bitmap, SAMPLES);
+  for i := 0 to High(tpa) do
+  begin
+    hit := Self.FullSearch(bitmap, Self.Map.Map, tpa[i], match);
+
+    if match > Self.Similarity then
+    begin
+      Self.Similarity := match;
+
+      Result := hit;
+    end;
+  end;
+
+  Self.RegionIndex := Self.Map.RegionIndexFromPoint(Result);
+  if Self.RegionIndex > -1 then
+  begin
+    Self.Region := Self.Map.Regions[Self.RegionIndex];
+    height := Self.GetHeight(Result, False);
+    Result := Self.Map.RegionToGlobal(Result);
+  end;
+
+  bitmap.Free();
+end;
+
+function TRSWalker.GetHeightDiff(p: TPoint): Double;
+var
+  h: Double;
+begin
+  Self.GetMyPos(h);
+  Result := h - Self.GetHeight(p);
+end;
+
+function TRSWalker.GetHeightDiff(p, q: TPoint): Double; overload;
+begin
+  Result := Self.GetHeight(p) - Self.GetHeight(q);
+end;
+
+procedure RSHeightMap.DebugPosition(p: TPoint);
+var
+  hMap: TMufasaBitmap;
+begin
+  hMap := RSHeightMap.Map.Copy();
+
+  WriteLn('Height value: ', RSHeightMap.GetColor(p) * RSHeightMap.MathCache);
+
+  hMap.DrawCross(p, 4, 1, $00FFFF);
+  hMap.Show(True);
+  hMap.Free();
+end;
+
+
+
+
 
 (*
 TRSWalker.IsWalkable
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
+.. pascal:: function TRSWalker.IsWalkable(worldPoint: TPoint; playerPoint: TPoint; Angle: Double): Boolean; override;
 
 Overriden to change the default behavior of TRSWalker.IsWalkable(), specifically for ScreenWalking since I don't like the default behaviour.
 I find that minimap limits is extremely close to the render distance in the mainscreen, so personally I rather not
-have the function bother any further if **WorldPoint** is not on the minimap.
+have the function bother any further if **worldPoint** is not on the minimap.
 
 This override will affect both TRSWalker and TRSWalker.
 *)
-function TRSWalker.IsWalkable(WorldPoint: TPoint; PlayerPoint: TPoint; Angle: Double): Boolean; override;
+function TRSWalker.IsWalkable(worldPoint: TPoint; playerPoint: TPoint; Angle: Double): Boolean; override;
 var
   MinimapPoint: TPoint;
-  R: TRectangle;
+  R: TQuad;
 begin
-  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Angle);
+  MinimapPoint := Self.WorldToMM(playerPoint, worldPoint, Angle);
 
   Result := Minimap.IsPointOn(MinimapPoint, -1);
 
   if Result and Self.ScreenWalk then
   begin
     R := Minimap.PointToMSRect(MinimapPoint, Angle);
-    Result := MainScreen.IsVisible(R.Mean()) and (CountColor($000000, R.Bounds.Expand(0, MainScreen.Bounds)) = 0);
+    Result := MainScreen.IsVisible(R.mean()) and (CountColor($000000, R.Bounds.Expand(0, MainScreen.Bounds)) = 0);
   end;
 end;
 
@@ -44,22 +284,22 @@ end;
 (*
 TRSWalker.AtTile
 ~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.AtTile(WorldPoint: TPoint; Distance: Int32 = 4): Boolean;
-.. pascal:: function TRSWalker.AtTile(WorldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+.. pascal:: function TRSWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
+.. pascal:: function TRSWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 
-Method used to quickly check if we are within distance of a certain **WorldPoint**. This distance is measure in pixels and in a radial way.
+method used to quickly check if we are within distance of a certain **worldPoint**. This distance is measure in pixels and in a radial way.
 You can optionally pass in a TPA to check if the closest point is within distance.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.AtTile(WorldPoint: TPoint; Distance: Int32 = 4): Boolean;
+function TRSWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
 begin
-  Result := Self.GetMyPos().WithinDistance(WorldPoint, Distance);
+  Result := Self.GetMyPos().WithinDistance(worldPoint, Distance);
 end;
 
-function TRSWalker.AtTile(WorldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+function TRSWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 begin
-  Result := Self.GetMyPos().WithinDistance(WorldPointArray, Distance);
+  Result := Self.GetMyPos().WithinDistance(worldPointArray, Distance);
 end;
 
 
@@ -67,16 +307,16 @@ end;
 (*
 TRSWalker.GetClosestPoint
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetClosestPoint(WorldPointArray: TPointArray): TPoint;
+.. pascal:: function TRSWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
 
-Method used to get the closest Point to the Player out of a TPA.
+method used to get the closest Point to the Player out of a TPA.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.GetClosestPoint(WorldPointArray: TPointArray): TPoint;
+function TRSWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
 begin
-  if WorldPointArray <> [] then
-    Result := WorldPointArray.Sorted(Self.GetMyPos())[0];
+  if worldPointArray <> [] then
+    Result := worldPointArray.Sorted(Self.GetMyPos())[0];
 end;
 
 (*
@@ -84,7 +324,7 @@ TRSWalker.WebWalk
 ~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSWalker.WebWalk(Destination: TPointArray; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
 
-Method used to webwalk to the closest Point to the player.
+method used to webwalk to the closest Point to the player.
 An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
 You will likely want to use the closest bank booth to you, so you use this.
 
@@ -99,8 +339,8 @@ end;
 (*
 TRSWalker.WorldToMM
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.WorldToMM(PlayerPoint: TPoint; WorldPoints: TPointArray; Radians: Double): TPointArray; overload;
-.. pascal:: function TRSWalker.WorldToMM(WorldPoints: TPointArray): TPointArray; overload;
+.. pascal:: function TRSWalker.WorldToMM(playerPoint: TPoint; worldPoints: TPointArray; Radians: Double): TPointArray; overload;
+.. pascal:: function TRSWalker.WorldToMM(worldPoints: TPointArray): TPointArray; overload;
 .. pascal:: function TRSWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
 .. pascal:: function TRSWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
 
@@ -108,41 +348,60 @@ Overloaded methods required for TRSDotFilter. For more information on TRSDotFilt
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.WorldToMM(PlayerPoint: TPoint; WorldPoints: TPointArray; Radians: Double): TPointArray; overload;
+function TRSWalker.WorldToMM(playerPoint: TPoint; worldPoints: TPointArray; Radians: Double): TPointArray; overload;
 var
   P: TPoint;
 begin
-  for P in WorldPoints do
-    Result += Self.WorldToMM(PlayerPoint, P, Radians);
+  for P in worldPoints do
+    Result += Self.WorldToMM(playerPoint, P, Radians);
 end;
 
-function TRSWalker.WorldToMM(WorldPoints: TPointArray): TPointArray; overload;
+function TRSWalker.WorldToMM(worldPoints: TPointArray): TPointArray; overload;
 begin
-  Result := Self.WorldToMM(Self.GetMyPos(), WorldPoints, Minimap.GetCompassAngle(False));
+  Result := Self.WorldToMM(Self.GetMyPos(), worldPoints, Minimap.GetCompassAngle(False));
 end;
 
-function TRSWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
+function TRSWalker.WorldToMM(playerPoint: TPoint; dotFilter: TRSDotFilter; roll: Double = $FFFF): TRSDotFilter; overload;
 var
-  P: TPoint;
+  p: TPoint;
 begin
-  if DotFilter.Circle <> [] then
+  if (roll = $FFFF) then
+    roll := Minimap.GetCompassAngle(False);
+
+  if dotFilter.Circle <> [] then
   begin
-    P := Self.WorldToMM(DotFilter.Circle.Mean());
-    Result.Circle := [P.X, P.Y, DotFilter.Circle.Radius];
+    P := Self.WorldToMM(dotFilter.Circle.mean());
+    Result.Circle := [P.X, P.Y, dotFilter.Circle.Radius];
   end;
 
-  Result.TPA      := Self.WorldToMM(DotFilter.TPA);
-  Result.Inside   := DotFilter.Inside;
-  Result.HasTimer := DotFilter.HasTimer;
-  Result.Timer    := DotFilter.Timer;
+  Result.TPA      := Self.WorldToMM(playerPoint, dotFilter.TPA, roll);
+  Result.Inside   := dotFilter.Inside;
+  Result.HasTimer := dotFilter.HasTimer;
+  Result.Timer    := dotFilter.Timer;
 end;
 
-function TRSWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
-var
-  DotFilter: TRSDotFilter;
+function TRSWalker.WorldToMM(dotFilter: TRSDotFilter; roll: Double = $FFFF): TRSDotFilter; overload;
 begin
-  for DotFilter in DotFilterArray do
-    Result += Self.WorldToMM(DotFilter);
+  Result := Self.WorldToMM(Self.GetMyPos(), dotFilter, roll);
+end;
+
+function TRSWalker.WorldToMM(playerPoint: TPoint; DotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
+var
+  dotFilter: TRSDotFilter;
+begin
+  if (roll = $FFFF) then
+    roll := Minimap.GetCompassAngle(False);
+
+  for dotFilter in dotFilterArray do
+    Result += Self.WorldToMM(playerPoint, dotFilter, roll);
+end;
+
+function TRSWalker.WorldToMM(dotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
+var
+  dotFilter: TRSDotFilter;
+begin
+  for dotFilter in dotFilterArray do
+    Result += Self.WorldToMM(Self.GetMyPos(), dotFilter, roll);
 end;
 
 
@@ -167,18 +426,18 @@ begin
 end;
 
 (*
-TRSWalker.GetPolygonMS
+TRSWalker.GetCuboidMS
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
-.. pascal:: function TRSWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
+.. pascal:: function TRSWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
+.. pascal:: function TRSWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
 
 This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
 
 To understand what this does, you should read about **TRSMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
-This calls **TRSMinimap.GetPolygonMS()** internally which in turn will use both methods above.
+This calls **TRSMinimap.GetCuboidMS()** internally which in turn will use both methods above.
 
-To put it simply, this will will first calculate a floor rectangle with **TileVector.Z**, or **height** if you prefer
-of 0 and then calculate the top rectangle of the **TileVector.Z** you specified.
+To put it simply, this will will first calculate a floor rectangle with **tile.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **tile.Z** you specified.
 
 After this 2 rectangles are calculated a polygon is then made out of the two, resulting in a ConvexHull which is returned.
 
@@ -188,55 +447,123 @@ The example below will show you how it could be used to retrieve an accurate pla
 
 Example
 -------
-  Debug(RSW.GetPolygonMS([100, 100], [1, 1, 4], Offset));     //This will draw a polygon around the coordinate [100, 100].
+  Debug(RSW.GetCuboidMS([100, 100], [1, 1, 4], Offset));     //This will draw a polygon around the coordinate [100, 100].
 *)
-function TRSWalker.GetPolygonMS(Me, Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly;
+function TRSWalker.GetCuboidMS(me, loc: TPoint; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]): TCuboid;
+var
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  loc   := Self.WorldToMM(me, loc, Angle);
+  if RSHeightMap.Enabled then
+    shape.Tile.Z -= Self.GetHeightDiff(me, loc);
+  Result := Minimap.GetCuboidMS(loc, shape, offset, angle);
+end;
+
+function TRSWalker.GetCuboidMS(loc: TPoint; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]): TCuboid; overload;
+begin
+  Result := Self.GetCuboidMS(Self.GetMyPos(), loc, shape, offset);
+end;
+
+function TRSWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]): TCuboid; overload;
 var
   Angle: Double;
 begin
   Angle := Minimap.GetCompassAngle(False);
-  Loc   := Self.WorldToMM(Me, Loc, Angle);
+  loc   := Self.WorldToMM(me, loc, Angle);
 
-  Result := Minimap.GetPolygonMS(Loc, TileVector, Offset, Angle);
+  Result := Minimap.GetCuboidMS(loc, tile, Offset, Angle);
 end;
 
-function TRSWalker.GetPolygonMS(Loc: TPoint; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPoly; overload;
+function TRSWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]): TCuboid; overload;
 begin
-  Result := Self.GetPolygonMS(Self.GetMyPos(), Loc, TileVector, Offset);
+  Result := Self.GetCuboidMS(Self.GetMyPos(), loc, tile, Offset);
 end;
 
 
 (*
 TRSWalker.GetTileArrayMS
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
-.. pascal:: function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+.. pascal:: function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TQuadArray;
+.. pascal:: function TRSWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TQuadArray; overload;
 
 This are wrapper functions to retrieve multiple tiles. Refer to SRL's TRSWalker.GetTileMSEx() and TRSWalker.GetTileMS() for more information.
 
 This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.GetTileArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
+function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; shapeArray: TRSMainScreenShapeArray; offset: Vector2 = [0, 0]): TQuadArray;
 var
-  Loc: TPoint;
+  angle, meHeight: Double;
+  i: Int32;
 begin
-  for Loc in LocArray.Sorted(Me) do
-    Result += Self.GetTileMSEx(Me, Loc, TileVector, Offset);
+  locArray := locArray.Sorted(me);
+  angle := Minimap.GetCompassAngle(False);
+  if RSHeightMap.Enabled then
+    meHeight := Self.GetHeight(me);
+
+  for i := 0 to High(locArray) do
+  begin
+    if RSHeightMap.Enabled then
+      shapeArray[i].Tile.Z -= Self.GetHeightDiff(locArray[i]);
+    locArray[i] := Self.WorldToMM(me, locArray[i], angle);
+
+    Result += Minimap.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle);
+  end;
 end;
 
-function TRSWalker.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]): TQuadArray; overload;
+var
+  angle, meHeight: Double;
+  i: Int32;
 begin
-  Result := Self.GetTileArrayMS(Self.GetMyPos(), LocArray, TileVector, Offset);
+  locArray := locArray.Sorted(me);
+  angle := Minimap.GetCompassAngle(False);
+  if RSHeightMap.Enabled then
+    meHeight := Self.GetHeight(me);
+
+  for i := 0 to High(locArray) do
+  begin
+    if RSHeightMap.Enabled then
+     shape.Tile.Z -= Self.GetHeightDiff(locArray[i]);
+    locArray[i] := Self.WorldToMM(me, locArray[i], angle);
+
+    Result += Minimap.GetTileMS(locArray[i], shape.Tile, offset, angle + shape.Angle);
+  end;
+end;
+
+function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3; offset: Vector2 = [0, 0]): TQuadArray; overload;
+var
+  angle, meHeight: Double;
+  i: Int32;
+begin
+  locArray := locArray.Sorted(me);
+  angle := Minimap.GetCompassAngle(False);
+  if RSHeightMap.Enabled then
+    meHeight := Self.GetHeight(me);
+
+  for i := 0 to High(locArray) do
+  begin
+    if RSHeightMap.Enabled then
+      tile.Z -= Self.GetHeightDiff(locArray[i]);
+    locArray[i] := Self.WorldToMM(me, locArray[i], angle);
+
+    Result += Minimap.GetTileMS(locArray[i], tile, offset, angle);
+  end;
+end;
+
+function TRSWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; offset: Vector2 = [0, 0]): TQuadArray; overload;
+begin
+  Result := Self.GetTileArrayMS(Self.GetMyPos(), locArray, tile, offset);
 end;
 
 
 (*
-TRSWalker.GetPolygonArrayMS
+TRSWalker.GetCuboidArrayMS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetPolygonArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
-.. pascal:: function TRSWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+.. pascal:: function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+.. pascal:: function TRSWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
 
-Gives you an array of mainscreen polygons. Read **Minimap.GetPolygonMS** for more information.
+Gives you an array of mainscreen polygons. Read **Minimap.GetCuboidMS** for more information.
 
 This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
 
@@ -244,33 +571,73 @@ Example
 -------
 
   TPA := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
-  Debug(Minimap.GetPolygonArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
+  Debug(Minimap.GetCuboidArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
 *)
-function TRSWalker.GetPolygonArrayMS(Me: TPoint; LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray;
+function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shapeArray: TRSMainScreenShapeArray; Offset: Vector2 = [0, 0]): TCuboidArray;
 var
-  Angle: Double;
+  angle, meHeight: Double;
   i: Int32;
   tmpArray: TPointArray;
 begin
-  Angle := Minimap.GetCompassAngle(False);
-  tmpArray := Copy(LocArray);
+  angle := Minimap.GetCompassAngle(False);
+  tmpArray := Copy(locArray);
+
+  if RSHeightMap.Enabled then
+    meHeight := Self.GetHeight(me);
 
   for i := 0 to High(tmpArray) do
-    tmpArray[i] := Self.WorldToMM(Me, LocArray[i], Angle);
+  begin
+    if RSHeightMap.Enabled then
+      shapeArray[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+    tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
+  end;
 
-  Result := Minimap.GetPolygonArrayMS(tmpArray, TileVector, Offset, Angle);
+  Result := Minimap.GetCuboidArrayMS(tmpArray, shapeArray, Offset, angle);
 end;
 
-function TRSWalker.GetPolygonArrayMS(LocArray: TPointArray; TileVector: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPolyArray; overload;
+(* TODO: FIXXXXX *)
+function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; Offset: Vector2 = [0, 0]): TCuboidArray; overload;
+var
+  angle, meHeight: Double;
+  i: Int32;
+  tmpArray: TPointArray;
+  shapeArray: TRSMainScreenShapeArray;
 begin
-  Result := Self.GetPolygonArrayMS(Self.GetMyPos(), LocArray, TileVector, Offset);
+  angle := Minimap.GetCompassAngle(False);
+  tmpArray := Copy(locArray);
+
+  if RSHeightMap.Enabled then
+    meHeight := Self.GetHeight(me);
+
+  for i := 0 to High(tmpArray) do
+  begin
+    shapeArray += shape;
+    if RSHeightMap.Enabled then
+      shapeArray[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+    tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
+  end;
+
+  Result := Minimap.GetCuboidArrayMS(tmpArray, shape, Offset, angle);
+end;
+
+function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TCuboidArray; overload;
+var
+  shape: TRSMainScreenShape;
+begin
+  shape := [tile, 0];
+  Result := Self.GetCuboidArrayMS(me, locArray, shape, offset);
+end;
+
+function TRSWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TCuboidArray; overload;
+begin
+  Result := Self.GetCuboidArrayMS(Self.GetMyPos(), locArray, tile, Offset);
 end;
 
 
 (*
 TRSWalker.GetMMPoly
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetMMPoly(LocArray: TPointArray): TPointArray;
+.. pascal:: function TRSWalker.GetMMPoly(locArray: TPointArray): TPointArray;
 
 This function converts a list of points to their respective points in the minimap.
 This is extremely useful if you want to be sure you are within an area.
@@ -282,94 +649,265 @@ Example
 -------
   Debug(RSW.GetMMPoly(TPA).Connect());    //This will draw your TPA on the minimap.
 *)
-function TRSWalker.GetMMPoly(LocArray: TPointArray): TPointArray;
+function TRSWalker.GetMMPoly(locArray: TPointArray): TPointArray;
 begin
-  Result := Self.WorldToMM(LocArray);
+  Result := Self.WorldToMM(locArray);
 end;
 
 (*
 TRSWalker.InPoly
 ~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.InPoly(LocArray: TPointArray): Boolean;
+.. pascal:: function TRSWalker.InPoly(locArray: TPointArray): Boolean;
 
 Checks if you are inside a polygon. If you need to debug the polygon check the example in TRSWalker.GetMMPoly.
 
 This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
 
 *)
-function TRSWalker.InPoly(LocArray: TPointArray): Boolean;
+function TRSWalker.InPoly(locArray: TPointArray): Boolean;
 begin
-  Result := SRL.PointInPoly(Self.GetMyPos(), LocArray);
+  Result := SRL.PointInPoly(Self.GetMyPos(), locArray);
 end;
 
-(* TODO.....
+
+
+//This walker overloads are a bit messy... I need to find a cleaner way to do this later on but basically makes sure we stop trying to walk when we already
+//red clicked the waspobject.
+function TRSWalker.Click(MinimapPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean; Randomness: Int32): Boolean; overload;
+var
+  P: TPoint;
+  L: TPointArray;
+  i, j: Int32;
+  HoveringObject: Boolean;
 begin
-  TRSMap.Setup(ZEAH_MAP, [0, 0, 3661, 3612]);
-  TRSMap.Setup(MAINLAND_MAP, [3661, 33960, 10560, 5534]);
+  Result := True;
 
-  TRSMap.Setup(SLAYER_TOWER_BASEMENT_AND_UPPERLEVEL_MAP, [4702, 0, 902+4702, 357]);
-  TRSMap.Setup(SLAYER_TOWER_GROUNDFLOOR_MAP, [8931, 2044, 8931+354, 2044+358]);
-  TRSMap.Setup(CHASM_OF_FIRE_MAP, [0, 0, 397, 906]);
-  TRSMap.Setup(CATACOMBS_OF_KOUREND_MAP, [0, 2721, 966, 688+2721]);
-  TRSMap.Setup(KARUULM_SLAYER_DUNGEON_MAP, [313, 0, 1119+313, 814]);
-  TRSMap.Setup(FREMMENNIK_SLAYER_CAVE_MAP, [2348, 2903, 2348+654, 2903+530]);
+  if Self.ScreenWalk then
+  begin
+    repeat
+      i += 1;
+      P := MinimapPoint.Random(-Randomness, Randomness);
+      if i >= 15 then
+      begin
+        WriteLn 'Stuck in TRSWalker.Click infinite loop';
+        L := TPAFromLine(P, Minimap.Center);
+        for j := 0 to High(L) do
+          if Minimap.PointInZoomRectangle(L[j]) then
+          begin
+            P := L[j];
+            Break;
+          end;
+      end;
+    until Minimap.PointInZoomRectangle(P);
 
-  TRSMap.Setup(LUNAR_ISLAND_MAP, [4127, 1027, 4127+620, 1027+622]);
-  TRSMap.Setup(ASGARNIA_ICE_DUNGEON_MAP, [5374, 1144, 6000, 1600]);
-  TRSMap.Setup(SMOKE_DUNGEON_MAP, [212, 3352, 1100, 4600]);
-  TRSMap.Setup(IORWERTH_DUNGEON_MAP, [3002, 2756, 3610, 2756+664]);
-  TRSMap.Setup(MOURNER_TUNNELS_MAP, [7090, 5135, 7500, 5550]);
+    Mouse.Move(Minimap.PointToMsRect(P).Mean());
 
-  TRSMap.Setup(CORSAIR_COVE_DUNGEON_MAP, [8923, 5104, 9500, 5550]);
-  TRSMap.Setup(MOSLE_HARMLESS_CAVE_MAP, [0, 3332, 652, 648+3332]);
-  TRSMap.Setup(GIANTS_DEN_MAP, [2560, 3229, 2560+388, 3229+394]);
-  TRSMap.Setup(STRONGHOLD_SLAYER_DUNGEON_MAP, [3066, 5085, 3700, 5650]);
-  TRSMap.Setup(KALPHITE_CAVE_MAP, [573, 3356, 1044, 3800]);
-  TRSMap.Setup(KALPHITE_LAIR_MAP, [996, 3340, 996+385, 3340+351]);
-  TRSMap.Setup(KRAKEN_COVE_MAP, [10147, 1006, 10560, 1414]);
-  TRSMap.Setup(GRAND_EXCHANGE_MAP, [7789, 2306, 7789+557, 2306+605]);
-  TRSMap.Setup(WEST_VARROCK_MAP, [7789, 2306, 7789+557, 2306+605]);
-  TRSMap.Setup(WINTERTODT_MAP, [1750, 270, 2080, 830]);
+    HoveringObject := MainScreen.IsUpText(UpText);
 
-  TRSMap.Setup(LUMBRIDGE_MAP, [7850, 2950, 8700, 4000]);
-  TRSMap.Setup(BARBARIAN_VILLAGE_MAP, [7580, 2516, 8100, 3050]);
-  TRSMap.Setup(OTTOS_GROTTO_MAP, [5201, 2030, 5810, 2700]);
-  TRSMap.Setup(ZULANDRA_MAP, [3960, 4030, 4500, 4400]);
-  TRSMap.Setup(PISCARILIUS_MAP, [2444, 1122, 2950, 1500]);
-  TRSMap.Setup(SMOKE_DEVIL_DUNGEON_MAP, [5346, 5184, 5800, 5510]);
-  TRSMap.Setup(WC_GUILD_MAP, [1564, 2293, 1564+541, 2293+349]);
+    if not HoveringObject and not MainScreen.IsUpText('Walk here') then
+      Exit(ChooseOption.Select('Walk here'));
+  end else
+  begin
+    repeat
+      P := MinimapPoint.Random(-Randomness, Randomness);
+    until Minimap.IsPointOn(P);
 
-  TRSMap.Setup(BRIMHAVEN_DUNGEON_MAP, [1272, 4048, 1930, 4960]);
-  TRSMap.Setup(VARROCK_MAP, [7536, 2363, 8702, 3166]);
-  TRSMap.Setup(ABYSS_MAP, [9670, 4424, 9670+889, 4424+914]);
-  TRSMap.Setup(FALADOR_MAP, [7051, 2796, 7051+661, 2796+445]);
-  TRSMap.Setup(CRAFTING_GUILD_MAP, [6990, 3206, 7261, 3465]);
-  TRSMap.Setup(CRAFTING_GUILD_UPSTAIRS_MAP, [10298, 5441, 10484, 5631]);
+    Mouse.Move(P);
+  end;
 
-  TRSMap.Setup(GUARDIANS_OF_THE_RIFT_MAP, [7484, 5232, 7878, 5640]);
-  TRSMap.Setup(ALTARS_MAP, [6937, 0, 10559, 376]);
-  TRSMap.Setup(MOTHERLOAD_MAP, [7423, 4735, 7827, 5133]);
-  TRSMap.Setup(KOUREND_RUNECRAFTING_MAP, [1860, 737, 2818, 1259]);
-  TRSMap.Setup(ARDOUGNE_MAP, [5608, 3032, 6184, 3476]);
-  TRSMap.Setup(PRIFDDINAS_MAP, [3590, 1897, 4238, 2546]);
-  TRSMap.Setup(EDGEVILLE_AND_BARBARIAN_VILLAGE_MAP, [7500, 2263, 8058, 2960]);
-  TRSMap.Setup(EAST_VARROCK_MAP, [8235, 2362, 8723, 3119]);
-  TRSMap.Setup(GIANTS_FOUNDRY_MAP, [4231, 3009, 4473, 3262]);
-  TRSMap.Setup(HOSIDIUS_FRUIT_STALL_HOUSE_MAP, [2467, 1907, 2713, 2143]);
-  TRSMap.Setup(HOSIDIUS_KITCHEN_MAP, [1988, 1873, 2251, 2118]);
-  TRSMap.Setup(ROGUES_DEN_MAP, [10262, 799, 10557, 1079]);
-  TRSMap.Setup(BLAST_FURNACE_MAP, [10296, 1404, 10560, 1648]);
-  TRSMap.Setup(CASTLE_WARS_MAP, [4676, 3838, 5312, 4342]);
-  TRSMap.Setup(AL_KHARID_MAP, [8356, 3096, 9171, 4090]);
-  TRSMap.Setup(HESPORI_MAP, [412, 3702, 657, 3946]);
-  TRSMap.Setup(CATHERBY_MAP, [6495, 2463, 6910, 2846]);
-  TRSMap.Setup(SEERS_VILLAGE_MAP, [6050, 2360, 6536, 2754]);
-  TRSMap.Setup(DRAYNOR_VILLAGE_MAP, [7596, 3267, 7976, 3654]);
-  TRSMap.Setup(MINING_GUILD_MAP, [6243, 384, 6699, 792]);
-  TRSMap.Setup(RIMMINGTON_MAP, [6988, 3362, 7386, 3705]);
-  TRSMap.Setup(TZHAAR_MAP, [4349, 332, 5201, 980]);
-  TRSMap.Setup(KBD_AND_NMZ_MAP, [5270, 264, 5623, 599]);
-  TRSMap.Setup(YANILLE_MAP, [5509, 3879, 5955, 4193]);
-  TRSMap.Setup(WOODCUTTING_GUILD_MAP, [1588, 2321, 2093, 2617]);
+  Mouse.Click(MOUSE_LEFT);
+
+  // 15% chance of spam clicking
+  if (Randomness > 0) and (Random < Antiban.GetUniqueNumber(0.15, 0.1, 0.2)) then
+    for 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
+    begin
+      Mouse.Click(Mouse.Position, MOUSE_LEFT);
+
+      Wait(20, 150, wdLeft);
+    end;
+
+  RedClicked := Self.ScreenWalk and HoveringObject and MainScreen.DidRedClick;
 end;
-*)
+
+function TRSWalker.WalkFinalStep(PlayerPoint, WorldPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32): Boolean; overload;
+var
+  MinimapPoint: TPoint;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, UpText, RedClicked, 0);
+  if Result then
+    Self.WaitMoving(WorldPoint, WaitUntilDistance);
+end;
+
+function TRSWalker.WalkStep(PlayerPoint, WorldPoint: TPoint; UpText: TStringArray; out RedClicked: Boolean): Boolean; overload;
+var
+  MinimapPoint: TPoint;
+  WaitUntilDistance: Int32;
+begin
+  if (@Self.OnWalkEvent <> nil) then
+    Self.OnWalkEvent(@Self, PlayerPoint, WorldPoint);
+  if (@Self.OnWalkEventEx <> nil) then
+    Self.OnWalkEventEx(@Self, PlayerPoint, WorldPoint);
+
+  if not Self.Enabled then
+    Exit(True);
+
+  MinimapPoint := Self.WorldToMM(PlayerPoint, WorldPoint, Minimap.GetCompassAngle(False));
+  if (not Minimap.IsPointOn(MinimapPoint)) then
+    Exit(False);
+  if (Minimap.Center.DistanceTo(MinimapPoint) < 5) then
+    Exit(True);
+
+  Result := Self.Click(MinimapPoint, UpText, RedClicked, Self.ClickRandomness);
+
+  if Result then
+  begin
+    if (Random() < 0.15) then // 15% chance of randomness else mean
+      WaitUntilDistance := Random(Distance(Minimap.Center, MinimapPoint))
+    else
+      WaitUntilDistance := SRL.NormalRange(0, Distance(Minimap.Center, MinimapPoint) + 10);
+
+    Self.WaitMoving(WorldPoint, WaitUntilDistance);
+  end
+end;
+
+function TRSWalker.WalkPath(Path: TPointArray; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32 = 0): Boolean; overload;
+
+  function BuildPath(TPA: TPointArray): TPointArray;
+  var
+    I, J: Int32;
+    Line: TPointArray;
+  begin
+    for I := 1 to High(TPA) do
+    begin
+      Line := TPAFromLine(TPA[I-1], TPA[I]);
+
+      J := 0;
+      while J < High(Line) do
+      begin
+        Result += Line[J];
+
+        // keep the steps low, as mainscreen walking might just have a few tiles visible when NearZoomMode is set True
+        if (Self.NearZoomMode) and ((Self.ScreenWalk) or (Self.AdaptiveWalk)) then
+          Inc(J, Random(1, 4))
+        else
+          Inc(J, Random(3, 12));
+      end;
+    end;
+
+    Result += TPA[High(TPA)];
+  end;
+
+  function AdvancePath(var Index: Int32; PlayerPoint: TPoint): Boolean;
+  var
+    Angle: Double := Minimap.GetCompassAngle(False);
+    Previous: Int32 := Index;
+    Nearest, Furthest: Int32;
+  begin
+    Nearest := Self.Path.IndexOf(Self.Path.Sorted(PlayerPoint)[0]);
+    Self.PathIndex := Nearest;
+
+    while (Nearest < High(Self.Path)) and (not Self.IsWalkable(Self.Path[Nearest+1], PlayerPoint, Angle)) do
+      Inc(Nearest);
+
+    Furthest := Nearest;
+    while (Furthest < High(Self.Path)) and Self.IsWalkable(Self.Path[Furthest+1], PlayerPoint, Angle) do
+      Inc(Furthest);
+
+    Index := Furthest;
+
+    // do the result check before randomness to avoid false error
+    Result := (Index > Previous);
+
+    // 15% chance of randomness else furthest
+    if Random() < 0.15 then
+      Index := Random(Nearest, Furthest);
+  end;
+
+var
+  PlayerPoint: TPoint;
+  Index, Fails: Int32;
+begin
+  Self.Enabled := True;
+  PlayerPoint := Self.GetMyPos();
+  Self.Path := BuildPath([PlayerPoint] + Path);
+
+  if Self.AdaptiveWalk then
+  begin
+    Self.AdaptiveToggleDistances.X := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.X + Random(-6,6);
+    Self.AdaptiveToggleDistances.Y := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.Y + Random(-16,16);
+    Self.AdaptiveWalkCheck(PlayerPoint);
+  end;
+
+  while Self.Enabled and (Fails < 10) do
+  begin
+    PlayerPoint := Self.GetMyPos();
+
+    if AdvancePath(Index, PlayerPoint) then
+      Fails := 0
+    else
+    begin
+      Inc(Fails);
+
+      // Likely haven't moved far enough to advance to next point
+      if (Fails < 5) then begin
+        Wait(300);
+        Continue;
+      end else begin
+        // screen walking struggles, so disable it
+        if Self.AdaptiveWalk then
+          Self.ScreenWalk := False
+        else if (Fails = 5) then
+          case SRL.Dice(50) of
+            True:  Minimap.SetCompassAngle(Minimap.GetCompassAngle() - SRL.TruncatedGauss(30, 360, 3));
+            False: Minimap.SetCompassAngle(Minimap.GetCompassAngle() + SRL.TruncatedGauss(30, 360, 3));
+          end;
+      end;
+
+      if (Fails mod 2 = 0) then
+        Minimap.WaitFlag();
+    end;
+
+    if Index = High(Self.Path) then
+    begin
+      if Self.WalkFinalStep(PlayerPoint, Self.Path[Index], UpText, RedClicked, WaitUntilDistance) then
+        Exit(True);
+    end else
+      Self.WalkStep(PlayerPoint, Self.Path[Index], UpText, RedClicked);
+
+    if RedClicked then
+      Exit(True);
+  end;
+
+  if Fails = 10 then
+    Self.DebugLn('Failed to advance path');
+end;
+
+function TRSWalker.WebWalk(Destination: TPoint; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+var
+  Path: TPointArray;
+begin
+  if not InRange(PathRandomness, 0, 1) then
+    Self.Fatal('TRSWalker.WebWalk `PathRandomness` must be within 0..1');
+
+  Path   := Self.WebGraph.PathBetween(Self.GetMyPos, Destination, PathRandomness);
+  Result := Self.WalkPath(Path, UpText, RedClicked, WaitUntilDistance);
+end;
+
+function TRSWalker.WebWalk(Destination: TPointArray; UpText: TStringArray; out RedClicked: Boolean; WaitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+begin
+  Result := Self.WebWalk(Self.GetClosestPoint(Destination), UpText, RedClicked, WaitUntilDistance, PathRandomness);
+end;

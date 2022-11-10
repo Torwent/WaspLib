@@ -157,11 +157,11 @@ begin
   ElapsedTime := Self.TimeRunning.ElapsedTime();
 
   ProgressTitle := Self.Name;
-  PadLength := ProgressTitle.Len() + 6;
+  PadLength := ProgressTitle.Length() + 6;
   ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
   ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
 
-  PadLength := ProgressTitle.Len();
+  PadLength := ProgressTitle.Length();
 
   Result += ProgressTitle;
 
@@ -261,13 +261,13 @@ Example
   end;
 *)
 procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
-var
-  ScriptStr: String;
 begin
-  AddOnTerminate(@SaveScreenshot);
+  Self.Name := ScriptName.Before('.simba').Replace('_', ' ').Capitalize();
+
+  AddOnTerminate(@ForceSaveScreenshot);
 
   if Login.Players = [] then
-    Login.AddPlayer(ToStr(Random()),'');
+    Login.AddPlayer(ToStr(Random()),''); //make a random username for a random biohash if no users were added.
 
   TotalConsumableCost := 0;
   Self.DisableDebugging := True;
@@ -275,12 +275,9 @@ begin
   Self.Revision := {$macro SCRIPT_REVISION};
 
   GenerateLog(Self.Name);
-  ScriptStr := ToStr(Self);
-  ScriptStr := ScriptStr.Replace('{', '').Replace(', ', ',' + LineEnding).Replace('}', '');
-  ScriptStr += LineEnding + LineEnding;
-  WriteFileContents(WL.LogFile, ScriptStr, True);
+  AppendFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding);
 
-  Self.Welcome := WELCOME_SENTENCES.Random;
+  Self.Welcome := WELCOME_SENTENCES.RandomValue();
 
   Self.ActionLimit := -1;
   if MaxActions > -1 then
@@ -294,22 +291,23 @@ begin
   else
     Self.TimeLimit := -1;
 
-
   WL.Activity.Init(260000);
 
   if Self.IsSetup then
     Exit;
 
   Self.IsSetup := True;
-
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if WLSettings.RemoteInput.Enabled then
   begin
-    RSClient.RemoteInput.Setup;
+    RSClient.RemoteInput.Setup();
     if WLSettings.RemoteInput.HUDReport then
-      ProgressReport.Setup;
+      ProgressReport.Setup();
   end;
   {$ENDIF}
+
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
 
   Antiban.Setup();
   //override me to add more stuff.
@@ -425,9 +423,6 @@ The extra variables that are part of **TBaseBankScript** are:
 *)
 type
   TBaseBankScript = record(TBaseWalkerScript)
-    ScriptBank:   TRSObject;
-    ScriptBanker: TRSNPC;
-
     BankTab: Int32;
 
     ItemLeftAmount: Int32;
@@ -455,139 +450,6 @@ begin
   Self.CollectTimer.Init(600000);
 
   //override me to add more stuff.
-end;
-
-(*
-BaseBankScript.SetupWLBanks
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TBaseBankScript.SetupWLBanks();
-
-Method used to setup the **CurrentBank** of TBaseBankScript.
-**WLSettings.BankLocation** has to be set beforehand by default it uses the grand exchange.
-
-Example
--------
-
-  WLSettings.BankLocation := EWLBankLocation.ARDOUGNE_SOUTH;
-  Script.SetupWLBanks();
-*)
-procedure TBaseBankScript.SetupWLBanks();
-begin
-  case WLSettings.BankLocation of
-    EWLBankLocation.AL_KHARID_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.AL_KHARID_MAP);
-		    Self.ScriptBank := RSObjects.AlKharidBank;
-      end;
-
-    EWLBankLocation.ARDOUGNE_NORTH_BANK:
-      begin
-		    Self.RSW.Setup(ARDOUGNE_MAP);
-		    Self.ScriptBank := RSObjects.ArdougneNorthBank;
-      end;
-
-    EWLBankLocation.ARDOUGNE_SOUTH_BANK:
-      begin
-		    Self.RSW.Setup(ARDOUGNE_MAP);
-		    Self.ScriptBank := RSObjects.ArdougneSouthBank;
-      end;
-
-    EWLBankLocation.CASTLE_WARS_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.CASTLE_WARS_MAP);
-		    Self.ScriptBank := RSObjects.CastleWarsBank;
-      end;
-
-    EWLBankLocation.CATHERBY_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.CATHERBY_MAP);
-		    Self.ScriptBank := RSObjects.CatherbyBank;
-      end;
-
-    EWLBankLocation.CRAFT_GUILD_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.CRAFTING_GUILD_MAP);
-		    Self.ScriptBank := RSObjects.CraftGuildBank;
-      end;
-
-    EWLBankLocation.DRAYNOR_BANK:
-      begin
-		    Self.RSW.Setup(DRAYNOR_VILLAGE_MAP);
-		    Self.ScriptBank := RSObjects.DraynorBank;
-      end;
-
-    EWLBankLocation.EDGEVILLE_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.EDGEVILLE_AND_BARBARIAN_VILLAGE_MAP);
-		    Self.ScriptBank := RSObjects.EdgevilleBank;
-      end;
-
-    EWLBankLocation.FALADOR_EAST_BANK:
-      begin
-		    Self.RSW.Setup(FALADOR_MAP);
-		    Self.ScriptBank := RSObjects.FaladorEastBank;
-      end;
-
-    EWLBankLocation.FALADOR_WEST_BANK:
-      begin
-		    Self.RSW.Setup(FALADOR_MAP);
-		    Self.ScriptBank := RSObjects.FaladorWestBank;
-      end;
-
-    EWLBankLocation.GRAND_EXCHANGE_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.GRAND_EXCHANGE_MAP);
-		    Self.ScriptBank := RSObjects.GEBank;
-      end;
-
-    EWLBankLocation.LUNAR_ISLAND_BANK:
-      begin
-		    Self.RSW.Setup(ERSMap.LUNAR_ISLAND_MAP);
-		    Self.ScriptBank := RSObjects.LunarBank;
-      end;
-
-    EWLBankLocation.MINING_GUILD_BANK:
-      begin
-		    Self.RSW.Setup(MINING_GUILD_MAP);
-		    Self.ScriptBank := RSObjects.MiningGuildBank;
-      end;
-
-    EWLBankLocation.PRIFDDINNAS_BANK:
-      begin
-		    Self.RSW.Setup(PRIFDDINAS_MAP);
-		    Self.ScriptBank := RSObjects.PrifddinasBank;
-      end;
-
-    EWLBankLocation.SEERS_BANK:
-      begin
-		    Self.RSW.Setup(SEERS_VILLAGE_MAP);
-		    Self.ScriptBank := RSObjects.SeersBank;
-      end;
-
-    EWLBankLocation.TZHAAR_BANK:
-      begin
-		    Self.RSW.Setup(TZHAAR_MAP);
-		    Self.ScriptBank := RSObjects.TzhaarBank;
-      end;
-
-    EWLBankLocation.VARROCK_EAST_BANK:
-      begin
-		    Self.RSW.Setup(EAST_VARROCK_MAP);
-		    Self.ScriptBank := RSObjects.VarrockEastBank;
-      end;
-
-    EWLBankLocation.VARROCK_WEST_BANK:
-      begin
-		    Self.RSW.Setup(WEST_VARROCK_MAP);
-		    Self.ScriptBank := RSObjects.VarrockWestBank;
-      end;
-
-    EWLBankLocation.WINTERTODT_BANK:
-      begin
-		    Self.RSW.Setup(WINTERTODT_MAP);
-		    Self.ScriptBank := RSObjects.WintertodtBank;
-      end;
-  end;
 end;
 
 (*
@@ -628,7 +490,7 @@ begin
       else MainScreen.CloseInterface;
     end;
 
-    if Result := Bank.WalkOpen(Self.ScriptBank) then
+    if Result := Bank.WalkOpen() then
       Break;
   end;
   //override me to add more stuff.
@@ -691,15 +553,15 @@ Example
 *)
 function TBaseBankScript.Hover(): Boolean;
 begin
-  Result := Self.HoveringBank := Bank.Hover(Self.ScriptBank);
+  Result := Self.HoveringBank := Bank.Hover();
 end;
 
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
 begin
-  MM2MS.SetupZoom;
+  MM2MS.SetupZoom();
   if (Bitmap = RSClient.Image) then
-    Bitmap.Clear;
+    Bitmap.Clear();
 
   inherited(Bitmap);
 end;

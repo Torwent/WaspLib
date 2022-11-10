@@ -185,14 +185,14 @@ begin
 end;
 
 
-function TRSInventory.FindItems(Items: TRSItemArray): TIntegerArray; override;
+function TRSInventory.FindItems(items: TRSItemArray): TIntegerArray; override;
 var
   item, singleItem: TRSItem;
 begin
   if not Self.Open() then
     Exit;
 
-  for item in Items do
+  for item in items do
     for singleItem in item.GetArray() do
       Result += Self.ItemFinder.IndicesOf([singleItem]);
 
@@ -211,6 +211,49 @@ begin
       Exit;
   end;
 end;
+
+
+function TRSInventory.ContainsItem(item: TRSItem): Boolean; override;
+begin
+  Result := Self.ItemFinder.ContainsAny(item.GetArray());
+end;
+
+function TRSInventory.ContainsAnyItem(items: TRSItemArray): Boolean; override;
+var
+  item: TRSItem;
+  itemArray: TRSItemArray;
+begin
+  for item in Items do
+    itemArray += item.GetArray();
+
+  Result := inherited(itemArray);
+end;
+
+function TRSInventory.ContainsAllItems(items: TRSItemArray): Boolean; override;
+var
+  item: TRSItem;
+  itemArray: TRSItemArray;
+begin
+  for item in Items do
+    itemArray += item.GetArray();
+
+  Result := inherited(itemArray);
+end;
+
+
+function TRSInventory.FindItem(item: TRSItem): Integer; override;
+var
+  tempItem: TRSItem;
+begin
+  for tempItem in item.GetArray() do
+  begin
+    Result := inherited(tempItem);
+
+    if Result > -1 then
+      Exit;
+  end;
+end;
+
 
 
 function TRSInventory.ItemIsStackable(Item: TRSItem): Boolean;
@@ -293,7 +336,7 @@ end;
 
 function TRSInventory.ClickItem(item: TRSItem): Boolean; override;
 begin
-  if Result := Self.ClickItem(item) then
+  if Result := inherited then
   begin
     if (Random < Antiban.GetUniqueNumber(0.07, 0.05, 0.1)) then
       for 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
@@ -313,7 +356,13 @@ begin
       Result += i;
 end;
 
-function TRSInventory.HasSpace(needed: Integer): Boolean;
+
+function TRSInventory.CountEmptySlots(): Int32;
 begin
-  Result := (Self.Count() + needed) <= 28;
+  Result := 28 - Self.Count();
+end;
+
+function TRSInventory.HasEmptySpace(spaces: Int32): Boolean;
+begin
+  Result := Self.CountEmptySlots() <= spaces;
 end;

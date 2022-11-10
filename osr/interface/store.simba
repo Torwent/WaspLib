@@ -1,125 +1,88 @@
+(*
+Store
+====
+Methods to interact with the Store.
+*)
+
 {$DEFINE WL_STORE_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
 type
-  TRSStore = type TRSTitledInteface;
-
-procedure TRSStore.Setup; override;
-begin
-  inherited;
-
-  Self.Name := 'Store';
-end;
-
-procedure TRSStore.SetupAlignment(Mode: ERSClientMode); override;
-begin
-  inherited;
-
-  case Self.Mode of
-    ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 487;
-        Self.Alignment.Center.MaxHeight := 300;
-      end;
-
-    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 487;
-        Self.Alignment.Center.MaxHeight := 300;
-      end;
+  TRSStore = record(TRSInterface)
+  class const
+    ELEMENT_ITEM_AREA: TRSInterfaceElement = [67, 53, 364, 211];
   end;
-end;
 
-function TRSStore.GetItemBoxes: TBoxArray;
+function TRSStore.FindItem(item: TRSItem; out box: TBox): Boolean;
 begin
-  Result := Grid(8, 5, 35, 32, [12, 16], [Self.X1 + 61, Self.Y1 + 40])
+  Result := Self.ItemFinder.Find([item], box);
 end;
 
-function TRSStore.IsOpen: Boolean; overload;
-var
-  B: TBox;
-  Txt: String;
+function TRSStore.MouseItem(item: TRSItem): Boolean;
 begin
-  B := Self.Bounds();
-  B.X1 += 50;
-  B.Y1 := B.Y2 - 26;
-  B.X2 -= 50;
-  B.Y2 -= 9;
-  B.LimitTo(Self.Bounds);
-
-  Txt := OCR.Recognize(B, TOCRThresholdRule.Create(15), RS_FONT_PLAIN_12);
-  Result := 'shop' in Txt;
+  Result := Self.ItemFinder.Mouse(item);
 end;
 
-function TRSStore.IsOpen(WaitTime: Int32): Boolean; overload;
+function TRSStore.ClickItem(item: TRSItem): Boolean;
 begin
-  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), WaitTime);
+  Result := Self.ItemFinder.Click(item);
 end;
 
-function TRSStore.Close(PressEscape: Boolean = False): Boolean;
+function TRSStore.InteractItem(item: TRSItem; option: String): Boolean;
+begin
+  Result := Self.ItemFinder.Interact(item, option);
+end;
+
+
+
+(*
+Store.IsOpen
+~~~~~~~~~~~
+.. pascal:: function TRSStore.IsOpen: Boolean;
+
+Returns true if the Store screen is open.
+*)
+function TRSStore.IsOpen(): Boolean; overload;
+begin
+  Result := Self.IsTitle('would like to') or Self.IsTitle('make?');
+end;
+
+function TRSStore.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen(), interval, waitTime);
+end;
+
+(*
+Store.Close
+~~~~~~~~~~
+.. pascal:: function TRSStore.Close(PressEscape: Boolean = False): Boolean;
+
+Closes the Store, Depending on `PressEscape` the function will either click the button
+or press escape.
+
+Example
+-------
+
+ WriteLn Store.Close();
+*)
+function TRSStore.Close(pressEscape: Boolean): Boolean;
 begin
   if not Self.IsOpen() then
     Exit(True);
 
-  Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
 end;
 
-function TRSStore.FindItem(Item: TRSItem; out Box: TBox): Boolean; overload;
-var
-  Boxes: TBoxArray;
-  Indices: TIntegerArray;
+function TRSStore.Close(Chance: Double = -1): Boolean; overload;
 begin
-  if not Self.IsOpen() then Exit;
-  Boxes := Self.GetItemBoxes();
-
-  Indices := ItemFinder.Find(Item, Boxes, 1);
-  if Indices.Length < 1 then Exit;
-
-  Result := True;
-  Box := Boxes[Indices[0]];
+  Result := MainScreen.CloseInterface(Chance);
 end;
 
-function TRSStore.CountItemStack(Item: TRSItem): Int32;
-var
-  Box: TBox;
-begin
-  if Self.FindItem(Item, Box) then
-    Result := SRL.GetItemAmount(Box);
-end;
-
-function TRSStore.HoverItem(Item: TRSItem): Boolean;
-var
-  Box: TBox;
-begin
-  Result := Self.FindItem(Item, Box);
-  if Result then
-    Mouse.Move(Box);
-end;
-
-function TRSStore.ClickItem(Item: TRSItem; Option: String = ''): Boolean;
-begin
-  if Self.HoverItem(Item) then
-  begin
-    if (Option <> '') then
-      Result := ChooseOption.Select(Option)
-    else
-    begin
-      Mouse.Click(MOUSE_LEFT);
-
-      Result := True;
-    end;
-  end;
-end;
 
 procedure TRSStore.Draw(Bitmap: TMufasaBitmap); override;
 begin
@@ -127,30 +90,95 @@ begin
     Exit;
 
   inherited;
-
-  Bitmap.DrawBoxes(Self.GetItemBoxes(), $00FFFF);
 end;
 
+
+(*
+Store.FindItemBoundaries
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSStore.FindItemBoundaries: TBoxArray;
+
+Finds item boundaries. This is an internal function used to retrieve the boxes we
+search for items in.
+
+Example
+-------
+
+  Boxes := Self.FindItemBoundaries();
+  WriteLn ItemFinder.Find(Item, Boxes);
+*)
+function TRSStore.FindItemBoundaries(): TBoxArray;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  area, b: TBox;
+begin
+  area := Self.ElementFinder.Bounds(Self.ELEMENT_ITEM_AREA)
+
+  if SRL.FindColors(tpa, RS_ITEM_BORDER, area) > 0 then
+  begin
+    atpa := tpa.Cluster(50, 3);
+
+    for b in atpa.ToTBA() do
+    begin
+      if b.Height() <= 5 then
+        Continue;
+
+      Result += TBoxArray.Create([area.X1, b.Y1 - 1], 8, 1, 32, 32, [16]);
+    end;
+  end;
+end;
+
+procedure TRSStore.Setup(Name: String); override;
+begin
+  inherited;
+
+  Self.ItemFinder.Name := Name + '.ItemFinder';
+  Self.ItemFinder.GetSearchBoxesFunction := @Self.FindItemBoundaries;
+
+  with Self.BoundsFinder.Alignments[ERSClientMode.FIXED] do
+  begin
+    Left   := [@InterfaceArea.X1];
+    Right  := [@InterfaceArea.X2];
+    Top    := [@InterfaceArea.Y1, 2];
+    Bottom := [@InterfaceArea.Y2, -1];
+
+    Center.MaxWidth := 500;
+    Center.MaxHeight := 320;
+  end;
+
+  with Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_CLASSIC] do
+  begin
+    Left   := [@InterfaceArea.X1];
+    Right  := [@InterfaceArea.X2];
+    Top    := [@InterfaceArea.Y1, 2];
+    Bottom := [@InterfaceArea.Y2, -2];
+
+    Center.MaxWidth := 500;
+    Center.MaxHeight := 320;
+  end;
+
+  // Same as above
+  Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_MODERN] := Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_CLASSIC];
+end;
+
+
+function TRSStore.BuyItem(item: TRSItem; quantity: Integer = 50): Boolean;
+begin
+  case quantity of
+    1, 5, 10, 50: Result := Self.InteractItem(item, 'Buy ' + ToStr(quantity));
+  end;
+end;
+
+
+(*
+var Store
+~~~~~~~~
+  Global Store variable.
+*)
 var
   Store: TRSStore;
 
-procedure TRSClient.ClientModeChanged; override;
 begin
-  inherited;
-
-  Store.SetupAlignment(Self.Mode);
-end;
-
-procedure TSRL.Setup; override;
-begin
-  inherited;
-
-  Store.Setup();
-end;
-
-procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
-begin
-  inherited;
-
-  Store.Draw(Bitmap);
+  Store.Setup('Store');
 end;

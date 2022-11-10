@@ -22,29 +22,7 @@ begin
   Result := PATTERNS[Round(i)];
 end;
 
-//overriden to use Bank.Close with Login.Players[Login.PlayerIndex].BioHash.
-function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
-begin
-  if Self.GetCurrentTab() = Tab then
-    Exit(True);
-
-  if MainScreen.HasInterface() and (Bank.IsOpen(False) or DepositBox.IsOpen) then
-    MainScreen.CloseInterface;
-
-  Result := inherited(Tab);
-end;
-
-
-function TRSAnvil.Close(Chance: Double = -1): Boolean; overload;
-begin
-  Result := MainScreen.CloseInterface(Chance);
-end;
-
-function TRSTanScreen.Close(Chance: Double = -1): Boolean; overload;
-begin
-  Result := MainScreen.CloseInterface(Chance);
-end;
-
+(* TODO: Fix craft and silverscreen
 function TRSCraftScreen.Close(Chance: Double = -1): Boolean; overload;
 begin
   Result := MainScreen.CloseInterface(Chance);
@@ -54,21 +32,7 @@ function TRSSilverScreen.Close(Chance: Double = -1): Boolean; overload;
 begin
   Result := MainScreen.CloseInterface(Chance);
 end;
-
-function TRSStore.Close(Chance: Double = -1): Boolean; overload;
-begin
-  Result := MainScreen.CloseInterface(Chance);
-end;
-
-function TRSCollectBox.Close(Chance: Double = -1): Boolean; overload;
-begin
-  Result := MainScreen.CloseInterface(Chance);
-end;
-
-function TRSGrandExchange.Close(Chance: Double = -1): Boolean; overload;
-begin
-  Result := MainScreen.CloseInterface(Chance);
-end;
+*)
 
 
 function TRSChat.ClickOption(text: String; chance: Double; Colors: TIntegerArray = [CHAT_COLOR_BLACK, CHAT_COLOR_WHITE]): Boolean; overload;
@@ -171,4 +135,63 @@ begin
 
       Wait(20, 150, wdLeft);
     end;
+end;
+
+
+(*
+GameTabs.Open
+~~~~~~~~~~~~~
+.. pascal:: function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+
+Overrides **GameTabs.Open** to close Bank, Anvil or Store interfaces if they are open.
+*)
+function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Bank.IsOpen() or Anvil.IsOpen() or Store.IsOpen() then
+    begin
+      if (Tab = ERSGameTab.INVENTORY) then
+        Exit(True);
+
+      MainScreen.CloseInterface();
+    end;
+  end;
+
+  if Self.GetCurrentTab() = Tab then
+    Exit(True);
+
+  if Keybindings.UseKeybinds then
+    Result := Self.FKeyOpen(Tab);
+
+  if not Result then
+  begin
+    if Self.GetCurrentTab() = Tab then
+      Exit(True);
+
+    for 1 to 3 do
+    begin
+      Mouse.Click(Self.GetTabBox(Tab), MOUSE_LEFT, SRL.Dice(50));
+      if WaitUntil(Self.GetCurrentTab() = Tab, SRL.TruncatedGauss(100, 1000), 2500) then
+        Exit(True);
+    end;
+  end;
+end;
+
+procedure TRSOptions.SetNPCAttackOption(offensive: Boolean); overload;
+var
+  setting: String;
+  options: TStringArray;
+begin
+  case offensive of
+    True : options := ['Depends', 'Left'];
+    False: options := ['Always', 'Hidden'];
+  end;
+
+  case Antiban.BioDice() of
+    True : setting := options[0];
+    False: setting := options[1];
+  end;
+
+  Self.SetNPCAttackOption(setting);
 end;

@@ -1,0 +1,354 @@
+(*
+RSWoodcuttingHandler
+================
+RSWoodcuttingHandler is a full color fishing bot that is highly customizable.
+*)
+
+{$DEFINE WL_RSWOODCUTTING_HANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  RSWoodcuttingHandler = record(TSRLBaseRecord)
+  class var
+    TreeDead: TMufasaBitmap;
+    TreeSmall: TMufasaBitmap;
+    TreeMedium: TMufasaBitmap;
+    TreeLarge: TMufasaBitmap;
+
+    CurrentSpot: TPoint;
+    CompassAngle: Double;
+    Timer: TCountDown = [60000, 1, 1];
+    IsFishing: Boolean;
+  class const
+    COLORS: array of TCTS2Color = [
+      [15123359, 7, 0.25, 1.45],
+      [14596504, 7, 0.15, 1.4],
+      [11641749, 8, 0.13, 1.59],
+      [13478023, 14, 0.06, 1.23],
+      [15325640, 5, 0.26, 4.58]
+    ];
+  end;
+
+(*
+RSWoodcuttingHandler.Reset
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure RSWoodcuttingHandler.Reset(); static;
+
+Resets RSWoodcuttingHandler to the non fishing state.
+This will:
+  - Pause RSWoodcuttingHandler.Timer;
+  - Reset RSWoodcuttingHandler.CurrentSpot;
+  - Set RSWoodcuttingHandler.IsFishing to False;
+*)
+procedure RSWoodcuttingHandler.Reset(); static;
+begin
+  RSWoodcuttingHandler.Timer.Pause();
+  RSWoodcuttingHandler.CurrentSpot := [];
+  RSWoodcuttingHandler.IsFishing := False;
+end;
+
+(*
+RSWoodcuttingHandler.GetMMShoreLine
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.GetMMShoreLine(): TPointArray; static;
+
+Get the shore lines on the minimap.
+
+Example
+-------
+
+  ShowOnClient(RSWoodcuttingHandler.GetMMShoreLine());
+*)
+function RSWoodcuttingHandler.GetMMShoreLine(): TPointArray; static;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+begin
+  if SRL.FindColors(tpa, CTS0(12161149, 25), Minimap.Bounds()) then
+    Result += tpa;
+  if SRL.FindColors(Result, [12566463, 10461344, 65536, 16165137, 16614441, 16147497, 14499083, $FA0A01], Minimap.Bounds()) then
+    Result += tpa;
+
+  atpa := result.Cluster(1);
+  atpa.FilterSize(20, __GT__);
+
+  Result := atpa.Merge().Grow(2).Edges();
+end;
+
+(*
+RSWoodcuttingHandler.FindWaterDirection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.FindWaterDirection(): TIntegerArray; static;
+
+Find which directions that are directly close to the player have water.
+1 = North, 2 = West, 3 = South and 4 = East.
+
+Example
+-------
+
+  WriteLn RSWoodcuttingHandler.FindWaterDirection();
+*)
+function RSWoodcuttingHandler.FindWaterDirection: TIntegerArray; static;
+var
+  water: TPointArray;
+  faceableTiles: TPointArray;
+  i: Int32;
+begin
+  water := RSWoodcuttingHandler.GetMMShoreLine();
+  faceableTiles := Minimap.GetCardinalPoints();
+
+  for i := 0 to High(faceableTiles) do
+    if SRL.PointInPoly(FaceableTiles[i], Water) then
+      Result += i;
+end;
+
+
+
+(*
+RSWoodcuttingHandler.GetMSShoreLine
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.GetMSShoreLine(): TPointArray; static;
+
+Get the shore lines on the mainscreen.
+
+Example
+-------
+
+  ShowOnClient(RSWoodcuttingHandler.GetMSShoreLine());
+*)
+function RSWoodcuttingHandler.GetMSShoreLine(): TPointArray; static;
+var
+  tpa, tmp: TPointArray;
+  atpa: T2DPointArray;
+begin
+  if SRL.FindColors(tpa, CTS2(12030823, 35, 0.20, 0.91), MainScreen.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(1);
+  atpa.FilterSize(MainScreen.NormalizeDistance(200), __GT__);
+
+  tpa := atpa.Merge();
+  tmp := tpa;
+  Result :=  tpa.Intersection(tmp.Edges().Grow(MainScreen.NormalizeDistance(45)));
+end;
+
+(*
+RSWoodcuttingHandler.FindSpot
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.FindSpot(out atpa: T2DPointArray; waitTime: Int32 = 350): Boolean; static;
+.. pascal:: function RSWoodcuttingHandler.FindSpot(): Boolean; static; overload;
+
+Find fishing spots on the mainscreen. Optionally return at ATPA of the found spots.
+
+Example
+-------
+
+  var
+    atpa: T2DPointArray;
+  begin
+    if RSWoodcuttingHandler.FindSpot(atpa) then //RSWoodcuttingHandler.FindSpot() returns true/false.
+      ShowOnClient(atpa);
+  end;
+*)
+function RSWoodcuttingHandler.FindSpot(out atpa: T2DPointArray; waitTime: Int32 = 350): Boolean; static;
+  function findSpot(out spotTPA: TPointArray): Boolean;
+  var
+    tpa: TPointArray;
+    c: TCTS2Color;
+  begin
+    for c in Self.COLORS do
+      if SRL.FindColors(tpa, c, MainScreen.Bounds()) then
+        spotTPA += tpa;
+
+    Result := spotTPA <> [];
+  end;
+var
+  tmp: T2DPointArray;
+  tpa, shore: TPointArray;
+begin
+  atpa := [];
+  if not WaitUntil(findSpot(tpa), 50, waitTime) then
+    Exit;
+
+  tpa.ClearDuplicates();
+
+  tpa.Sort(MainScreen.GetPlayerBox.Center());
+  tmp := tpa.Cluster(MainScreen.NormalizeDistance(22));
+  tmp.FilterSize(MainScreen.NormalizeDistance(26), __LT__);
+
+  if tmp = [] then
+    Exit;
+
+  shore := RSWoodcuttingHandler.GetMSShoreLine();
+
+  for tpa in tmp do
+    if shore.Contains(tpa.Mean()) then
+      atpa += tpa.grow(MainScreen.NormalizeDistance(12));
+
+  Result := atpa <> [];
+end;
+
+function RSWoodcuttingHandler.FindSpot(): Boolean; static; overload;
+var
+  atpa: T2DPointArray;
+begin
+  Result := Self.FindSpot(atpa);
+end;
+
+(*
+RSWoodcuttingHandler.SpotMoved
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.SpotMoved(out atpa: T2DPointArray): Boolean; static;
+.. pascal:: function RSWoodcuttingHandler.SpotMoved(): Boolean; static; overload;
+
+Check if RSWoodcuttingHandler.CurrentSpot moved.
+
+Example
+-------
+
+  WriteLn RSWoodcuttingHandler.SpotMoved();
+*)
+function RSWoodcuttingHandler.SpotMoved(out atpa: T2DPointArray): Boolean; static;
+var
+  angle: Double;
+  p: TPoint;
+begin
+  if (atpa = []) and not RSWoodcuttingHandler.FindSpot(atpa) then
+      Exit(True);
+
+  angle := Minimap.GetCompassAngle(False) - RSWoodcuttingHandler.CompassAngle;
+  p := RSWoodcuttingHandler.CurrentSpot.Rotate(angle, MainScreen.GetPlayerBox().Center());
+
+  Result := not atpa.Merge().Contains(p);
+end;
+
+function RSWoodcuttingHandler.SpotMoved(): Boolean; static; overload;
+var
+  atpa: T2DPointArray;
+begin
+  Result := RSWoodcuttingHandler.SpotMoved(atpa);
+end;
+
+(*
+RSWoodcuttingHandler.CheckFishing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.CheckFishing(out atpa: T2DPointArray): Boolean; static;
+.. pascal:: function RSWoodcuttingHandler.CheckFishing(): Boolean; static; overload;
+
+Check if we are still fishing. This function could give false positives but it's extremely unlikely.
+To determine if we are still fishing it does the following:
+  - Check if RSWoodcuttingHandler.CurrentSpot (which is the last spot we clicked) has moved.
+  - Check if the inventory is full.
+  - Check if we leveled up.
+  - Check if RSWoodcuttingHandler.Timer has reached it's end. The time lasts anywhere between 40 seconds and 70 seconds randomly
+    and it's reset everytime this is called and we earned XP.
+
+Example
+-------
+
+  WriteLn RSWoodcuttingHandler.CheckFishing();
+*)
+function RSWoodcuttingHandler.CheckFishing(out atpa: T2DPointArray): Boolean; static;
+begin
+  if RSWoodcuttingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() or RSWoodcuttingHandler.SpotMoved(atpa) then
+  begin
+    RSWoodcuttingHandler.Reset();
+    Exit;
+  end;
+
+  if XPBar.EarnedXP() then
+    RSWoodcuttingHandler.Timer.Restart(SRL.TruncatedGauss(-20000, 10000));
+  Result := RSWoodcuttingHandler.IsFishing;
+end;
+
+function RSWoodcuttingHandler.CheckFishing(): Boolean; static; overload;
+begin
+  if RSWoodcuttingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() or RSWoodcuttingHandler.SpotMoved() then
+  begin
+    RSWoodcuttingHandler.Reset();
+    Exit;
+  end;
+
+  if XPBar.EarnedXP() then
+    RSWoodcuttingHandler.Timer.Restart(SRL.TruncatedGauss(-20000, 10000));
+  Result := RSWoodcuttingHandler.IsFishing;
+end;
+
+(*
+RSWoodcuttingHandler.FacingWater
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.FacingWater(): Boolean; static;
+
+Check if we have water directly north, west, south or east of us.
+
+Example
+-------
+
+  WriteLn RSWoodcuttingHandler.FacingWater();
+*)
+function RSWoodcuttingHandler.FacingWater(): Boolean; static;
+var
+  water: TPointArray;
+  p: TPoint;
+begin
+  water := RSWoodcuttingHandler.GetMMShoreLine();
+  for p in Minimap.GetCardinalPoints() do
+    if water.Contains(p) then
+      Exit(True);
+end;
+
+
+(*
+RSWoodcuttingHandler.ClickSpot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSWoodcuttingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
+.. pascal:: function RSWoodcuttingHandler.ClickSpot(): Boolean; static; overload;
+
+Click the closest fishing spot to the player and switches RSWoodcuttingHandler to "IsFishing".
+We can check if we are still fishing with RSWoodcuttingHandler.CheckFishing().
+
+Example
+-------
+
+  RSWoodcuttingHandler.ClickSpot();
+*)
+function RSWoodcuttingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
+var
+  wasFacingWater: Boolean;
+begin
+  if (atpa = []) or Inventory.IsFull() then
+    Exit;
+
+  wasFacingWater := RSWoodcuttingHandler.FacingWater();
+
+  Mouse.Move(atpa[0]);
+  if not MainScreen.IsUpText('Fish') then
+    Exit;
+  Mouse.Click(MOUSE_LEFT);
+
+  if not MainScreen.DidRedClick() then
+    Exit;
+
+  if not wasFacingWater then
+  begin
+    Minimap.WaitMoving(False);
+    WaitUntil(RSWoodcuttingHandler.FacingWater(), 100, 4000);
+    if not RSWoodcuttingHandler.FindSpot(atpa) then
+      Exit;
+  end;
+
+  RSWoodcuttingHandler.CurrentSpot := atpa[0].Mean();
+  RSWoodcuttingHandler.IsFishing := True;
+  RSWoodcuttingHandler.Timer.Restart(SRL.TruncatedGauss(-20000, 10000));
+  Result := True;
+end;
+
+function RSWoodcuttingHandler.ClickSpot(): Boolean; static; overload;
+var
+  atpa: T2DPointArray;
+begin
+  if RSWoodcuttingHandler.FindSpot(atpa) then
+    Result := RSWoodcuttingHandler.ClickSpot(atpa);
+end;

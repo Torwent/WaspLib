@@ -3,4 +3,227 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-//TODO: Add dropdowns. Maybe add them directly in SRL?
+type
+  TRSInterfaceDropDown = record(TRSInterfaceElement)
+    DDHeight: Int32;
+  end;
+
+  TRSInterfaceDropDownArray = array of TRSInterfaceDropDown;
+
+
+function TRSInterfaceElementFinder.Bounds(Element: TRSInterfaceDropDown): TBox; overload;
+var
+  InterfaceBounds: TBox;
+begin
+  if (@Self.GetBoundsFunction = nil) then
+    Self.Fatal('GetBoundsFunction = nil');
+
+  InterfaceBounds := Self.GetBoundsFunction(RSClient.ClientMode);
+  case Element.Anchor of
+    ERSInterfaceElementAnchor.TOP:
+      begin
+        Result.X1 := InterfaceBounds.X1 + Element.X;
+        Result.Y1 := InterfaceBounds.Y1 + Element.Y;
+
+        Result.X2 := Result.X1 + (Element.Width - 1);
+        Result.Y2 := Result.Y1 + (Element.Height - 1);
+      end;
+
+    ERSInterfaceElementAnchor.BOTTOM:
+      begin
+        Result.X1 := InterfaceBounds.X1 + Element.X;
+        Result.Y2 := InterfaceBounds.Y2 - Element.Y;
+
+        Result.X2 := Result.X1 + (Element.Width - 1);
+        Result.Y1 := Result.Y2 - (Element.Height - 1);
+      end;
+  end;
+end;
+
+function TRSInterfaceElementFinder.DDBounds(Element: TRSInterfaceDropDown): TBox;
+var
+  interfaceBounds, closedBounds: TBox;
+begin
+  if (@Self.GetBoundsFunction = nil) then
+    Self.Fatal('GetBoundsFunction = nil');
+
+  interfaceBounds := Self.GetBoundsFunction(RSClient.ClientMode);
+  case Element.Anchor of
+    ERSInterfaceElementAnchor.TOP:
+      begin
+        closedBounds.X1 := interfaceBounds.X1 + Element.X;
+        closedBounds.Y1 := interfaceBounds.Y1 + Element.Y;
+
+        closedBounds.X2 := closedBounds.X1 + (Element.Width - 1);
+        closedBounds.Y2 := closedBounds.Y1 + (Element.Height - 1);
+      end;
+
+    ERSInterfaceElementAnchor.BOTTOM:
+      begin
+        closedBounds.X1 := InterfaceBounds.X1 + Element.X;
+        closedBounds.Y2 := InterfaceBounds.Y2 - Element.Y;
+
+        closedBounds.X2 := closedBounds.X1 + (Element.Width - 1);
+        closedBounds.Y1 := closedBounds.Y2 - (Element.Height - 1);
+      end;
+  end;
+
+  if (closedBounds.y2 + Element.DDHeight) <= interfaceBounds.Y2 then
+    Result := [closedBounds.X1, closedBounds.Y2, closedBounds.X2, closedBounds.Y2+Element.DDHeight]
+  else
+    Result := [closedBounds.X1, closedBounds.Y1-Element.DDHeight, closedBounds.X2, closedBounds.Y1];
+end;
+
+function TRSInterfaceElementFinder.IsOpen(Element: TRSInterfaceDropDown): Boolean;
+begin
+  Result := SRL.CountColor(Colors.DROPDOWN_BLACK, Self.DDBounds(Element)) = (Element.Width*2 + Element.DDHeight*2 - 2);
+end;
+
+function TRSInterfaceElementFinder.ReadText(Element: TRSInterfaceDropDown; Colors: TIntegerArray; Font: TFontSet): String; overload;
+begin
+  Result := OCR.Recognize(Self.Bounds(Element), TOCRColorFilter.Create(Colors), Font);
+end;
+
+function TRSInterfaceElementFinder.ReadText(Element: TRSInterfaceDropDown; Colors, Tolerances: TIntegerArray; Font: TFontSet): String; overload;
+begin
+  Result := OCR.Recognize(Self.Bounds(Element), TOCRColorFilter.Create(Colors, Tolerances), Font);
+end;
+
+function TRSInterfaceElementFinder.ReadNumber(Element: TRSInterfaceDropDown; Colors: TIntegerArray; Font: TFontSet): Int64; overload;
+begin
+  Result := OCR.RecognizeNumber(Self.Bounds(Element), TOCRColorFilter.Create(Colors), Font);
+end;
+
+function TRSInterfaceElementFinder.ReadNumber(Element: TRSInterfaceDropDown; Colors, Tolerances: TIntegerArray; Font: TFontSet): Int64; overload;
+begin
+  Result := OCR.RecognizeNumber(Self.Bounds(Element), TOCRColorFilter.Create(Colors, Tolerances), Font);
+end;
+
+function TRSInterfaceElementFinder.HasText(Element: TRSInterfaceDropDown; Colors: TIntegerArray; Text: String; Font: TFontSet): Boolean; overload;
+var
+  FoundBounds: TBox;
+begin
+  Result := OCR.LocateText(Self.Bounds(Element), Text, Font, TOCRColorFilter.Create(Colors), FoundBounds) = 1;
+end;
+
+function TRSInterfaceElementFinder.HasColor(Element: TRSInterfaceDropDown; Colors: TIntegerArray): Boolean; overload;
+var
+  B: TBox;
+  X, Y, Color: Integer;
+begin
+  B := Self.Bounds(Element);
+  for Color in Colors do
+    if FindColor(X, Y, Color, B) then
+      Exit(True);
+end;
+
+function TRSInterfaceElementFinder.HasColor(Element: TRSInterfaceDropDown; Colors, Tolerances: TIntegerArray): Boolean; overload;
+var
+  B: TBox;
+  I, X, Y: Integer;
+begin
+  B := Self.Bounds(Element);
+  for I := 0 to High(Colors) do
+    if FindColorTolerance(X, Y, Colors[I], B, Tolerances[I]) then
+      Exit(True);
+end;
+
+function TRSInterfaceElementFinder.CountColor(Element: TRSInterfaceDropDown; Colors: TIntegerArray): Integer; overload;
+var
+  B: TBox;
+  Color: Integer;
+begin
+  B := Self.Bounds(Element);
+  for Color in Colors do
+    Result := Result + CountColor(Color, B);
+end;
+
+function TRSInterfaceElementFinder.CountColor(Element: TRSInterfaceDropDown; Colors, Tolerances: TIntegerArray): Integer; overload;
+var
+  B: TBox;
+  I: Integer;
+begin
+  B := Self.Bounds(Element);
+  for I := 0 to High(Colors) do
+    Result := Result + CountColorTolerance(Colors[I], B, Tolerances[I]);
+end;
+
+function TRSInterfaceElementFinder.Toggle(Element: TRSInterfaceDropDown; Color, Tolerance: Integer): Boolean; overload;
+begin
+  if Self.HasColor(Element, [Color], [Tolerance]) then
+    Exit(True);
+
+  Self.Click(Element);
+
+  Result := WaitUntil(Self.HasColor(Element, [Color], [Tolerance]), 100, SRL.TruncatedGauss(1500, 3000));
+end;
+
+procedure TRSInterfaceElementFinder.Click(Element: TRSInterfaceDropDown); overload;
+begin
+  Mouse.Click(Self.Bounds(Element), MOUSE_LEFT);
+end;
+
+function TRSInterfaceElementFinder.Open(element: TRSInterfaceDropDown): Boolean;
+begin
+  if Self.IsOpen(element) then
+    Exit(True);
+
+  Self.Click(element);
+  Result := WaitUntil(Self.IsOpen(element), 100, 2000);
+end;
+
+function TRSInterfaceElementFinder.Close(element: TRSInterfaceDropDown): Boolean;
+begin
+  if not Self.IsOpen(element) then
+    Exit(True);
+
+  Self.Click(element);
+  Result := WaitUntil(not Self.IsOpen(element), 100, 2000);
+end;
+
+function TRSInterfaceElementFinder.GetSettings(element: TRSInterfaceDropDown; colors: TIntegerArray; font: TFontSet): TStringArray;
+var
+  rows: Int32;
+  b: TBox;
+  bArray: TBoxArray;
+begin
+  if not Self.Open(element) then
+    Exit;
+
+  rows := (element.DDHeight-4) div 15;
+  b := Self.DDBounds(element);
+  bArray := Grid(1, rows, element.Width - 21, 14, [0, 1], [b.X1 + 2, b.y1 + 2]);
+  for b in bArray do
+  begin
+    b.Y2 +=2;
+    Result += OCR.Recognize(b, TOCRColorFilter.Create(colors), font);
+  end;
+end;
+
+function TRSInterfaceElementFinder.SelectSetting(setting: String; element: TRSInterfaceDropDown; colors: TIntegerArray; font: TFontSet): Boolean;
+var
+  rows: Int32;
+  b: TBox;
+  bArray: TBoxArray;
+begin
+  setting := setting.Replace('l', 'I');
+  if setting in Self.ReadText(element, colors, font) then
+    Exit(True);
+
+  if not Self.Open(element) then
+    Exit;
+
+  rows := (element.DDHeight-4) div 15;
+  b := Self.DDBounds(element);
+  bArray := Grid(1, rows, element.Width - 21, 14, [0, 1], [b.X1 + 2, b.y1 + 2]);
+  for b in bArray do
+  begin
+    b.Y2 +=2;
+    if setting in OCR.Recognize(b, TOCRColorFilter.Create(colors), font) then
+    begin
+      b.Y2 -=2;
+      Mouse.Click(b, MOUSE_LEFT);
+      Exit(WaitUntil(not Self.IsOpen(element), 100, 2000));
+    end;
+  end;
+end;

@@ -1,0 +1,311 @@
+(*
+XPSetup
+====
+Methods to interact with the XPSetup.
+*)
+
+{$DEFINE WL_XPSETUP_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TRSXPSetup = record(TRSInterface)
+  class const
+    ELEMENT_POSITION_DD:  TRSInterfaceDropDown = [18, 68, 115, 20,, 50];
+    ELEMENT_SIZE_DD:      TRSInterfaceDropDown = [138, 68, 110, 20,, 50];
+    ELEMENT_SPEED_DD:     TRSInterfaceDropDown = [253, 68, 100, 20,, 50];
+    ELEMENT_DURATION_DD:  TRSInterfaceDropDown = [358, 68, 110, 20,, 65];
+
+    ELEMENT_COUNTER_DD:   TRSInterfaceDropDown = [18, 114, 105, 20,, 196];
+    ELEMENT_PROGRESS_DD:  TRSInterfaceDropDown = [128, 114, 105, 20,, 196];
+    ELEMENT_COLOUR_DD:    TRSInterfaceDropDown = [238, 114, 80, 20,, 125];
+    ELEMENT_GROUP_DD:     TRSInterfaceDropDown = [323, 114, 65, 20,, 35];
+    ELEMENT_FAKEDROPS_DD: TRSInterfaceDropDown = [393, 114, 75, 20,, 35];
+  end;
+
+(*
+XPSetup.IsOpen
+~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.IsOpen: Boolean;
+
+Returns true if the XPSetup screen is open.
+*)
+function TRSXPSetup.IsOpen(): Boolean;
+begin
+  Result :=  Self.IsTitle('XP Drops');
+end;
+
+function TRSXPSetup.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen(), interval, waitTime);
+end;
+
+(*
+XPSetup.Open
+~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.Open(): Boolean;
+
+Opens the XPSetup.
+
+Example
+-------
+
+  XPSetup.Open();
+*)
+function TRSXPSetup.Open(): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() then
+      Exit(True);
+    Exit(False);
+  end;
+
+  Mouse.Move(Minimap.GetXPCircle());
+  ChooseOption.Select('Setup');
+  Result := Self.IsOpen(3000);
+end;
+
+(*
+XPSetup.Close
+~~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.Close(PressEscape: Boolean = False): Boolean;
+
+Closes the XPSetup, Depending on `PressEscape` the function will either click the button
+or press backspace.
+
+Example
+-------
+
+ WriteLn XPSetup.Close();
+*)
+function TRSXPSetup.Close(pressEscape: Boolean): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+function TRSXPSetup.Close(Chance: Double = -1): Boolean; overload;
+begin
+  Result := MainScreen.CloseInterface(Chance);
+end;
+
+
+
+(*
+XPSetup.CloseDropDowns
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.CloseDropDowns(): Boolean;
+
+Closes any open dropdown element.
+
+Example
+-------
+
+  WriteLn XPSetup.CloseDropDowns();
+*)
+function TRSXPSetup.CloseDropDowns(): Boolean;
+var
+  elements: TRSInterfaceDropDownArray;
+  e: TRSInterfaceDropDown;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  elements := [Self.ELEMENT_POSITION_DD, Self.ELEMENT_SIZE_DD, Self.ELEMENT_SPEED_DD, Self.ELEMENT_DURATION_DD,
+               Self.ELEMENT_COUNTER_DD, Self.ELEMENT_PROGRESS_DD, Self.ELEMENT_COLOUR_DD, Self.ELEMENT_GROUP_DD,
+               Self.ELEMENT_FAKEDROPS_DD];
+
+  Result := True;
+  for e in elements do
+    if Self.IsOpen() then
+      Exit(Self.ElementFinder.Close(e));
+end;
+
+(*
+XPSetup.GetSetting
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.GetSetting(element: TRSInterfaceDropDown): String;
+
+Get the current selected option in a dropdown element.
+
+Example
+-------
+
+  WriteLn XPSetup.GetOptions(XPSetup.ELEMENT_COUNTER_DD);
+*)
+function TRSXPSetup.GetSetting(element: TRSInterfaceDropDown): String;
+begin
+  Result := Self.ElementFinder.ReadText(element, [RSColors.TEXT_ORANGE, RSColors.TEXT_ORANGE_LIGHT], [5, 5], RS_FONT_PLAIN_12);
+end;
+
+(*
+XPSetup.OpenDropDown
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.OpenDropDown(element: TRSInterfaceDropDown): Boolean;
+
+Attempts to open the specified dropdown element.
+
+Example
+-------
+
+  WriteLn XPSetup.OpenDropDown(XPSetup.ELEMENT_COUNTER_DD);
+*)
+function TRSXPSetup.OpenDropDown(element: TRSInterfaceDropDown): Boolean;
+begin
+  Result := Self.ElementFinder.IsOpen(element) or (Self.CloseDropDowns() and Self.ElementFinder.Open(element));
+end;
+
+(*
+XPSetup.GetSettings
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.GetSettings(element: TRSInterfaceDropDown): TStringArray;
+
+Get all available settings of a dropdown element.
+
+Example
+-------
+
+  WriteLn XPSetup.GetSettings(XPSetup.ELEMENT_COUNTER_DD);
+*)
+function TRSXPSetup.GetSettings(element: TRSInterfaceDropDown): TStringArray;
+begin
+  if not Self.OpenDropDown(element) then
+    Exit;
+
+  Result := Self.ElementFinder.GetSettings(element,[RSColors.TEXT_ORANGE, RSColors.TEXT_ORANGE_LIGHT], RS_FONT_PLAIN_12);
+end;
+
+(*
+XPSetup.SelectSetting
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSXPSetup.SelectSetting(setting: String; element: TRSInterfaceDropDown): Boolean;
+
+Set the setting of dropdown element if the setting exists.
+
+Example
+-------
+
+  WriteLn XPSetup.SelectSetting('Total XP', XPSetup.ELEMENT_COUNTER_DD);
+*)
+function TRSXPSetup.SelectSetting(setting: String; element: TRSInterfaceDropDown): Boolean;
+begin
+  if setting in Self.GetSetting(element) then
+    Exit(True);
+  WriteLn 'Here';
+
+  if not Self.OpenDropDown(element) then
+    Exit;
+
+  Result := Self.ElementFinder.SelectSetting(setting, element, [RSColors.TEXT_ORANGE, RSColors.TEXT_ORANGE_LIGHT], RS_FONT_PLAIN_12);
+end;
+
+
+
+procedure TRSXPSetup.Draw(Bitmap: TMufasaBitmap); override;
+var
+  elements: TRSInterfaceDropDownArray;
+  element: TRSInterfaceDropDown;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  elements := [Self.ELEMENT_POSITION_DD, Self.ELEMENT_SIZE_DD, Self.ELEMENT_SPEED_DD, Self.ELEMENT_DURATION_DD,
+               Self.ELEMENT_COUNTER_DD, Self.ELEMENT_PROGRESS_DD, Self.ELEMENT_COLOUR_DD, Self.ELEMENT_GROUP_DD,
+               Self.ELEMENT_FAKEDROPS_DD];
+
+  for element in elements do
+  begin
+    Bitmap.DrawBox(Self.ElementFinder.Bounds(element), $00FFFF);
+    if Self.ElementFinder.IsOpen(element) then
+      Bitmap.DrawBox(Self.ElementFinder.DDBounds(element), $FFFFFF);
+  end;
+end;
+
+
+procedure TRSXPSetup.Setup(Name: String); override;
+begin
+  inherited;
+
+  with Self.BoundsFinder.Alignments[ERSClientMode.FIXED] do
+  begin
+    Left   := [@InterfaceArea.X1];
+    Right  := [@InterfaceArea.X2];
+    Top    := [@InterfaceArea.Y1, 1];
+    Bottom := [@InterfaceArea.Y2];
+
+    Center.MaxWidth := 486;
+    Center.MaxHeight := 330;
+  end;
+
+  with Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_CLASSIC] do
+  begin
+    Left   := [@InterfaceArea.X1];
+    Right  := [@InterfaceArea.X2];
+    Top    := [@InterfaceArea.Y1];
+    Bottom := [@InterfaceArea.Y2, -1];
+
+    Center.MaxWidth := 486;
+    Center.MaxHeight := 330;
+  end;
+
+  with Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_MODERN] do
+  begin
+    Left   := [@InterfaceArea.X1, -1];
+    Right  := [@InterfaceArea.X2, -1];
+    Top    := [@InterfaceArea.Y1];
+    Bottom := [@InterfaceArea.Y2, -1];
+
+    Center.MaxWidth := 486;
+    Center.MaxHeight := 330;
+  end;
+end;
+
+
+
+function TRSXPSetup.IsSetup(): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Result := ('Permanent' in Self.GetSetting(Self.ELEMENT_DURATION_DD)) and
+            ('Total' in Self.GetSetting(Self.ELEMENT_COUNTER_DD));
+  WL.Cache.XP.IsSetup := Result;
+
+  if Result then
+    WL.Cache.XP.SetupWasFixed := True;
+end;
+
+procedure TRSXPSetup.Fix();
+begin
+  if not Self.Open() then
+    Exit;
+
+  repeat
+    Self.SelectSetting('Permanent', Self.ELEMENT_DURATION_DD);
+    Self.SelectSetting('Total', Self.ELEMENT_COUNTER_DD);
+  until not Self.IsOpen() or Self.IsSetup();
+
+  Self.Close();
+end;
+
+
+(*
+var XPSetup
+~~~~~~~~
+  Global XPSetup variable.
+*)
+var
+  XPSetup: TRSXPSetup;
+
+begin
+  XPSetup.Setup('XPSetup');
+end;

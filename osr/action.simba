@@ -327,93 +327,8 @@ begin
 end;
 
 
-function TRSAction.FindFishSpot(out ATPA: T2DPointArray; ScanTime: Int32 = 250): Boolean;
-var
-  FinalTPA, TPA: TPointArray;
-  t: TCountDown;
-  SpotColor: TCTS2Color;
-begin
-  if SRL.FindColors(TPA, CTS0(12161149, 25), Minimap.Bounds) > 500 then
-    SpotColor := CTS2(8875103, 16, 0.2, 0.7)
-  else if SRL.FindColors(TPA, CTS0(4741200, 7), Minimap.Bounds) > 500 then
-  begin
-    SpotColor := CTS2(7902610, 8, 0.24, 0.36);
-    if ScanTime <= 850 then
-      ScanTime += 1000;
-  end;
-
-  t.Init(ScanTime);
-
-  while not t.IsFinished() do
-  begin
-    SRL.FindColors(TPA, SpotColor, MainScreen.Bounds());
-    FinalTPA += TPA.Edges();
-  end;
-
-  //MainScreen.Filter(FinalTPA);
-
-  if FinalTPA = [] then
-    Exit;
-
-  FinalTPA.ClearDuplicates;
-  if SpotColor <> CTS2(7902610, 8, 0.24, 0.36) then
-    FinalTPA := ClearTPAFromTPA(FinalTPA, FinalTPA.Edges);
-
-  FinalTPA.Sort(MainScreen.GetPlayerBox.Center());
-
-  ATPA := FinalTPA.Cluster(10);
-  ATPA.FilterSize(12, __GT__);
-
-  Result := ATPA <> [];
-end;
-
-function TRSAction.FindFishSpot(ScanTime: Int32 = 250): Boolean; overload;
-var
-  ATPA: T2DPointArray;
-begin
-  Result := Self.FindFishSpot(ATPA, ScanTime);
-end;
 
 
-function TRSAction.GetFaceableTiles: TPointArray;
-begin
-  Result := [
-    [Minimap.Center.X + 4, Minimap.Center.Y],
-    [Minimap.Center.X - 4, Minimap.Center.Y],
-    [Minimap.Center.X, Minimap.Center.Y + 4],
-    [Minimap.Center.X, Minimap.Center.Y - 4]
-  ];
-
-  Result := Result.Rotate(Minimap.GetCompassAngle(False), Minimap.Center.X, Minimap.Center.Y);
-end;
-
-
-function TRSAction.FindWaterDirection: TIntegerArray;
-const
-  COLORS: array of TCTS0Color = [
-    [12161149, 5],
-    [5070165, 7],
-    [12631999],
-    [10461344],
-    [65536],
-    [16279333],
-    [16614697],
-    [14432775]
-  ];
-var
-  TPA, Water: TPointArray;
-  FaceableTiles: TPointArray := Self.GetFaceableTiles;
-  i: Int32;
-begin
-
-  for i := 0 to High(COLORS) do
-    if SRL.FindColors(TPA, COLORS[i], Minimap.Bounds) > 0 then
-      Water += TPA;
-
-  for i := 0 to High(FaceableTiles) do
-    if SRL.PointInPoly(FaceableTiles[i], Water) then
-      Result += i;
-end;
 
 function TSRL.FindColors(out TPA: TPointArray; Color: TCTS2Color; Area: TPointArray): Int32;  overload;
 var
@@ -427,65 +342,6 @@ begin
       TPA += tmpTPA[i];
 
   Result := TPA.Length();
-end;
-
-function TRSAction.IsFishing: Boolean;
-var
-  WaterDirections: TIntegerArray;
-  Rect1, Rect2: TRectangle;
-  atpa: T2DPointArray;
-  tpa, searchPoly: TPointArray;
-begin
-  WaterDirections := Self.FindWaterDirection;
-  if WaterDirections = [] then
-    Exit;
-
-  if WaterDirections.Contains(0) then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X + 3, Minimap.Center.Y], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X + 6, Minimap.Center.Y], 4);
-    tpa := Rect1.ToTPA() + Rect2.ToTPA();
-    atpa += tpa.ConvexHull().Connect();
-  end;
-
-  if WaterDirections.Contains(1) then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X - 3, Minimap.Center.Y], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X - 6, Minimap.Center.Y], 4);
-    tpa := Rect1.ToTPA() + Rect2.ToTPA();
-    atpa += tpa.ConvexHull().Connect();
-  end;
-
-  if WaterDirections.Contains(2) then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 3], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y + 6], 4);
-    tpa := Rect1.ToTPA() + Rect2.ToTPA();
-    atpa += tpa.ConvexHull().Connect();
-  end;
-
-  if WaterDirections.Contains(3) then
-  begin
-    Rect1 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 3], 3);
-    Rect2 := Minimap.StaticToMsRect([Minimap.Center.X, Minimap.Center.Y - 6], 4);
-    tpa := Rect1.ToTPA() + Rect2.ToTPA();
-    atpa += tpa.ConvexHull().Connect();
-  end;
-
-  for searchPoly in atpa do
-  begin
-    searchPoly.Fill();
-    searchPoly := searchPoly.Erode(5).Edges();
-
-    Result := (SRL.FindColors(TPA, CTS2(10036, 7, 0.13, 0.01), searchPoly) > 15)
-              or
-              (SRL.FindColors(TPA, CTS2(11581, 2, 0.14, 0.01), searchPoly) > 15) //regular rod
-              or
-              (SRL.FindColors(TPA, CTS2(5860468, 14, 0.06, 0.35), searchPoly) > 15); //barbarian rod
-
-    if Result then
-      Exit;
-  end;
 end;
 
 
@@ -541,21 +397,11 @@ begin
   end;
 end;
 
-function TRSAction.StartFishing: Boolean;
-var
-  ATPA: T2DPointArray;
-begin
-  if not Self.FindFishSpot(ATPA, 250) then
-    Exit;
-
-  Result := Self.ClickObject('Fishing spot', ATPA);
-end;
 
 procedure TRSAction.DoAction(Action: ERSAction);
 begin
   case Action of
     CHECK_STATS: Antiban.HoverSkills;
-    FISH: Self.StartFishing;
     ALCH: Self.AlchItems(AlchItemArray);
     FLETCH: ;
     DROP: Self.DropItems;

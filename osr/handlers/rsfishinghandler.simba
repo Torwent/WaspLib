@@ -1,0 +1,349 @@
+(*
+RSFishingHandler
+================
+RSFishingHandler is a full color fishing bot that is highly customizable.
+*)
+
+{$DEFINE WL_RSFISHING_HANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  RSFishingHandler = record(TSRLBaseRecord)
+  class var
+    CurrentSpot: TPoint;
+    CompassAngle: Double;
+    Timer: TCountDown = [60000, 1, 1];
+    IsFishing: Boolean;
+  class const
+    COLORS: array of TCTS2Color = [
+      [15123359, 7, 0.25, 1.45],
+      [14596504, 7, 0.15, 1.4],
+      [11641749, 8, 0.13, 1.59],
+      [13478023, 14, 0.06, 1.23],
+      [15325640, 5, 0.26, 4.58]
+    ];
+  end;
+
+(*
+RSFishingHandler.Reset
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure RSFishingHandler.Reset(); static;
+
+Resets RSFishingHandler to the non fishing state.
+This will:
+  - Pause RSFishingHandler.Timer;
+  - Reset RSFishingHandler.CurrentSpot;
+  - Set RSFishingHandler.IsFishing to False;
+*)
+procedure RSFishingHandler.Reset(); static;
+begin
+  RSFishingHandler.Timer.Pause();
+  RSFishingHandler.CurrentSpot := [];
+  RSFishingHandler.IsFishing := False;
+end;
+
+(*
+RSFishingHandler.GetMMShoreLine
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.GetMMShoreLine(): TPointArray; static;
+
+Get the shore lines on the minimap.
+
+Example
+-------
+
+  ShowOnClient(RSFishingHandler.GetMMShoreLine());
+*)
+function RSFishingHandler.GetMMShoreLine(): TPointArray; static;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+begin
+  if SRL.FindColors(tpa, CTS0(12161149, 25), Minimap.Bounds()) then
+    Result += tpa;
+  if SRL.FindColors(Result, [12566463, 10461344, 65536, 16165137, 16614441, 16147497, 14499083, $FA0A01], Minimap.Bounds()) then
+    Result += tpa;
+
+  atpa := result.Cluster(1);
+  atpa.FilterSize(20, __GT__);
+
+  Result := atpa.Merge().Grow(2).Edges();
+end;
+
+(*
+RSFishingHandler.FindWaterDirection
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.FindWaterDirection(): TIntegerArray; static;
+
+Find which directions that are directly close to the player have water.
+1 = North, 2 = West, 3 = South and 4 = East.
+
+Example
+-------
+
+  WriteLn RSFishingHandler.FindWaterDirection();
+*)
+function RSFishingHandler.FindWaterDirection: TIntegerArray; static;
+var
+  water: TPointArray;
+  faceableTiles: TPointArray;
+  i: Int32;
+begin
+  water := RSFishingHandler.GetMMShoreLine();
+  faceableTiles := Minimap.GetCardinalPoints();
+
+  for i := 0 to High(faceableTiles) do
+    if SRL.PointInPoly(FaceableTiles[i], Water) then
+      Result += i;
+end;
+
+
+
+(*
+RSFishingHandler.GetMSShoreLine
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.GetMSShoreLine(): TPointArray; static;
+
+Get the shore lines on the mainscreen.
+
+Example
+-------
+
+  ShowOnClient(RSFishingHandler.GetMSShoreLine());
+*)
+function RSFishingHandler.GetMSShoreLine(): TPointArray; static;
+var
+  tpa, tmp: TPointArray;
+  atpa: T2DPointArray;
+begin
+  if SRL.FindColors(tpa, CTS2(12030823, 35, 0.20, 0.91), MainScreen.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(1);
+  atpa.FilterSize(MainScreen.NormalizeDistance(200), __GT__);
+
+  tpa := atpa.Merge();
+  tmp := tpa;
+  Result :=  tpa.Intersection(tmp.Edges().Grow(MainScreen.NormalizeDistance(45)));
+end;
+
+(*
+RSFishingHandler.FindSpot
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.FindSpot(out atpa: T2DPointArray; waitTime: Int32 = 350): Boolean; static;
+.. pascal:: function RSFishingHandler.FindSpot(): Boolean; static; overload;
+
+Find fishing spots on the mainscreen. Optionally return at ATPA of the found spots.
+
+Example
+-------
+
+  var
+    atpa: T2DPointArray;
+  begin
+    if RSFishingHandler.FindSpot(atpa) then //RSFishingHandler.FindSpot() returns true/false.
+      ShowOnClient(atpa);
+  end;
+*)
+function RSFishingHandler.FindSpot(out atpa: T2DPointArray; waitTime: Int32 = 350): Boolean; static;
+  function findSpot(out spotTPA: TPointArray): Boolean;
+  var
+    tpa: TPointArray;
+    c: TCTS2Color;
+  begin
+    for c in Self.COLORS do
+      if SRL.FindColors(tpa, c, MainScreen.Bounds()) then
+        spotTPA += tpa;
+
+    Result := spotTPA <> [];
+  end;
+var
+  tmp: T2DPointArray;
+  tpa, shore: TPointArray;
+begin
+  atpa := [];
+  if not WaitUntil(findSpot(tpa), 50, waitTime) then
+    Exit;
+
+  tpa.ClearDuplicates();
+
+  tpa.Sort(MainScreen.GetPlayerBox.Center());
+  tmp := tpa.Cluster(MainScreen.NormalizeDistance(22));
+  tmp.FilterSize(MainScreen.NormalizeDistance(26), __LT__);
+
+  if tmp = [] then
+    Exit;
+
+  shore := RSFishingHandler.GetMSShoreLine();
+
+  for tpa in tmp do
+    if shore.Contains(tpa.Mean()) then
+      atpa += tpa.grow(MainScreen.NormalizeDistance(12));
+
+  Result := atpa <> [];
+end;
+
+function RSFishingHandler.FindSpot(): Boolean; static; overload;
+var
+  atpa: T2DPointArray;
+begin
+  Result := Self.FindSpot(atpa);
+end;
+
+(*
+RSFishingHandler.SpotMoved
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.SpotMoved(out atpa: T2DPointArray): Boolean; static;
+.. pascal:: function RSFishingHandler.SpotMoved(): Boolean; static; overload;
+
+Check if RSFishingHandler.CurrentSpot moved.
+
+Example
+-------
+
+  WriteLn RSFishingHandler.SpotMoved();
+*)
+function RSFishingHandler.SpotMoved(out atpa: T2DPointArray): Boolean; static;
+var
+  angle: Double;
+  p: TPoint;
+begin
+  if (atpa = []) and not RSFishingHandler.FindSpot(atpa) then
+      Exit(True);
+
+  angle := Minimap.GetCompassAngle(False) - RSFishingHandler.CompassAngle;
+  p := RSFishingHandler.CurrentSpot.Rotate(angle, MainScreen.GetPlayerBox().Center());
+
+  Result := not atpa.Merge().Contains(p);
+end;
+
+function RSFishingHandler.SpotMoved(): Boolean; static; overload;
+var
+  atpa: T2DPointArray;
+begin
+  Result := RSFishingHandler.SpotMoved(atpa);
+end;
+
+(*
+RSFishingHandler.CheckFishing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.CheckFishing(out atpa: T2DPointArray): Boolean; static;
+.. pascal:: function RSFishingHandler.CheckFishing(): Boolean; static; overload;
+
+Check if we are still fishing. This function could give false positives but it's extremely unlikely.
+To determine if we are still fishing it does the following:
+  - Check if RSFishingHandler.CurrentSpot (which is the last spot we clicked) has moved.
+  - Check if the inventory is full.
+  - Check if we leveled up.
+  - Check if RSFishingHandler.Timer has reached it's end. The time lasts anywhere between 40 seconds and 70 seconds randomly
+    and it's reset everytime this is called and we earned XP.
+
+Example
+-------
+
+  WriteLn RSFishingHandler.CheckFishing();
+*)
+function RSFishingHandler.CheckFishing(out atpa: T2DPointArray): Boolean; static;
+begin
+  if RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() or RSFishingHandler.SpotMoved(atpa) then
+  begin
+    RSFishingHandler.Reset();
+    Exit;
+  end;
+
+  if XPBar.EarnedXP() then
+    RSFishingHandler.Timer.Restart(SRL.TruncatedGauss(-20000, 10000));
+  Result := RSFishingHandler.IsFishing;
+end;
+
+function RSFishingHandler.CheckFishing(): Boolean; static; overload;
+begin
+  if RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() or RSFishingHandler.SpotMoved() then
+  begin
+    RSFishingHandler.Reset();
+    Exit;
+  end;
+
+  if XPBar.EarnedXP() then
+    RSFishingHandler.Timer.Restart(SRL.TruncatedGauss(-20000, 10000));
+  Result := RSFishingHandler.IsFishing;
+end;
+
+(*
+RSFishingHandler.FacingWater
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.FacingWater(): Boolean; static;
+
+Check if we have water directly north, west, south or east of us.
+
+Example
+-------
+
+  WriteLn RSFishingHandler.FacingWater();
+*)
+function RSFishingHandler.FacingWater(): Boolean; static;
+var
+  water: TPointArray;
+  p: TPoint;
+begin
+  water := RSFishingHandler.GetMMShoreLine();
+  for p in Minimap.GetCardinalPoints() do
+    if water.Contains(p) then
+      Exit(True);
+end;
+
+
+(*
+RSFishingHandler.ClickSpot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
+.. pascal:: function RSFishingHandler.ClickSpot(): Boolean; static; overload;
+
+Click the closest fishing spot to the player and switches RSFishingHandler to "IsFishing".
+We can check if we are still fishing with RSFishingHandler.CheckFishing().
+
+Example
+-------
+
+  RSFishingHandler.ClickSpot();
+*)
+function RSFishingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
+var
+  wasFacingWater: Boolean;
+begin
+  if (atpa = []) or Inventory.IsFull() then
+    Exit;
+
+  wasFacingWater := RSFishingHandler.FacingWater();
+
+  Mouse.Move(atpa[0]);
+  if not MainScreen.IsUpText('Fish') then
+    Exit;
+  Mouse.Click(MOUSE_LEFT);
+
+  if not MainScreen.DidRedClick() then
+    Exit;
+
+  if not wasFacingWater then
+  begin
+    Minimap.WaitMoving(False);
+    WaitUntil(RSFishingHandler.FacingWater(), 100, 4000);
+    if not RSFishingHandler.FindSpot(atpa) then
+      Exit;
+  end;
+
+  RSFishingHandler.CurrentSpot := atpa[0].Mean();
+  RSFishingHandler.IsFishing := True;
+  RSFishingHandler.Timer.Restart(SRL.TruncatedGauss(-20000, 10000));
+  Result := True;
+end;
+
+function RSFishingHandler.ClickSpot(): Boolean; static; overload;
+var
+  atpa: T2DPointArray;
+begin
+  if RSFishingHandler.FindSpot(atpa) then
+    Result := RSFishingHandler.ClickSpot(atpa);
+end;

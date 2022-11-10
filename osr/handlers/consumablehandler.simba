@@ -254,14 +254,10 @@ function TRSInventory.FindItems(consumables: TRSConsumableArray; out foundConsum
 var
   singleItem: TRSItem;
   consumable: TRSConsumable;
-  i: Int32;
-  usedSlots, tempSlots, currentSearch: TIntegerArray;
+  currentSearch: TIntegerArray;
 begin
   if not Self.Open() then
     Exit;
-
-  for i in Self.GetUsedSlots() do
-    usedSlots += i;
 
   for consumable in consumables do
   begin
@@ -271,13 +267,10 @@ begin
       if currentSearch <> [] then
       begin
         foundConsumable += consumable;
-        tempSlots += currentSearch;
+        Result += currentSearch;
       end;
     end;
   end;
-
-  for i in tempSlots do
-    Result += usedSlots[i];
 
   Result := Result.Unique();
 end;
@@ -352,77 +345,77 @@ Example
 
   Inventory.Consume(FOOD_CONSUMABLE);
 *)
-function TRSInventory.Consume(ConsumableType: ERSConsumable; out Slots: TIntegerArray): Boolean;
+function TRSInventory.Consume(consumableType: ERSConsumable; out slots: TIntegerArray): Boolean;
 var
-  ConsumableHandler: PConsumableHandler := GetHandler(ConsumableType);
-  FoundConsumables: TRSConsumableArray;
-  StartingPoints: Int32;
-  TrashSlots: TIntegerArray;
+  consumableHandler: PConsumableHandler := GetHandler(consumableType);
+  foundConsumables: TRSConsumableArray;
+  startingPoints: Int32;
+  trashSlots: TIntegerArray;
 begin
-  if not ConsumableHandler^.IsSetup then
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  case ConsumableType of
+  case consumableType of
     ERSConsumable.FOOD_CONSUMABLE:
-      StartingPoints := Minimap.GetHPLevel;
+      startingPoints := Minimap.GetHPLevel();
 
     ERSConsumable.PRAYER_CONSUMABLE:
-      StartingPoints := Minimap.GetPrayerLevel;
+      startingPoints := Minimap.GetPrayerLevel();
 
     ERSConsumable.ENERGY_CONSUMABLE:
-      StartingPoints := Minimap.GetRunEnergy;
+      startingPoints := Minimap.GetRunEnergy();
   end;
 
-  Slots := Self.FindConsumable(ConsumableType, FoundConsumables)
+  slots := Self.FindConsumable(consumableType, foundConsumables)
 
-  if Slots.Length() = 0 then
+  if slots.Length() = 0 then
     Exit;
 
   if not Antiban.BioDice(EBioBehavior.CONSUME_IN_BANK) and
      MainScreen.HasInterface() then
      MainScreen.CloseInterface;
 
-  Result := Self.ClickSlot(Slots[0], ['Eat', 'Drink']);
+  Result := Self.ClickSlot(slots[0], ['Eat', 'Drink']);
 
   if Result then
-    case ConsumableType of
+    case consumableType of
       ERSConsumable.FOOD_CONSUMABLE:
-        Result := WaitUntil(StartingPoints < Minimap.GetHPLevel, 100, 3000);
+        Result := WaitUntil(startingPoints < Minimap.GetHPLevel(), 100, 3000);
 
       ERSConsumable.PRAYER_CONSUMABLE:
-        Result := WaitUntil(StartingPoints < Minimap.GetPrayerLevel, 100, 3000);
+        Result := WaitUntil(startingPoints < Minimap.GetPrayerLevel(), 100, 3000);
 
       ERSConsumable.ENERGY_CONSUMABLE:
-        Result := WaitUntil(StartingPoints < Minimap.GetRunEnergy, 100, 3000);
+        Result := WaitUntil(startingPoints < Minimap.GetRunEnergy(), 100, 3000);
       else
         Wait(400, 650);
     end;
 
   if Result then
   begin
-    if FoundConsumables[0].Timer > 0 then
+    if foundConsumables[0].Timer > 0 then
     begin
-      if ConsumableHandler^.Timer.Length <> FoundConsumables[0].Timer then
-        ConsumableHandler^.Timer.Setup(FoundConsumables[0].Timer);
+      if consumableHandler^.Timer.Length <> foundConsumables[0].Timer then
+        consumableHandler^.Timer.Setup(foundConsumables[0].Timer);
 
-      if ConsumableType = ERSConsumable.ANTI_FIRE_CONSUMABLE then
-        ConsumableHandler^.Timer.Restart(Random(-50000, -20000))
+      if consumableType = ERSConsumable.ANTI_FIRE_CONSUMABLE then
+        consumableHandler^.Timer.Restart(Random(-50000, -20000))
       else
-        ConsumableHandler^.Timer.Restart(Random(-3000, 3000));
+        consumableHandler^.Timer.Restart(Random(-3000, 3000));
     end;
 
-    TotalConsumableCost += FoundConsumables[0].Cost;
+    TotalConsumableCost += foundConsumables[0].Cost;
 
-    TrashSlots := Self.FindItems(TRASH_ARRAY);
+    trashSlots := Self.FindItems(TRASH_ARRAY);
 
-    if TrashSlots.Length() > 0 then
+    if trashSlots.Length() > 0 then
     begin
       if Bank.IsOpen() then
-        Bank.DepositSlot([TrashSlots[0], BANK_DEPOSIT_ALL], False)
+        Bank.DepositSlot([trashSlots[0], BANK_DEPOSIT_ALL], False)
       else
-        Self.ShiftDrop(TrashSlots.Intersection(Self.RandomPattern()));
+        Self.ShiftDrop(trashSlots.Intersection(Self.RandomPattern()));
 
-      Slots := Slots.Difference(TrashSlots); //Delete TrashSlots from Slots.
+      slots := slots.Difference(trashSlots); //Delete trashSlots from slots.
     end;
   end;
 end;

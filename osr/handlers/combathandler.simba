@@ -75,7 +75,7 @@ const
 type
   TCombatHandler = record(TSRLBaseRecord)
     State: String;
-    Monster: PRSMonster;
+    Monster: TRSMonster;
 
     BraceletTimer: TCountDown;
     InCombatTimer: TCountDown;
@@ -93,7 +93,6 @@ type
     WeaponSpec: Int32;
     GearIsSetup: Boolean;
     AutoRetaliateEnabled: Boolean;
-
 
     QuickPrayerIsSetup: Boolean;
 
@@ -129,8 +128,8 @@ begin
 
   Self.InCombatTimer.Setup(Timer);
 
-  if not RSClient.IsLoggedIn then
-    Login.LoginPlayer;
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
 
   Chat.OpenTab(ERSChatTab.GAME_CHAT);
   Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
@@ -188,7 +187,7 @@ begin
   Self.IsSetup := True;
 end;
 
-procedure TCombatHandler.Setup(RSMonster: PRSMonster; Timer: Int64 = 4000); overload;
+procedure TCombatHandler.Setup(RSMonster: TRSMonster; Timer: Int64 = 4000); overload;
 begin
   if Self.IsSetup then
     Exit;
@@ -279,7 +278,7 @@ begin
                  (Self.SpecWeapon <> 'Null') or (Self.Bracelet <> 'Null');
 end;
 
-procedure TCombatHandler.Setup(Manage: Boolean; RSMonster: PRSMonster; LootValue: Int32 = 5000;Timer: Int64 = 4000); overload;
+procedure TCombatHandler.Setup(Manage: Boolean; RSMonster: TRSMonster; LootValue: Int32 = 5000;Timer: Int64 = 4000); overload;
 begin
   if Self.IsSetup then
     Exit;
@@ -289,7 +288,7 @@ begin
   if Manage then
   begin
     Self.ManageGear := True;
-    Self._SetupGear;
+    Self._SetupGear();
     Self.LootHandler.Setup(RSMonster, LootValue);
     Self.LootEnabled := Self.LootHandler.IsSetup;
   end;
@@ -306,9 +305,9 @@ end;
 
 function TCombatHandler.AttackMonster(): Boolean;
 begin
-  if Self.Monster^.SelectOption(['Attack'], 3) then
+  if Self.Monster.SelectOption(['Attack'], 3) then
   begin
-    Minimap.WaitMoving;
+    Minimap.WaitMoving();
     Result := MainScreen.WaitInCombat(Self.AttackMonsterDelay);
   end;
 
@@ -322,9 +321,9 @@ end;
 
 function TCombatHandler.WalkAttackMonster(): Boolean;
 begin
-  if Self.Monster^.WalkSelectOption(['Attack'], 3) then
+  if Self.Monster.WalkSelectOption(['Attack'], 3) then
   begin
-    Minimap.WaitMoving;
+    Minimap.WaitMoving();
     Result := MainScreen.WaitInCombat(Self.AttackMonsterDelay);
   end;
 
@@ -453,7 +452,7 @@ begin
 
   Result := (Minimap.GetSpecLevel >= Self.WeaponSpec) and
             ((Self.SpecWeapon = Self.Weapon) or Inventory.ContainsItem(Self.Weapon) or
-            (Inventory.ContainsItem(Self.SpecWeapon) and Inventory.HasSpace(1)));
+            (Inventory.ContainsItem(Self.SpecWeapon) and Inventory.HasEmptySpace(1)));
   Self.DoingSpec := Result;
 end;
 
@@ -491,18 +490,18 @@ end;
 
 function TCombatHandler.BuryBones(): Boolean;
 var
-  Slots: TIntegerArray;
-  Slot: Int32;
+  slots: TIntegerArray;
+  slot: Int32;
 begin
-  Slots := Inventory.FindItems(REMAINS);
-  if Slots = []  then
+  slots := Inventory.FindItems(REMAINS);
+  if slots = [] then
     Exit;
 
-  Slot := Slots[0];
+  slot := slots[0];
 
-  Inventory.ClickSlot(Slot);
-  Inventory.WaitItemFade(Slot);
-  Result := WaitUntil(not Inventory.IsSlotUsed(Slot), 100, 2000);
+  Inventory.ClickSlot(slot);
+  Inventory.WaitItemFade(slot);
+  Result := WaitUntil(not Inventory.IsSlotUsed(slot), 100, 2000);
 end;
 
 
@@ -622,7 +621,7 @@ begin
   if MainScreen.FindGrave() then
     Exit('PLAYER_DEAD');
 
-  Self.CheckSlayerTask;
+  Self.CheckSlayerTask();
 
   if Self.NeedBracelet then
     Exit('NEED_BRACELET');

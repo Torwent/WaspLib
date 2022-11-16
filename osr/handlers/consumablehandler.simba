@@ -24,6 +24,7 @@ This will handle caching all found consumables to this point, bank withdraw amou
     MinInvPoints: Int32;
 
     Timer: TCountDown;
+    ConsumableDelay: TCountDown;
 
     IsSetup: Boolean;
   end;
@@ -375,6 +376,10 @@ begin
      MainScreen.HasInterface() then
      MainScreen.CloseInterface;
 
+  if (consumableHandler^.ConsumableDelay.Length > 0) then
+    while not consumableHandler^.ConsumableDelay.IsFinished() do
+      Wait(50, 100);
+
   Result := Self.ClickSlot(slots[0], ['Eat', 'Drink']);
 
   if Result then
@@ -388,11 +393,23 @@ begin
       ERSConsumable.ENERGY_CONSUMABLE:
         Result := WaitUntil(startingPoints < Minimap.GetRunEnergy(), 100, 3000);
       else
-        Wait(400, 650);
+        BioWait(1000, 2000, wdLeft);
     end;
 
   if Result then
   begin
+    case consumableType of
+      ERSConsumable.FOOD_CONSUMABLE:
+        begin
+          if foundConsumables.First().Item = 'Cooked karambwan' then
+            consumableHandler^.ConsumableDelay.Init(1200)
+          else
+            consumableHandler^.ConsumableDelay.Init(1800);
+        end;
+      else
+        consumableHandler^.ConsumableDelay.Init(600);
+    end;
+
     if foundConsumables[0].Timer > 0 then
     begin
       if consumableHandler^.Timer.Length <> foundConsumables[0].Timer then

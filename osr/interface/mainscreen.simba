@@ -100,31 +100,31 @@ begin
   end;
 end;
 
-function TRSMainScreen.IsVisible(TPA: TPointArray): Boolean; overload;
+function TRSMainScreen.IsVisible(tpa: TPointArray): Boolean; overload;
 var
   temp: TPointArray;
   b: TBox;
 begin
-  TPA := TPA.FilterBox(Self.Bounds);
+  tpa := tpa.ExcludeBox(Self.Bounds());
 
-  if TPA = [] then
+  if tpa = [] then
     Exit;
 
-  Result := Self.Bounds.Expand(-2).Contains(TPA);
+  Result := Self.Bounds.Expand(-2).Contains(tpa);
 
   if Result and (Self.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface() then
     begin
-      if Bank.Bounds.Expand(5).Contains(TPA) and Bank.IsOpen() then
+      if Bank.Bounds.Expand(5).Contains(tpa) and Bank.IsOpen() then
         Exit(False);
-      //if Anvil.Bounds.Expand(5).Contains(TPA) and Anvil.IsOpen() then
-      //  Exit(False);
+      if Anvil.Bounds.Expand(5).Contains(tpa) and Anvil.IsOpen() then
+        Exit(False);
     end;
 
     if Chat.IsOpen() then
     begin
-      if Chat.Bounds.Expand(5).Contains(TPA) then
+      if Chat.Bounds.Expand(5).Contains(tpa) then
         Exit(False);
     end
     else
@@ -132,18 +132,18 @@ begin
       b := Chat.Bounds();
       b.Y1 += 142;
 
-      if  b.Expand(5).Contains(TPA) then
+      if  b.Expand(5).Contains(tpa) then
         Exit(False);
     end;
 
-    if Minimap.Bounds.Expand(55).Contains(TPA) then
+    if Minimap.Bounds.Expand(55).Contains(tpa) then
       Exit(False);
 
-    if GameTabs.Bounds().Expand(5).Contains(TPA) then
+    if GameTabs.Bounds().Expand(5).Contains(tpa) then
     begin
-      temp := TPA;
+      temp := tpa;
       temp.SortByY();
-      if (temp[0].Y >= Inventory.Bounds().Y2) or Inventory.Bounds().Expand(5).Contains(TPA) then
+      if (temp[0].Y >= Inventory.Bounds().Y2) or Inventory.Bounds().Expand(5).Contains(tpa) then
         Exit(False);
     end;
   end;
@@ -171,25 +171,25 @@ MainScreen.Filter
 
 Filters the given TPointArray, TBoxArray, TQuadArray or TCuboidArray and returns only those that are visible in the MainScreen.
 *)
-function TRSMainScreen.Filter(TPA: TPointArray): TPointArray;
+function TRSMainScreen.Filter(tpa: TPointArray): TPointArray;
 var
   b: TBox;
 begin
-  Result := TPA := TPA.FilterBox(Self.Bounds);
+  Result := tpa := tpa.ExcludeBox(Self.Bounds());
 
   if (Result <> []) and (Self.Mode <> ERSClientMode.FIXED) then
   begin
     if Self.HasInterface() then
-      Result := Result.Difference(Result.FilterBox(InterfaceArea.Bounds));
+      Result := Result.Difference(Result.ExcludeBox(InterfaceArea.Bounds()));
 
     b := Chat.Bounds();
 
     if not Chat.IsOpen() then
       b.Y1 += 142;
 
-    Result := Result.Difference(Result.FilterBox(b));
-    Result := Result.Difference(Result.FilterBox(Minimap.Bounds.Expand(54, 13)));
-    Result := Result.Difference(Result.FilterBox(GameTabs.Bounds));
+    Result := Result.Difference(Result.ExcludeBox(b));
+    Result := Result.Difference(Result.ExcludeBox(Minimap.Bounds().Expand(54, 13)));
+    Result := Result.Difference(Result.ExcludeBox(GameTabs.Bounds()));
   end;
 end;
 
@@ -350,7 +350,7 @@ var
   t: UInt64;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 1500);
+    Interval := RandomLeft(50, 1500);
 
   t := GetTickCount;
   if WaitUntil(Self.LoadingPOH, Interval, WaitTime) then
@@ -393,7 +393,7 @@ Example
 function TRSMainScreen.WaitInCombat(WaitTime: Int32; Interval: Int32 = -1): Boolean;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 1500);
+    Interval := RandomLeft(50, 1500);
 
   Result := WaitUntil(Self.InCombat, Interval, WaitTime);
 end;
@@ -447,7 +447,7 @@ Example
 function TRSMainScreen.WaitArrow(out TPA: TPointArray; WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
   Result := WaitUntil(Self.FindArrow(TPA), Interval, WaitTime);
 end;
@@ -455,31 +455,31 @@ end;
 function TRSMainScreen.WaitArrow(WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean; overload;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
   Result := WaitUntil(Self.FindArrow, Interval, WaitTime);
 end;
 
-function TRSMainScreen.IsUpText(Text: TStringArray; Timeout: Int32; out Index: Int32): Boolean; overload;
+function TRSMainScreen.IsUpText(text: TStringArray; timeout: Int32; out index: Int32): Boolean; overload;
 
   function IsUpText: Boolean;
   var
-    UpText: String;
+    upText: String;
   begin
-    UpText := Self.GetUpText;
+    upText := Self.GetUpText;
 
-    for Index := 0 to High(Text) do
-      if (Text[Index] in UpText) or (Text[Index] = UpText) then
+    for index := 0 to High(text) do
+      if (text[index] in upText) or (text[index] = upText) then
         Exit(True);
   end;
 
 var
-  T: UInt64;
+  t: UInt64;
 begin
-  if (Timeout = -1) then
-    T := GetTickCount + Round(SRL.SkewedRand(100, 85, 250))
+  if (timeout = -1) then
+    t := GetTickCount() + RandomMode(100, 85, 250)
   else
-    T := GetTickCount + Timeout;
+    t := GetTickCount() + timeout;
 
   repeat
     if IsUpText then
@@ -490,6 +490,6 @@ begin
     end;
 
     Wait(25);
-  until (GetTickCount >= T);
+  until (GetTickCount() >= t);
 end;
 

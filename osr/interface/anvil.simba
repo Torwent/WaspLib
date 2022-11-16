@@ -9,12 +9,6 @@ Methods to interact with the Anvil.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-type
-  TRSAnvil = record(TRSInterface)
-  class const
-    ELEMENT_QUANTITY_AREA: TRSInterfaceElement = [453, 36, 37, 217];
-    ELEMENT_ITEM_AREA:     TRSInterfaceElement = [10, 36, 385, 275];
-  end;
 
 function TRSAnvil.FindItem(item: TRSItem; out box: TBox): Boolean;
 begin
@@ -37,86 +31,6 @@ begin
 end;
 
 
-function TRSAnvil.FindQuantityButtons(): TBoxArray;
-var
-  tpa: TPointArray;
-  atpa: T2DPointArray;
-begin
-  if SRL.FindColors(tpa, CTS2(1509399, 6, 2.84, 8.78), Self.ElementFinder.Bounds(Self.ELEMENT_QUANTITY_AREA)) then
-  begin
-    atpa := tpa.Cluster(3);
-    atpa.FilterDimensions(15, 15);
-
-    Result := atpa.ToTBA();
-  end;
-end;
-
-
-function TRSAnvil.SetQuantity(Amount: Int32): Boolean;
-
-  function FixText(str: String): String;
-  begin
-    Result := str.Replace('I', 'l'); // Glyphs are the same.
-  end;
-
-var
-  text: String;
-  b: TBox;
-  buttons: TBoxArray;
-begin
-  if (Amount = MAKE_QUANTITY_ALL) then
-    text := 'All'
-  else
-    text := ToString(Amount);
-
-  buttons := Self.FindQuantityButtons();
-
-  for b in buttons do
-  begin
-    // Already selected
-    if FixText(OCR.Recognize(b, TOCRColorFilter.Create([RSColors.TEXT_WHITE]), RS_FONT_PLAIN_11)) = text then
-      Exit(True);
-
-    // Select
-    if FixText(OCR.Recognize(b, TOCRColorFilter.Create([RSColors.TEXT_ORANGE]), RS_FONT_PLAIN_11)) = text then
-    begin
-      Mouse.Click(b, MOUSE_LEFT);
-
-      Exit(True);
-    end;
-  end;
-
-  for b in buttons do
-    if OCR.Recognize(b, TOCRColorFilter.Create([RSColors.TEXT_ORANGE]), RS_FONT_PLAIN_11) = 'X' then
-    begin
-      Mouse.Click(b, MOUSE_LEFT);
-
-      Result := Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2500, 3500));
-      Exit;
-    end;
-end;
-
-
-(*
-Anvil.IsOpen
-~~~~~~~~~~~
-.. pascal:: function TRSAnvil.IsOpen: Boolean;
-
-Returns true if the Anvil screen is open.
-*)
-function TRSAnvil.IsOpen(): Boolean; overload;
-begin
-  Result := Self.IsTitle('would like to') or Self.IsTitle('make?');
-end;
-
-function TRSAnvil.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload;
-begin
-  if (interval = -1) then
-    interval := SRL.TruncatedGauss(50, 1500);
-
-  Result := WaitUntil(Self.IsOpen(), interval, waitTime);
-end;
-
 (*
 Anvil.Close
 ~~~~~~~~~~
@@ -135,7 +49,7 @@ begin
   if not Self.IsOpen() then
     Exit(True);
 
-  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), RandomLeft(50, 1500), Random(1500, 2000));
 end;
 
 function TRSAnvil.Close(Chance: Double = -1): Boolean; overload;
@@ -143,99 +57,6 @@ begin
   Result := MainScreen.CloseInterface(Chance);
 end;
 
-
-procedure TRSAnvil.Draw(Bitmap: TMufasaBitmap); override;
-begin
-  if not Self.IsOpen() then
-    Exit;
-
-  inherited;
-
-  {
-  Bitmap.DrawButtons(Self.GetButtons());
-  Bitmap.DrawBoxArray(Self.GetTabBoxes(), False, $00FFFF);
-  Bitmap.DrawBoxArray(Self.GetSlotBoxes(), False, $00FFFF);
-  }
-end;
-
-
-(*
-Anvil.FindItemBoundaries
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSAnvil.FindItemBoundaries: TBoxArray;
-
-Finds item boundaries. This is an internal function used to retrieve the boxes we
-search for items in.
-
-Example
--------
-
-  Boxes := Self.FindItemBoundaries();
-  WriteLn ItemFinder.Find(Item, Boxes);
-*)
-function TRSAnvil.FindItemBoundaries(): TBoxArray;
-var
-  tpa: TPointArray;
-  atpa: T2DPointArray;
-  area: TBox;
-  i: Int32;
-begin
-  area := Self.ElementFinder.Bounds(Self.ELEMENT_ITEM_AREA);
-
-  SRL.FindColors(tpa, CTS0(65280), area);
-  atpa += tpa;
-  SRL.FindColors(tpa, CTS0(2070783), area);
-  atpa += tpa;
-
-  tpa := atpa.Merge();
-
-  if tpa = [] then
-    Exit;
-
-  Result := tpa.Cluster(10).ToTBA();
-  for i := 0 to High(Result) do
-  begin
-    Result[i].X1 -= 1;
-    Result[i].Y1 -= 44;
-    Result[i].X2 := Result[i].X1 + 50;
-    Result[i].Y2 += 3;
-  end;
-
-  //Result.SortByRow();
-end;
-
-procedure TRSAnvil.Setup(Name: String); override;
-begin
-  inherited;
-
-  Self.ItemFinder.Name := Name + '.ItemFinder';
-  Self.ItemFinder.GetSearchBoxesFunction := @Self.FindItemBoundaries;
-
-  with Self.BoundsFinder.Alignments[ERSClientMode.FIXED] do
-  begin
-    Left   := [@InterfaceArea.X1];
-    Right  := [@InterfaceArea.X2];
-    Top    := [@InterfaceArea.Y1, 2];
-    Bottom := [@InterfaceArea.Y2, -1];
-
-    Center.MaxWidth := 500;
-    Center.MaxHeight := 320;
-  end;
-
-  with Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_CLASSIC] do
-  begin
-    Left   := [@InterfaceArea.X1];
-    Right  := [@InterfaceArea.X2];
-    Top    := [@InterfaceArea.Y1, 2];
-    Bottom := [@InterfaceArea.Y2, -2];
-
-    Center.MaxWidth := 500;
-    Center.MaxHeight := 320;
-  end;
-
-  // Same as above
-  Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_MODERN] := Self.BoundsFinder.Alignments[ERSClientMode.RESIZABLE_CLASSIC];
-end;
 
 
 function TRSAnvil.SmithItem(item: TRSItem; quantity: Integer = MAKE_QUANTITY_ALL; useKeyboard: Boolean = True): Boolean;
@@ -257,17 +78,4 @@ begin
 
     Result := WaitUntil(not Self.IsOpen(), 100, 3000);
   end;
-end;
-
-
-(*
-var Anvil
-~~~~~~~~
-  Global Anvil variable.
-*)
-var
-  Anvil: TRSAnvil;
-
-begin
-  Anvil.Setup('Anvil');
 end;

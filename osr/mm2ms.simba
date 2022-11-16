@@ -123,7 +123,7 @@ begin
     [p.X, p.Y + 4], [p.X - 4, p.Y + 4], [p.X - 4, p.Y], [p.X - 4, p.Y - 4]
   ];
 
-  Result := Result.Rotate(Self.GetCompassAngle(False), p.X, p.Y);
+  Result := Result.Rotate(Self.GetCompassAngle(False), p);
 end;
 
 (*
@@ -140,7 +140,7 @@ var
 begin
   p := Self.Center();
   Result := [[p.X, p.Y - 4], [p.X + 4, p.Y], [p.X, p.Y + 4], [p.X - 4, p.Y]];
-  Result := Result.Rotate(Self.GetCompassAngle(False), p.X, p.Y);
+  Result := Result.Rotate(Self.GetCompassAngle(False), p);
 end;
 
 
@@ -159,31 +159,31 @@ Example
 
   WriteLn Minimap.PointWithinZoom([620, 100]);
 *)
-function TRSMinimap.PointWithinZoom(p: TPoint; out Corner: TPoint): Boolean;
+function TRSMinimap.PointWithinZoom(p: TPoint; out corner: TPoint): Boolean;
 var
   tpa: TPointArray;
 begin
   if not Self.IsPointOn(P) then
     Exit;
 
-  tpa := Self.GetZoomRectangle().Totpa().Sorted(P);
-  Corner := tpa[High(tpa)];
+  tpa := Self.GetZoomRectangle().ToTPA().SortFrom(P);
+  corner := tpa.Last();
 
-  Result := Self.Center().DistanceTo(P) <= Self.Center().DistanceTo(Corner);
+  Result := Self.Center().DistanceTo(P) <= Self.Center().DistanceTo(corner);
 end;
 
 function TRSMinimap.PointWithinZoom(p: TPoint): Boolean; overload;
 var
-  Corner: TPoint;
+  corner: TPoint;
 begin
-  Result := Self.PointWithinZoom(P, Corner);
+  Result := Self.PointWithinZoom(p, corner);
 end;
 
 function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
 begin
-  tpa.Sort(Self.Center());
+  tpa := tpa.SortFrom(Self.Center());
 
-  Result := Self.PointWithinZoom(tpa[Low(tpa)]);
+  Result := Self.PointWithinZoom(tpa.First());
 end;
 
 
@@ -210,12 +210,12 @@ begin
 
   tpa := Self.GetZoomRectangle().Totpa();
 
-  if SRL.PointInPoly(P, tpa) then
+  if PointInPolygon(p, tpa) then
     Exit(True);
 
-  tpa.Sort(P);
+  tpa := tpa.SortFrom(p);
 
-  d1 := Self.Center().DistanceTo(P);
+  d1 := Self.Center().DistanceTo(p);
 
   for i := 0 to High(tpa) do
   begin
@@ -226,7 +226,7 @@ begin
       Exit;
   end;
 
-  Self.SetCompassAngle(Self.Center().AngleBetween(tpa[i]) - Self.Center().AngleBetween(P) + randomness);
+  Self.SetCompassAngle(Self.Center().AngleBetween(tpa[i]) - Self.Center().AngleBetween(p) + randomness);
 end;
 
 (*
@@ -311,12 +311,12 @@ Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible 
 *)
 function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
 begin
-  Result := Self.AdjustZoomToPoint(P, Random(-5, 5)) and Self.FacePoint(P, Random(-5, 5));
+  Result := Self.AdjustZoomToPoint(p, Random(-5, 5)) and Self.FacePoint(p, Random(-5, 5));
 end;
 
 function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;
 begin
-  Result := Self.MakePointVisible(tpa.Sorted(Self.Center()));
+  Result := Self.MakePointVisible(tpa.SortFrom(Self.Center()));
 end;
 
 
@@ -393,7 +393,7 @@ begin
   if (angle = $FFFF) then
     angle := Self.GetCompassAngle(False);
 
-  locArray.Sort(Self.Center());
+  locArray := locArray.SortFrom(Self.Center());
 
   for i := 0 to High(locArray) do
     Result += Self.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle);
@@ -406,7 +406,7 @@ begin
   if (angle = $FFFF) then
     angle := Self.GetCompassAngle(False);
 
-  for loc in locArray.Sorted(Self.Center()) do
+  for loc in locArray.SortFrom(Self.Center()) do
     Result += Self.GetTileMS(loc, tile, offset, angle);
 end;
 

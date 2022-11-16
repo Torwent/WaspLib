@@ -68,60 +68,66 @@ end;
 //Filter circles circles within circles.
 //There are times we only want the inner circles, other's we want the outter ones.
 //not being used yet.
-function TRSDotFilterArray.FilterCircles(Inside: Boolean): TRSDotFilterArray;
+function TRSDotFilterArray.FilterCircles(inside: Boolean): TRSDotFilterArray;
 var
   i, j: Int32;
 begin
   Result := Self;
 
   for i := 0 to High(Self) do
+  begin
     for j := 0 to High(Self) do
+    begin
       if j <> i then
-        if SRL.PointInCircle(Self[j].Circle.Mean(), Self[i].Circle.Mean(), Self[i].Circle.Radius) then
-          if Inside then
+      begin
+        if Self[j].Circle.Mean().InCircle(Self[i].Circle.Mean(), Self[i].Circle.Radius) then
+          if inside then
             Delete(Result, i)
           else
             Delete(Result, j);
+      end;
+    end;
+  end;
 end;
 
 
 
-function TRSDotFilterArray._DotValidIn(P: TPoint): Boolean;
+function TRSDotFilterArray._DotValidIn(p: TPoint): Boolean;
 var
   i: Int32;
-  InPoly: Boolean;
-  InCircle: Boolean;
+  inPoly: Boolean;
+  inCircle: Boolean;
 begin
   for i := 0 to High(Self) do
   begin
     if Self[i].TPA <> [] then
-      InPoly := SRL.PointInPoly(P, Self[i].TPA);
+      inPoly := PointInPolygon(P, Self[i].TPA);
 
     if Self[i].Circle <> [] then
-      InCircle := SRL.PointInCircle(P, Self[i].Circle.Mean(), Self[i].Circle.Radius);
+      inCircle := p.InCircle(Self[i].Circle.Mean(), Self[i].Circle.Radius);
 
-    if InPoly or InCircle then
+    if inPoly or inCircle then
       Exit(True);
   end;
 
   Result := False;
 end;
 
-function TRSDotFilterArray._DotValidOut(P: TPoint): Boolean;
+function TRSDotFilterArray._DotValidOut(p: TPoint): Boolean;
 var
   i: Int32;
-  InPoly: Boolean;
-  InCircle: Boolean;
+  inPoly: Boolean;
+  inCircle: Boolean;
 begin
   for i := 0 to High(Self) do
   begin
     if Self[i].TPA <> [] then
-      InPoly := SRL.PointInPoly(P, Self[i].TPA);
+      inPoly := PointInPolygon(p, Self[i].TPA);
 
     if Self[i].Circle <> [] then
-      InCircle := SRL.PointInCircle(P, Self[i].Circle.Mean(), Self[i].Circle.Radius);
+      inCircle := p.InCircle(Self[i].Circle.Mean(), Self[i].Circle.Radius);
 
-    if InPoly or InCircle then
+    if inPoly or inCircle then
       Exit(False);
   end;
 
@@ -290,17 +296,15 @@ Example
 function TRSMinimap.GetDotInCircle(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TPoint;
 var
   i: Int32;
-  Dots: TPointArray;
-  Circle: TCircle;
+  dots: TPointArray;
+  circle: TCircle;
 begin
-  Dots := Self.GetDots(Dot);
+  dots := Self.GetDots(Dot).SortFrom(Self.Center());
 
-  Dots.Sort(Self.Center);
-
-  Circle := Self.GetCircle(Loc, Radius, Offset);
-  for i := 0 to High(Dots) do
-    if SRL.PointInCircle(Dots[i], Circle.Mean(), Circle.Radius) then
-      Exit(Dots[i]);
+  circle := Self.GetCircle(Loc, Radius, Offset);
+  for i := 0 to High(dots) do
+    if dots[i].InCircle(Circle.Mean(), Circle.Radius) then
+      Exit(dots[i]);
 end;
 
 (*
@@ -348,20 +352,19 @@ Example
     FreeBitmap(Bitmap);
   end;
 *)
-function TRSMinimap.GetDotArrayInCircle(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+function TRSMinimap.GetDotArrayInCircle(dot: ERSMinimapDot; loc: TPoint; radius: Int32; offset: TPoint = [0, 0]): TPointArray;
 var
   i: Int32;
-  Dots: TPointArray;
-  Circle: TCircle;
+  dots: TPointArray;
+  circle: TCircle;
 begin
-  Dots := Self.GetDots(Dot);
+  dots := Self.GetDots(dot).SortFrom(Self.Center());
 
-  Dots.Sort(Self.Center);
-
-  Circle := Self.GetCircle(Loc, Radius, Offset);
-  for i := 0 to High(Dots) do
-    if SRL.PointInCircle(Dots[i], Circle.Mean(), Circle.Radius) then
-      Result += Dots[i];
+  circle := Self.GetCircle(loc, radius, offset);
+  //TODO: use exclude dist instead!
+  for i := 0 to High(dots) do
+    if dots[i].InCircle(circle.Mean(), circle.Radius) then
+      Result += dots[i];
 end;
 
 (*
@@ -373,31 +376,29 @@ Same as above but for an array of circles.
 Returns all dots found in each circle in the array.
 It's a bit hard to explain it's uses but I personally use it in RSMMDots to accurately find the Minimap Dots while filtering out the ones I do not want.
 *)
-function TRSMinimap.GetDotArrayInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
+function TRSMinimap.GetDotArrayInCircleArray(dot: ERSMinimapDot; locs: TPointArray; radius: Int32; offset: TPoint = [0, 0]): TPointArray;
 var
   i: Int32;
-  ATPA: T2DPointArray;
+  atpa: T2DPointArray;
 begin
   for i := 0 to High(Locs) do
-    ATPA += Self.GetDotArrayInCircle(Dot, Locs[i], Radius, Offset);
+    atpa += Self.GetDotArrayInCircle(dot, locs[i], radius, offset);
 
-  Result := ATPA.Merge;
-
-  Result.Sort(Self.Center);
+  Result := atpa.Merge().SortFrom(Self.Center());
 end;
 
-function TRSMinimap.GetFilteredDotArray(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray): TPointArray;
+function TRSMinimap.GetFilteredDotArray(dot: ERSMinimapDot; dotFilters: TRSDotFilterArray): TPointArray;
 begin
-  Result := DotFilters.FilterDots(Self.GetDots(Dot));
+  Result := dotFilters.FilterDots(Self.GetDots(dot));
 end;
 
-function TRSMinimap.GetFilteredDot(Dot: ERSMinimapDot; DotFilters: TRSDotFilterArray): TPoint;
+function TRSMinimap.GetFilteredDot(dot: ERSMinimapDot; dotFilters: TRSDotFilterArray): TPoint;
 var
-  Dots: TPointArray;
+  dots: TPointArray;
 begin
-  Dots := Self.GetFilteredDotArray(Dot, DotFilters);
-  if Dots <> [] then
-    Result := Dots[0];
+  dots := Self.GetFilteredDotArray(dot, dotFilters);
+  if dots <> [] then
+    Result := dots.First();
 end;
 
 

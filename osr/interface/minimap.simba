@@ -12,7 +12,7 @@ Methods to handle Minimap. Extends SRL's Minimap.
 (*
 Minimap.WaitMoving
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSMinimap.WaitMoving(DoAntiban: Boolean = True);
+.. pascal:: procedure TRSMinimap.WaitMoving(doAntiban: Boolean = True);
 
 Gives **Minimap.WaitPlayerMoving** the ability to perform antiban tasks while moving.
 
@@ -23,28 +23,28 @@ Example
 
   Minimap.WaitMoving;
 *)
-procedure TRSMinimap.WaitMoving(DoAntiban: Boolean = True);
+procedure TRSMinimap.WaitMoving(doAntiban: Boolean = True);
 var
-  Timeout, Countdown: TCountDown;
-  Moving: Boolean;
+  timout, countdown: TCountDown;
+  moving: Boolean;
 begin
-  Timeout.Init(Round(SRL.TruncatedGauss(20000, 25000)));
+  timout.Init(Round(RandomLeft(20000, 25000)));
 
-  Countdown.Init(Round(SRL.TruncatedGauss(500, 1500)));
-  Countdown.Timeout := GetTickCount + Round(SRL.TruncatedGauss(2500, 3500));
+  countdown.Init(Round(RandomLeft(500, 1500)));
+  countdown.timout := GetTickCount() + Round(RandomLeft(2500, 3500));
 
   repeat
     //Self.CheckRunEnergy();
 
-    if DoAntiban then
+    if doAntiban then
       Antiban.WaitMovingTasks();
 
-    Moving := Minimap.IsPlayerMoving();
+    moving := Self.IsPlayerMoving();
 
-    if Moving then
-      Countdown.Restart();
+    if moving then
+      countdown.Restart();
 
-  until Timeout.IsFinished() or Countdown.IsFinished() or not Minimap.HasFlag() or not Moving;
+  until timout.IsFinished() or countdown.IsFinished() or not Self.HasFlag() or not moving;
 end;
 
 (*
@@ -63,13 +63,13 @@ Example
 *)
 function TRSMinimap.IsEnvenomed(): Boolean;
 begin
-  Result := SRL.CountColor(CTS0(1515790, 9), Self.GetHPCircle.Bounds) > 0;
+  Result := SRL.CountColor(CTS0(1515790, 9), Self.GetHPCircle().Bounds()) > 0;
 end;
 
 //TODO: ADD TO SRL, the current one doesn't work.
 function TRSMinimap.IsPoisoned(): Boolean; override;
 begin
-  Result := SRL.CountColor(CTS0(16391, 3), Self.GetHPCircle.Bounds) > 0;
+  Result := SRL.CountColor(CTS0(16391, 3), Self.GetHPCircle().Bounds()) > 0;
 end;
 
 (*
@@ -88,7 +88,7 @@ Example
 *)
 function TRSMinimap.HasStamina(): Boolean;
 begin
-  Result := SRL.CountColor(CTS0(2709951, 38), Self.GetRunCircle.Bounds) > 0;
+  Result := SRL.CountColor(CTS0(2709951, 38), Self.GetRunCircle().Bounds()) > 0;
 end;
 
 (*
@@ -111,11 +111,11 @@ var
   p: TPoint;
   tpa, finalTPA: TPointArray;
 begin
-  if SRL.FindColors(tpa, 0, Self.Bounds()) = 0 then
+  if SRL.FindColors(tpa, 0, Self.Bounds()()) = 0 then
     Exit(True);
 
   for p in tpa do
-    if SRL.PointInPoly(p, Self.GetPolygon()) then
+    if PointInPolygon(p, Self.GetPolygon()) then
       finalTPA += p;
 
   Result := Length(finalTPA) < 3300;
@@ -136,7 +136,7 @@ Example
 
 .. code-block:: pascal
 
-  WriteLn Minimap.InPOH;
+  WriteLn Minimap.InPOH();
 *)
 function TRSMinimap.InPOH(): Boolean;
 var
@@ -146,15 +146,12 @@ var
   colorAmount: Int32;
 begin
   tpa := Self.GetPolygon().Connect();
-  tpa.Fill();
-  tpa := tpa.Erode(10);
+  tpa := tpa.ShapeFill().Erode(10);
 
   colorArray := GetColors(tpa);
-  blackAmount := ColorArray.IndicesOf(0).Length();
+  blackAmount := colorArray.IndicesOf(0).Length();
 
-  ClearSameIntegers(colorArray);
-
-  colorAmount := Length(colorArray);
+  colorAmount := Length(colorArray.Unique());
   Result := (colorAmount > 3) and (colorAmount < 25) and (blackAmount < 3500);
 end;
 
@@ -171,28 +168,23 @@ If a TPointArray is passed as a parameter it will return with the location of th
 Example
 -------
 
-  Writeln Minimap.FindRedArrow;
+  Writeln Minimap.FindRedArrow();
 *)
-function TRSMinimap.FindRedArrow(out TPA: TPointArray): Boolean;
+function TRSMinimap.FindRedArrow(out tpa: TPointArray): Boolean;
 begin
-  Result := (SRL.FindColors(TPA, CTS0(255, 0), Self.Bounds) > 0) and
-            (Length(TPA) <= 84);
-
+  Result := InRange(SRL.FindColors(tpa, CTS0(255, 0), Self.Bounds()), 1, 84);
 end;
 
-function TRSMinimap.FindRedArrow: Boolean; overload;
-var
-  TPA: TPointArray;
+function TRSMinimap.FindRedArrow(): Boolean; overload;
 begin
-  Result := (SRL.FindColors(TPA, CTS0(255, 0), Self.Bounds) > 0) and
-            (Length(TPA) <= 84);
+  Result := InRange(SRL.CountColor(CTS0(255, 0), Self.Bounds()), 1, 84);
 end;
 
 (*
 Minimap.FindYellowArrow
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSMinimap.FindYellowArrow(out TPA: TPointArray): Boolean;
-.. pascal:: function TRSMinimap.FindYellowArrow: Boolean; overload;
+.. pascal:: function TRSMinimap.FindYellowArrow(): Boolean; overload;
 
 Returns true if there's a yellow arrow on minimap.
 If a TPointArray is passed as a parameter it will return with the location of the arrow tip.
@@ -200,28 +192,23 @@ If a TPointArray is passed as a parameter it will return with the location of th
 Example
 -------
 
-  Writeln Minimap.FindYellowArrow;
+  Writeln Minimap.FindYellowArrow();
 *)
-function TRSMinimap.FindYellowArrow(out TPA: TPointArray): Boolean;
+function TRSMinimap.FindYellowArrow(out tpa: TPointArray): Boolean;
 begin
-  Result := (SRL.FindColors(TPA, CTS0(1767418, 0), Self.Bounds) > 0) and
-            (Length(TPA) <= 16);
-
+  Result := InRange(SRL.FindColors(tpa, CTS0(1767418, 0), Self.Bounds()), 1, 16);
 end;
 
-function TRSMinimap.FindYellowArrow: Boolean; overload;
-var
-  TPA: TPointArray;
+function TRSMinimap.FindYellowArrow(): Boolean; overload;
 begin
-  Result := (SRL.FindColors(TPA, CTS0(1767418, 0), Self.Bounds) > 0) and
-            (Length(TPA) <= 16);
+  Result := InRange(SRL.CountColor(CTS0(1767418, 0), Self.Bounds()), 1, 16);
 end;
 
 (*
 MainScreen.FindArrow
 ~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSMainScreen.FindArrow(out TPA: TPointArray): Boolean;
-.. pascal:: function TRSMainScreen.FindArrow: Boolean; overload;
+.. pascal:: function TRSMainScreen.FindArrow(): Boolean; overload;
 
 Returns true if there's a red or yellow arrow on screen.
 If a TPointArray is passed as a parameter it will return with the location of the arrow.
@@ -229,16 +216,16 @@ If a TPointArray is passed as a parameter it will return with the location of th
 Example
 -------
 
-  Writeln MainScreen.FindArrow;
+  Writeln MainScreen.FindArrow();
 *)
-function TRSMinimap.FindArrow(out TPA: TPointArray): Boolean;
+function TRSMinimap.FindArrow(out tpa: TPointArray): Boolean;
 begin
-  Result := Self.FindYellowArrow(TPA) or Self.FindRedArrow(TPA);
+  Result := Self.FindYellowArrow(tpa) or Self.FindRedArrow(tpa);
 end;
 
-function TRSMinimap.FindArrow: Boolean; overload;
+function TRSMinimap.FindArrow(): Boolean; overload;
 begin
-  Result := Self.FindYellowArrow or Self.FindRedArrow;
+  Result := Self.FindYellowArrow() or Self.FindRedArrow();
 end;
 
 
@@ -259,7 +246,7 @@ Example
 function TRSMinimap.WaitRedArrow(out TPA: TPointArray; WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
   Result := WaitUntil(Self.FindRedArrow(TPA), Interval, WaitTime);
 end;
@@ -267,7 +254,7 @@ end;
 function TRSMinimap.WaitRedArrow(WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean; overload;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
   Result := WaitUntil(Self.FindRedArrow, Interval, WaitTime);
 end;
@@ -289,7 +276,7 @@ Example
 function TRSMinimap.WaitYellowArrow(out TPA: TPointArray; WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
   Result := WaitUntil(Self.FindYellowArrow(TPA), Interval, WaitTime);
 end;
@@ -297,7 +284,7 @@ end;
 function TRSMinimap.WaitYellowArrow(WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean; overload;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
   Result := WaitUntil(Self.FindYellowArrow, Interval, WaitTime);
 end;
@@ -314,22 +301,22 @@ If a TPointArray is passed as a parameter it will return with the location of th
 Example
 -------
 
-  Writeln Minimap.WaitArrow;
+  Writeln Minimap.WaitArrow();
 *)
-function TRSMinimap.WaitArrow(out TPA: TPointArray; WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean;
+function TRSMinimap.WaitArrow(out TPA: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
 begin
-  if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+  if (interval = -1) then
+    interval := RandomLeft(50, 200);
 
-  Result := WaitUntil(Self.FindArrow(TPA), Interval, WaitTime);
+  Result := WaitUntil(Self.FindArrow(TPA), interval, waitTime);
 end;
 
-function TRSMinimap.WaitArrow(WaitTime: Int32 = 120; Interval: Int32 = -1): Boolean; overload;
+function TRSMinimap.WaitArrow(waitTime: Int32 = 120; interval: Int32 = -1): Boolean; overload;
 begin
   if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+    Interval := RandomLeft(50, 200);
 
-  Result := WaitUntil(Self.FindArrow, Interval, WaitTime);
+  Result := WaitUntil(Self.FindArrow, interval, waitTime);
 end;
 
 

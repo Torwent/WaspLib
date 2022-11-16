@@ -20,7 +20,7 @@ begin
 
   Self.ElementFinder.Click(Self.ELEMENT_HOUSE_LEAVE);
 
-  Result := WaitUntil(not Self.IsHouseOptionsOpen(), SRL.TruncatedGauss(50, 1500), 5000);
+  Result := WaitUntil(not Self.IsHouseOptionsOpen(), RandomLeft(50, 1500), 5000);
 end;
 
 function TRSOptions.CallServant(): Boolean;
@@ -33,31 +33,43 @@ begin
   Self.ElementFinder.Click(Self.ELEMENT_HOUSE_SERVANT);
 
   Result := WaitUntil(((s := Chat.GetChatTitle()) = 'Demon buttler') or
-                       (s = 'Repeat last task?'), SRL.TruncatedGauss(50, 1500), 5000);
+                       (s = 'Repeat last task?'), RandomLeft(50, 1500), 5000);
 end;
 
 procedure TRSOptions.RenderSelf();
 begin
-  if SRL.CountColor(CHAT_COLOR_BLUE, Chat.ElementFinder.Bounds(Chat.ELEMENT_LINE_INPUT)) > 14 then
+  if SRL.CountColor(CHAT_COLOR_BLUE, Chat.GetInputLineBox()) > 14 then
     Keyboard.PressKey(VK_ENTER);  //Clear input line.
 
   Keyboard.Send('::renderself', VK_ENTER);
 end;
 
 function TRSOptions.GetRoofsState(): Boolean;
-var
-  s: String;
 begin
-  s := {$IFDEF WINDOWS}GetEnvironmentVariable('userprofile'){$ELSE}GetEnvironmentVariable('HOME'){$ENDIF};
-  s := ReadFileContents(s + '\jagexcache\oldschool\LIVE\preferences.dat');
+  Result := RSCacheParser.RoofsHidden();
+end;
 
-  if s.Length() >= 2 then
-    Result := Boolean(s[2]);
+function TRSOptions.GetBrightness(): Int32;
+begin
+  Result := RSCacheParser.Brightness();
+end;
+
+function TRSOptions.SetMaxBrightness(): Boolean; override;
+begin
+  if Self.GetBrightness() = 100 then
+    Exit(True);
+
+  if Self.OpenTab(ERSOptionsTab.DISPLAY) then
+  begin
+    with Self.ElementFinder.Bounds(Self.ELEMENT_SLIDER_BRIGHTNESS) do
+      Mouse.Click(X2 + Random(3, 5), Random(Y1, Y2), MOUSE_LEFT);
+    Result := Self.GetBrightness() = 100;
+  end;
 end;
 
 procedure TRSOptions.ToggleRoofs();
 begin
-  if SRL.CountColor(CHAT_COLOR_BLUE, Chat.ElementFinder.Bounds(Chat.ELEMENT_LINE_INPUT)) > 14 then
+  if SRL.CountColor(CHAT_COLOR_BLUE, Chat.GetInputLineBox()) > 14 then
     Keyboard.PressKey(VK_ENTER); //Clear input line.
 
   Keyboard.Send('::toggleroofs', VK_ENTER);
@@ -119,13 +131,17 @@ begin
   Result := Self.ElementFinder.SelectSetting(setting, OptionsExtended.ELEMENT_NPC_ATTACK_DD, [RSColors.TEXT_ORANGE, RSColors.TEXT_ORANGE_LIGHT], RS_FONT_PLAIN_11);
 end;
 
+begin
+  OptionsExtended.Setup('OptionsExtended');
+end;
 
-procedure TRSOptions.Draw(Bitmap: TMufasaBitmap); override;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
 var
   elements: TRSInterfaceDropDownArray;
   e: TRSInterfaceDropDown;
 begin
-  if not Self.IsOpen() then
+  if not Options.IsOpen() then
     Exit;
 
   inherited;
@@ -134,12 +150,8 @@ begin
 
   for e in elements do
   begin
-    Bitmap.DrawBox(OptionsExtended.ElementFinder.Bounds(e), Colors.YELLOW);
+    bitmap.DrawBox(OptionsExtended.ElementFinder.Bounds(e), Colors.YELLOW);
     if OptionsExtended.ElementFinder.IsOpen(e) then
-      Bitmap.DrawBox(OptionsExtended.ElementFinder.DDBounds(e), Colors.WHITE);
+      bitmap.DrawBox(OptionsExtended.ElementFinder.DDBounds(e), Colors.WHITE);
   end;
-end;
-
-begin
-  OptionsExtended.Setup('OptionsExtended');
 end;

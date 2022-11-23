@@ -1,3 +1,12 @@
+## [9.0.19](https://github.com/Torwent/WaspLib/compare/v9.0.18...v9.0.19) (2022-11-23)
+
+
+### Bug Fixes
+
+* bump version ([edea9c9](https://github.com/Torwent/WaspLib/commit/edea9c9f372f370646c7eea6f579408e3b468f99))
+
+
+
 ## [9.0.18](https://github.com/Torwent/WaspLib/compare/v9.0.17...v9.0.18) (2022-11-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** minor fix to pollnivneach rooftop map ([72ab30b](https://github.com/Torwent/WaspLib/commit/72ab30ba10d9af20df94e857f243d24d3347db62))
-
-
-
-## [9.0.14](https://github.com/Torwent/WaspLib/compare/v9.0.13...v9.0.14) (2022-10-18)
-
-
-### Bug Fixes
-
-* **coordinates:** fixed coordinates of rogues den ([e42e7a2](https://github.com/Torwent/WaspLib/commit/e42e7a23c4bb6ec6d734319cdb43765db8049c5c))
 
 
 

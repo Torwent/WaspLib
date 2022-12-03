@@ -1,0 +1,204 @@
+{$DEFINE WL_WORLDSWITCHER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TRSWorld = record
+    World: Int32;
+    Members: Boolean;
+    //Country: String;
+    Population: Int32;
+    //Activity: String;
+    Bounds: TBox;
+  end;
+
+  TRSWorldArray = array of TRSWorld;
+
+  TRSWorldSwitcher = record(TRSLogout)
+  class var
+    CurrentWorld: Int32;
+  end;
+
+function TRSWorldSwitcher.OpenWorldSwitcher(): Boolean;
+begin
+  if not Self.Open() then
+    Exit;
+
+  if Self.IsWorldSwitcherOpen() then
+    Exit(True);
+
+  Self.ElementFinder.Click(Self.ELEMENT_BUTTON_WS);
+
+  Result := WaitUntil(Self.IsWorldSwitcherOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+function TRSWorldSwitcher.GetCurrentWorld(): Int32;
+var
+  str: String;
+begin
+  if not Self.OpenWorldSwitcher() then
+    Exit(-1);
+
+  str := Self.ElementFinder.ReadText(Self.ELEMENT_BUTTON_WS_WORLD, [RSColors.TEXT_ORANGE], RS_FONT_BOLD_12);
+
+  Result := str.After('-').ExtractInteger(-1);
+end;
+
+
+function TRSWorldSwitcher.GetWorld(b: TBox): Int32;
+begin
+  b.X1 += 20;
+  b.X2 := b.X1 + 19;
+  b.Y1 += 2;
+  b.Y2 -= 3;
+
+  Result := OCR.RecognizeNumber(b, TOCRColorFilter.Create([$00F0F0, $E0E0E0]), RS_FONT_PLAIN_12);
+end;
+
+function TRSWorldSwitcher.GetPopulation(b: TBox): Int32;
+begin
+  b.X1 += 77;
+  b.X2 := b.X1 + 21;
+  b.Y1 += 3;
+  b.Y2 -= 4;
+  Result := OCR.RecognizeNumber(b, TOCRColorFilter.Create([RSColors.TEXT_WHITE]), RS_FONT_PLAIN_11);
+end;
+
+function TRSWorldSwitcher.IsMembers(b: TBox): Boolean;
+begin
+  b.X1 += 1;
+  b.X2 := b.X1 + 13;
+  b.Y1 += 1;
+
+  ShowOnClient(b);
+  Result := SRL.CountColor(CTS2(13536759, 24, 1.00, 0.57), b) > 0;
+end;
+
+
+function TRSWorldSwitcher.GetWorldBoxes(membersOnly: Boolean = True): TBoxArray;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+begin
+  if not Self.IsWorldSwitcherOpen() then
+    Exit;
+
+  if SRL.FindColors(tpa, RSColors.TEXT_WHITE, Logout.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(4, 1).SortByY(True);
+
+  for tpa in atpa do
+  begin
+    b := tpa.Bounds();
+    b.X1 := Self.Bounds.X1;
+    b.X2 := Self.Bounds.X2 - 16;
+    b.Y1 -= 3;
+    b.Y2 += 4;
+
+    if b.Y1 < (Self.Bounds().Y1 + 35) then
+      b.Y1 := Self.Bounds().Y1 + 35;
+
+    if b.Y2 > (Self.Bounds().Y2 - 33) then
+      b.Y2 := Self.Bounds().Y2 - 33;
+
+    if b.Height > 14 then
+    begin
+      if not membersOnly or Self.IsMembers(b) then
+        Result += b;
+    end;
+  end;
+end;
+
+
+function TRSWorldSwitcher.GetWorlds(membersOnly: Boolean = True): TRSWorldArray;
+var
+  b: TBox;
+  w: TRSWorld;
+begin
+  if not Self.Open() or not Self.OpenWorldSwitcher() then
+    Exit;
+
+  for b in Self.GetWorldBoxes(membersOnly) do
+  begin
+    w.World := Self.GetWorld(b);
+    w.Members := Self.IsMembers(b);
+    w.Population := Self.GetPopulation(b);
+    w.Bounds := b;
+
+    Result += w;
+    w := [];
+  end;
+end;
+
+function TRSWorldSwitcher.IsLoading(): Boolean;
+var
+  b: TBox;
+  str: String;
+begin
+  b := [7, 7, 80, 24];
+  ShowOnClient(b);
+  str := OCR.Recognize(b, TOCRColorFilter.Create([$FFFFFF]), RS_FONT_PLAIN_12);
+  WriteLn str;
+  Result := 'Please wait' in str;
+end;
+
+function TRSWorldSwitcher.WaitLoading(waitTime: Int32 = 10000): Boolean;
+begin
+  Result := WaitUntil(not Self.IsLoading(), 100, waitTime);
+end;
+
+
+
+
+function TRSWorldSwitcher.Switch(membersOnly: Boolean = True): Boolean;
+var
+  worlds: TRSWorldArray;
+  i: Int32;
+  current: Int32;
+begin
+  worlds := Self.GetWorlds(membersOnly);
+
+  if worlds = [] then
+    Exit;
+
+  current := Self.GetCurrentWorld();
+
+  for i := 0 to High(worlds) do
+  begin
+    if worlds[i].World = current then
+    begin
+      if (i+1) > High(worlds) then
+        Mouse.Click(worlds[0].Bounds, MOUSE_LEFT)
+      else
+        Mouse.Click(worlds[i+1].Bounds, MOUSE_LEFT);
+
+      Break;
+    end;
+
+    if i >= High(worlds) then
+      Mouse.Click(worlds[0].Bounds, MOUSE_LEFT);
+  end;
+
+  if WaitUntil(Self.IsLoading() or ChatDialog.IsTitle('Switch') or ChatDialog.HasContinue(), 100, 3000) then
+    Exit(False);
+
+  if Self.IsLoading() then
+    Exit(Self.WaitLoading());
+
+  if ChatDialog.IsTitle('Switch') and ChatDialog.ClickOption('Yes.', True) and
+     WaitUntil(Self.IsLoading(), 100, 3000) then
+      Exit(Self.WaitLoading());
+
+  if ChatDialog.HasContinue() then
+    TerminateScript('DANGEROUS WORLD!');
+end;
+
+var
+  WorldSwitcher: TRSWorldSwitcher;
+
+begin
+  WorldSwitcher.Setup('WorldSwitcher');
+end;

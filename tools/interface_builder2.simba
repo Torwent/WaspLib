@@ -1,0 +1,322 @@
+{$I WaspLib/osr.simba}
+{$HINTS OFF}
+
+type
+  TRSInterfaceBuilder = record
+    Form: TForm;
+    ShapeBox: TSimbaShapeBox;
+    Name: String;
+    Bounds: TBox;
+    Menu: TMainMenu;
+    InterfaceMenu: TMenuItem;
+    Elements: array of record
+      Name: String;
+      Value: String;
+    end;
+  end;
+
+function TRSInterfaceBuilder.ElementToBox(Element: TRSInterfaceElement): TBox;
+begin
+  case Element.Anchor of
+    ERSInterfaceElementAnchor.TOP:
+      begin
+        Result.X1 := Element.X;
+        Result.Y1 := Element.Y;
+
+        Result.X2 := Result.X1 + Element.Width;
+        Result.Y2 := Result.Y1 + Element.Height;
+      end;
+
+    ERSInterfaceElementAnchor.BOTTOM:
+      begin
+        Result.X1 := Element.X;
+        Result.Y2 := Self.Bounds.Height() - Element.Y;
+
+        Result.X2 := Result.X1 + Element.Width;
+        Result.Y1 := Result.Y2 - Element.Height;
+      end;
+  end;
+end;
+
+function TRSInterfaceBuilder.BoxToElement(Box: TBox; Anchor: ERSInterfaceElementAnchor): TRSInterfaceElement;
+begin
+  case Anchor of
+    ERSInterfaceElementAnchor.TOP:
+      begin
+        Result.X := Box.X1;
+        Result.Y := Box.Y1;
+      end;
+    ERSInterfaceElementAnchor.BOTTOM:
+      begin
+        Result.X := Box.X1;
+        Result.Y := Self.Bounds.Height() - Box.Y2;
+      end;
+  end;
+
+  Result.Anchor := Anchor;
+  Result.Width := Box.Width - 1;
+  Result.Height := Box.Height - 1;
+end;
+
+procedure TRSInterfaceBuilder.DoAlignmentClick(Sender: TObject);
+var
+  Element: PRSInterfaceElement;
+begin
+  if (Self.ShapeBox.ShapeIndex = -1) then
+    Exit;
+  Element := Self.ShapeBox.GetShape(Self.ShapeBox.ShapeIndex).UserData;
+
+  case TButton(Sender).GetCaption() of
+    'Top Alignment':    Element^.Anchor := ERSInterfaceElementAnchor.TOP;
+    'Bottom Alignment': Element^.Anchor := ERSInterfaceElementAnchor.BOTTOM;
+  end;
+end;
+
+procedure TRSInterfaceBuilder.DoPaintShapeBox(Sender: TObject; Bitmap: TSimbaImageBoxBitmap; Rect: TRect);
+var
+  Index: Integer;
+  Shape: TShapeBoxShape;
+begin
+  Index := Self.ShapeBox.ShapeIndex();
+  if (Index > -1) then
+  begin
+    Shape := Self.ShapeBox.GetShape(Index);
+
+    case PRSInterfaceElement(Shape.UserData)^.Anchor of
+      ERSInterfaceElementAnchor.TOP:
+        begin
+          Bitmap.DrawLineGap(TPoint.Create(Shape.Box.X1, Shape.Box.Y1), TPoint.Create(Rect.Left, Shape.Box.Y1), 5, Colors.YELLOW);
+          Bitmap.DrawLineGap(TPoint.Create(Shape.Box.X1, Shape.Box.Y1), TPoint.Create(Shape.Box.X1, Rect.Top), 5, Colors.YELLOW);
+        end;
+
+       ERSInterfaceElementAnchor.BOTTOM:
+        begin
+          Bitmap.DrawLineGap(TPoint.Create(Shape.Box.X1, Shape.Box.Y2), TPoint.Create(Rect.Left, Shape.Box.Y2), 5, Colors.YELLOW);
+          Bitmap.DrawLineGap(TPoint.Create(Shape.Box.X1, Shape.Box.Y2), TPoint.Create(Shape.Box.X1, Rect.Bottom), 5, Colors.YELLOW);
+        end;
+    end;
+  end;
+end;
+
+procedure TRSInterfaceBuilder.OnUpdateImageButtonClick(Sender: TObject);
+begin
+  with Self.Bounds do
+    Self.ShapeBox.SetBackground(Client.GetIOManager(), X1, Y1, X2, Y2);
+end;
+
+procedure TRSInterfaceBuilder.OnFormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Self.PrintElements();
+end;
+
+procedure TRSInterfaceBuilder.InterfaceMenuClick(Sender: TObject);
+
+  function SortByName(constref Left, Right: record Name: String; Value: String; end): Integer; static;
+  begin
+    Result := -CompareText(Left.Name, Right.Name);
+  end;
+
+  procedure SetInterface(Name: String; Bounds: TBox; Fields: TStringArray);
+  var
+    I: Integer;
+  begin
+    Self.Name := Name;
+    Self.Bounds := Bounds;
+    Self.Elements.Clear();
+    for I := 0 to High(Fields) with 3 do
+    begin
+      if Fields[I+1] <> 'TRSInterfaceElement' then
+        Continue;
+
+      Self.Elements += [Fields[I], Fields[I+2]];
+    end;
+
+    Self.Elements := Sorted(Self.Elements , @SortByName);
+  end;
+
+begin
+
+  case TMenuItem(Sender).GetCaption() of
+    'Furnace':
+      SetInterface('Furnace', Furnace.Bounds, RTTIClassFields(Furnace));
+
+    'Bank':
+      SetInterface('Bank', Bank.Bounds, RTTIClassFields(Bank));
+
+    'BankPin':
+      SetInterface('BankPin', BankPin.Bounds, RTTIClassFields(BankPin));
+
+    'DepositBox':
+      SetInterface('DepositBox', DepositBox.Bounds, RTTIClassFields(DepositBox));
+
+    'GrandExchange':
+      SetInterface('GrandExchange', GrandExchange.Bounds, RTTIClassFields(GrandExchange));
+
+    'Login':
+      SetInterface('Login', Login.Bounds, RTTIClassFields(Login));
+
+    'Chat':
+       SetInterface('Chat', Chat.Bounds, RTTIClassFields(Chat));
+
+    'Equipment':
+       SetInterface('Equipment', Equipment.Bounds, RTTIClassFields(Equipment));
+
+    'Anvil':
+       SetInterface('Anvil', Anvil.Bounds, RTTIClassFields(Anvil));
+
+    'Store':
+       SetInterface('Store', Store.Bounds, RTTIClassFields(Store));
+
+    'CollectBox':
+       SetInterface('CollectBox', CollectBox.Bounds, RTTIClassFields(CollectBox));
+
+    'XPSetup':
+       SetInterface('XPSetup', XPSetup.Bounds, RTTIClassFields(XPSetup));
+    else
+      ShowMessage(TMenuItem(Sender).GetCaption() + ' not mapped');
+  end;
+
+  Self.OnUpdateImageButtonClick(nil);
+  Self.LoadElements();
+end;
+
+procedure TRSInterfaceBuilder.LoadInterfaces;
+var
+  I: Integer;
+begin
+  for I := 0 to High(RSInterfaces) do
+    with Self.InterfaceMenu.AddMenu(RSInterfaces[I]^.Name) do
+      SetOnClick(@Self.InterfaceMenuClick);
+end;
+
+procedure TRSInterfaceBuilder.LoadElements;
+
+  function StringToElement(Str: String): TRSInterfaceElement;
+  begin
+    Result.X      := Str.Between('X = ', ',').ToInteger();
+    Result.Y      := Str.Between('Y = ', ',').ToInteger();
+    Result.Width  := Str.Between('WIDTH = ', ',').ToInteger();
+    Result.Height := Str.Between('HEIGHT = ', ',').ToInteger();
+
+    case Str.Between('ANCHOR = ', '}') of
+      'ERSInterfaceElementAnchor.TOP':    Result.Anchor := ERSInterfaceElementAnchor.TOP;
+      'ERSInterfaceElementAnchor.BOTTOM': Result.Anchor := ERSInterfaceElementAnchor.BOTTOM;
+    end;
+  end;
+
+var
+  I: Integer;
+  Element: TRSInterfaceElement;
+begin
+  Self.ShapeBox.DeleteAllShapes();
+
+  for I := 0 to High(Self.Elements) do
+  begin
+    Element := StringToElement(Self.Elements[I].Value);
+
+    Self.ShapeBox.ManualAddBox(Self.ElementToBox(Element), Self.Elements[I].Name, Element);
+  end;
+end;
+
+procedure TRSInterfaceBuilder.PrintElements;
+var
+  I, MaxLen: Integer;
+  Shape: TShapeBoxShape;
+  Elements, ElementNames: TStringArray;
+  Padding: String;
+begin
+  ElementNames.SetLength(Self.ShapeBox.ShapeCount());
+  for I := 0 to Self.ShapeBox.ShapeCount - 1 do
+  begin
+    ElementNames[I] := Self.ShapeBox.GetShape(I).Name;
+    ElementNames[I] := ElementNames[I].ToUpper().Replace(' ', '_');
+    if (not ElementNames[I].StartsWith('ELEMENT_')) then
+      ElementNames[I] := 'ELEMENT_' + ElementNames[I];
+
+    if (ElementNames[I].Length() > MaxLen) then
+      MaxLen := ElementNames[I].Length();
+  end;
+
+  for I := 0 to Self.ShapeBox.ShapeCount - 1 do
+  begin
+    Shape := Self.ShapeBox.GetShape(I);
+    Padding := ' ' * (MaxLen - ElementNames[I].Length());
+
+    with Self.BoxToElement(Shape.Box, PRSInterfaceElement(Shape.UserData)^.Anchor) do
+      if (Anchor = ERSInterfaceElementAnchor.BOTTOM) then
+        Elements += '%s: %sTRSInterfaceElement = [%d, %d, %d, %d, ERSInterfaceElementAnchor.BOTTOM];'.Format([ElementNames[I], Padding, X, Y, Width, Height])
+      else
+        Elements += '%s: %sTRSInterfaceElement = [%d, %d, %d, %d];'.Format([ElementNames[I], Padding, X, Y, Width, Height]);
+  end;
+
+  ClearDebug();
+  for I := 0 to Elements.High() do
+    WriteLn(Elements[I]);
+end;
+
+procedure TRSInterfaceBuilder.Run;
+var
+  Button: TButton;
+begin
+  try
+    Self.Form.Init(nil);
+    Self.Form.SetPosition(poScreenCenter);
+    Self.Form.SetCaption('RS Interface Builder');
+    Self.Form.SetWidth(1200);
+    Self.Form.SetHeight(1000);
+    Self.Form.GetFont().SetSize(10);
+    Self.Form.SetOnClose(@Self.OnFormClose);
+
+    Self.Menu.Init(Self.Form);
+    Self.Menu.SetParent(Self.Form);
+    Self.InterfaceMenu := Self.Menu.AddMenu('Select Interface');
+
+    Self.ShapeBox.Init(Self.Form);
+    Self.ShapeBox.SetParent(Self.Form);
+    Self.ShapeBox.SetAlign(alClient);
+    Self.ShapeBox.SetOnPaintArea(@Self.DoPaintShapeBox);
+    Self.ShapeBox.SetUserDataSize(SizeOf(TRSInterfaceElement));
+    Self.ShapeBox.SetQueryNameOnNew(True);
+
+    Self.ShapeBox.Panel.SetWidth(300);
+    Self.ShapeBox.PathButton.Hide();
+    Self.ShapeBox.PolyButton.Hide();
+    Self.ShapeBox.PointButton.Hide();
+
+    Self.ShapeBox.BoxButton.SetCaption('New Element');
+    Self.ShapeBox.NameButton.SetCaption('Name Element');
+    Self.ShapeBox.DeleteButton.SetCaption('Delete Element');
+    Self.ShapeBox.DeleteAllButton.SetCaption('Delete All Elements');
+
+    Button.Init(Self.Form);
+    Button.SetParent(Self.ShapeBox.Panel);
+    Button.SetAutoSize(True);
+    Button.SetAlign(alTop);
+    Button.SetCaption('Bottom Alignment');
+    Button.GetBorderSpacing().SetAround(5);
+    Button.SetOnClick(@Self.DoAlignmentClick);
+
+    Button.Init(Self.Form);
+    Button.SetParent(Self.ShapeBox.Panel);
+    Button.SetAutoSize(True);
+    Button.SetAlign(alTop);
+    Button.SetCaption('Top Alignment');
+    Button.GetBorderSpacing().SetAround(5);
+    Button.SetOnClick(@Self.DoAlignmentClick);
+
+    Self.LoadInterfaces();
+
+    Self.Form.ShowModal();
+  except
+    Writeln(GetExceptionMessage());
+  finally
+    Self.Form.Free();
+  end;
+end;
+
+var
+  InterfaceBuilder: TRSInterfaceBuilder;
+
+begin
+  Sync(@InterfaceBuilder.Run);
+end;

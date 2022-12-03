@@ -4,32 +4,15 @@
 {$ENDIF}
 
 (*
-var PadLength
-~~~~~~~~~~~~~
-Internal variable used to set control the PadLength in the progress report. This is usually set by `TBaseScript.BuildTextReport()`.
-
-var PTimeRunning
-~~~~~~~~~~~~~~~~
-Internal StopWatch pointer to the TBaseScript.TimeRunning. This is required so antiban tasks/breaks/sleeps can modify TWaspProgressReport.
-
-var ProgressArray
-~~~~~~~~~~~~~~~~~
-TODO: ADD INFO. Forgot what this was for exactly but something to do with antiban tasks same as above.
-*)
-var
-  PadLength: Int32;
-  PTimeRunning: ^TStopwatch;
-  ProgressArray: TStringArray;
-
-(*
-type TWaspProgressReport
+type TProgressReport
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Type responsible for handling the HUDProgressReport, also commonly called as "Paint" or InGame/OnScreen Progress Report.
 *)
 type
-  TWaspProgressReport = record
+  TProgressReport = record
     BGImg: TMufasaBitmap;
+    Cache: TMufasaBitmap;
 
     TextColor: Int32;
     PreviousStrArray: TStringArray;
@@ -39,17 +22,21 @@ type
 
     Terminated: Boolean;
     IsSetup: Boolean;
+  class var
+    PadLength: Int32;
+    PTimeRunning: ^TStopwatch;
+    ProgressArray: TStringArray;
   end;
 
 (*
 ProgressReport.GetNextCycleColor
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TWaspProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
+.. pascal:: function TProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
 
 Not currently used for anything, just a fun experiment. Can be used to give an RGB cycle effect.
-You can see it in effect by uncommenting `Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);` in **TWaspProgressReport.Update()**.
+You can see it in effect by uncommenting `Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);` in **TProgressReport.Update()**.
 *)
-function TWaspProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
+function TProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
 var
   R, G, B: Int32;
 begin
@@ -84,11 +71,11 @@ end;
 (*
 ProgressReport.Terminate
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.Terminate();
+.. pascal:: procedure TProgressReport.Terminate();
 
 Internal method called automatically on termination. This will do things such as free used assetsa and clear the progress report from the game screen.
 *)
-procedure TWaspProgressReport.Terminate();
+procedure TProgressReport.Terminate();
 begin
   if Self.Terminated then //avoids multiple terminations in case the script is chained.
     Exit;
@@ -105,11 +92,11 @@ end;
 (*
 ProgressReport.Setup
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.Setup();
+.. pascal:: procedure TProgressReport.Setup();
 
-Internal method called when we need to setup TWaspProgressReport.
+Internal method called when we need to setup TProgressReport.
 *)
-procedure TWaspProgressReport.Setup();
+procedure TProgressReport.Setup();
 begin
   Self.BGImg := TMufasaBitmap.Create();
   Self.BGImg.Clear();
@@ -121,10 +108,9 @@ begin
   RSClient.Image.setFontAntialiasing(True);
   RSClient.Image.setFontSize(13);
 
-  {$IFDEF WINDOWS}
-  Self.BGImg.setFontName('Courier New');      //It's hard to guess which fonts a Linux distro has available beforehand so I only set the font for windows.
-  RSClient.Image.setFontName('Courier New');
-  {$ENDIF}
+  if Self.BGImg.GetFonts().Contains('Consolas') then
+    Self.BGImg.setFontName('Consolas');
+  RSClient.Image.setFontName('Consolas');
 
   Self.TextColor := $006CFF;
 
@@ -136,26 +122,22 @@ end;
 (*
 ProgressReport.DrawBackground
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.DrawBackground(StrArray: TStringArray; FontColor: Int32);
+.. pascal:: procedure TProgressReport.DrawBackground(StrArray: TStringArray; FontColor: Int32);
 
-Method that handles drawing the background of our TWaspProgressReport.
-Usually called internally by TWaspProgressReport.Update().
+Method that handles drawing the background of our TProgressReport.
+Usually called internally by TProgressReport.Update().
 *)
-procedure TWaspProgressReport.DrawBackground(StrArray: TStringArray; FontColor: Int32);
-var
-  P: TPoint;
+procedure TProgressReport.DrawBackground(StrArray: TStringArray; FontColor: Int32);
 begin
   if not Self.IsSetup then
   begin
-    P := [10, 15];
-
     Self.BGImg.setFontSize(18);
-    Self.BGImg.DrawTextShadow(StrArray[0], P, FontColor, False);
+    Self.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(Self.BGImg.GetWidth()/2) + 25, 7], FontColor, False);
 
     Self.BGImg.setFontSize(14);
-    P.Y += 105;
     FontColor -= $90A301 - $C8D100;
-    Self.BGImg.DrawText(StrArray[4], P, FontColor);
+
+    Self.BGImg.DrawText(StrArray.Last(), [10, 135], FontColor);
 
     Self.IsSetup := True;
   end;
@@ -166,27 +148,33 @@ end;
 (*
 ProgressReport.DrawProgress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.DrawProgress(StrArray: TStringArray; FontColor: Int32);
+.. pascal:: procedure TProgressReport.DrawProgress(StrArray: TStringArray; FontColor: Int32);
 
-Method that handles drawing the text of our TWaspProgressReport.
-Usually called internally by TWaspProgressReport.Update().
+Method that handles drawing the text of our TProgressReport.
+Usually called internally by TProgressReport.Update().
 *)
-procedure TWaspProgressReport.DrawProgress(StrArray: TStringArray; FontColor: Int32);
+procedure TProgressReport.DrawProgress(StrArray: TStringArray; FontColor: Int32);
 var
-  P: TPoint;
+  p, q: TPoint;
   i: Int32;
 begin
-  P := [Chat.Bounds.X1 + 10, Chat.Bounds.Y1 + 50];
+  p := [Chat.Bounds().X1 + 10, Chat.Bounds().Y1 + 40];
+  q := [Round(Chat.Bounds().Width()/2) + 20, p.y];
 
   FontColor -= $C8D100;
 
-  for i := 1 to 3 do
+  for i := 0 to High(StrArray) - 1 do
   begin
-    if i > High(StrArray) then
-      Break;
-
-    RSClient.Image.DrawTextShadow(StrArray[i], P, FontColor, False);
-    P.Y += 20;
+    if Frac(i/2) = 0 then
+    begin
+      RSClient.Image.DrawTextShadow(StrArray[i], p, FontColor, False);
+      p.Y += 20;
+    end
+    else
+    begin
+      RSClient.Image.DrawTextShadow(StrArray[i], q, FontColor, False);
+      q.Y += 20;
+    end;
   end;
 
   Self.PreviousStrArray := StrArray;
@@ -195,12 +183,12 @@ end;
 (*
 ProgressReport.HideProgress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.HideProgress();
+.. pascal:: procedure TProgressReport.HideProgress();
 
-Used to hide TWaspProgressReport.
-Usually called internally by TWaspProgressReport.Update().
+Used to hide TProgressReport.
+Usually called internally by TProgressReport.Update().
 *)
-procedure TWaspProgressReport.HideProgress();
+procedure TProgressReport.HideProgress();
 begin
   Self.IsSetup := False;
 
@@ -210,14 +198,14 @@ end;
 (*
 ProgressReport.Update
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.Update(StrArray: TStringArray);
+.. pascal:: procedure TProgressReport.Update(StrArray: TStringArray);
 
-Main method that should be called to used to start and update TWaspProgressReport.
+Main method that should be called to used to start and update TProgressReport.
 
-To see TWaspProgressReport.GetNextCycleColor() in action, which was just a fun experiment,
+To see TProgressReport.GetNextCycleColor() in action, which was just a fun experiment,
 uncomment `Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);`
 *)
-procedure TWaspProgressReport.Update(StrArray: TStringArray);
+procedure TProgressReport.Update(StrArray: TStringArray);
 begin
   RSClient.Image.Clear();
 
@@ -232,12 +220,12 @@ end;
 (*
 ProgressReport.Setup
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TWaspProgressReport.Setup(); override;
+.. pascal:: procedure TProgressReport.Setup(); override;
 
-Overriden method to enable TWaspProgressReport.Timer.
+Overriden method to enable TProgressReport.Timer.
 This required to be overriden or we couldn't call already declared methods in ProgressReport.CheckButton().
 *)
-procedure TWaspProgressReport.Setup(); override;
+procedure TProgressReport.Setup(); override;
 begin
   inherited;
 
@@ -248,7 +236,7 @@ end;
 var ProgressReport
 ~~~~~~~~~~~~~~~~~~
 
-Global TWaspProgressReport variable.
+Global TProgressReport variable.
 *)
 var
-  ProgressReport: TWaspProgressReport;
+  ProgressReport: TProgressReport;

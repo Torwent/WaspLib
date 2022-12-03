@@ -115,67 +115,67 @@ begin
   Self.IsSetup:= Self.Loot <> [];
 end;
 
-function TRSLootHandler.HasSpace(Drop: TRSMonsterDrop): Boolean;
+function TRSLootHandler.HasSpace(drop: TRSMonsterDrop): Boolean;
 begin
-  Result := not Inventory.IsFull or (Drop.Stackable and Inventory.ContainsItem(Drop.Item));
+  Result := not Inventory.IsFull() or (drop.Stackable and Inventory.Contains(drop.Item));
 end;
 
-function TRSLootHandler.HandleLooting: Boolean;
+function TRSLootHandler.HandleLooting(): Boolean;
 var
-  Index: Int32;
-  TempFilter: TRSDotFilterArray; //Used to reset filters.
+  i: Int32;
+  tmpFilter: TRSDotFilterArray; //Used to reset filters.
 begin
   if not MainScreen.IsUpText('Take') then
   begin
-    ChooseOption.Open;
+    ChooseOption.Open();
     if not ChooseOption.HasOption('Take') then
       Exit;
   end;
 
   Self.CheckedLoot := True;
-  TempFilter := Self.Loot.DotFilter;
+  tmpFilter := Self.Loot.DotFilter;
   Self.Loot.DotFilter.Setup([Self.Loot.ClosestDot.X, Self.Loot.ClosestDot.Y, 3], True);
 
-  if not ChooseOption.IsOpen and MainScreen.IsUpText(Self.Loot.UpText, -1, Index) then
+  if not ChooseOption.IsOpen() and MainScreen.IsUpText(Self.Loot.UpText, -1, i) then
   begin
-    if not Self.HasSpace(Self.Drops[Index]) then
+    if not Self.HasSpace(Self.Drops[i]) then
     begin
       if Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
         Self.Loot.Hover(5)
       else
       begin
-        Self.Loot.DotFilter := TempFilter;
+        Self.Loot.DotFilter := tmpFilter;
         Exit;
       end;
     end;
     Mouse.Click(MOUSE_LEFT);
-    Self.Loot.DotFilter := TempFilter;
+    Self.Loot.DotFilter := tmpFilter;
     Exit(True);
   end;
 
-  if ChooseOption.Open then
+  if ChooseOption.Open() then
   begin
-    if not ChooseOption.HasOption(Self.Loot.UpText, Index) then
+    if not ChooseOption.HasOption(Self.Loot.UpText, i) then
     begin
-      Self.Loot.DotFilter := TempFilter;
+      Self.Loot.DotFilter := tmpFilter;
       Exit;
     end;
 
-    if not Self.HasSpace(Self.Drops[Index]) then
+    if not Self.HasSpace(Self.Drops[i]) then
     begin
       if Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
         Self.Loot.Hover(5)
       else
       begin
-        Self.Loot.DotFilter := TempFilter;
+        Self.Loot.DotFilter := tmpFilter;
         Exit;
       end;
     end;
 
-    Result := ChooseOption.Select(Self.Loot.UpText[Index]);
+    Result := ChooseOption.Select(Self.Loot.UpText[i]);
   end;
 
-  Self.Loot.DotFilter := TempFilter;
+  Self.Loot.DotFilter := tmpFilter;
 end;
 
 function TRSLootHandler.CheckLoot(P: TPoint): Boolean;
@@ -185,21 +185,21 @@ begin
   Result := Self.HandleLooting();
 end;
 
-function TRSLootHandler.CheckLoot(B: TBox): Boolean; overload;
+function TRSLootHandler.CheckLoot(b: TBox): Boolean; overload;
 begin
-  Mouse.Move(B);
+  Mouse.Move(b);
 
-  Result := Self.HandleLooting;
+  Result := Self.HandleLooting();
 end;
 
-function TRSLootHandler.CheckLoot: Boolean; overload;
+function TRSLootHandler.CheckLoot(): Boolean; overload;
 begin
   if not Self.Loot.Hover(0) then
     Exit;
 
-  Result := Self.HandleLooting;
+  Result := Self.HandleLooting();
   if Result then
-    Minimap.WaitMoving;
+    Minimap.WaitMoving();
 
   if Self.CheckedLoot then
   begin

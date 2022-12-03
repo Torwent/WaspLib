@@ -213,12 +213,12 @@ begin
 end;
 
 
-function TRSInventory.ContainsItem(item: TRSItem): Boolean; override;
+function TRSInventory.Contains(item: TRSItem): Boolean; override;
 begin
   Result := Self.ItemFinder.ContainsAny(item.GetArray());
 end;
 
-function TRSInventory.ContainsAnyItem(items: TRSItemArray): Boolean; override;
+function TRSInventory.ContainsAny(items: TRSItemArray): Boolean; override;
 var
   item: TRSItem;
   itemArray: TRSItemArray;
@@ -229,7 +229,7 @@ begin
   Result := inherited(itemArray);
 end;
 
-function TRSInventory.ContainsAllItems(items: TRSItemArray): Boolean; override;
+function TRSInventory.ContainsAll(items: TRSItemArray): Boolean; override;
 var
   item: TRSItem;
   itemArray: TRSItemArray;
@@ -256,85 +256,85 @@ end;
 
 
 
-function TRSInventory.ItemIsStackable(Item: TRSItem): Boolean;
+function TRSInventory.IsStackable(item: TRSItem): Boolean;
 begin
-  Result := Self.CountItemStack(Item) > 0;
+  Result := Self.CountStack(item) > 0;
 end;
 
 
 
-function TRSInventory.Drag(initialSlot, finalSlot: Integer): Boolean;
+function TRSInventory.Drag(initialIndex, finalIndex: Integer): Boolean;
 begin
-  if initialSlot = finalSlot then
+  if initialIndex = finalIndex then
     Exit(True);
 
-  if (initialSlot < 0) or (finalSlot < 0) or not Self.IsSlotUsed(initialSlot) then
+  if (initialIndex < 0) or (finalIndex < 0) or not Self.IsIndexUsed(initialIndex) then
     Exit(False);
 
-  Result := Self.HoverSlot(initialSlot);
-  Mouse.DragTo(SRL.RandomPoint(Self.GetSlotBox(finalSlot)));
+  Result := Self.HoverIndex(initialIndex);
+  Mouse.DragTo(SRL.RandomPoint(Self.GetItemBox(finalIndex)));
 end;
 
-function TRSInventory.Drag(item: TRSItem; finalSlot: Integer): Boolean; overload;
+function TRSInventory.Drag(item: TRSItem; finalIndex: Integer): Boolean; overload;
 begin
-  Result := Self.Drag(Self.FindItem(item), finalSlot);
-end;
-
-
-function TRSInventory.WaitItemFade(Slot: Int32): Boolean;
-begin
-  if WaitUntil(not Inventory.IsSlotUsed(Slot), 10, 300) then
-    Result := WaitUntil(Inventory.IsSlotUsed(Slot), 50, 300);
+  Result := Self.Drag(Self.FindItem(item), finalIndex);
 end;
 
 
-function TRSInventory.ClickSlot(Slot: Int32; Option: String = ''): Boolean; override;
+function TRSInventory.WaitItemFade(Index: Int32): Boolean;
 begin
-  if Self.HoverSlot(Slot) then
+  if WaitUntil(not Inventory.IsIndexUsed(Index), 10, 300) then
+    Result := WaitUntil(Inventory.IsIndexUsed(Index), 50, 300);
+end;
+
+
+function TRSInventory.InteractIndex(Index: Int32; option: String = ''): Boolean;
+begin
+  if not Self.HoverIndex(Index) then
+    Exit;
+
+  if (option = '') or MainScreen.IsUpText(option) then
   begin
-    if (Option = '') or MainScreen.IsUpText(Option) then
+    Mouse.Click(MOUSE_LEFT);
+
+    if (Random() < Antiban.GetUniqueNumber(0.07, 0.05, 0.1)) then
+    for 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
     begin
-      Mouse.Click(MOUSE_LEFT);
+      Mouse.Click(Mouse.Position, MOUSE_LEFT);
 
-      if (Random < Antiban.GetUniqueNumber(0.07, 0.05, 0.1)) then
-      for 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
-      begin
-        Mouse.Click(Mouse.Position, MOUSE_LEFT);
-
-        Wait(0, 100, wdLeft);
-      end;
-
-      Exit(True);
+      Wait(0, 100, wdLeft);
     end;
 
-    Result := ChooseOption.Select(Option)
+    Exit(True);
   end;
+
+  Result := ChooseOption.Select(option);
 end;
 
-function TRSInventory.ClickSlot(Slot: Int32; Option: TStringArray): Boolean; overload;
+function TRSInventory.InteractIndex(Index: Int32; option: TStringArray): Boolean; overload;
 begin
-  if Self.HoverSlot(Slot) then
+  if not Self.HoverIndex(Index) then
+    Exit;
+
+  if (option = []) or MainScreen.IsUpText(option) then
   begin
-    if (Option = []) or MainScreen.IsUpText(Option) then
+    Mouse.Click(MOUSE_LEFT);
+    if (Random() < Antiban.GetUniqueNumber(0.07, 0.05, 0.1)) then
+    for 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
     begin
-      Mouse.Click(MOUSE_LEFT);
-      if (Random < Antiban.GetUniqueNumber(0.07, 0.05, 0.1)) then
-      for 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
-      begin
-        Mouse.Click(Mouse.Position, MOUSE_LEFT);
+      Mouse.Click(Mouse.Position, MOUSE_LEFT);
 
-        Wait(0, 100, wdLeft);
-      end;
-
-      Exit(True);
+      Wait(0, 100, wdLeft);
     end;
 
-    Result := ChooseOption.Select(Option);
+    Exit(True);
   end;
+
+  Result := ChooseOption.Select(option);
 end;
 
 
-function TRSInventory.ClickItem(item: TRSItem): Boolean; override;
+function TRSInventory.Click(item: TRSItem): Boolean; override;
 begin
   if Result := inherited then
   begin
@@ -347,22 +347,37 @@ begin
   end;
 end;
 
-function TRSInventory.GetUsedSlots(): TIntegerArray;
+function TRSInventory.GetUsedIndexs(): TIntegerArray;
 var
   i: Integer;
 begin
   for i := Self.LOW_SLOT to Self.HIGH_SLOT do
-    if Self.IsSlotUsed(i) then
+    if Self.IsIndexUsed(i) then
+      Result += i;
+end;
+
+function TRSInventory.GetEmptyIndexs(): TIntegerArray;
+var
+  i: Integer;
+begin
+  for i := Self.LOW_SLOT to Self.HIGH_SLOT do
+    if not Self.IsIndexUsed(i) then
       Result += i;
 end;
 
 
-function TRSInventory.CountEmptySlots(): Int32;
+function TRSInventory.CountEmpty(): Int32;
 begin
   Result := 28 - Self.Count();
 end;
 
-function TRSInventory.HasEmptySpace(spaces: Int32): Boolean;
+function TRSInventory.EnoughSpace(spaces: Int32): Boolean;
 begin
-  Result := Self.CountEmptySlots() <= spaces;
+  Result := Self.CountEmpty() <= spaces;
+end;
+
+
+function TRSInventory.ContainsRandomItem(items: TRSItemArray): Boolean;
+begin
+  Result := Self.GetUsedIndexs().Difference(Self.FindItems(items)).Length() > 0;
 end;

@@ -132,55 +132,55 @@ begin
     Login.LoginPlayer();
 
   Chat.OpenTab(ERSChatTab.GAME_CHAT);
-  Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
+  Self.SlayerTaskFinishedVisible := Chat.HasMessage('Slayer master', [CHAT_COLOR_RED]);
 
-  if Self.HandleHealth := Inventory.ContainsAnyItem(FOOD_ARRAY) then
+  if Self.HandleHealth := Inventory.ContainsAny(FOOD_ARRAY) then
   begin
-    Self.DebugLn('Food detected and will be used.');
+    Self.SuccessLn('Food detected and will be used.');
     FoodHandler.MinInvPoints := 1;
     FoodHandler.Setup(ERSConsumable.FOOD_CONSUMABLE);
   end;
 
-  if Self.HandleBoosts := Inventory.ContainsAnyItem(BOOST_ARRAY) then
+  if Self.HandleBoosts := Inventory.ContainsAny(BOOST_ARRAY) then
   begin
-    Self.DebugLn('Boost potions detected, they will be used.');
+    Self.SuccessLn('Boost potions detected, they will be used.');
     BoostHandler.MinInvPoints := 1;
     BoostHandler.Setup(ERSConsumable.BOOST_CONSUMABLE);
   end;
 
-  if Self.HandlePrayer := Inventory.ContainsAnyItem(PRAYER_ARRAY) then
+  if Self.HandlePrayer := Inventory.ContainsAny(PRAYER_ARRAY) then
   begin
-    Self.DebugLn('Prayer potions detected, prayer will be used.');
+    Self.SuccessLn('Prayer potions detected, prayer will be used.');
     PrayerHandler.MinInvPoints := 1;
     PrayerHandler.Setup(ERSConsumable.PRAYER_CONSUMABLE);
   end;
 
-  if Self.HandlePoison := Inventory.ContainsAnyItem(ANTI_POISON_ARRAY) then
+  if Self.HandlePoison := Inventory.ContainsAny(ANTI_POISON_ARRAY) then
   begin
-    Self.DebugLn('Anti poison potions detected, they will be used.');
+    Self.SuccessLn('Anti poison potions detected, they will be used.');
     PoisonHandler.MinInvPoints := 1;
     PoisonHandler.Setup(ERSConsumable.POISON_CONSUMABLE);
   end;
 
-  if Self.HandleVenom := Inventory.ContainsAnyItem(ANTI_VENOM_ARRAY) then
+  if Self.HandleVenom := Inventory.ContainsAny(ANTI_VENOM_ARRAY) then
   begin
-    Self.DebugLn('Anti venom potions detected, they will be used.');
+    Self.SuccessLn('Anti venom potions detected, they will be used.');
     VenomHandler.MinInvPoints := 1;
     VenomHandler.Setup(ERSConsumable.VENOM_CONSUMABLE);
   end;
 
-  if Self.HandleAntifire := Inventory.ContainsAnyItem(ANTI_FIRE_ARRAY) then
+  if Self.HandleAntifire := Inventory.ContainsAny(ANTI_FIRE_ARRAY) then
   begin
-    Self.DebugLn('Anti fire potions detected, they will be used.');
+    Self.SuccessLn('Anti fire potions detected, they will be used.');
     AntifireHandler.MinInvPoints := 1;
     AntifireHandler.Setup(ERSConsumable.ANTI_FIRE_CONSUMABLE);
   end;
 
-  Self.HandleCannon := Inventory.ContainsAllItems(DWARF_CANNON) and
-                       Inventory.ContainsAnyItem(CANNON_BALLS);
+  Self.HandleCannon := Inventory.ContainsAll(DWARF_CANNON) and
+                       Inventory.ContainsAny(CANNON_BALLS);
 
   if Self.HandleCannon then
-    Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
+    Self.SuccessLn('Cannon and cannonballs detected. Cannon will be used.');
 
   Self.AutoRetaliateEnabled := Combat.GetAutoRetaliate();
 
@@ -237,17 +237,14 @@ begin
   begin
     if (Self.SpecWeapon = 'Null') then
       Break;
-    if Inventory.ContainsItem(Self.SpecWeapon) then
+    if Inventory.Contains(Self.SpecWeapon) then
     begin
       AlchItemArray.Delete(AlchItemArray.IndexOf(Self.SpecWeapon), 1);
       Break;
     end;
   end;
 
-  if Inventory.ContainsAnyItem(
-     ['Bonecrusher',
-      'Bonecrusher necklace',
-      'Ash sanctifier']) then
+  if Inventory.ContainsAny(['Bonecrusher', 'Bonecrusher necklace', 'Ash sanctifier']) then
     Antiban.Skills += ERSSkill.PRAYER;
 
   if Self.SpecWeapon <> 'Null' then
@@ -266,7 +263,8 @@ begin
                  '. With ' + ToStr(Self.WeaponSpec) + '% spec.');
 
   for Self.Bracelet in BRACELETS do
-    if (Self.Bracelet = 'Null') or Inventory.ContainsItem(Self.Bracelet) then Break;
+    if (Self.Bracelet = 'Null') or Inventory.Contains(Self.Bracelet) then
+      Break;
 
   if (Self.Bracelet <> 'Null') then
   begin
@@ -341,7 +339,7 @@ begin
   if Result := Self.LootHandler.CheckLoot() then
   begin
     Wait(400, 600);
-    if Inventory.ContainsAnyItem(RSAction.AlchItemArray) and
+    if Inventory.ContainsAny(RSAction.AlchItemArray) and
        RSAction.AlchItems(RSAction.AlchItemArray) then
       Wait(600, 800);
     if not Self.AutoRetaliateEnabled then
@@ -375,9 +373,8 @@ begin
   if not Self.ManageGear or not Self.GearIsSetup then
     Exit;
 
-  Result := (Self.Bracelet <> 'Null') and
-            Self.BraceletTimer.IsFinished() and
-            Inventory.ContainsItem(Self.Bracelet) and not Self.CheckBracelet;
+  Result := (Self.Bracelet <> 'Null') and Self.BraceletTimer.IsFinished() and
+            Inventory.Contains(Self.Bracelet) and not Self.CheckBracelet();
 end;
 
 function TCombatHandler.EquipBracelet(): Boolean;
@@ -385,11 +382,11 @@ begin
   if not Self.ManageGear or not Self.GearIsSetup or (Self.Bracelet = 'Null') then
     Exit;
 
-  Result := Inventory.ClickItem(Self.Bracelet);
+  Result := Inventory.Click(Self.Bracelet);
 
   if Result then
   begin
-    Self.BraceletTimer.Restart;
+    Self.BraceletTimer.Restart();
     if not Self.AutoRetaliateEnabled then
       Self.InCombatTimer.Timeout := GetTickCount();
   end;
@@ -409,8 +406,8 @@ begin
       Exit;
   end;
 
-  Result := ((Self.Weapon <> 'Null') and Inventory.ContainsItem(Self.Weapon)) or
-            ((Self.Shield <> 'Null') and Inventory.ContainsItem(Self.Shield));
+  Result := ((Self.Weapon <> 'Null') and Inventory.Contains(Self.Weapon)) or
+            ((Self.Shield <> 'Null') and Inventory.Contains(Self.Shield));
 
   Self.DoingSpec := not Result;
 end;
@@ -422,11 +419,11 @@ begin
 
   repeat
     if (Self.Weapon <> 'Null') then
-      begin Inventory.ClickItem(Self.Weapon); Wait(600, 800); end;
+      begin Inventory.Click(Self.Weapon); Wait(600, 800); end;
     if (Self.Shield <> 'Null') then
-      begin Inventory.ClickItem(Self.Shield); Wait(600, 800); end;
+      begin Inventory.Click(Self.Shield); Wait(600, 800); end;
 
-    Result := WaitUntil(not Self.NeedRegear, 100, 5000);
+    Result := WaitUntil(not Self.NeedRegear(), 100, 3000);
   until Result;
 
   if not Self.AutoRetaliateEnabled then
@@ -441,7 +438,7 @@ begin
 
   if not Self.GearIsSetup then
   begin
-    Self._SetupGear;
+    Self._SetupGear();
     Self.ManageGear := Self.GearIsSetup;
     if not Self.GearIsSetup then
       Exit;
@@ -450,9 +447,9 @@ begin
   if (Self.WeaponSpec = 0) then
     Exit;
 
-  Result := (Minimap.GetSpecLevel >= Self.WeaponSpec) and
-            ((Self.SpecWeapon = Self.Weapon) or Inventory.ContainsItem(Self.Weapon) or
-            (Inventory.ContainsItem(Self.SpecWeapon) and Inventory.HasEmptySpace(1)));
+  Result := (Minimap.GetSpecLevel() >= Self.WeaponSpec) and
+            ((Self.SpecWeapon = Self.Weapon) or Inventory.Contains(Self.Weapon) or
+            (Inventory.Contains(Self.SpecWeapon) and Inventory.EnoughSpace(1)));
   Self.DoingSpec := Result;
 end;
 
@@ -460,14 +457,14 @@ function TCombatHandler.DoSpec(): Boolean;
 begin
   if Self.ManageGear and not Self.GearIsSetup then
   begin
-    Self._SetupGear;
+    Self._SetupGear();
     Self.ManageGear := Self.GearIsSetup;
     if not Self.GearIsSetup then
       Exit;
   end;
 
-  if (Self.SpecWeapon <> Self.Weapon) and Inventory.ClickItem(Self.SpecWeapon) then
-    if not WaitUntil(Inventory.ContainsItem(Self.Weapon), 100, 4000) then
+  if (Self.SpecWeapon <> Self.Weapon) and Inventory.Click(Self.SpecWeapon) then
+    if not WaitUntil(Inventory.Contains(Self.Weapon), 100, 4000) then
       Exit;
 
   Self.InCombatTimer.Timeout := GetTickCount();
@@ -488,7 +485,7 @@ begin
 end;
 
 
-function TCombatHandler.BuryBones(): Boolean;
+function TCombatHandler.DoBuryBones(): Boolean;
 var
   slots: TIntegerArray;
   slot: Int32;
@@ -499,9 +496,9 @@ begin
 
   slot := slots[0];
 
-  Inventory.ClickSlot(slot);
+  Inventory.ClickIndex(slot);
   Inventory.WaitItemFade(slot);
-  Result := WaitUntil(not Inventory.IsSlotUsed(slot), 100, 2000);
+  Result := WaitUntil(not Inventory.IsIndexUsed(slot), 100, 2000);
 end;
 
 
@@ -510,32 +507,30 @@ begin
   if not Self.HandlePoison and not Self.HandleVenom then
     Exit;
 
-  Result := PoisonHandler.NeedToConsume or
-            VenomHandler.NeedToConsume or
-            Minimap.IsPoisoned or
-            Minimap.IsEnvenomed;
+  Result := PoisonHandler.NeedToConsume() or VenomHandler.NeedToConsume() or
+            Minimap.IsPoisoned() or Minimap.IsEnvenomed();
 end;
 
 function TCombatHandler.NeedAntifire(): Boolean;
 begin
-  Result := Self.HandleAntifire and AntifireHandler.NeedToConsume;
+  Result := Self.HandleAntifire and AntifireHandler.NeedToConsume();
 end;
 
 function TCombatHandler.NeedBoost(): Boolean;
 begin
-  Result := Self.HandleBoosts and BoostHandler.NeedToConsume;
+  Result := Self.HandleBoosts and BoostHandler.NeedToConsume();
 end;
 
 
 function TCombatHandler.Terminate(): Boolean;
 begin
-  if not MainScreen.FindGrave then
+  if not MainScreen.FindGrave() then
   begin
     Magic.CastSpell(ERSSpell.VARROCK_TELEPORT);
     Wait(10000);
   end;
 
-  Result := Logout.ClickLogout;
+  Result := Logout.ClickLogout();
   Self.Fatal('Last state: ' + Self.State);
 end;
 
@@ -546,9 +541,9 @@ begin
     Exit;
 
   if Self.SlayerTaskFinishedVisible then
-    Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED])
+    Self.SlayerTaskFinishedVisible := Chat.HasMessage('Slayer master', [CHAT_COLOR_RED])
   else
-    Self.SlayerTaskFinished := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
+    Self.SlayerTaskFinished := Chat.HasMessage('Slayer master', [CHAT_COLOR_RED]);
 end;
 
 //Check for pending action combat handler is taking care of.
@@ -556,7 +551,7 @@ function TCombatHandler.GetState(): String;
 var
   PrayCache: Int32;
 begin
-  if (Minimap.GetHPLevel <= Self.MinHitPoints) then
+  if (Minimap.GetHPLevel() <= Self.MinHitPoints) then
   begin
     if Self.HandleHealth then
     begin
@@ -623,7 +618,7 @@ begin
 
   Self.CheckSlayerTask();
 
-  if Self.NeedBracelet then
+  if Self.NeedBracelet() then
     Exit('NEED_BRACELET');
 
   if Self.NeedBoost() then
@@ -650,7 +645,7 @@ begin
     Exit(Self.State);
   end;
 
-  if Self.BuryBones and Inventory.ContainsAnyItem(REMAINS) then
+  if Self.BuryBones and Inventory.ContainsAny(REMAINS) then
   begin
     Self.State := 'BURY_BONES';
     Exit(Self.State);
@@ -670,7 +665,7 @@ end;
 procedure TCombatHandler.DoActions(HandlerState: String = '');
 begin
   if HandlerState = '' then
-    HandlerState := Self.GetState;
+    HandlerState := Self.GetState();
 
   case HandlerState of
     'EAT_FOOD':         Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE);
@@ -679,13 +674,13 @@ begin
     'DRINK_ANTIVENOM':  Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
     'DRINK_ANTIPOISON': Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
     'DRINK_BOOST':      Inventory.Consume(ERSConsumable.BOOST_CONSUMABLE);
-    'ENABLE_QPRAY':     Minimap.EnablePrayer;
-    'NEED_BRACELET':    Self.EquipBracelet;
-    'SPEC_MONSTER':     Self.WalkAttackMonster;
-    'USE_SPECIAL_ATT':  Self.DoSpec;
-    'REEQUIP_GEAR':     Self.ReGear;
-    'BURY_BONES':       Self.BuryBones;
-    'ATTACK_MONSTER':   Self.WalkAttackMonster;
+    'ENABLE_QPRAY':     Minimap.EnablePrayer();
+    'NEED_BRACELET':    Self.EquipBracelet();
+    'SPEC_MONSTER':     Self.WalkAttackMonster();
+    'USE_SPECIAL_ATT':  Self.DoSpec();
+    'REEQUIP_GEAR':     Self.ReGear();
+    'BURY_BONES':       Self.DoBuryBones();
+    'ATTACK_MONSTER':   Self.WalkAttackMonster();
     'WAIT_IN_COMBAT':   MainScreen.WaitInCombat(Self.InCombatTimer.Length);
     'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
       Self.Terminate;

@@ -25,7 +25,7 @@ const
     'The best public color bots',
     'Learn how to make scripts at',
     'Get that 99 with',
-    'Daily bans is not normal,',
+    'Daily bans are not normal,',
     'Everything is open source',
     'Imagine AHK on steroids',
     'Unleash the power of Simba'
@@ -148,7 +148,6 @@ Example
 function TBaseScript.BuildTextReport(): TStringArray;
 var
   ElapsedTime: UInt64;
-  ProgressTitle: String;
 begin
   if Self.Action = Self.PreviousAction then
       Exit;
@@ -156,31 +155,20 @@ begin
   Self.DebugLn(Self.Action, Self.ExtraInfo);  //add action and extra info the the log.
   ElapsedTime := Self.TimeRunning.ElapsedTime();
 
-  ProgressTitle := Self.Name;
-  PadLength := ProgressTitle.Length() + 6;
-  ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
-  ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
+  Result += ' Action        : ' + Self.Action;
 
-  PadLength := ProgressTitle.Length();
+  Result += ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short).Trim();
 
-  Result += ProgressTitle;
+  Result += ' Total Actions : ' + ToStr(Self.TotalActions);
+  if Self.ActionLimit > -1 then
+    Result[High(Result)] += '/' + ToStr(Self.ActionLimit);
 
-  Result += PadR((' Action        : ' + Self.Action), Round(PadLength/2), ' ') +
-                         ' Runtime       :' + SRL.MsToTime(ElapsedTime, Time_Short);
+  Result += ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
 
-  if (Self.ActionLimit = -1) then
-    Result += PadR((' Total Actions : ' + ToStr(Self.TotalActions)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime))
-  else
-    Result += PadR((' Total Actions : ' + ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
-
-  Result += PadR((' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit)), Round(PadLength/2), ' ') +
-                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
+  Result += ' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit);
+  Result += ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
 
   Result += ' ' + Self.Welcome + ' waspscripts.com';
-
-  Result += Self.ExtraInfo;
 end;
 
 (*
@@ -208,12 +196,13 @@ It also is responsible for debugging the script with SRL.Debug() if we enable it
 *)
 procedure TBaseScript.PrintReport();
 var
-  Str: String;
+  i: Int32;
+  str: String;
 {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  TmpArr: TStringArray;
+  tmpArr: TStringArray;
 {$ENDIF}
 begin
-  ProgressArray := Self.BuildTextReport();
+  TProgressReport.ProgressArray := Self.BuildTextReport();
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if not Self.OnAntiban then
@@ -222,19 +211,33 @@ begin
       SRL.Debug(RSClient.Image)
     else if Self.ShouldDrawPaint() then
     begin
-      TmpArr := Self.BuildHUDReport();
+      tmpArr := Self.BuildHUDReport();
 
-      if TmpArr <> [] then
-        ProgressReport.Update(TmpArr)
+      if tmpArr <> [] then
+        ProgressReport.Update(tmpArr)
       else
-        ProgressReport.Update(ProgressArray);
+        ProgressReport.Update(TProgressReport.ProgressArray);
     end;
   end;
   {$ENDIF}
 
+  if TProgressReport.ProgressArray <> [] then
+  begin
+    WriteLn();
+    WriteLn(' ', Self.Name.PadLeft(40));
+  end;
+
   if WLSettings.TextReport and not Self.OnAntiban then
-    for Str in ProgressArray do
-      WriteLn(Str);
+    for i := 0 to High(TProgressReport.ProgressArray) do
+    begin
+      str := TProgressReport.ProgressArray[i];
+
+      if i < High(TProgressReport.ProgressArray) -1 then
+        str := str.PadRight(40) + TProgressReport.ProgressArray[i+1];
+
+      WriteLn str;
+      i += 1;
+    end;
 
   Self.PreviousAction := Self.Action;
 end;
@@ -287,7 +290,7 @@ begin
     Self.ActionLimit := Self.TotalActions + MaxActions;
 
   Self.TimeRunning.Start();
-  PTimeRunning := @Self.TimeRunning;
+  TProgressReport.PTimeRunning := @Self.TimeRunning;
 
   if MaxTime > -1 then
     Self.TimeLimit := Self.TimeRunning.ElapsedTime + MaxTime
@@ -508,9 +511,9 @@ Set's TBaseBankScript.ItemLeftAmount to be used by TBaseBankScript.ShouldHover()
 
 .. note:: For some scripts this might need to be overriten and rewritten.
 *)
-procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
+procedure TBaseBankScript.CountItemsLeft(item: TRSItem);
 begin
-  Self.ItemLeftAmount := Inventory.CountItem(Item);
+  Self.ItemLeftAmount := Inventory.Count(item);
 end;
 
 (*
@@ -531,7 +534,7 @@ Example
   if Script.ShouldHover() then
     Script.Hover();
 *)
-function TBaseBankScript.ShouldHover(): Boolean;
+function TBaseBankScript.ShouldHoverBank(): Boolean;
 begin
   Result := ((Self.ItemLeftAmount = 1) and SRL.Dice(10 + (90 * Login.Players[Login.PlayerIndex].BioHash))) or
             ((Self.ItemLeftAmount = 2) and SRL.Dice(5 + (75 * Login.Players[Login.PlayerIndex].BioHash))) or
@@ -554,9 +557,81 @@ Example
 
   BankScript.Hover();
 *)
-function TBaseBankScript.Hover(): Boolean;
+function TBaseBankScript.HoverBank(): Boolean;
 begin
   Result := Self.HoveringBank := Bank.Hover();
+end;
+
+
+
+
+(*
+BaseBankScript.Withdraw
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
+
+Withdraws **item** from the bank.
+
+Example
+-------
+  if Bank.IsOpen() then
+    BankScript.Withdraw(['Shark', 1, True]);
+*)
+function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
+var
+  invCount, stackCount: Int32;
+  useButton: Boolean;
+begin
+  if Self.BankTab = -1 then
+    Self.BankTab := Bank.FindItemTab(item.Item);
+
+  if Self.BankTab = -1 then
+  begin
+    Self.BankEmpty := True;
+    Exit;
+  end;
+
+  stackCount := Inventory.CountStack(item.Item);
+  invCount := Inventory.Count();
+
+  if (invCount = 28) then //no space to withdraw the item.
+  begin
+    if not Inventory.Contains(item.Item) or (stackCount <= 0) then
+      Exit;
+  end;
+
+  useButton := item.Quantity <> 1;
+
+  if Bank.WithdrawItem(Self.BankTab, item, useButton) then
+    Result := WaitUntil((Inventory.Count() > invCount) or (Inventory.CountStack(item.Item) > stackCount), 100, 3000);
+
+  Self.BankEmpty := not Result and not Bank.Contains(Item);
+
+  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+    Self.CollectEmpty := False;
+end;
+
+(*
+BaseBankScript.HandleCollectBox
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.HandleCollectBox(items: TRSItemArray): Boolean;
+
+Collects **items** from the collectbox.
+
+Example
+-------
+  if CollectBox.IsOpen() then
+    BankScript.HandleCollectBox();
+*)
+function TBaseBankScript.HandleCollectBox(items: TRSItemArray): Boolean;
+begin
+  Self.CollectEmpty := True;
+
+  if Result := CollectBox.ContainsAny(items) then
+  begin
+    Self.CollectEmpty := CollectBox.CollectToBank();
+    Self.BankEmpty := not Self.CollectEmpty;
+  end;
 end;
 
 

@@ -3,59 +3,53 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-type
-  TWaspBankItem = record(TRSBankWithdrawItem)
-    BankTab: Int32;
-    ScrollLevel: UInt32;
-  end;
-
-function TRSBank.FindItem(Item: TRSItem; out Bounds: TBox): Boolean; override;
+function TRSBank.Find(item: TRSItem; out bounds: TBox): Boolean; override;
 var
   tempItem: TRSItem;
 begin
   if not Self.IsOpen() then
     Exit;
 
-  for tempItem in Item.GetArray() do
+  for tempItem in item.GetArray() do
   begin
-    Result := inherited(tempItem, Bounds);
+    Result := inherited(tempItem, bounds);
     if Result then
       Exit;
   end;
 end;
 
-function TRSBank.FindItem(Item: TRSItem; out Box: TBox): Boolean; override;
+function TRSBank.Find(item: TRSItem; out bounds: TBox): Boolean; override;
 begin
-  Result := Self.ItemFinder.Find([Item], Box);
+  Result := Self.ItemFinder.Find([item], bounds);
 end;
 
-function TRSBank.ContainsItem(Item: TRSBankWithdrawItem): Boolean; overload;
+function TRSBank.Contains(item: TRSBankWithdrawItem): Boolean; overload;
 begin
-  Result := Self.ContainsItem(Item.Item);
+  Result := Self.Contains(item.Item);
 end;
 
-function TRSBank.FindItem(tab: Int32; item: TRSItem; out bounds: TBox): Boolean; overload;
+function TRSBank.Find(tab: Int32; item: TRSItem; out bounds: TBox): Boolean; overload;
 begin
-    Result := Self.OpenTab(tab) and Self.FindItem(item, Bounds);
+    Result := Self.OpenTab(tab) and Self.Find(item, bounds);
 end;
 
-function TRSBank.FindItems(Items: TRSItemArray; out Bounds: TBox): Boolean; overload
+function TRSBank.Find(items: TRSItemArray; out bounds: TBox): Boolean; overload
 var
-  Item: TRSItem;
+  item: TRSItem;
 begin
-  for Item in Items do
-    if Self.FindItem(Item, Bounds) then
+  for item in items do
+    if Self.Find(item, bounds) then
       Exit(True);
 end;
 
-function TRSBank.ContainsItem(tab: Int32; item: TRSItem): Boolean; overload;
+function TRSBank.Contains(tab: Int32; item: TRSItem): Boolean; overload;
 begin
-  Result := Self.OpenTab(tab) and Self.ContainsItem(item);
+  Result := Self.OpenTab(tab) and Self.Contains(item);
 end;
 
-function TRSBank.ContainsItem(tab: Int32; item: TRSBankWithdrawItem): Boolean; overload;
+function TRSBank.Contains(tab: Int32; item: TRSBankWithdrawItem): Boolean; overload;
 begin
-  Result := Self.OpenTab(tab) and Self.ContainsItem(item);
+  Result := Self.OpenTab(tab) and Self.Contains(item);
 end;
 
 
@@ -66,16 +60,16 @@ begin
   Result := SRL.GetItemAmount(Self.GetSlotBoxes[Slot]);
 end;
 
-function TRSBank.WithdrawHelper(B: TBox; Amount: Int32; Noted: Boolean; UseQuantityButtons: Boolean): Boolean; override;
+function TRSBank.WithdrawHelper(B: TBox; Amount: Int32; Noted: Boolean; useButtons: Boolean): Boolean; override;
 begin
   case Noted of
     True:  if (not Self.ElementFinder.Toggle(Self.ELEMENT_NOTE, RSColors.BUTTON_RED, 5)) then Exit;
     False: if (not Self.ElementFinder.Toggle(Self.ELEMENT_ITEM, RSColors.BUTTON_RED, 5)) then Exit;
   end;
 
-  if UseQuantityButtons then
+  if useButtons then
   begin
-    if Self.IsCustomQuantity(Amount) then
+    if not (Amount in [1,5,10]) then
     begin
       if not Self.ElementFinder.Toggle(Self.ELEMENT_QUANTITY_X, RSColors.BUTTON_RED, 5) then
         Exit;
@@ -117,9 +111,9 @@ begin
     Mouse.Move(B);
 
     case Amount of
-      BANK_WITHDRAW_ALL:
+      -1:
         Result := ChooseOption.Select('Withdraw-All');
-      BANK_WITHDRAW_ALL_BUT_ONE:
+      -2:
         Result := ChooseOption.Select('Withdraw-All-but-1');
       else
         Result := (ChooseOption.Select('Withdraw-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False)) or
@@ -129,54 +123,54 @@ begin
 end;
 
 
-function TRSBank.WithdrawSlot(Tab: Int32; Item: TRSBankWithdrawSlot; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.WithdrawSlot(tab: Int32; item: TRSBankWithdrawSlot; useButtons: Boolean): Boolean; overload;
 var
-  ItemCount: Int32;
+  itemCount: Int32;
 begin
-  if not Self.IsOpen or (Tab = -1) then
+  if not Self.IsOpen or (tab = -1) then
     Exit;
 
-  Self.OpenTab(Tab);
+  Self.OpenTab(tab);
 
-  ItemCount := Self.CountSlotStack(Item.Slot);
-  if Self.WithdrawSlot(Item, UseQuantityButtons) then
-    Result := WaitUntil(Self.CountSlotStack(Item.Slot) < ItemCount, 100, 2000);
+  itemCount := Self.CountSlotStack(item.Slot);
+  if Self.WithdrawSlot(item, useButtons) then
+    Result := WaitUntil(Self.CountSlotStack(item.Slot) < itemCount, 100, 2000);
 end;
 
 
-function TRSBank.WithdrawItem(out Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.WithdrawItem(out tab: Int32; item: TRSBankWithdrawItem; useButtons: Boolean): Boolean; overload;
 var
-  B: TBox;
-  ItemCount: Int32;
+  b: TBox;
+  itemCount: Int32;
 begin
-  if not Self.IsOpen then
+  if not Self.IsOpen() then
     Exit;
 
-  if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
+  if Inventory.IsFull() and not Inventory.IsStackable(item.Item) then
     Exit;
 
-  if not Self.FindItem(Item.Item, B) then
+  if not Self.Find(item.Item, b) then
   begin
-    if Tab = -1 then
-      Tab := Self.FindItemTab(Item.Item)
+    if tab = -1 then
+      tab := Self.FindItemTab(item.Item)
     else
-      Self.OpenTab(Tab);
+      Self.OpenTab(tab);
 
-    if not Self.FindItem(Item.Item, B) then
+    if not Self.Find(item.Item, b) then
       Exit(False);
   end;
 
-  ItemCount := SRL.GetItemAmount(B);
-  if Self.WithdrawHelper(B, Item.Quantity, Item.Noted, UseQuantityButtons) then
-    Result := WaitUntil(SRL.GetItemAmount(B) < ItemCount, 100, 2000);
+  itemCount := SRL.GetItemAmount(b);
+  if Self.WithdrawHelper(b, item.Quantity, item.Noted, useButtons) then
+    Result := WaitUntil(SRL.GetItemAmount(b) < itemCount, 100, 2000);
 end;
 
-function TRSBank.WithdrawItems(Tab: Int32; Items: array of TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean;
+function TRSBank.WithdrawItems(tab: Int32; Items: array of TRSBankWithdrawItem; useButtons: Boolean): Boolean;
 var
   Item: TRSBankWithdrawItem;
 begin
   for Item in Items do
-    if not Self.WithdrawItem(Tab, Item, UseQuantityButtons) then
+    if not Self.WithdrawItem(tab, Item, useButtons) then
       Exit(False);
 
   Result := True;
@@ -184,65 +178,65 @@ end;
 
 
 
-function TRSBank.DepositItem(Tab: Int32; Item: TRSBankDepositItem; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.DepositItem(tab: Int32; item: TRSBankDepositItem; useButtons: Boolean): Boolean; overload;
 var
-  IsStackable: Boolean;
-  ItemCount: Int32;
+  isStackable: Boolean;
+  itemCount: Int32;
 begin
   if not Self.IsOpen then
     Exit;
 
-  if IsStackable := Inventory.ItemIsStackable(Item.Item) then
-    ItemCount := Inventory.CountItemStack(Item.Item)
+  if isStackable := Inventory.IsStackable(item.Item) then
+    itemCount := Inventory.CountStack(item.Item)
   else
-    ItemCount := Inventory.CountItem(Item.Item);
+    itemCount := Inventory.Count(item.Item);
 
-  if Tab > -1 then
-    Self.OpenTab(Tab);
+  if tab > -1 then
+    Self.OpenTab(tab);
 
-  if Self.DepositItem(Item, UseQuantityButtons) then
+  if Self.DepositItem(item, useButtons) then
   begin
     if IsStackable then
-      Result := WaitUntil((Inventory.CountItemStack(Item.Item) <> ItemCount), 50, 2000)
+      Result := WaitUntil((Inventory.CountStack(item.Item) <> itemCount), 50, 2000)
     else
-      Result := WaitUntil((Inventory.CountItem(Item.Item) <> ItemCount), 50, 2000);
+      Result := WaitUntil((Inventory.Count(item.Item) <> itemCount), 50, 2000);
   end;
 end;
 
-function TRSBank.DepositItem(Tab: Int32; Item: TRSItem; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.DepositItem(tab: Int32; item: TRSItem; useButtons: Boolean): Boolean; overload;
 begin
-  Result := Self.DepositItem(Tab, [Item, BANK_DEPOSIT_ALL], UseQuantityButtons);
+  Result := Self.DepositItem(tab, [item, -1], useButtons);
 end;
 
-function TRSBank.DepositItemArray(Tab: Int32; ItemArray: array of TRSBankDepositItem; UseQuantityButtons: Boolean): Boolean;
+function TRSBank.DepositItemArray(tab: Int32; itemArray: array of TRSBankDepositItem; useButtons: Boolean): Boolean;
 var
-  Item: TRSBankDepositItem;
-  ItemList: array of TRSBankDepositItem;
+  item: TRSBankDepositItem;
+  itemList: array of TRSBankDepositItem;
 begin
-  for Item in ItemArray do
-    if Inventory.ContainsItem(Item.Item) then
-      ItemList += Item;
+  for item in itemArray do
+    if Inventory.Contains(item.Item) then
+      itemList += item;
 
-  for Item in Itemlist do
-    if not Self.DepositItem(Tab, Item, UseQuantityButtons) then
+  for item in itemList do
+    if not Self.DepositItem(tab, item, useButtons) then
       Exit(False);
 
   Result := True;
 end;
 
-function TRSBank.DepositItemArray(Tab: Int32; ItemArray: TRSItemArray; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.DepositItemArray(tab: Int32; itemArray: TRSItemArray; useButtons: Boolean): Boolean; overload;
 var
-  Item: TRSItem;
-  ItemList: TRSItemArray;
+  item: TRSItem;
+  itemList: TRSItemArray;
 begin
-  for Item in ItemArray do
-    if Inventory.ContainsItem(Item) then
-      ItemList += Item;
+  for item in itemArray do
+    if Inventory.Contains(item) then
+      itemList += item;
 
-  for Item in ItemList do
-    Self.DepositItem(Tab, Item, UseQuantityButtons);
+  for item in ItemList do
+    Self.DepositItem(tab, item, useButtons);
 
-  Result := not Inventory.ContainsAnyItem(ItemList);
+  Result := not Inventory.ContainsAny(itemList);
 end;
 
 function TRSBank.DepositAllBut(tab: Int32; items: TRSItemArray): Boolean;
@@ -260,17 +254,17 @@ begin
   for item in items do
     slots += Inventory.FindItem(item);
 
-  depositSlots := slots.SymmetricDifference(Inventory.GetUsedSlots());
+  depositSlots := slots.SymmetricDifference(Inventory.GetUsedIndexs());
 
   if depositSlots <> [] then
   repeat
     if not Self.IsOpen then //Exit in case the bank somehow closed.
       Exit;
 
-    if Self.DepositSlot([depositSlots[0], BANK_DEPOSIT_ALL], True) then
-      WaitUntil(not Inventory.IsSlotUsed(depositSlots[0]), 100, 2000);
+    if Self.DepositSlot([depositSlots[0], -1], True) then
+      WaitUntil(not Inventory.IsIndexUsed(depositSlots[0]), 100, 2000);
 
-    depositSlots := slots.SymmetricDifference(Inventory.GetUsedSlots);
+    depositSlots := slots.SymmetricDifference(Inventory.GetUsedIndexs());
   until Result := (depositSlots = []);
 end;
 

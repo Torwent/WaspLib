@@ -1,0 +1,54 @@
+{$DEFINE WL_CHATDIALOG_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+function TRSChatDialog.HasLevelUp(): Boolean; override;
+begin
+  Result := inherited;
+
+  if Result then
+    SaveScreenshot('LevelUp/levelup', True);
+end;
+
+function TRSChatDialog.HandleLevelUp(UseKeyboard: Boolean): Boolean;
+var
+  str: String;
+begin
+  if not Self.HasLevelUp() then
+    Exit;
+
+  str := Self.GetTitle();
+
+  repeat
+    Self.ClickContinue(UseKeyboard);
+    Wait(60, 3000, wdLeft);
+    Result := Chat.GetDisplayName() <> '';
+  until Result;
+end;
+
+function TRSChatDialog.WaitContinue(waitTime: Int32 = 5000): Boolean;
+begin
+  Result := WaitUntil(Self.HasContinue(), 100, waitTime);
+end;
+
+function TRSChatDialog.SkipChat(useKeyboard: Boolean): Boolean;
+begin
+  Keyboard.IsKeyDown(VK_SPACE);  // Clear cache
+
+  Result := True;
+
+  while Self.HasContinue() do
+  begin
+    if useKeyboard and not IsKeyDown(VK_SPACE) then
+      KeyDown(VK_SPACE);
+
+    if useKeyboard then
+      Wait(100, 200)
+    else
+      Self.ClickContinue(False);
+  end;
+
+  if IsKeyDown(VK_SPACE) then
+    KeyUp(VK_SPACE);
+end;

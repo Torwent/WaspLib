@@ -713,8 +713,15 @@ var
   p: TPoint;
   line: TPointArray;
   i, j: Int32;
-  HoveringObject: Boolean;
+  hoveringTarget: Boolean;
+  msUpText, str: String;
 begin
+  if MainScreen.IsUpText('>') then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
   Result := True;
 
   if Self.ScreenWalk then
@@ -736,10 +743,16 @@ begin
     until Minimap.PointInZoomRectangle(p);
 
     Mouse.Move(Minimap.PointToMsRect(p).Mean());
+    msUpText := MainScreen.GetUpText();
 
-    HoveringObject := MainScreen.IsUpText(upText);
+    for str in upText do
+      if str in msUpText then
+      begin
+        hoveringTarget := True;
+        Break;
+      end;
 
-    if not HoveringObject and not MainScreen.IsUpText('Walk here') then
+    if not hoveringTarget and not ('Walk here' in msUpText) then
       Exit(ChooseOption.Select('Walk here'));
   end else
   begin
@@ -761,7 +774,7 @@ begin
       Wait(20, 150, wdLeft);
     end;
 
-  redClicked := Self.ScreenWalk and HoveringObject and MainScreen.DidRedClick;
+  redClicked := Self.ScreenWalk and hoveringTarget and MainScreen.DidRedClick;
 end;
 
 function TRSWalker.WalkFinalStep(playerPoint, worldPoint: TPoint; upText: TStringArray; out redClicked: Boolean; waitUntilDistance: Int32): Boolean; overload;

@@ -1,3 +1,12 @@
+## [9.0.20](https://github.com/Torwent/WaspLib/compare/v9.0.19...v9.0.20) (2022-12-12)
+
+
+### Bug Fixes
+
+* **maps:** added ungael crop ([754f16c](https://github.com/Torwent/WaspLib/commit/754f16c63f165fefceec100109a3f437436592aa))
+
+
+
 ## [9.0.19](https://github.com/Torwent/WaspLib/compare/v9.0.18...v9.0.19) (2022-11-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** small fix for agility ([ab065b4](https://github.com/Torwent/WaspLib/commit/ab065b4eccdb315322f5f0e924e8259bf3bd1995))
-
-
-
-## [9.0.15](https://github.com/Torwent/WaspLib/compare/v9.0.14...v9.0.15) (2022-10-25)
-
-
-### Bug Fixes
-
-* **maps:** minor fix to pollnivneach rooftop map ([72ab30b](https://github.com/Torwent/WaspLib/commit/72ab30ba10d9af20df94e857f243d24d3347db62))
 
 
 

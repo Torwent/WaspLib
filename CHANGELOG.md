@@ -1,3 +1,12 @@
+## [9.0.21](https://github.com/Torwent/WaspLib/compare/v9.0.20...v9.0.21) (2022-12-12)
+
+
+### Bug Fixes
+
+* **webgraph:** minor webgraph tweaks for soul runecrafting ([e256d84](https://github.com/Torwent/WaspLib/commit/e256d84d7477b0b4e1e02f28115515e0ac132d69))
+
+
+
 ## [9.0.20](https://github.com/Torwent/WaspLib/compare/v9.0.19...v9.0.20) (2022-12-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * rollback coordinates edit ([80a7e34](https://github.com/Torwent/WaspLib/commit/80a7e346ef8167bb7600739c2e428b225128879d))
-
-
-
-## [9.0.16](https://github.com/Torwent/WaspLib/compare/v9.0.15...v9.0.16) (2022-10-25)
-
-
-### Bug Fixes
-
-* **maps:** small fix for agility ([ab065b4](https://github.com/Torwent/WaspLib/commit/ab065b4eccdb315322f5f0e924e8259bf3bd1995))
 
 
 

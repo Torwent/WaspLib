@@ -1,3 +1,12 @@
+# [9.1.0](https://github.com/Torwent/WaspLib/compare/v9.0.21...v9.1.0) (2022-12-29)
+
+
+### Features
+
+* added stats.simba ([493ef1e](https://github.com/Torwent/WaspLib/commit/493ef1e8978f4654d5eff68f0a24548d0b9bae7c))
+
+
+
 ## [9.0.21](https://github.com/Torwent/WaspLib/compare/v9.0.20...v9.0.21) (2022-12-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walker:** improved webgraph in zeah ([d3f9816](https://github.com/Torwent/WaspLib/commit/d3f981639c0cfbde99e88db99548947267aa2b87))
-
-
-
-## [9.0.17](https://github.com/Torwent/WaspLib/compare/v9.0.16...v9.0.17) (2022-10-25)
-
-
-### Bug Fixes
-
-* rollback coordinates edit ([80a7e34](https://github.com/Torwent/WaspLib/commit/80a7e346ef8167bb7600739c2e428b225128879d))
 
 
 

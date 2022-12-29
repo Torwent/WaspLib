@@ -47,7 +47,8 @@ The variables that are part of **TBaseScript** are the following:
  - **ActionLimit**: Integer variable to set total action limit before ending the script.
 *)
   TBaseScript = record(TSRLBaseRecord)
-    Version: String;
+    ID: String;
+    Revision: String;
     Welcome: String;
 
     IsSetup: Boolean;
@@ -115,12 +116,24 @@ procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to 
 var
   ScriptStr: String;
 begin
+  {$IFNDEF SCRIPT_CHAINER}
+  ClearDebug();
+  {$ENDIF}
+  //Self.Name := ScriptFile.Before('.simba').Replace('_', ' ').Capitalize();
+
   AddOnTerminate(@SaveScreenshot);
 
   DisableDebugging := True;
-  Version := ReadFileContents(IncludePath + 'WaspLib\version.txt');
 
-  GenerateLog(Name);
+  {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+  Self.ID := {$macro SCRIPT_ID};
+  {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
+  Self.Revision := {$macro SCRIPT_REVISION};
+
+  StatsPayload.Setup(Self.ID, StatsClient.GeneratePassword());
+  StatsClient.TimeStamp := GetTickCount();
+
+  GenerateLog(Self.Name);
   ScriptStr := ToStr(Self);
   ScriptStr := ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
   ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
@@ -139,7 +152,6 @@ begin
     TimeLimit := TimeRunning.ElapsedTime + MaxTime
   else
     TimeLimit := -1;
-
 
   WL.Activity.Init(260000);
 
@@ -181,8 +193,13 @@ procedure TBaseScript.ProcessWhileWaiting;
 var
   Str: String;
   ElapsedTime: UInt64;
+  PreviousProfit: Int32;
 begin
-  TotalProfit := (TotalActions * ActionProfit) - TotalConsumableCost;
+  PreviousProfit := TotalProfit;
+  Self.TotalProfit := (Self.TotalActions * Self.ActionProfit) - TotalConsumableCost;
+  StatsPayload.Update(0, Self.TotalProfit - PreviousProfit, 0, 0);
+  if not StatsClient.IsSetup or StatsClient.Timer.IsFinished() then
+    StatsClient.SubmitStats(StatsClient.GenerateBioHash(BioHash));
 
   if (GetTickCount - StatsDebugTick) < 1000 then
     Exit;

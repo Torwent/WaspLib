@@ -1,3 +1,12 @@
+# [9.2.0](https://github.com/Torwent/WaspLib/compare/v9.1.0...v9.2.0) (2022-12-29)
+
+
+### Features
+
+* integrate wasp-stats ([95cb703](https://github.com/Torwent/WaspLib/commit/95cb70333e472cc9bd4c2346ddaec65775ede1b2))
+
+
+
 # [9.1.0](https://github.com/Torwent/WaspLib/compare/v9.0.21...v9.1.0) (2022-12-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * bump version ([edea9c9](https://github.com/Torwent/WaspLib/commit/edea9c9f372f370646c7eea6f579408e3b468f99))
-
-
-
-## [9.0.18](https://github.com/Torwent/WaspLib/compare/v9.0.17...v9.0.18) (2022-11-04)
-
-
-### Bug Fixes
-
-* **walker:** improved webgraph in zeah ([d3f9816](https://github.com/Torwent/WaspLib/commit/d3f981639c0cfbde99e88db99548947267aa2b87))
 
 
 

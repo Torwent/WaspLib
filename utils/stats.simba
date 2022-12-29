@@ -18,6 +18,7 @@ Type to help you handle stats submissions.
 type
   TStatsPayload = record
     ScriptID: String;
+    Username: String;
     Password: String;
     Experience: Int32;
     Gold: Int32;
@@ -44,17 +45,19 @@ end;
 (*
 StatsPayload.Setup
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsPayload.Setup(id, pw: String);
+.. pascal:: procedure TStatsPayload.Setup(id, pw: String; user: String = '');
 
 Sets StatsPayload up.
   - **id** should be your script id. If the script id is not in waspscripts.com database the submission will be rejected.
   - **pw** should be your account password. Passwordless accounts can exist but then anyone can submit data to them.
     A passwordless account will take in the first ever password submission it gets as it's password and will only accept future data
     if that password is included.
+  - **user** sets a wasp-stats username.
 *)
-procedure TStatsPayload.Setup(id, pw: String);
+procedure TStatsPayload.Setup(id, pw: String; user: String = '');
 begin
   Self.ScriptID := id;
+  Self.Username := user;
   Self.Password := pw;
 end;
 
@@ -96,6 +99,9 @@ function TStatsPayload.FormData(): TStringArray;
 begin
   Result += 'script_id='  + Self.ScriptID;
 
+  if Self.Username <> '' then
+    Result += 'username='   + Self.Username;
+
   if Self.Password <> '' then
     Result += 'password='   + Self.Password;
 
@@ -131,6 +137,7 @@ type
     StatsServer: String;
     BioHash: String;
     Timer: TCountDown;
+    TimeStamp: UInt64;
     IsSetup: Boolean;
   end;
 
@@ -408,11 +415,15 @@ Example
 function TStatsClient.SubmitStats(bioHash: String): Boolean;
 var
   route, msg: String;
+  currentTime: UInt64;
 begin
   if Self.IsSetup and not Self.Timer.IsFinished() then //No point removing this, the server will reject you.
     Exit;
 
   route := 'stats/' + bioHash + '/';
+
+  currentTime := GetTickCount();
+  StatsPayload.Update(0,0,0,currentTime - Self.TimeStamp);
 
   msg := Self.POST(route, StatsPayload.FormData());
 
@@ -422,6 +433,7 @@ begin
   begin
     StatsPayload.Reset();
     Self.Timer.Restart();
+    Self.TimeStamp := currentTime;
   end;
 end;
 

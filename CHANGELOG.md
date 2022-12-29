@@ -1,3 +1,12 @@
+## [9.2.5](https://github.com/Torwent/WaspLib/compare/v9.2.4...v9.2.5) (2022-12-29)
+
+
+### Bug Fixes
+
+* notification test ([73b543e](https://github.com/Torwent/WaspLib/commit/73b543e2697cec204493aed2d0acba9d13d40b7b))
+
+
+
 ## [9.2.4](https://github.com/Torwent/WaspLib/compare/v9.2.3...v9.2.4) (2022-12-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * minor fix to stats timestamping ([c96d719](https://github.com/Torwent/WaspLib/commit/c96d7198b2dbb4f9bda903756b35ecf7013bab1f))
-
-
-
-# [9.2.0](https://github.com/Torwent/WaspLib/compare/v9.1.0...v9.2.0) (2022-12-29)
-
-
-### Features
-
-* integrate wasp-stats ([95cb703](https://github.com/Torwent/WaspLib/commit/95cb70333e472cc9bd4c2346ddaec65775ede1b2))
 
 
 

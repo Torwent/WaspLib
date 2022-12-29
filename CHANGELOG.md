@@ -1,3 +1,12 @@
+## [9.2.3](https://github.com/Torwent/WaspLib/compare/v9.2.2...v9.2.3) (2022-12-29)
+
+
+### Bug Fixes
+
+* attempt to fix discord notification ([4c7db25](https://github.com/Torwent/WaspLib/commit/4c7db2547442aa2ad01583cf71cbfaca99053b73))
+
+
+
 ## [9.2.2](https://github.com/Torwent/WaspLib/compare/v9.2.1...v9.2.2) (2022-12-29)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added stats.simba ([493ef1e](https://github.com/Torwent/WaspLib/commit/493ef1e8978f4654d5eff68f0a24548d0b9bae7c))
-
-
-
-## [9.0.21](https://github.com/Torwent/WaspLib/compare/v9.0.20...v9.0.21) (2022-12-12)
-
-
-### Bug Fixes
-
-* **webgraph:** minor webgraph tweaks for soul runecrafting ([e256d84](https://github.com/Torwent/WaspLib/commit/e256d84d7477b0b4e1e02f28115515e0ac132d69))
 
 
 

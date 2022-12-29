@@ -1,3 +1,12 @@
+## [9.2.2](https://github.com/Torwent/WaspLib/compare/v9.2.1...v9.2.2) (2022-12-29)
+
+
+### Bug Fixes
+
+* **gh action:** WaspLib updated are now notified in the same channel as free and premium scripts. ([252346d](https://github.com/Torwent/WaspLib/commit/252346dfda99ba128ac71444856e60952071bd8f))
+
+
+
 ## [9.2.1](https://github.com/Torwent/WaspLib/compare/v9.2.0...v9.2.1) (2022-12-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **webgraph:** minor webgraph tweaks for soul runecrafting ([e256d84](https://github.com/Torwent/WaspLib/commit/e256d84d7477b0b4e1e02f28115515e0ac132d69))
-
-
-
-## [9.0.20](https://github.com/Torwent/WaspLib/compare/v9.0.19...v9.0.20) (2022-12-12)
-
-
-### Bug Fixes
-
-* **maps:** added ungael crop ([754f16c](https://github.com/Torwent/WaspLib/commit/754f16c63f165fefceec100109a3f437436592aa))
 
 
 

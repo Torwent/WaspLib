@@ -1,3 +1,12 @@
+## [9.2.1](https://github.com/Torwent/WaspLib/compare/v9.2.0...v9.2.1) (2022-12-29)
+
+
+### Bug Fixes
+
+* minor fix to stats timestamping ([c96d719](https://github.com/Torwent/WaspLib/commit/c96d7198b2dbb4f9bda903756b35ecf7013bab1f))
+
+
+
 # [9.2.0](https://github.com/Torwent/WaspLib/compare/v9.1.0...v9.2.0) (2022-12-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** added ungael crop ([754f16c](https://github.com/Torwent/WaspLib/commit/754f16c63f165fefceec100109a3f437436592aa))
-
-
-
-## [9.0.19](https://github.com/Torwent/WaspLib/compare/v9.0.18...v9.0.19) (2022-11-23)
-
-
-### Bug Fixes
-
-* bump version ([edea9c9](https://github.com/Torwent/WaspLib/commit/edea9c9f372f370646c7eea6f579408e3b468f99))
 
 
 

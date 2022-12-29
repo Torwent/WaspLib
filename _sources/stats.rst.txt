@@ -1,0 +1,296 @@
+
+Stats
+=====
+Methods related to wasp-stats.
+
+
+------------
+
+type TStatsPayload
+~~~~~~~~~~~~~~~~~~
+
+Type to help you handle stats submissions.
+
+
+------------
+
+StatsPayload.Reset
+~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TStatsPayload.Reset();
+
+Resets StatsPayload. Automatically called by TStatsClient.SubmitStats() on a successful stats submission.
+
+
+------------
+
+StatsPayload.Setup
+~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TStatsPayload.Setup(id, pw: String);
+
+Sets StatsPayload up.
+  - **id** should be your script id. If the script id is not in waspscripts.com database the submission will be rejected.
+  - **pw** should be your account password. Passwordless accounts can exist but then anyone can submit data to them.
+    A passwordless account will take in the first ever password submission it gets as it's password and will only accept future data
+    if that password is included.
+
+
+------------
+
+StatsPayload.Update
+~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TStatsPayload.Update(xp, gp, lvls, time: Int32);
+.. code-block:: pascal
+
+ procedure TStatsPayload.Update(ban: Boolean); overload;
+
+Update StatsPayload data for the next submission.
+You can update it several times before submitting it, however, keep in mind if the runtime is over 15mins the data will be rejected to
+avoid exploitation.
+Experience, Gold and Levels also have a limit of how much can be submitted on each request. This limit set by the scripter in waspscripts.com (not implemented yet... currently has some generous limits)
+
+You can set the account as banned for tracking ban rates but it's not fully implemented yet.
+If you set an account as banned you won't be able to submit more data to it until you set it as unbanned.
+
+
+------------
+
+StatsPayload.FormData
+~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsPayload.FormData(): TStringArray;
+
+Transforms the data in TStatsPayload into a TStringArray that can be used by a TStatsClient.
+
+
+------------
+
+var StatsPayload
+~~~~~~~~~~~~~~~~
+
+Global StatsPayload variable.
+
+
+------------
+
+type TStatsClient
+~~~~~~~~~~~~~~~~~
+
+Type responsible for stats submissions.
+This is basically a simba wrapper for the waspscripts API.
+
+You can find the API docs in https://api.waspscripts.com/docs if you need to read them
+but the TStatsClient should be able to do everything for you.
+
+
+------------
+
+StatsClient.GenerateBioHash
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsPayload.FormData(): TStringArray;
+
+You can pass in an already generated biohash or let it generate it's own.
+If you pass in an already generated biohash it is just converted to a string.
+
+The BioHashes are used as the wasp-stats main identifier.
+
+
+------------
+
+StatsClient.GeneratePassword
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.GeneratePassword(password: String = ''): String; static;
+
+Generate a wasp-stats password from the password you pass in or the current user's password.
+
+The generated password is a hash made with SHA1.
+This makes the generated password unique and privacy friendly since it can't be reversed.
+
+The generated password is also rehashed and salted by the server before being stored in the database.
+For more info on what this means visit the wikipedia! (Sorry, it's out of the scope of this)
+https://en.wikipedia.org/wiki/Salt_(cryptography)
+
+What this means is that noone but you is able to know your wasp-stats password and only you can update your stats.
+Even in the case of a data breach.
+
+
+------------
+
+StatsClient.Terminate
+~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TStatsClient.Terminate();
+
+Internal method automatically called on script termination.
+
+
+------------
+
+StatsClient.Setup
+~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TStatsClient.Setup();
+
+Internal method automatically called when attempting to use TStatsClient.GET() and TStatsClient.POST().
+
+
+------------
+
+StatsClient.GET
+~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.GET(route: String): String;
+
+Makes a GET request to the WaspScripts API in the specified **route**.
+You probably don't need to use this method directly.
+
+
+------------
+
+StatsClient.POST
+~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.POST(route: String; payload: TStringArray): String;
+
+Makes a POST request to the WaspScripts API in the specified **route**.
+**payload** is an array of string with the following format:
+  ['var1=value1', 'var2=value2', ...]
+
+You probably don't need to use this method directly.
+
+
+------------
+
+StatsClient.HashPassword
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.HashPassword(password: String): String;
+
+Returns a salted and hashed password.
+This serves no purpose other than giving you a glimpse of what is stored in waspscripts database when you submit your password.
+
+Try the example below, notice how everytime you run it you will have slightly different results.
+That's the magic of "salting" passwords. You can read more about it on the wikipedia https://en.wikipedia.org/wiki/Salt_(cryptography).
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn StatsClient.HashPassword('helloworld');
+  WriteLn StatsClient.HashPassword(StatsClient.GeneratePassword());
+
+
+------------
+
+StatsClient.CheckPassword
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.CheckPassword(bioHash: String; password: String): Boolean;
+
+Simply returns true/false if the **password** you submit matches what is stored in waspscripts stats database for the specified **biohash**.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn StatsClient.CheckPassword('0.999999999999999', 'helloworld');
+  WriteLn StatsClient.CheckPassword(StatsClient.GenerateBioHash(), StatsClient.GeneratePassword());
+
+
+------------
+
+StatsClient.UpdatePassword
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.UpdatePassword(bioHash: String; password, newPassword: String): Boolean;
+
+Because users passwords can be changed and that's what are used by default for
+stats password a way to update the stats password is required.
+That's what this method is for.
+
+This will probably be complicated for regular users but an easier way can be
+figured out in the future.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn StatsClient.UpdatePassword('0.999999999999999', 'helloworld', 'helloworld2');
+  WriteLn StatsClient.UpdatePassword(StatsClient.GenerateBioHash(), StatsClient.GeneratePassword('oldpassword'), StatsClient.GeneratePassword());
+
+
+------------
+
+StatsClient.CheckStats
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.CheckStats(bioHash: string): String;
+
+Returns the stats of the specified **biohash**.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn StatsClient.CheckStats('0.999999999999999');
+  WriteLn StatsClient.CheckStats(StatsClient.GenerateBioHash());
+
+
+------------
+
+StatsClient.SubmitStats
+~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TStatsClient.SubmitStats(bioHash: String): Boolean;
+
+Method to submit stats to wasp-stats with the help of **StatsPayload**.
+
+Example
+-------
+.. code-block:: pascal  
+
+  StatsPayload.Setup('SCRIPT_ID_HERE', StatsClient.GeneratePassword());
+  StatsPayload.Update(100, 100, 1, 5000);
+  WriteLn StatsClient.SubmitStats(StatsClient.GenerateBioHash());
+
+
+------------
+
+var StatsClient
+~~~~~~~~~~~~~~~
+
+Global StatsClient variable.
+
+
+------------
+
+USAGE EXAMPLE
+=============
+
+begin
+  StatsPayload.Setup('SCRIPT_ID_HERE', StatsClient.GeneratePassword());
+  StatsPayload.Update(100, 100, 1, 5000);
+  WriteLn StatsClient.SubmitStats(StatsClient.GenerateBioHash());
+end.
+
+
+------------

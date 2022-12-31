@@ -35,13 +35,21 @@ jobs:
         release_name: ${{ steps.changelog.outputs.tag }}
         body: ${{ steps.changelog.outputs.clean_changelog }}
     
+    - name: Fix commit message
+      id: step_one
+      run: |
+        echo "${{ github.event.head_commit.message }}" >> tmp.txt
+        sed -E ':a;N;$!ba;s/\r{0,1}\n/\\n/g' tmp.txt >> reddacted.txt
+        cat reddacted.txt
+        COMMIT=$(<reddacted.txt)
+        echo "COMMIT=$COMMIT" >> $GITHUB_ENV
+          
     - name: Discord notification
-      uses: Sniddl/discord-commits@v1.5
-      with:
-        webhook: ${{ secrets.UPDATES_WEBHOOK }}
-        template: "simple-link"
-        embed: '{"title": "Update: WaspLib", "description": "Committer: {{ ${{ github.event.head_commit.author.username }} }}\n\n{{ ${{ github.event.head_commit.message }} }}", "url": "{{ ${{ github.event.head_commit.url }} }}"}'
-    
+        uses: rguillaume/discord-action-embed@v1.0.4
+        with:
+          webhook: ${{ secrets.UPDATES_WEBHOOK }}
+          embed: '{"title": "Update: ${{ github.event.repository.name }}", "description": "${{ env.COMMIT }}", "url": "${{ github.event.head_commit.url }}", "footer": {"text": "Committer: ${{ github.event.head_commit.author.username }}"}, "color": "16760576"}'
+          
     - name: Merge to WaspLib-dev
       uses: everlytic/branch-merge@1.1.5
       if: ${{ steps.changelog.outputs.skipped == 'false' }}

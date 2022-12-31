@@ -1,3 +1,12 @@
+## [9.2.10](https://github.com/Torwent/WaspLib/compare/v9.2.9...v9.2.10) (2022-12-31)
+
+
+### Bug Fixes
+
+* testing a new discord notification ([0f1658e](https://github.com/Torwent/WaspLib/commit/0f1658e0f1d28c6ef45f2a8ca048d5bc24b86289))
+
+
+
 ## [9.2.9](https://github.com/Torwent/WaspLib/compare/v9.2.8...v9.2.9) (2022-12-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * discord notifications ([bb20fa4](https://github.com/Torwent/WaspLib/commit/bb20fa468f5a2432da35edcea7f84e542639151f))
-
-
-
-## [9.2.5](https://github.com/Torwent/WaspLib/compare/v9.2.4...v9.2.5) (2022-12-29)
-
-
-### Bug Fixes
-
-* notification test ([73b543e](https://github.com/Torwent/WaspLib/commit/73b543e2697cec204493aed2d0acba9d13d40b7b))
 
 
 

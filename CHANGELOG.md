@@ -1,3 +1,12 @@
+## [9.2.7](https://github.com/Torwent/WaspLib/compare/v9.2.6...v9.2.7) (2022-12-31)
+
+
+### Bug Fixes
+
+* added some toggles to the StatsClient ([0de3a16](https://github.com/Torwent/WaspLib/commit/0de3a1627492c13d6044453fc9ba8d402f86db03))
+
+
+
 ## [9.2.6](https://github.com/Torwent/WaspLib/compare/v9.2.5...v9.2.6) (2022-12-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * attempt to fix discord notification ([4c7db25](https://github.com/Torwent/WaspLib/commit/4c7db2547442aa2ad01583cf71cbfaca99053b73))
-
-
-
-## [9.2.2](https://github.com/Torwent/WaspLib/compare/v9.2.1...v9.2.2) (2022-12-29)
-
-
-### Bug Fixes
-
-* **gh action:** WaspLib updated are now notified in the same channel as free and premium scripts. ([252346d](https://github.com/Torwent/WaspLib/commit/252346dfda99ba128ac71444856e60952071bd8f))
 
 
 

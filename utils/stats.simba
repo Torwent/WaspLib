@@ -134,9 +134,11 @@ but the TStatsClient should be able to do everything for you.
 *)
 type
   TStatsClient = record
+    Disabled: Boolean;
+    Debug: Boolean;
+    LocalServer: Boolean;
     HTTPClient: Int32;
     StatsServer: String;
-    BioHash: String;
     Timer: TCountDown;
     TimeStamp: UInt64;
     IsSetup: Boolean;
@@ -228,8 +230,10 @@ begin
     Exit;
 
   Self.HTTPClient := InitializeHTTPClient(False);
-  Self.StatsServer := 'https://api.waspscripts.com/';
-  //Self.StatsServer := 'http://localhost:8080/'; //for local debugging.
+  if Self.LocalServer then
+    Self.StatsServer := 'http://localhost:8080/'
+  else
+    Self.StatsServer := 'https://api.waspscripts.com/';
 
   AddOnTerminate(@Self.Terminate);
 
@@ -252,8 +256,9 @@ begin
     Self.Setup();
 
   Result := GetHTTPPage(Self.HTTPClient, Self.StatsServer + route);
-  //Uncomment the next line to help debugging issues!
-  //WriteLn Result;
+
+  if Self.Debug then
+    WriteLn Result;
 end;
 
 (*
@@ -272,6 +277,9 @@ var
   i: Int32;
   finalPayload: String;
 begin
+  if Self.Disabled then
+    Exit;
+
   if not Self.IsSetup then
     Self.Setup();
 
@@ -285,8 +293,8 @@ begin
 
   Result := PostHTTPPage(Self.HTTPClient, Self.StatsServer + route, finalPayload);
 
-  //Uncomment the next line to help debugging issues!
-  //WriteLn Result;
+  if Self.Debug then
+    WriteLn Result;
 end;
 
 (*

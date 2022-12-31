@@ -1,3 +1,12 @@
+## [9.2.14](https://github.com/Torwent/WaspLib/compare/v9.2.13...v9.2.14) (2022-12-31)
+
+
+### Bug Fixes
+
+* discord committer name was missing ([6ca3c33](https://github.com/Torwent/WaspLib/commit/6ca3c33ef961c78d09f574c7e1e72db0d54c65f5))
+
+
+
 ## [9.2.13](https://github.com/Torwent/WaspLib/compare/v9.2.12...v9.2.13) (2022-12-31)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * testing a new discord notification ([0f1658e](https://github.com/Torwent/WaspLib/commit/0f1658e0f1d28c6ef45f2a8ca048d5bc24b86289))
-
-
-
-## [9.2.9](https://github.com/Torwent/WaspLib/compare/v9.2.8...v9.2.9) (2022-12-31)
-
-
-### Bug Fixes
-
-* changes to gh actions ([bb4378a](https://github.com/Torwent/WaspLib/commit/bb4378ac6a969e61588bc72a594dd793e847492f))
 
 
 

@@ -53,13 +53,13 @@ end;
 
 function TRSXPBar.EarnedXP(CurrentXP: Int32): Boolean;
 begin
-  Result := CurrentXP > WL.PreviousXP;
+  Result := CurrentXP > WL.XP.Previous;
 
   if Result then
   begin
-    StatsPayload.Update(CurrentXP-WL.PreviousXP, 0, 0, 0);
+    StatsPayload.Update(CurrentXP-WL.XP.Previous, 0, 0, 0);
     WL.Activity.Restart();
-    WL.PreviousXP := CurrentXP;
+    WL.XP.Previous := CurrentXP;
   end;
 end;
 
@@ -85,23 +85,25 @@ begin
     Result := Length(Minimap.GetXPCircle().Filter(TPA)) > 50;
 end;
 
-function TRSXPBar.Read: Int32; override;
+function TRSXPBar.Read(): Int32; override;
 begin
   Result := -1;
 
-  if not Self.CircleIsOpen then
-    Self.Open;
+  if not Self.CircleIsOpen() then
+    Self.Open();
 
-  if Self.IsOpen then
+  if Self.IsOpen() then
     Result := OCR.RecognizeNumber(Self.Bounds, TOCRColorRule.Create([$FFFFFF]), Self.Font);
 
-  WL.XPBarIsSetup := (Result >= WL.PreviousXP);
+  WL.XP.IsSetup := (Result > 0) and (Result >= WL.XP.Previous);
 
-  if WL.XPBarIsSetup then
+  if WL.XP.IsSetup then
+  begin
+    if WL.XP.Start = 0 then
+      WL.XP.Start := Result;
     Exit;
+  end;
 
-  if not MainScreen.HasInterface then
-    XPBarSetup.SetXPBarProperly;
+  if not WL.GameSettings.XPBarIsSetup and not MainScreen.HasInterface() then
+    XPBarSetup.Fix();
 end;
-
-

@@ -44,7 +44,7 @@ begin
     begin
       ProgressArray[1] := PadR((' Sleeping      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(PadLength/2), ' ') +
                              ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
-      if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+      if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
         ProgressReport.Update(ProgressArray);
     end;
     {$ENDIF}
@@ -110,7 +110,7 @@ begin
     begin
       ProgressArray[1] := PadR((' Breaking      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(PadLength/2), ' ') +
                            ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
-      if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+      if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
         ProgressReport.Update(ProgressArray);
     end;
     {$ENDIF}
@@ -170,7 +170,8 @@ begin
         begin
           ProgressArray[1] := PadR((' Action        : Antiban'), Round(PadLength/2), ' ') +
                                     ' Runtime       : ' + SRL.MsToTime(PTimeRunning^.ElapsedTime, Time_Short);
-          if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled then
+
+          if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
             ProgressReport.Update(ProgressArray);
         end;
         {$ENDIF}
@@ -546,40 +547,40 @@ begin
   //Chatbox.RandomScroll;
 end;
 
-procedure TAntiban.RandomBankTab;
+procedure TAntiban.RandomBankTab();
 var
-  HighTab: Int32;
-  BankTab: Int32;
+  hiTab: Int32;
+  bankTab: Int32;
 begin
-  if not Bank.IsOpen then
+  if not Bank.IsOpen() then
     Exit;
 
-  HighTab := Bank.CountTabs;
-  BankTab := Random(0, HighTab);
-  Self.DebugLn('[RND] Opening bank tab ' + ToStr(BankTab));
-  Bank.OpenTab(BankTab);
+  hiTab := Bank.CountTabs();
+  bankTab := Random(0, hiTab);
+  Self.DebugLn('[RND] Opening bank tab ' + ToStr(bankTab));
+  Bank.OpenTab(bankTab);
 end;
 
-procedure TAntiban.ToggleBankTab;
+procedure TAntiban.ToggleBankTab();
 var
   CurrentTab: Int32;
 begin
-  if not Bank.IsOpen then
+  if not Bank.IsOpen() then
     Exit;
 
   Self.DebugLn('[RND] Toggling bank tabs');
-  CurrentTab := Bank.GetCurrentTab;
-  Self.RandomBankTab;
+  CurrentTab := Bank.GetCurrentTab();
+  Self.RandomBankTab();
   Wait(3000 * Biohash, 5000 * Biohash);
   Bank.OpenTab(CurrentTab);
 end;
 
-procedure TAntiban.RandomBankButton;
+procedure TAntiban.RandomBankButton();
 var
   RandomButton: ERSBankButton;
   BankButton: TRSButton;
 begin
-  if not Bank.IsOpen then
+  if not Bank.IsOpen() then
     Exit;
 
   RandomButton := ERSBankButton(Random(2, 10));
@@ -588,42 +589,42 @@ begin
   BankButton.Enable;
 end;
 
-procedure TAntiban.RandomBankTask;
+procedure TAntiban.RandomBankTask();
 begin
   case Random(0, 12) of
-    0..2: Self.RandomBankTab;
-    1..8: Self.ToggleBankTab;
+    0..2: Self.RandomBankTab();
+    1..8: Self.ToggleBankTab();
   end;
 end;
 
-procedure TAntiban.SetupTasks;
+procedure TAntiban.SetupTasks();
 begin
   if Self.Tasks <> [] then
     Exit;
 
-  if ABCamera then
+  if WLSettings.Antiban.Camera then
     Self.AddTask(5  * ONE_MINUTE, @Self.RandomPOVTask);
 
-  if ABMouse then
+  if WLSettings.Antiban.Mouse then
     Self.AddTask(8  * ONE_MINUTE, @Self.RandomMouseTask);
 
-  if ABChat then
+  if WLSettings.Antiban.Chat then
     Self.AddTask(9  * ONE_MINUTE, @Self.RandomChatTask);
 
-  if ABMouse then
+  if WLSettings.Antiban.Mouse then
     Self.AddTask(10 * ONE_MINUTE, @Self.LoseFocus);
 
-  if ABGameTabs then
+  if WLSettings.Antiban.GameTabs then
     Self.AddTask(12 * ONE_MINUTE, @Self.RandomGameTabTask);
 
-  if ABBank then
+  if WLSettings.Antiban.Bank then
     Self.AddTask(13 * ONE_MINUTE, @Self.RandomBankTask);
 
-  if ABGameTabs then
+  if WLSettings.Antiban.GameTabs then
     Self.AddTask(18 * ONE_MINUTE, @Self.HoverSkills);
 end;
 
-procedure TAntiban.SetupBreaks;
+procedure TAntiban.SetupBreaks();
 begin
   if Self.Breaks <> [] then
     Exit;
@@ -634,14 +635,14 @@ begin
   Self.AddBreak(120 * ONE_MINUTE, 30 * ONE_MINUTE, 0.33, 0.5 + BioHash);
 end;
 
-procedure TAntiban.SetupSleep;
+procedure TAntiban.SetupSleep();
 begin
   if Self.Sleeps <> [] then
     Exit;
 
-  Self.SetSleepHour;
-  Self.SetSleepLength;
-  Self.AddSleep(SleepHour, SleepLength, 0.1, (0.8 + BioHash));
+  Self.SetSleepHour();
+  Self.SetSleepLength();
+  Self.AddSleep(WLSettings.Sleep.Hour, WLSettings.Sleep.Length, 0.1, (0.8 + BioHash));
 end;
 
 procedure TAntiban.WaitMovingTasks;
@@ -649,61 +650,59 @@ begin
   case Random(0, 500) of //only about 1% chance of antiban while walking
     0:
       begin
-        if not ABChat then Exit
-        else if (Random(20) <= 17) then Self.RandomChatButton
-        else Self.RandomChatButtonState;
+        if not WLSettings.Antiban.Chat then Exit
+        else if (Random(20) <= 17) then Self.RandomChatButton()
+        else Self.RandomChatButtonState();
       end;
 
     1..5:
       begin
-        if not ABCamera then Exit
-        else if (Random(10) <= 3) then Self.RandomRotate;
+        if not WLSettings.Antiban.Camera then Exit
+        else if (Random(10) <= 3) then Self.RandomRotate();
       end;
 
     6..10:
       begin
-        if not ABMouse then Exit
+        if not WLSettings.Antiban.Mouse then Exit
         else if (Random(10) <= 3) then Self.RandomRightClick
         else Self.SmallRandomMouse;
       end;
 
     10, 14:
       begin
-        if not ABGameTabs then Exit
-        else if (Random(10) <= 9) then Self.RandomTab
-        else Self.CheckCharges;
+        if not WLSettings.Antiban.GameTabs then Exit
+        else if (Random(10) <= 9) then Self.RandomTab()
+        else Self.CheckCharges();
       end;
   end;
 end;
 
 // Antiban tasks that can be performed while using walker.
+{$H-}
 procedure WalkerTasks(Walker: PRSWalker; Position: TPoint; Destination: TPoint);
 begin
-  ToStr(Walker);       //This has no purpose,
-  ToStr(Position);     //I just don't like to be spammed
-  ToStr(Destination);  //with unused variables.
-  Antiban.WaitMovingTasks;
+  Antiban.WaitMovingTasks();
 end;
+{$H+}
 
-
-procedure TAntiban.Setup; //override me to add stuff!
+procedure TAntiban.Setup(); //override me to add stuff!
 begin
-  Self.SetupBiometrics;
+  Self.SetupBiometrics();
 
-  Mouse.Speed := 10 + Self.GetBehavior(MOUSE_SPEED);
-  Mouse.Gravity := 8 + Round(Self.GetBehavior(MOUSE_GRAVITY) / 2);
-  Mouse.Wind := 3 + Round(Self.GetBehavior(MOUSE_WIND) / 2);
+  Mouse.Speed      := 10 + Self.GetBehavior(MOUSE_SPEED);
+  Mouse.Gravity    := 8  + Round(Self.GetBehavior(MOUSE_GRAVITY) / 2);
+  Mouse.Wind       := 3  + Round(Self.GetBehavior(MOUSE_WIND) / 2);
   Mouse.MissChance := 11 + Self.GetBehavior(MOUSE_MISS);
   //Self.Distribution := MOUSE_DISTRIBUTION_ROWP;
 
-  if AntibanEnabled then
-    Self.SetupTasks;
+  if WLSettings.Antiban.Enabled then
+    Self.SetupTasks();
 
-  if BreaksEnabled then
-    Self.SetupBreaks;
+  if WLSettings.Breaks then
+    Self.SetupBreaks();
 
-  if SleepEnabled then
-    Self.SetupSleep;
+  if WLSettings.Sleep.Enabled then
+    Self.SetupSleep();
 
   //override me to add stuff!
 end;

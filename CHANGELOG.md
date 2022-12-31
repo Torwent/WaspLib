@@ -1,3 +1,12 @@
+## [9.2.9](https://github.com/Torwent/WaspLib/compare/v9.2.8...v9.2.9) (2022-12-31)
+
+
+### Bug Fixes
+
+* changes to gh actions ([bb4378a](https://github.com/Torwent/WaspLib/commit/bb4378ac6a969e61588bc72a594dd793e847492f))
+
+
+
 ## [9.2.8](https://github.com/Torwent/WaspLib/compare/v9.2.7...v9.2.8) (2022-12-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * notification test ([73b543e](https://github.com/Torwent/WaspLib/commit/73b543e2697cec204493aed2d0acba9d13d40b7b))
-
-
-
-## [9.2.4](https://github.com/Torwent/WaspLib/compare/v9.2.3...v9.2.4) (2022-12-29)
-
-
-### Bug Fixes
-
-* notification test ([89f9784](https://github.com/Torwent/WaspLib/commit/89f9784a0fc099b513477cd50e9bfaefa77aabd4))
 
 
 

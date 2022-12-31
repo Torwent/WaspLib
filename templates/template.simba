@@ -1,16 +1,10 @@
-{$DEFINE SRL_USE_REMOTEINPUT}
 {$IFDEF WINDOWS}{$DEFINE SCRIPT_GUI}{$ENDIF}
-{$I SRL/osr.simba}
+{$I SRL-T/osr.simba}
 {$I WaspLib/osr.simba}
 
 begin
   Login.PlayerIndex     := 0;
-  AntibanEnabled        := True; //Enables Most Antiban
-  BreaksEnabled         := True; //Enables Short Breaks
-  SleepEnabled          := True; //Enables Sleep Breaks
-  RemoteInputEnabled    := True; //Enables Remote Input
-  ProgressReportEnabled := True; //Enables Graphical Progress Report
-  ScriptDebugEnabled    := False; //Enables Script Debugging
+  StatsPayload.Username := '';
 end;
 
 type
@@ -30,7 +24,7 @@ type
     State: EState;
   end;
 
-procedure TAntiban.Setup; override;
+procedure TAntiban.Setup(); override;
 begin
   inherited;
 
@@ -47,32 +41,30 @@ begin
 
   RSW.Setup('mainland');
 
-  if not RSClient.IsLoggedIn then
-    Login.LoginPlayer;
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
 end;
 
-function TScript.GetState: EState;
+function TScript.GetState(): EState;
 begin
   Exit(EState.WAIT_STATE);
 end;
 
 procedure TScript.Run(MaxActions: Int32; MaxTime: Int64);
 begin
-  ClearDebug;
   Self.Init(MaxActions, MaxTime);
 
-  while not Self.ShouldStop do
-  begin
-    State := Self.GetState;
+  repeat
+    State := Self.GetState();
     Action := ToStr(State);
-    Self.ProcessWhileWaiting;
+    Self.ProcessWhileWaiting();
 
     case State of
       WAIT_STATE: Wait(500, 800);
     end;
 
     Self.DoAntiban;
-  end;
+  until Self.ShouldStop();
 end;
 
 var
@@ -88,12 +80,9 @@ begin
   Self.Init(Sender);
 
   CurrentTask := ETask(Selector.Combobox.getItemIndex);
-
-  MaxActions := StrToInt(Self.ActionLimit.GetText);
-  MaxTime    := StrToInt64(Self.TimeLimit.GetText);
 end;
 
-procedure TConfig.Setup; override;
+procedure TConfig.Setup(); override;
 begin
   inherited;
 
@@ -112,7 +101,7 @@ begin
   StartButton.setOnClick(@Self.StartScript);
 end;
 
-procedure TConfig.Run; override;
+procedure TConfig.Run(); override;
 begin
   Self.Setup;
 
@@ -126,5 +115,5 @@ begin
   {$IFDEF SCRIPT_GUI}
   Sync(@Config.Run);
   {$ENDIF}
-  Script.Run(MaxActions, MaxTime);
+  Script.Run(WLSettings.MaxActions, WLSettings.MaxTime);
 end.

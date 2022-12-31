@@ -38,62 +38,34 @@ end;
 var
   BaseStats: TRSBaseStats;
 
-function TRSClient.IsLoggedIn: Boolean; override;
+
+procedure TRSClient.CheckClientSettings();
 begin
-  Result := inherited;
-
-  if Result then
+  if not WL.GameSettings.HighestPitch then
   begin
-    if not WL.HighestPitch then
-    begin
-      WL.HighestPitch := True;
-      MainScreen.SetHighestPitch;
-    end;
-
-    if not WL.MaxBrightness then
-    begin
-      Wait(100, 600);
-
-      if MM2MS.ZoomLevel = -1 then
-        MM2MS.ZoomLevel := Options.GetZoomLevel();
-
-      WL.MaxBrightness := Options.SetMaxBrightness();
-
-      Options.OpenTab(ERSOptionsTab.CONTROLS);
-      Wait(100, 600);
-    end;
-
-    if WL.PreviousXP = 0 then
-      WL.PreviousXP := XPBar.Read();
+    WL.GameSettings.HighestPitch := True;
+    MainScreen.SetHighestPitch();
   end;
+
+  if not WL.GameSettings.MaxBrightness then
+  begin
+    WL.GameSettings.MaxBrightness := Options.SetMaxBrightness();
+
+    if (MM2MS.ZoomLevel = -1) and Options.IsOpen() and (Options.GetCurrentTab() = ERSOptionsTab.DISPLAY) then
+      MM2MS.ZoomLevel := Options.GetZoomLevel();
+  end;
+
+  if not WL.GameSettings.RoofsHidden then
+    WL.GameSettings.RoofsHidden := Options.HideRoofs();
+
+  if WL.XP.Previous = 0 then
+    XPBar.Read();
 end;
 
-function TRSLogin.LoginPlayer: Boolean; override;
+function TRSClient.IsLoggedIn(): Boolean; override;
 begin
   Result := inherited;
 
   if Result then
-  begin
-    if not WL.HighestPitch then
-    begin
-      WL.HighestPitch := True;
-      MainScreen.SetHighestPitch;
-    end;
-
-    if not WL.MaxBrightness then
-    begin
-      Wait(100, 600);
-
-      if MM2MS.ZoomLevel = -1 then
-        MM2MS.ZoomLevel := Options.GetZoomLevel();
-
-      WL.MaxBrightness := Options.SetMaxBrightness();
-
-      Options.OpenTab(ERSOptionsTab.CONTROLS);
-      Wait(100, 600);
-    end;
-
-    if WL.PreviousXP = 0 then
-      WL.PreviousXP := XPBar.Read();
-  end;
+    Self.CheckClientSettings();
 end;

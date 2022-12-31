@@ -56,15 +56,6 @@ var
 const
   CREDENTIALS_FILE = AppPath + 'credentials.simba';
 
-var
-  MaxActions: Int32 := -1;
-  MaxTime:    Int64 := -1;
-
-  RemoteInputEnabled    := True;  //Enables Remote Input
-  BlockRealInput        := False; //Blocks user real input
-  ProgressReportEnabled := True;  //Enables Graphical Progress Report
-  ScriptDebugEnabled    := False; //Enables Script Debugging
-
 type
   TScriptConfig = record
     Form: TForm;
@@ -313,9 +304,9 @@ begin
   Antiban.SetSleepLength;
 
   if SleepHourEdit.IsInitiated then
-    SleepHourEdit.SetText(SleepHour);
+    SleepHourEdit.SetText(WLSettings.Sleep.Hour);
   if SleepLengthEdit.IsInitiated then
-    SleepLengthEdit.SetText(ToStr(SleepLength / ONE_HOUR));
+    SleepLengthEdit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
 end;
 
 
@@ -583,7 +574,7 @@ begin
       SetTop(AntibanSettingsLabel.getTop + AntibanSettingsLabel.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(AntibanEnabled);
+      SetEnabled(WLSettings.Antiban.Enabled);
     end;
 
     with BreaksState do
@@ -594,7 +585,7 @@ begin
       SetTop(AntibanState.getTop + AntibanState.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(BreaksEnabled);
+      SetEnabled(WLSettings.Breaks);
     end;
 
     with SleepsState do
@@ -605,7 +596,7 @@ begin
       SetTop(BreaksState.getTop + BreaksState.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(SleepEnabled);
+      SetEnabled(WLSettings.Sleep.Enabled);
     end;
 
 
@@ -632,7 +623,7 @@ begin
       SetTop(SleepsState.getTop + SleepsState.getHeight + 35);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ABCamera);
+      SetEnabled(WLSettings.Antiban.Camera);
       SetVisible(False);
     end;
 
@@ -644,7 +635,7 @@ begin
       SetTop(ABCameraState.getTop + ABCameraState.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ABMouse);
+      SetEnabled(WLSettings.Antiban.Mouse);
       SetVisible(False);
     end;
 
@@ -656,7 +647,7 @@ begin
       SetTop(ABMouseState.getTop + ABMouseState.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ABChat);
+      SetEnabled(WLSettings.Antiban.Chat);
       SetVisible(False);
     end;
 
@@ -668,7 +659,7 @@ begin
       SetTop(ABChatState.getTop + ABChatState.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ABGameTabs);
+      SetEnabled(WLSettings.Antiban.GameTabs);
       Title.setVisible(False);
       Checkbox.setVisible(False);
     end;
@@ -681,7 +672,7 @@ begin
       SetTop(ABGameTabsState.getTop + ABGameTabsState.getHeight + 15);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ABBank);
+      SetEnabled(WLSettings.Antiban.Bank);
       SetVisible(False);
     end;
 
@@ -693,7 +684,7 @@ begin
       Edit.SetTop(Edit.GetTop + 15);
       SetLeft(AntibanSettingsLabel.getLeft + 5);
       SetWidth(100);
-      SetText(SleepHour);
+      SetText(WLSettings.Sleep.Hour);
       SetVisible(False);
     end;
 
@@ -704,7 +695,7 @@ begin
       SetLeft(AntibanSettingsLabel.getLeft + 5);
       SetTop(SleepHourEdit.getTop + SleepHourEdit.getHeight + 20);
       SetWidth(100);
-      SetText(ToStr(SleepLength / ONE_HOUR));
+      SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
       SetVisible(False);
     end;
   end;
@@ -741,7 +732,7 @@ begin
       SetLeft(ScriptSettingsLabel.getLeft + 5);
       SetTop(ScriptSettingsPanel.getHeight - 85);
       SetWidth(165);
-      SetText(ToStr(MaxActions));
+      SetText(ToStr(WLSettings.MaxActions));
       Edit.setOnKeyPress(@Self.NumberField);
     end;
 
@@ -752,7 +743,7 @@ begin
       SetLeft(ActionLimit.getLeft  + ActionLimit.GetWidth + 55);
       SetTop(ActionLimit.GetTop);
       SetWidth(150);
-      SetText(ToStr(MaxTime));
+      SetText(ToStr(WLSettings.MaxTime));
       Edit.setOnKeyPress(@Self.NumberField);
     end;
 
@@ -765,7 +756,7 @@ begin
       SetTop(ActionLimit.GetTop + ActionLimit.GetHeight + 10);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(RemoteInputEnabled);
+      SetEnabled(WLSettings.RemoteInput.Enabled);
       Checkbox.setOnChange(@Self.RemoteInputOnChange);
     end;
 
@@ -777,7 +768,7 @@ begin
       SetTop(RemoteInputState.GetTop);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ProgressReportEnabled);
+      SetEnabled(WLSettings.RemoteInput.HUDReport);
     end;
 
     with ScriptDebugState do
@@ -788,7 +779,7 @@ begin
       SetTop(RemoteInputState.GetTop);
       SetWidth(50);
       SetHeight(10);
-      SetEnabled(ScriptDebugEnabled);
+      SetEnabled(WLSettings.RemoteInput.ScriptDebug);
       Checkbox.setOnChange(@Self.DebugOnChange);
     end;
 
@@ -813,31 +804,32 @@ procedure TScriptConfig.Init(Sender: TObject); //override me to add stuff!
 begin
   Writeln(Sender.ToString + ' was clicked. Form will now be hidden.');
 
-  AntibanEnabled := AntibanState.Checkbox.getState = cbChecked;
-  BreaksEnabled  := BreaksState.Checkbox.getState = cbChecked;
-  SleepEnabled   := SleepsState.Checkbox.getState = cbChecked;
+  WLSettings.Antiban.Enabled := AntibanState.Checkbox.getState = cbChecked;
+  WLSettings.Breaks          := BreaksState.Checkbox.getState  = cbChecked;
+  WLSettings.Sleep.Enabled   := SleepsState.Checkbox.getState  = cbChecked;
 
-  ABCamera   := ABCameraState.Checkbox.getState = cbChecked;
-  ABMouse    := ABMouseState.Checkbox.getState = cbChecked;
-  ABChat     := ABChatState.Checkbox.getState = cbChecked;
-  ABGameTabs := ABGameTabsState.Checkbox.getState = cbChecked;
-  ABBank     := ABBankState.Checkbox.getState = cbChecked;
+  WLSettings.Antiban.Camera   := ABCameraState.Checkbox.getState   = cbChecked;
+  WLSettings.Antiban.Mouse    := ABMouseState.Checkbox.getState    = cbChecked;
+  WLSettings.Antiban.Chat     := ABChatState.Checkbox.getState     = cbChecked;
+  WLSettings.Antiban.GameTabs := ABGameTabsState.Checkbox.getState = cbChecked;
+  WLSettings.Antiban.Bank     := ABBankState.Checkbox.getState     = cbChecked;
 
-  SleepHourOverride := SleepHourEdit.GetText;
-  WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep hour: ' + SleepHourOverride;
-  SleepLengthOverride := StrToFloat(SleepLengthEdit.GetText);
-  WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep length: ' + ToStr(SleepLengthOverride);
+  WLSettings.Sleep.HourOverride := SleepHourEdit.GetText();
+  WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep hour: ' + WLSettings.Sleep.HourOverride;
 
-  RemoteInputEnabled    := RemoteInputState.Checkbox.getState = cbChecked;
-  ProgressReportEnabled := (ProgressReportState.Checkbox.getState = cbChecked) and
-                           (ScriptDebugState.Checkbox.getState <> cbChecked);
-  ScriptDebugEnabled    := ScriptDebugState.Checkbox.getState = cbChecked;
+  WLSettings.Sleep.LengthOverride := StrToFloat(SleepLengthEdit.GetText());
+  WriteLn SRL.TimeStamp + ':[GUI]: Aprox sleep length: ' + ToStr(WLSettings.Sleep.LengthOverride);
 
-  MaxActions := StrToInt(Self.ActionLimit.GetText);
-  if StrToInt64(TimeLimit.Edit.GetText) > 0 then
-    MaxTime := StrToInt64(TimeLimit.Edit.GetText) * 60 * 1000;
+  WLSettings.RemoteInput.Enabled     := RemoteInputState.Checkbox.getState = cbChecked;
+  WLSettings.RemoteInput.HUDReport   := (ProgressReportState.Checkbox.getState = cbChecked) and
+                                        (ScriptDebugState.Checkbox.getState <> cbChecked);
+  WLSettings.RemoteInput.ScriptDebug := ScriptDebugState.Checkbox.getState = cbChecked;
 
-  Form.Close;
+  WLSettings.MaxActions := StrToInt(Self.ActionLimit.GetText());
+  if StrToInt64(TimeLimit.Edit.GetText()) > 0 then
+    WLSettings.MaxTime := StrToInt64(TimeLimit.Edit.GetText()) * 60 * 1000;
+
+  Form.Close();
   Writeln('Script starting...');
 
   //override me to add stuff!

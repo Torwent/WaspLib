@@ -122,8 +122,7 @@ begin
   //Self.Name := ScriptFile.Before('.simba').Replace('_', ' ').Capitalize();
 
   AddOnTerminate(@SaveScreenshot);
-
-  DisableDebugging := True;
+  StatsClient.Disabled := not WLSettings.Stats;
 
   {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
   Self.ID := {$macro SCRIPT_ID};
@@ -141,11 +140,11 @@ begin
 
   Welcome := WELCOME_SENTENCES.Random;
 
-  ActionLimit := -1;
+  Self.ActionLimit := -1;
   if MaxActions > -1 then
-    ActionLimit := TotalActions + MaxActions;
+    Self.ActionLimit := Self.TotalActions + MaxActions;
 
-  TimeRunning.Start;
+  TimeRunning.Start();
   PTimeRunning := @TimeRunning;
 
   if MaxTime > -1 then
@@ -155,19 +154,21 @@ begin
 
   WL.Activity.Init(260000);
 
-  if IsSetup then Exit;
-  IsSetup := True;
+  if Self.IsSetup then
+    Exit;
+
+  Self.IsSetup := True;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if RemoteInputEnabled then
+  if WLSettings.RemoteInput.Enabled then
   begin
-    RSClient.RemoteInput.Setup;
-    if ProgressReportEnabled then
-      ProgressReport.Setup;
+    RSClient.RemoteInput.Setup();
+    if WLSettings.RemoteInput.HUDReport then
+      ProgressReport.Setup();
   end;
   {$ENDIF}
 
-  Antiban.Setup;
+  Antiban.Setup();
 
   //override me to add more stuff.
 end;
@@ -238,8 +239,8 @@ begin
   ProgressArray += ExtraInfo;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if RemoteInputEnabled and ProgressReportEnabled and not ScriptDebugEnabled and
-  (Action <> PreviousAction) then
+  if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and
+     not WLSettings.RemoteInput.ScriptDebug and (Action <> PreviousAction) then
     ProgressReport.Update(ProgressArray);
   {$ENDIF}
 
@@ -247,10 +248,9 @@ begin
     Writeln(Str);
 
   PreviousAction := Action;
-  StatsDebugTick := GetTickCount;
+  StatsDebugTick := GetTickCount();
 
-
-  if ScriptDebugEnabled then
+  if WLSettings.RemoteInput.ScriptDebug then
     SRL.Debug(RSClient.Image);
 end;
 

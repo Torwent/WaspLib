@@ -133,10 +133,8 @@ You can find the API docs in https://api.waspscripts.com/docs if you need to rea
 but the TStatsClient should be able to do everything for you.
 *)
 type
-  TStatsClient = record
+  TStatsClient = record(TSRLBaseRecord)
     Disabled: Boolean;
-    Debug: Boolean;
-    LocalServer: Boolean;
     HTTPClient: Int32;
     StatsServer: String;
     Timer: TCountDown;
@@ -226,20 +224,28 @@ Internal method automatically called when attempting to use TStatsClient.GET() a
 *)
 procedure TStatsClient.Setup();
 begin
-  if Self.IsSetup then
-    Exit;
-
+  Self.Name := 'StatsClient';
+  Self.DisableDebugging := True;
   Self.HTTPClient := InitializeHTTPClient(False);
-  if Self.LocalServer then
-    Self.StatsServer := 'http://localhost:8080/'
-  else
-    Self.StatsServer := 'https://api.waspscripts.com/';
+  Self.StatsServer := 'https://api.waspscripts.com/';
 
   AddOnTerminate(@Self.Terminate);
 
   Self.Timer.Setup(5 * ONE_MINUTE);
 
   Self.IsSetup := True;
+end;
+
+(*
+StatsClient.SetLocal
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TStatsClient.SetLocal();
+
+Method only meant to be used if you are hosting a local stats server for debugging purposes.
+*)
+procedure TStatsClient.SetLocal();
+begin
+  Self.StatsServer := 'http://localhost:8080/';
 end;
 
 (*
@@ -252,13 +258,9 @@ You probably don't need to use this method directly.
 *)
 function TStatsClient.GET(route: String): String;
 begin
-  if not Self.IsSetup then
-    Self.Setup();
-
   Result := GetHTTPPage(Self.HTTPClient, Self.StatsServer + route);
 
-  if Self.Debug then
-    WriteLn Result;
+  Self.DebugLn(Result);
 end;
 
 (*
@@ -280,9 +282,6 @@ begin
   if Self.Disabled then
     Exit;
 
-  if not Self.IsSetup then
-    Self.Setup();
-
   for i := 0 to High(payload) do
   begin
     finalPayload += payload[i];
@@ -293,8 +292,7 @@ begin
 
   Result := PostHTTPPage(Self.HTTPClient, Self.StatsServer + route, finalPayload);
 
-  if Self.Debug then
-    WriteLn Result;
+  Self.DebugLn(Result);
 end;
 
 (*
@@ -455,6 +453,9 @@ Global StatsClient variable.
 var
   StatsClient: TStatsClient;
 
+begin
+  StatsClient.Setup();
+end;
 
 (*
 USAGE EXAMPLE

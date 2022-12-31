@@ -143,67 +143,6 @@ type
   end;
 
 (*
-StatsClient.GenerateBioHash
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsPayload.FormData(): TStringArray;
-
-You can pass in an already generated biohash or let it generate it's own.
-If you pass in an already generated biohash it is just converted to a string.
-
-The BioHashes are used as the wasp-stats main identifier.
-*)
-function TStatsClient.GenerateBioHash(biohash: Double = 0): String; static;
-var
-  h, i: UInt32;
-  k: String;
-begin
-
-  if biohash = 0 then
-  begin
-    if (Length(Login.Players) = 0) then
-      Exit;
-
-    k := Login.GetPlayer().User;
-    h := $811C9DC5;
-    for i:=1 to Length(k) do
-      h := (h * $1000193) xor Ord(k[i]);
-
-    biohash := h / $FFFFFFFF;
-  end;
-
-  Result := ToStr(biohash);
-end;
-
-
-(*
-StatsClient.GeneratePassword
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.GeneratePassword(password: String = ''): String; static;
-
-Generate a wasp-stats password from the password you pass in or the current user's password.
-
-The generated password is a hash made with SHA1.
-This makes the generated password unique and privacy friendly since it can't be reversed.
-
-The generated password is also rehashed and salted by the server before being stored in the database.
-For more info on what this means visit the wikipedia! (Sorry, it's out of the scope of this)
-https://en.wikipedia.org/wiki/Salt_(cryptography)
-
-What this means is that noone but you is able to know your wasp-stats password and only you can update your stats.
-Even in the case of a data breach.
-*)
-function TStatsClient.GeneratePassword(password: String = ''): String; static;
-begin
-  if (Length(Login.Players) = 0) then
-    Exit;
-
-  if password = '' then
-    password := Login.GetPlayer().Password;
-
-  Result := SHA1String(password);
-end;
-
-(*
 StatsClient.Terminate
 ~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TStatsClient.Terminate();
@@ -236,6 +175,71 @@ begin
   Self.IsSetup := True;
 end;
 
+
+(*
+StatsClient.GenerateBioHash
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TStatsClient.GenerateBioHash(biohash: Double = 0): String;
+
+You can pass in an already generated biohash or let it generate it's own.
+If you pass in an already generated biohash it is just converted to a string.
+
+The BioHashes are used as the wasp-stats main identifier.
+*)
+function TStatsClient.GenerateBioHash(biohash: Double = 0): String;
+var
+  h, i: UInt32;
+  k: String;
+begin
+  if biohash = 0 then
+  begin
+    if (Length(Login.Players) = 0) then
+      Exit;
+
+    k := Login.GetPlayer().User;
+    h := $811C9DC5;
+    for i:=1 to Length(k) do
+      h := (h * $1000193) xor Ord(k[i]);
+
+    biohash := h / $FFFFFFFF;
+  end;
+
+  Result := ToStr(biohash);
+
+  Self.DebugLn('BioHash: ', Result);
+end;
+
+(*
+StatsClient.GeneratePassword
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TStatsClient.GeneratePassword(password: String = ''): String;
+
+Generate a wasp-stats password from the password you pass in or the current user's password.
+
+The generated password is a hash made with SHA1.
+This makes the generated password unique and privacy friendly since it can't be reversed.
+
+The generated password is also rehashed and salted by the server before being stored in the database.
+For more info on what this means visit the wikipedia! (Sorry, it's out of the scope of this)
+https://en.wikipedia.org/wiki/Salt_(cryptography)
+
+What this means is that noone but you is able to know your wasp-stats password and only you can update your stats.
+Even in the case of a data breach.
+*)
+function TStatsClient.GeneratePassword(password: String = ''): String;
+begin
+  if (Length(Login.Players) = 0) then
+    Exit;
+
+  if password = '' then
+    password := Login.GetPlayer().Password;
+
+  Result := SHA1String(password);
+
+  Self.DebugLn('BioHash: ', Result);
+end;
+
+
 (*
 StatsClient.SetLocal
 ~~~~~~~~~~~~~~~~~~~~
@@ -247,6 +251,7 @@ procedure TStatsClient.SetLocal();
 begin
   Self.StatsServer := 'http://localhost:8080/';
 end;
+
 
 (*
 StatsClient.GET
@@ -295,6 +300,7 @@ begin
   Self.DebugLn(Result);
 end;
 
+
 (*
 StatsClient.HashPassword
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -322,7 +328,6 @@ begin
 
   Result := Self.POST(route, payload);
 end;
-
 
 (*
 StatsClient.CheckPassword
@@ -382,6 +387,7 @@ begin
 
   Result := msg.Pos('message') = 0; //again, maybe a bad way to do this
 end;
+
 
 (*
 StatsClient.CheckStats

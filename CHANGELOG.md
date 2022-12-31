@@ -1,3 +1,12 @@
+## [9.2.13](https://github.com/Torwent/WaspLib/compare/v9.2.12...v9.2.13) (2022-12-31)
+
+
+### Bug Fixes
+
+* improved discord notification ([b74ad4c](https://github.com/Torwent/WaspLib/commit/b74ad4ca78b46eb3c2d3853ce125699d85e87fdb))
+
+
+
 ## [9.2.12](https://github.com/Torwent/WaspLib/compare/v9.2.11...v9.2.12) (2022-12-31)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * changes to gh actions ([bb4378a](https://github.com/Torwent/WaspLib/commit/bb4378ac6a969e61588bc72a594dd793e847492f))
-
-
-
-## [9.2.8](https://github.com/Torwent/WaspLib/compare/v9.2.7...v9.2.8) (2022-12-31)
-
-
-### Bug Fixes
-
-* update gh actions ([347cb36](https://github.com/Torwent/WaspLib/commit/347cb36e7776d006f89868fa7c51ad1292cbc597))
 
 
 

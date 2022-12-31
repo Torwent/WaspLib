@@ -1,3 +1,12 @@
+## [9.2.11](https://github.com/Torwent/WaspLib/compare/v9.2.10...v9.2.11) (2022-12-31)
+
+
+### Bug Fixes
+
+* gh action for discord notifications test ([58b39fa](https://github.com/Torwent/WaspLib/commit/58b39fa1c3747292a9713bbe174cea41bc4f4af8))
+
+
+
 ## [9.2.10](https://github.com/Torwent/WaspLib/compare/v9.2.9...v9.2.10) (2022-12-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added some toggles to the StatsClient ([0de3a16](https://github.com/Torwent/WaspLib/commit/0de3a1627492c13d6044453fc9ba8d402f86db03))
-
-
-
-## [9.2.6](https://github.com/Torwent/WaspLib/compare/v9.2.5...v9.2.6) (2022-12-30)
-
-
-### Bug Fixes
-
-* discord notifications ([bb20fa4](https://github.com/Torwent/WaspLib/commit/bb20fa468f5a2432da35edcea7f84e542639151f))
 
 
 

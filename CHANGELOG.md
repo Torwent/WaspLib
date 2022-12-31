@@ -1,3 +1,13 @@
+## [9.2.12](https://github.com/Torwent/WaspLib/compare/v9.2.11...v9.2.12) (2022-12-31)
+
+
+### Bug Fixes
+
+* gh action changes ([7e70fa9](https://github.com/Torwent/WaspLib/commit/7e70fa90598ad3871adf1b7f9e2c56785c4851a5))
+* gh actions improvements ([6b4f059](https://github.com/Torwent/WaspLib/commit/6b4f059b223794b3d397adb4aeca7e581d40d5d0))
+
+
+
 ## [9.2.11](https://github.com/Torwent/WaspLib/compare/v9.2.10...v9.2.11) (2022-12-31)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * update gh actions ([347cb36](https://github.com/Torwent/WaspLib/commit/347cb36e7776d006f89868fa7c51ad1292cbc597))
-
-
-
-## [9.2.7](https://github.com/Torwent/WaspLib/compare/v9.2.6...v9.2.7) (2022-12-31)
-
-
-### Bug Fixes
-
-* added some toggles to the StatsClient ([0de3a16](https://github.com/Torwent/WaspLib/commit/0de3a1627492c13d6044453fc9ba8d402f86db03))
 
 
 

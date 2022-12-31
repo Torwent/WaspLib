@@ -10,11 +10,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2.2.0
+    - uses: actions/checkout@v3.2.0
                     
-    - name: Generate Conventional Changelog
+    - name: Generate changelog
       id: changelog
-      uses: TriPSs/conventional-changelog-action@v3.8.0
+      uses: TriPSs/conventional-changelog-action@v3.18.0
       with:
         github-token: ${{ secrets.GITHUB_TOKEN }}
         git-message: 'chore(release): {version}'
@@ -24,31 +24,9 @@ jobs:
         skip-version-file: 'true'
         skip-on-empty: 'true'
         skip-commit: 'false'
-    
-    - name: Make a new version.txt file
-      if: ${{ steps.changelog.outputs.skipped == 'false' }}
-      shell: bash
-      run: echo ${{ steps.changelog.outputs.tag }} > version.txt
-      
-    - name: Rewrite version.txt file with the new one
-      uses: test-room-7/action-update-file@v1
-      if: ${{ steps.changelog.outputs.skipped == 'false' }}
-      with:
-        file-path: version.txt
-        commit-msg: Bump version.txt and CHANGELOG.md
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-    
-    - name: Merge changes to dev branch
-      uses: everlytic/branch-merge@1.1.2
-      if: ${{ steps.changelog.outputs.skipped == 'false' }}
-      with:
-        github_token: ${{ github.token }}
-        source_ref: ${{ github.ref }}
-        target_branch: 'dev'
-        commit_message_template: '[Automated] Merged {source_ref} into target {target_branch}'
-        
-    - name: Create a release from the recent changes
-      uses: actions/create-release@v1
+            
+    - name: Create release
+      uses: actions/create-release@v1.1.4
       if: ${{ steps.changelog.outputs.skipped == 'false' }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,3 +41,12 @@ jobs:
         webhook: ${{ secrets.UPDATES_WEBHOOK }}
         template: "simple-link"
         embed: '{ "title": "Update: WaspLib", "description": "Committer: {{ commit.author.name }}\n\n**{{ commit.title }}**\n{{ commit.description }}", "url": "{{ commit.url }}"}'
+    
+    - name: Merge to WaspLib-dev
+      uses: everlytic/branch-merge@1.1.5
+      if: ${{ steps.changelog.outputs.skipped == 'false' }}
+      with:
+        github_token: ${{ github.token }}
+        source_ref: ${{ github.ref }}
+        target_branch: 'dev'
+        commit_message_template: '[Automated] Merged {source_ref} into target {target_branch}'

@@ -1,3 +1,17 @@
+# [10.0.0](https://github.com/Torwent/WaspLib/compare/v9.2.14...v10.0.0) (2022-12-31)
+
+
+### Features
+
+* backport of 1500 features ([c1f5a64](https://github.com/Torwent/WaspLib/commit/c1f5a645b2aaf664a5ee420a3a53c03e33bc3953))
+
+
+### BREAKING CHANGES
+
+* This update breaks compatibility with old scripts. All old scripts that use wasplib need to be updated.
+
+
+
 ## [9.2.14](https://github.com/Torwent/WaspLib/compare/v9.2.13...v9.2.14) (2022-12-31)
 
 
@@ -32,15 +46,6 @@
 ### Bug Fixes
 
 * gh action for discord notifications test ([58b39fa](https://github.com/Torwent/WaspLib/commit/58b39fa1c3747292a9713bbe174cea41bc4f4af8))
-
-
-
-## [9.2.10](https://github.com/Torwent/WaspLib/compare/v9.2.9...v9.2.10) (2022-12-31)
-
-
-### Bug Fixes
-
-* testing a new discord notification ([0f1658e](https://github.com/Torwent/WaspLib/commit/0f1658e0f1d28c6ef45f2a8ca048d5bc24b86289))
 
 
 

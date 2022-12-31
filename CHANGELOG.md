@@ -1,3 +1,12 @@
+## [10.0.1](https://github.com/Torwent/WaspLib/compare/v10.0.0...v10.0.1) (2022-12-31)
+
+
+### Bug Fixes
+
+* debugging improvements ([e54b53c](https://github.com/Torwent/WaspLib/commit/e54b53ce9e7369a9dc3fd923ad1245bd4d25ae22))
+
+
+
 # [10.0.0](https://github.com/Torwent/WaspLib/compare/v9.2.14...v10.0.0) (2022-12-31)
 
 
@@ -37,15 +46,6 @@
 
 * gh action changes ([7e70fa9](https://github.com/Torwent/WaspLib/commit/7e70fa90598ad3871adf1b7f9e2c56785c4851a5))
 * gh actions improvements ([6b4f059](https://github.com/Torwent/WaspLib/commit/6b4f059b223794b3d397adb4aeca7e581d40d5d0))
-
-
-
-## [9.2.11](https://github.com/Torwent/WaspLib/compare/v9.2.10...v9.2.11) (2022-12-31)
-
-
-### Bug Fixes
-
-* gh action for discord notifications test ([58b39fa](https://github.com/Torwent/WaspLib/commit/58b39fa1c3747292a9713bbe174cea41bc4f4af8))
 
 
 

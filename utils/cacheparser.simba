@@ -40,16 +40,18 @@ begin
 end;
 
 (*
-RSCacheParser.SetupPreferences
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure RSCacheParser.SetupPreferences(); static;
+RSCacheParser.GetPreference
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSCacheParser.GetPreference(prefNumber: Int32 = 1): String; static;
 
-Internal method called automatically everytime the cached information has gotten stale.
+Read the preference file specified.
 *)
-procedure RSCacheParser.SetupPreferences(); static;
+function RSCacheParser.GetPreference(prefNumber: Int32 = 1): String; static;
 begin
-  RSCacheParser.Preferences  := ReadFileContents(RSCacheParser.Directory + 'preferences.dat');
-  RSCacheParser.Preferences2 := ReadFileContents(RSCacheParser.Directory + 'preferences2.dat');
+  case prefNumber of
+    1: Result := ReadFileContents(RSCacheParser.Directory + 'preferences.dat');
+    2: Result := ReadFileContents(RSCacheParser.Directory + 'preferences2.dat');
+  end;
 end;
 
 (*
@@ -57,14 +59,82 @@ RSCacheParser.Update
 ~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function RSCacheParser.Update(): Boolean; static;
 
-Method to check if the cache files were updated. Automatically calls RSCacheParser.SetupPreferences() if they were.
+Method to check if the cache files were updated.
 *)
-function RSCacheParser.Update(): Boolean; static;
+function RSCacheParser.Update(prefNumber: Int32 = 0): Boolean; static;
+var
+  tmp1, tmp2: String;
 begin
-  Result := (RSCacheParser.Preferences <> ReadFileContents(RSCacheParser.Directory + 'preferences.dat')) or
-            (RSCacheParser.Preferences2 <> ReadFileContents(RSCacheParser.Directory + 'preferences2.dat'));
+  case prefNumber of
+    1:
+    begin
+      tmp1 := RSCacheParser.GetPreference(1);
+      Result := RSCacheParser.Preferences <> tmp1;
+    end;
+    2:
+    begin
+      tmp2 := RSCacheParser.GetPreference(2);
+      Result := RSCacheParser.Preferences2 <> tmp2;
+    end;
+    0:
+    begin
+      tmp1 := RSCacheParser.GetPreference(1);
+      tmp2 := RSCacheParser.GetPreference(2);
+      Result := (RSCacheParser.Preferences <> tmp1) or
+                (RSCacheParser.Preferences2 <> tmp2);
+    end;
+  end;
+
   if Result then
-    RSCacheParser.SetupPreferences();
+  begin
+    case prefNumber of
+      1: RSCacheParser.Preferences := tmp1;
+      2: RSCacheParser.Preferences2 := tmp2;
+      0:
+      begin
+        RSCacheParser.Preferences := tmp1;
+        RSCacheParser.Preferences2 := tmp2;
+      end;
+    end;
+  end;
+end;
+
+(*
+RSCacheParser.GetHexString
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSCacheParser.GetHexString(prefNumber: Int32 = 1): String; static;
+
+Print the cache files as a hex string.
+
+Example
+-------
+
+  WriteLn RSCacheParser.GetHexString(1);
+*)
+function RSCacheParser.GetHexString(prefNumber: Int32 = 1): String; static;
+var
+  pref, final, tmp: String;
+  i: Int32;
+begin
+  RSCacheParser.Update();
+
+  case prefNumber of
+    1: pref := RSCacheParser.Preferences;
+    2: pref := RSCacheParser.Preferences2;
+    else Exit;
+  end;
+
+  for i := 1 to High(pref) do
+  begin
+    tmp := IntToHex(Byte(pref[i]));
+
+    if Length(tmp) = 1 then
+      tmp := '0' + tmp;
+
+    final += tmp + ' ';
+  end;
+
+  Result := final;
 end;
 
 (*
@@ -83,15 +153,13 @@ procedure RSCacheParser.Print(prefNumber: Int32 = 0); static;
 begin
   RSCacheParser.Update();
 
-  case prefNumber of
-    1: WriteLn RSCacheParser.Preferences;
-    2: WriteLn RSCacheParser.Preferences2;
-    else
-      begin
-        WriteLn RSCacheParser.Preferences;
-        WriteLn RSCacheParser.Preferences2;
-      end;
-  end;
+  if prefNumber = 0 then
+  begin
+    WriteLn RSCacheParser.GetHexString(1);
+    WriteLn RSCacheParser.GetHexString(2);
+  end
+  else
+    WriteLn RSCacheParser.GetHexString(prefNumber);
 end;
 
 (*

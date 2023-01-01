@@ -1,3 +1,13 @@
+## [10.1.2](https://github.com/Torwent/WaspLib/compare/v10.1.1...v10.1.2) (2023-01-01)
+
+
+### Bug Fixes
+
+* fixed an issue with wasp-stats submissions ([b253bdd](https://github.com/Torwent/WaspLib/commit/b253bdd601cf02ddaf58d9cb72347b3c1c64a4e9))
+* minor StatsClient issue ([cee1c74](https://github.com/Torwent/WaspLib/commit/cee1c7457df9ab86444c4c8dbdaa2b39e79826a2))
+
+
+
 ## [10.1.1](https://github.com/Torwent/WaspLib/compare/v10.1.0...v10.1.1) (2023-01-01)
 
 
@@ -36,15 +46,6 @@
 ### BREAKING CHANGES
 
 * This update breaks compatibility with old scripts. All old scripts that use wasplib need to be updated.
-
-
-
-## [9.2.14](https://github.com/Torwent/WaspLib/compare/v9.2.13...v9.2.14) (2022-12-31)
-
-
-### Bug Fixes
-
-* discord committer name was missing ([6ca3c33](https://github.com/Torwent/WaspLib/commit/6ca3c33ef961c78d09f574c7e1e72db0d54c65f5))
 
 
 

@@ -1,3 +1,12 @@
+## [10.1.5](https://github.com/Torwent/WaspLib/compare/v10.1.4...v10.1.5) (2023-01-02)
+
+
+### Bug Fixes
+
+* Several fixes, read notes. ([a5bbfc9](https://github.com/Torwent/WaspLib/commit/a5bbfc9967c6263b3c84b70e7cd783160f1c310c))
+
+
+
 ## [10.1.4](https://github.com/Torwent/WaspLib/compare/v10.1.3...v10.1.4) (2023-01-02)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * fixed an issue that prevent discord notifications from firing ([5321cc6](https://github.com/Torwent/WaspLib/commit/5321cc6984596766aed0d1417d28a4e5f8a4c544))
-
-
-
-# [10.1.0](https://github.com/Torwent/WaspLib/compare/v10.0.1...v10.1.0) (2023-01-01)
-
-
-### Features
-
-* another backport from simba1500 ([eeab5b0](https://github.com/Torwent/WaspLib/commit/eeab5b09a7f01a94bba80a85bf832769518a9155))
 
 
 

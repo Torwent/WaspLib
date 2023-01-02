@@ -1,3 +1,12 @@
+## [10.1.3](https://github.com/Torwent/WaspLib/compare/v10.1.2...v10.1.3) (2023-01-02)
+
+
+### Bug Fixes
+
+* consumablehandler was not eating. ([2297d53](https://github.com/Torwent/WaspLib/commit/2297d532863cbbf65e93d1f4506f07a590f18c90))
+
+
+
 ## [10.1.2](https://github.com/Torwent/WaspLib/compare/v10.1.1...v10.1.2) (2023-01-01)
 
 
@@ -32,20 +41,6 @@
 ### Bug Fixes
 
 * debugging improvements ([e54b53c](https://github.com/Torwent/WaspLib/commit/e54b53ce9e7369a9dc3fd923ad1245bd4d25ae22))
-
-
-
-# [10.0.0](https://github.com/Torwent/WaspLib/compare/v9.2.14...v10.0.0) (2022-12-31)
-
-
-### Features
-
-* backport of 1500 features ([c1f5a64](https://github.com/Torwent/WaspLib/commit/c1f5a645b2aaf664a5ee420a3a53c03e33bc3953))
-
-
-### BREAKING CHANGES
-
-* This update breaks compatibility with old scripts. All old scripts that use wasplib need to be updated.
 
 
 

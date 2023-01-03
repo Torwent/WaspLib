@@ -1,3 +1,12 @@
+## [10.1.6](https://github.com/Torwent/WaspLib/compare/v10.1.5...v10.1.6) (2023-01-03)
+
+
+### Bug Fixes
+
+* **consumables:** withdrawing issues fixed. ([08176ff](https://github.com/Torwent/WaspLib/commit/08176ffac2cc345198e6f5d280002aa660706a54))
+
+
+
 ## [10.1.5](https://github.com/Torwent/WaspLib/compare/v10.1.4...v10.1.5) (2023-01-02)
 
 
@@ -32,15 +41,6 @@
 
 * fixed an issue with wasp-stats submissions ([b253bdd](https://github.com/Torwent/WaspLib/commit/b253bdd601cf02ddaf58d9cb72347b3c1c64a4e9))
 * minor StatsClient issue ([cee1c74](https://github.com/Torwent/WaspLib/commit/cee1c7457df9ab86444c4c8dbdaa2b39e79826a2))
-
-
-
-## [10.1.1](https://github.com/Torwent/WaspLib/compare/v10.1.0...v10.1.1) (2023-01-01)
-
-
-### Bug Fixes
-
-* fixed an issue that prevent discord notifications from firing ([5321cc6](https://github.com/Torwent/WaspLib/commit/5321cc6984596766aed0d1417d28a4e5f8a4c544))
 
 
 

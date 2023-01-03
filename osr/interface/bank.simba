@@ -3,6 +3,31 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+function TRSBank.FindItem(Item: TRSItem; out Bounds: TBox): Boolean; override;
+var
+  Boxes: TBoxArray;
+  items: TRSItemArray;
+  singleItem: TRSItem;
+  Indices: TIntegerArray;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Boxes := Self.FindItemBoundaries();
+  items := Item.GetArray();
+
+  for singleItem in items do
+  begin
+    indices := ItemFinder.Find(singleItem, Boxes, 1);
+    if Result := Indices <> [] then
+      Break;
+  end;
+
+  if Result then
+    Bounds := Boxes[Indices[0]];
+end;
+
+
 function TRSBank.ContainsItem(Item: TRSBankWithdrawItem): Boolean; overload;
 begin
   Result := Self.ContainsItem(Item.Item);
@@ -149,10 +174,10 @@ var
   B: TBox;
   ItemCount: Int32;
 begin
-  if not Self.IsOpen then
+  if not Self.IsOpen() then
     Exit;
 
-  if Inventory.IsFull and not Inventory.ItemIsStackable(Item.Item) then
+  if Inventory.IsFull() and (Length(Item.Item.GetArray()) =1 ) and not Inventory.ItemIsStackable(Item.Item) then
     Exit;
 
   if not Self.FindItem(Item.Item, B) then

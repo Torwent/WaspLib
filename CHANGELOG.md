@@ -1,3 +1,12 @@
+# [10.4.0](https://github.com/Torwent/WaspLib/compare/v10.3.0...v10.4.0) (2023-01-05)
+
+
+### Features
+
+* added Flight's store screen ([3bef262](https://github.com/Torwent/WaspLib/commit/3bef26288fcdc6ab309716fe224d8204be09945b))
+
+
+
 # [10.3.0](https://github.com/Torwent/WaspLib/compare/v10.2.0...v10.3.0) (2023-01-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Several fixes, read notes. ([a5bbfc9](https://github.com/Torwent/WaspLib/commit/a5bbfc9967c6263b3c84b70e7cd783160f1c310c))
-
-
-
-## [10.1.4](https://github.com/Torwent/WaspLib/compare/v10.1.3...v10.1.4) (2023-01-02)
-
-
-### Bug Fixes
-
-* scriptform was missing a single quote when regenerating credentials.simba ([27ae7cb](https://github.com/Torwent/WaspLib/commit/27ae7cbd3f1397ee1882a1c5613411954a74732d))
 
 
 

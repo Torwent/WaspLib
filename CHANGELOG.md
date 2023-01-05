@@ -1,3 +1,12 @@
+# [10.5.0](https://github.com/Torwent/WaspLib/compare/v10.4.0...v10.5.0) (2023-01-05)
+
+
+### Features
+
+* Added Flight's craftscreen ([68c3d9c](https://github.com/Torwent/WaspLib/commit/68c3d9c9103cbcc1edb26a5c1bcea1e17c3247d6))
+
+
+
 # [10.4.0](https://github.com/Torwent/WaspLib/compare/v10.3.0...v10.4.0) (2023-01-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **consumables:** withdrawing issues fixed. ([08176ff](https://github.com/Torwent/WaspLib/commit/08176ffac2cc345198e6f5d280002aa660706a54))
-
-
-
-## [10.1.5](https://github.com/Torwent/WaspLib/compare/v10.1.4...v10.1.5) (2023-01-02)
-
-
-### Bug Fixes
-
-* Several fixes, read notes. ([a5bbfc9](https://github.com/Torwent/WaspLib/commit/a5bbfc9967c6263b3c84b70e7cd783160f1c310c))
 
 
 

@@ -1,3 +1,12 @@
+# [10.6.0](https://github.com/Torwent/WaspLib/compare/v10.5.0...v10.6.0) (2023-01-06)
+
+
+### Features
+
+* RSFishingHandler ([b2ae8c7](https://github.com/Torwent/WaspLib/commit/b2ae8c723fcde39584ec5de5f9ff7a9cac696740))
+
+
+
 # [10.5.0](https://github.com/Torwent/WaspLib/compare/v10.4.0...v10.5.0) (2023-01-05)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added the Tanner interface ([be1092f](https://github.com/Torwent/WaspLib/commit/be1092f1dd637993dd00ad03176af40b691914bb))
-
-
-
-## [10.1.6](https://github.com/Torwent/WaspLib/compare/v10.1.5...v10.1.6) (2023-01-03)
-
-
-### Bug Fixes
-
-* **consumables:** withdrawing issues fixed. ([08176ff](https://github.com/Torwent/WaspLib/commit/08176ffac2cc345198e6f5d280002aa660706a54))
 
 
 

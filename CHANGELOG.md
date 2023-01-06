@@ -1,3 +1,12 @@
+## [10.6.2](https://github.com/Torwent/WaspLib/compare/v10.6.1...v10.6.2) (2023-01-06)
+
+
+### Bug Fixes
+
+* crafting guild upstairs map ([1928a86](https://github.com/Torwent/WaspLib/commit/1928a860dd2d9fc5c7f76589efb6c1338efa68b6))
+
+
+
 ## [10.6.1](https://github.com/Torwent/WaspLib/compare/v10.6.0...v10.6.1) (2023-01-06)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added Flight's store screen ([3bef262](https://github.com/Torwent/WaspLib/commit/3bef26288fcdc6ab309716fe224d8204be09945b))
-
-
-
-# [10.3.0](https://github.com/Torwent/WaspLib/compare/v10.2.0...v10.3.0) (2023-01-05)
-
-
-### Features
-
-* added Flight's silverscreen ([9590e9d](https://github.com/Torwent/WaspLib/commit/9590e9def32b8b5e8b6b32711ac8ea4ce7f9291c))
 
 
 

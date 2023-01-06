@@ -15,6 +15,9 @@ They are divided in 2 main categories and one of them in 3 sub-categories but th
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+const
+  USE_ASYNC_HOVER: Boolean = False;
+
 type
   TRSWalkerObject = record
     Filter: record
@@ -48,7 +51,14 @@ begin
   TRSWalkerObject.Regions := Regions;
 end;
 
-procedure TRSWalkerObject.Setup(coordinates: TPointArray);
+procedure TRSWalkerObject.Setup();
+begin
+  Self.Filter.MinimapDot := True;
+  Self.Filter.Finder     := True;
+  Self.Filter.UpText     := True;
+end;
+
+procedure TRSWalkerObject.Setup(coordinates: TPointArray); overload;
 begin
   Self.Filter.Skip := TRSWalkerObject.Walker = nil;
   if Self.Filter.Skip then
@@ -61,21 +71,18 @@ begin
     Exit;
 
   Self.Filter.Walker := True;
-  Self.Filter.MinimapDot := True;
-  Self.Filter.Finder := True;
-  Self.Filter.UpText := True;
-
   Self.Coordinates := coordinates;
   SetLength(Self.ShapeArray, coordinates.Length());
 end;
 
-procedure TRSWalkerObject.Setup(upText: TStringArray = []); overload;
+procedure TRSWalkerObject.Setup(upText: TStringArray); overload;
 begin
-  if not Self.Filter.Skip then
-    Self.UpText := upText;
-
-  if not Self.Filter.Finder then
+  if Self.Filter.Skip then
     Exit;
+
+  Self.Setup();
+
+  Self.UpText := upText;
 
   Self.Finder.ClusterDistance := 3;
   Self.Finder.Erode := 2;
@@ -119,9 +126,15 @@ begin
   begin
     if Self.Filter.Finder then
     begin
-      tpa := MainScreen.FindObject(tempFinder, cuboidArray[i].Bounds).Merge();
-      if tpa <> [] then
-        Result += cuboidArray[i].Filter(tpa);
+      tpa := MainScreen.FindObject(tempFinder, cuboidArray[i].Bounds()).Merge();
+      if tpa = [] then
+        Continue;
+
+      tpa := cuboidArray[i].Filter(tpa);
+      if tpa = [] then
+        Continue;
+
+      Result += tpa;
       Continue;
     end
 
@@ -506,7 +519,8 @@ begin
     if Self.Find(atpa) then
     begin
       tpa := GetDestination(attempt, atpa);
-      ASyncMouse.Move(tpa.RandomValue());
+
+      ASyncMouse.Move(tpa);
 
       while AsyncMouse.IsMoving() or tpa.Contains(AsyncMouse.Position()) do
       begin
@@ -631,7 +645,7 @@ begin
 end;
 
 // Searches for an object with TRSObject.Find and hovers it if found.
-function TRSObject.Hover(attempts: Int32 = 2; Async: Boolean = True): Boolean;
+function TRSObject.Hover(attempts: Int32 = 2; async: Boolean = True): Boolean;
 begin
   if ChooseOption.IsOpen() then
   begin
@@ -643,11 +657,11 @@ begin
   if Self.Filter.Walker and not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) then
     Exit(False);
 
-  Result := (Async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
+  Result := (async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
 end;
 
 // Searches for an object with TRSObject.Find and walker and hovers it if found.
-function TRSObject.WalkHover(attempts: Int32 = 2; Async: Boolean = True): Boolean;
+function TRSObject.WalkHover(attempts: Int32 = 2; async: Boolean = True): Boolean;
 begin
   if ChooseOption.IsOpen() then
   begin
@@ -663,7 +677,7 @@ begin
     if not TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, Self.UpText, Self.RedClicked, 30, 0.15) then
       Exit(False);
 
-  Result := (Async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
+  Result := (async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
 end;
 
 
@@ -687,33 +701,24 @@ end;
 // Searches for an object with TRSObject.Find and walker, hovers and clicks it if found.
 function TRSObject.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHover(attempts) and Self._ClickHelper(leftClick);
+  Result := Self.WalkHover(attempts, USE_ASYNC_HOVER) and Self._ClickHelper(leftClick);
 end;
 
 // Searches for an object with TRSObject.Find and walker, hovers and selects the specified action if found.
 function TRSObject.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 begin
   Self.ActionUpText := action;
-  Result := Self.WalkHover(attempts) and Self._SelectHelper(action);
+  Result := Self.WalkHover(attempts, USE_ASYNC_HOVER) and Self._SelectHelper(action);
 end;
 
 
 function PRSObjectArray.IndexOf(value: TPoint): Int32; overload;
 var
-  i, hi: Int32;
+  i: Int32;
 begin
-  hi := High(Self);
-  for i := 0 to hi do
-  begin
-    if Self[i]^.Coordinates = [] then
-    begin
-      Self.Pop(i); //remove the empty ones so next times are faster
-      hi -= 1;
-    end;
-
+  for i := 0 to High(Self) do
     if Self[i]^.Coordinates.Contains(value) then
       Exit(i);
-  end;
 
   Result := -1;
 end;
@@ -737,7 +742,7 @@ begin
   begin
     if Self[i]^.Coordinates = [] then
     begin
-      Self.Pop(i); //remove the empty ones so next times are faster
+      Self.Pop(i); //remove the empty ones so next times are faster since we don't have to check them.
       hi -= 1;
       Continue;
     end;
@@ -745,8 +750,10 @@ begin
     tpa += Self[i]^.Coordinates.SortFrom(me).First();
   end;
 
-  tpa := tpa.SortFrom(me);
+  if tpa = [] then
+    Exit;
 
+  tpa := tpa.SortFrom(me);
   Result := Self[Self.IndexOf(tpa.First())]^;
 end;
 
@@ -833,7 +840,7 @@ begin
 end;
 
 
-function TRSMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; floorTiles, roofTiles: TQuadArray): TCuboidArray; overload;
+function TRSMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles: TQuadArray; out roofTiles: TQuadArray): TCuboidArray; overload;
 begin
   if Self.Filter.Walker and Self.Filter.MinimapDot then
     Exit(Self._GetWMMPolys(mmTPA, dots, dotFilters, floorTiles, roofTiles));
@@ -876,7 +883,7 @@ end;
 
 
 //MMDot.Find functions
-function TRSMMDot.Find(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles, roofTiles: TQuadArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TRSMMDot.Find(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TQuadArray; out roofTiles: TQuadArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
@@ -1369,14 +1376,14 @@ end;
 // Searches for an object with TRSMMDot.Find and walker, hovers and clicks it if found.
 function TRSMMDot.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
 begin
-  Result := Self.WalkHover(attempts) and Self._ClickHelper(leftClick);
+  Result := Self.WalkHover(attempts, USE_ASYNC_HOVER) and Self._ClickHelper(leftClick);
 end;
 
 // Searches for an object with TRSMMDot.Find and walker, hovers and selects the specified action if found.
 function TRSMMDot.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 begin
   Self.ActionUpText := action;
-  Result := Self.WalkHover(attempts) and Self._SelectHelper(action);
+  Result := Self.WalkHover(attempts, USE_ASYNC_HOVER) and Self._SelectHelper(action);
 end;
 
 
@@ -1394,10 +1401,14 @@ type
   TRSPlayer = type TRSMMDot;
   TRSPlayerArray = array of TRSPlayer;
 
-procedure TRSNPC.Setup(upText: TStringArray = []); override;
+procedure TRSNPC.Setup(upText: TStringArray); override;
 begin
-  if not Self.Filter.Skip then
-    Self.UpText := upText;
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Setup();
+
+  Self.UpText := upText;
 
   Self.Finder.ClusterDistance := 3;
   Self.Finder.Erode := 2;
@@ -1405,10 +1416,16 @@ begin
   Self.DotType := ERSMinimapDot.NPC;
 end;
 
-procedure TRSGroundItem.Setup(upText: TStringArray = []); override;
+
+
+procedure TRSGroundItem.Setup(upText: TStringArray); override;
 begin
-  if not Self.Filter.Skip then
-    Self.UpText := upText;
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Setup();
+
+  Self.UpText := upText;
 
   Self.Finder.ClusterDistance := 3;
   Self.Finder.Erode := 2;
@@ -1416,10 +1433,14 @@ begin
   Self.DotType := ERSMinimapDot.ITEM;
 end;
 
-procedure TRSPlayer.Setup(upText: TStringArray = []); override;
+procedure TRSPlayer.Setup(upText: TStringArray); override;
 begin
-  if not Self.Filter.Skip then
-    Self.UpText := upText;
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Setup();
+
+  Self.UpText := upText;
 
   Self.Finder.ClusterDistance := 3;
   Self.Finder.Erode := 2;
@@ -1430,20 +1451,11 @@ end;
 
 function PRSNPCArray.IndexOf(value: TPoint): Int32; overload;
 var
-  i, hi: Int32;
+  i: Int32;
 begin
-  hi := High(Self);
-  for i := 0 to hi do
-  begin
-    if Self[i]^.Coordinates = [] then
-    begin
-      Self.Pop(i); //remove the empty ones so next times are faster
-      hi -= 1;
-    end;
-
+  for i := 0 to High(Self) do
     if Self[i]^.Coordinates.Contains(value) then
       Exit(i);
-  end;
 
   Result := -1;
 end;
@@ -1451,7 +1463,7 @@ end;
 function PRSNPCArray.GetClosest(): TRSNPC;
 var
   me: TPoint;
-  obj: PRSNPC;
+  i, hi: Int32;
   tpa: TPointArray;
 begin
   if Self = [] then
@@ -1462,11 +1474,23 @@ begin
 
   me := TRSWalkerObject.Walker^.GetMyPos();
 
-  for obj in Self do
-    tpa += obj^.Coordinates.SortFrom(me).First();
+  hi := High(Self);
+  for i := 0 to hi do
+  begin
+    if Self[i]^.Coordinates = [] then
+    begin
+      Self.Pop(i); //remove the empty ones so next times are faster since we don't have to check them.
+      hi -= 1;
+      Continue;
+    end;
+
+    tpa += Self[i]^.Coordinates.SortFrom(me).First();
+  end;
+
+  if tpa = [] then
+    Exit;
 
   tpa := tpa.SortFrom(me);
-
   Result := Self[Self.IndexOf(tpa.First())]^;
 end;
 

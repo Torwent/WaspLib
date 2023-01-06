@@ -226,41 +226,6 @@ begin
 end;
 
 (*
-RSMouseZoom.SetZoomLevel
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
-
-  Set the specified zoom level. This assumes slider levels (so 0..100 range).
-  This will often miss the target by a couple of zoom levels due to how zooming with the mouse wheel works.
-  Assuming we end up within 4 zoom levels of the target level, it's assumed successful.
-
-Example
--------
-
-  RSMouseZoom.SetZoomLevel(75); //will attempt to zoom in/out until you are within 4 levels of 75.
-*)
-function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
-var
-  trueLevel, amount: Int32;
-begin
-  trueLevel := Self.Slider2Level(level);
-
-  if InRange(trueLevel, Self.ZoomLevel-26, Self.ZoomLevel+24) then
-    Self.MaxZoom(Antiban.BioDice());
-
-  amount := trueLevel - Self.ZoomLevel;
-
-  if Self.ZoomLevel > trueLevel then
-    amount := Floor(amount/26)
-  else
-    amount := Floor(amount/24);
-
-  Self.Scroll(amount);
-
-  Result := InRange(MM2MS.ZoomLevel, level-4, level+4);
-end;
-
-(*
 RSMouseZoom.GetZoomLevel
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSMouseZoom.GetZoomLevel(): Int32;
@@ -281,7 +246,10 @@ begin
     Exit(Self.ZoomLevel);
 
   if (MM2MS.ZoomLevel > -1) then
-    Exit(Self.Slider2Level(MM2MS.ZoomLevel));
+  begin
+    Self.ZoomLevel := Self.Slider2Level(MM2MS.ZoomLevel);
+    Exit(Self.ZoomLevel);
+  end;
 
   case Random(3) of
     0:
@@ -296,6 +264,51 @@ begin
   end;
 
   Result := Self.ZoomLevel;
+end;
+
+
+(*
+RSMouseZoom.SetZoomLevel
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
+
+  Set the specified zoom level. This assumes slider levels (so 0..100 range).
+  This will often miss the target by a couple of zoom levels due to how zooming with the mouse wheel works.
+  Assuming we end up within 4 zoom levels of the target level, it's assumed successful.
+
+Example
+-------
+
+  RSMouseZoom.SetZoomLevel(75); //will attempt to zoom in/out until you are within 4 levels of 75.
+*)
+function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
+var
+  trueLevel, amount: Int32;
+begin
+  if Self.ZoomLevel = -1 then
+  begin
+    Self.GetZoomLevel();
+
+    if Self.ZoomLevel = -1 then
+      Self.Fatal('Something went wrong while settings up the zoom level.');
+  end;
+
+
+  trueLevel := Self.Slider2Level(level);
+
+  if InRange(trueLevel, Self.ZoomLevel-26, Self.ZoomLevel+24) then
+    Self.MaxZoom(Antiban.BioDice());
+
+  amount := trueLevel - Self.ZoomLevel;
+
+  if Self.ZoomLevel > trueLevel then
+    amount := Floor(amount/26)
+  else
+    amount := Floor(amount/24);
+
+  Self.Scroll(amount);
+
+  Result := InRange(MM2MS.ZoomLevel, level-4, level+4);
 end;
 
 (*

@@ -43,50 +43,80 @@ begin
     DeleteFile(path + files[i]);
 end;
 
-procedure ForceSaveScreenshot(); overload;
-begin
-  SaveScreenshot('screenshot');
-end;
 
-function SaveScreenshot(FileName: String): String; override;
+
+function GetScreenshotPath(fileName: String): String;
 var
-  path: String;
   fileExt: String;
   fileTime: String;
 begin
-  if not FileName.Contains('Screenshots/') then
-    FileName := 'Screenshots/' + FileName;
+  if not fileName.Contains(SIMBAPATH + 'Screenshots' + DIRECTORYSEPARATOR) then
+    fileName := SIMBAPATH + 'Screenshots'  + DIRECTORYSEPARATOR + fileName;
 
-  path := ExtractFilePath(FileName);
-  if not ForceDirectories(path) then
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
     Exit;
 
-  FileName := ExtractFileName(FileName);
-  fileExt := ExtractFileExt(FileName);
+  fileName := ExtractFileName(fileName);
+  fileExt := ExtractFileExt(fileName);
 
   if fileExt = '' then
-    fileExt := '.png';
-
-  FileName := FileName.Before(fileExt);
+    fileExt := '.png'
+  else
+    fileName := fileName.Before(fileExt);
 
   fileTime := '_' + FormatDateTime('yyyy-mm-dd_hh-mm-ss', Now());
 
-  DeleteOldFiles(path, fileExt, 300);
+  DeleteOldFiles(Result, fileExt, 300);
 
-  path += FileName + fileTime + fileExt;
-
-  Result := inherited(Path);
+  Result += fileName + fileTime + fileExt;
 end;
 
-function SaveScreenshot(FileName: String; MessageUser: Boolean): String; overload;
+function SaveScreenshot(fileName: String; messageUser: Boolean): String; overload;
 begin
-  Result := SaveScreenshot(FileName);
+  Result := GetScreenshotPath(fileName);
+  SaveScreenshot(Result);
 
-  if MessageUser then
+  if messageUser then
     WriteLn 'Screenshot saved: ' + Result;
 end;
 
+function SaveScreenshot(fileName: String; bounds: TBox; messageUser: Boolean = True): String; overload;
+var
+  bmp: TMufasaBitmap;
+  b: TBox;
+begin
+  Result := GetScreenshotPath(fileName);
 
+  bmp := TMufasaBitmap.CreateFromClient();
+  b := Chat.GetDisplayNameBox();
+  if b <> Chat.GetInputLineBox() then
+    bmp.DrawBoxFilled(b, $819DAC);
+
+  bmp.crop(bounds.X1, bounds.Y1, bounds.X2, bounds.Y2);
+
+  bmp.SaveToFile(Result);
+  bmp.Free();
+
+  if messageUser then
+    WriteLn 'Screenshot saved: ' + Result;
+end;
+
+procedure ForceSaveScreenshot(); overload;
+var
+  bmp: TMufasaBitmap;
+  b: TBox;
+  path: String;
+begin
+  bmp := TMufasaBitmap.CreateFromClient();
+  b := Chat.GetDisplayNameBox();
+  if b <> Chat.GetInputLineBox() then
+    bmp.DrawBoxFilled(b, $819DAC);
+  path := GetScreenshotPath('Terminated' + DIRECTORYSEPARATOR +'screenshot');
+
+  bmp.SaveToFile(path);
+  bmp.Free();
+end;
 
 procedure GenerateLog(fileName: String);
 var

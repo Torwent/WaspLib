@@ -4,6 +4,8 @@
 {$ENDIF}
 
 type
+  ERSWorldType = enum(ANY, MEMBER, FREE);
+
   TRSWorld = record
     World: Int32;
     Members: Boolean;
@@ -71,12 +73,11 @@ begin
   b.X2 := b.X1 + 13;
   b.Y1 += 1;
 
-  ShowOnClient(b);
   Result := SRL.CountColor(CTS2(13536759, 24, 1.00, 0.57), b) > 0;
 end;
 
 
-function TRSWorldSwitcher.GetWorldBoxes(membersOnly: Boolean = True): TBoxArray;
+function TRSWorldSwitcher.GetWorldBoxes(worldType: ERSWorldType = ERSWorldType.ANY): TBoxArray;
 var
   tpa: TPointArray;
   atpa: T2DPointArray;
@@ -106,14 +107,17 @@ begin
 
     if b.Height > 14 then
     begin
-      if not membersOnly or Self.IsMembers(b) then
-        Result += b;
+      case worldType of
+        ERSWorldType.ANY: Result += b;
+        ERSWorldType.MEMBER: if Self.IsMembers(b) then Result += b;
+        ERSWorldType.FREE: if not Self.IsMembers(b) then Result += b;
+      end;
     end;
   end;
 end;
 
 
-function TRSWorldSwitcher.GetWorlds(membersOnly: Boolean = True): TRSWorldArray;
+function TRSWorldSwitcher.GetWorlds(worldType: ERSWorldType = ERSWorldType.ANY): TRSWorldArray;
 var
   b: TBox;
   w: TRSWorld;
@@ -121,7 +125,7 @@ begin
   if not Self.Open() or not Self.OpenWorldSwitcher() then
     Exit;
 
-  for b in Self.GetWorldBoxes(membersOnly) do
+  for b in Self.GetWorldBoxes(worldType) do
   begin
     w.World := Self.GetWorld(b);
     w.Members := Self.IsMembers(b);
@@ -139,9 +143,8 @@ var
   str: String;
 begin
   b := [7, 7, 80, 24];
-  ShowOnClient(b);
   str := OCR.Recognize(b, TOCRColorFilter.Create([$FFFFFF]), RS_FONT_PLAIN_12);
-  WriteLn str;
+
   Result := 'Please wait' in str;
 end;
 
@@ -153,13 +156,13 @@ end;
 
 
 
-function TRSWorldSwitcher.Switch(membersOnly: Boolean = True): Boolean;
+function TRSWorldSwitcher.Switch(worldType: ERSWorldType = ERSWorldType.MEMBER): Boolean;
 var
   worlds: TRSWorldArray;
   i: Int32;
   current: Int32;
 begin
-  worlds := Self.GetWorlds(membersOnly);
+  worlds := Self.GetWorlds(worldType);
 
   if worlds = [] then
     Exit;

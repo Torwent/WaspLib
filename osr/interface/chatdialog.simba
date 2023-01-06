@@ -4,11 +4,34 @@
 {$ENDIF}
 
 function TRSChatDialog.HasLevelUp(): Boolean; override;
+var
+  b: TBox;
+  i: Int32;
+  skillStr: String;
 begin
   Result := inherited;
 
-  if Result then
-    SaveScreenshot('LevelUp/levelup', True);
+  if not Result then
+    Exit;
+
+  SaveScreenshot('LevelUp/levelup', ChatDialog.Bounds());
+
+  b := Chat.Bounds();
+  b.Y1 += 60;
+  b.Y2 -= 75;
+
+  skillStr := OCR.Recognize(b, TOCRColorFilter.Create([0]), RS_FONT_QUILL_8);
+  skillStr := skillStr.After('Your ').Before(' level').ToLower();
+
+  for i := Ord(ERSSkill.ATTACK) to Ord(ERSSkill.TOTAL) do
+    if skillStr in ToStr(ERSSkill(i)).After('ERSSkill.').ToLower() then
+      Break;
+
+  if i = Ord(ERSSkill.TOTAL) then
+    Exit;
+
+  BaseStats.IncrementLevel(ERSSkill(i));
+  BaseStats.SuccessLn(skillStr + ' leveled up to ' + ToStr(BaseStats.GetCurrentLevel(ERSSkill(i))) + '!');
 end;
 
 function TRSChatDialog.HandleLevelUp(UseKeyboard: Boolean): Boolean;

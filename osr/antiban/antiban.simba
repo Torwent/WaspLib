@@ -3,6 +3,44 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+{$H-}
+procedure OnStartTask(Task: PAntibanTask);
+begin
+  if Length(TProgressReport.ProgressArray) < 1 then
+    Exit;
+
+  TProgressReport.ProgressArray[0] := ' Breaking      : Antiban';
+  TProgressReport.ProgressArray[1] := ' Runtime       : ' + SRL.MsToTime(TProgressReport.PTimeRunning^.ElapsedTime, Time_Short).Trim();
+
+  if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
+    ProgressReport.Update(TProgressReport.ProgressArray);
+end;
+
+procedure OnBreaking(Task: PBreakTask; var countdown: TCountdown);
+begin
+  if Length(TProgressReport.ProgressArray) < 1 then
+    Exit;
+
+  TProgressReport.ProgressArray[0] := ' Breaking      : ' + SRL.MsToTime(countdown.TimeRemaining(), Time_Short).Trim();
+  TProgressReport.ProgressArray[1] := ' Runtime       : ' + SRL.MsToTime(TProgressReport.PTimeRunning^.ElapsedTime, Time_Short).Trim();
+
+  if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
+    ProgressReport.Update(TProgressReport.ProgressArray);
+end;
+
+procedure OnSleeping(Task: PSleepTask; var countdown: TCountdown);
+begin
+  if Length(TProgressReport.ProgressArray) < 1 then
+    Exit;
+
+  TProgressReport.ProgressArray[0] := ' Sleeping      : ' + SRL.MsToTime(countdown.TimeRemaining(), Time_Short).Trim();
+  TProgressReport.ProgressArray[1] := ' Runtime       : ' + SRL.MsToTime(TProgressReport.PTimeRunning^.ElapsedTime, Time_Short).Trim();
+
+  if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
+    ProgressReport.Update(TProgressReport.ProgressArray);
+end;
+{$H+}
+
 function TAntiban.TimeRunningAtClock(timeOfDay: String; randomness: Double = 0.10): Int64; override;
 begin
   Result := inherited(timeOfDay.Replace('.', ':').Replace('-', ':').Replace(',', ':'), randomness);
@@ -20,7 +58,7 @@ begin
 
   Countdown.Init(Abs(Round(RandomLeft(task.Length, task.Length * task.StdVar))));
 
-  Self.DebugLn('Sleeping for ' + SRL.MsToTime(Countdown.TimeRemaining, TIME_FORMAL));
+  Self.DebugLn('Sleeping for ' + SRL.MsToTime(Countdown.TimeRemaining(), TIME_FORMAL));
 
   if (@Self.OnStartSleep <> nil) then
     Self.OnStartSleep(@Task);
@@ -29,11 +67,11 @@ begin
   begin
     Self.DebugLn('Logging out');
 
-    Logout.ClickLogout;
+    Logout.ClickLogout();
   end;
 
   if Random < 0.50 then
-    Self.LoseFocus;
+    Self.LoseFocus();
 
   while not Countdown.IsFinished() do
   begin
@@ -72,131 +110,6 @@ begin
   task.NextAtTime := Self.TimeRunningAtClock(task.Time, task.StdVar);
 end;
 
-procedure TAntiban.TakeBreak(var task: TBreakTask); override;
-var
-  Countdown: TCountDown;
-  I: Int32;
-  ActiveTasks: PAntibanTaskArray;
-begin
-  ActiveTasks := Self.GetActiveTasks;
-  for i := 0 to High(ActiveTasks) do
-    ActiveTasks[i]^.Countdown.Pause;
-
-  Countdown.Init(Abs(Round(RandomLeft(task.Length, task.Length * task.StdVar))));
-
-  Self.DebugLn('Taking a break for ' + SRL.MsToTime(Countdown.TimeRemaining, TIME_FORMAL));
-
-  if (@Self.OnStartBreak <> nil) then
-    Self.OnStartBreak(@task);
-
-  if Random < task.LogoutChance then
-  begin
-    Self.DebugLn('Logging out');
-
-    Logout.ClickLogout;
-  end;
-
-  if Random < 0.50 then
-    Self.LoseFocus;
-
-  I := 0;
-  while not Countdown.IsFinished() do
-  begin
-    if (Inc(I) mod 12 = 0) then
-      Self.DebugLn('Break time remaining: ' + ToString(CountDown.TimeRemaining div 60000) + ' minutes');
-
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    if Length(TProgressReport.ProgressArray) > 2 then
-    begin
-      TProgressReport.ProgressArray[1] := PadR((' Breaking      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(TProgressReport.PadLength/2), ' ') +
-                           ' Runtime       : ' + SRL.MsToTime(TProgressReport.PTimeRunning^.ElapsedTime, Time_Short);
-
-      if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
-        ProgressReport.Update(TProgressReport.ProgressArray);
-    end;
-    {$ENDIF}
-
-    if (@Self.OnBreaking <> nil) then
-      Self.OnBreaking(@task, Countdown);
-
-    Wait(5000);
-  end;
-
-  Self.DebugLn('Break finished');
-
-  if (@Self.OnFinishBreak <> nil) then
-    Self.OnFinishBreak(@task);
-
- // if InRange(CurrentPlayer, Low(Players), High(Players)) then
- //   Players[CurrentPlayer].Login;
-
-  // Offset all tasks & breaks
-  for i := 0 to High(Self.Breaks) do
-    Self.Breaks[i].NextAtTime += GetTickCount - (Countdown.Timeout - Countdown.Length);
-
-  for i := 0 to High(ActiveTasks) do
-    ActiveTasks[i]^.Countdown.Resume;
-
-  // Setup next time this break happens
-  task.NextAtTime := GetTimeRunning + Abs(RandomLeft(task.Interval, task.Interval * task.StdVar));
-end;
-
-function TAntiban.DoAntiban(checkBreaks: Boolean = True; checkSleeps: Boolean = True): Boolean; override;
-var
-  i: Int32;
-  task: PAntibanTask;
-  ActiveTasks: array of PAntibanTask;
-begin
-  if not RSClient.IsLoggedIn or Self.Checking then
-    Exit;
-
-  Self.Checking := True;
-
-  ActiveTasks := Self.GetActiveTasks;
-  for i := 0 to High(ActiveTasks) do
-    ActiveTasks[i]^.Countdown.Pause;
-
-  try
-    for i := 0 to High(ActiveTasks) do
-    begin
-      task := ActiveTasks[i];
-
-      if task^.Countdown.TimeRemaining = 0 then
-      begin
-        if (@Self.OnStartTask <> nil) then
-          Self.OnStartTask(Task);
-
-        {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-        if Length(TProgressReport.ProgressArray) > 2 then
-        begin
-          TProgressReport.ProgressArray[1] := PadR((' Action        : Antiban'), Round(TProgressReport.PadLength/2), ' ') +
-                                    ' Runtime       : ' + SRL.MsToTime(TProgressReport.PTimeRunning^.ElapsedTime, Time_Short);
-          if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
-            ProgressReport.Update(TProgressReport.ProgressArray);
-        end;
-        {$ENDIF}
-        task^.Method;
-        task^.Countdown.Init(Trunc(Abs(RandomLeft(task^.Interval, task^.Interval * task^.StdVar))));
-        task^.Countdown.Pause;
-        if (@Self.OnFinishTask <> nil) then
-          Self.OnFinishTask(task);
-
-        Result := True;
-      end;
-    end;
-
-    // Resume now
-    for i := 0 to High(ActiveTasks) do
-      ActiveTasks[i]^.Countdown.Resume;
-
-    if checkBreaks and Self.DoBreak then Result := True;
-    if checkSleeps and Self.DoSleep then Result := True;
-  finally
-    Self.Checking := False;
-  end;
-end;
-
-
 procedure TAntiban.AdjustZoom(); override;
 var
   zoom, newZoom: Int32;
@@ -205,15 +118,15 @@ begin
   if (Self.MaxZoom = 0) then
     Self.MaxZoom := 100;
 
-  zoom := Options.GetZoomLevel();
+  zoom := MM2MS.GetZoomLevel();
 
   repeat
     Inc(Attempts);
     if Attempts > 100 then
       Exit;
 
-    newZoom := RandomMode(Zoom, Self.MinZoom - 10, Self.MaxZoom + 10);
-  until (newZoom >= Self.MinZoom) and (newZoom <= Self.MaxZoom) and (Abs(Zoom - newZoom) > 15);
+    newZoom := RandomMode(zoom, Self.MinZoom - 10, Self.MaxZoom + 10);
+  until (newZoom >= Self.MinZoom) and (newZoom <= Self.MaxZoom) and (Abs(zoom - newZoom) > 15);
 
   Self.DebugLn('Adjust zoom: ' + ToString(newZoom));
 
@@ -637,6 +550,8 @@ begin
 
   if WLSettings.Antiban.GameTabs then
     Self.AddTask(18 * ONE_MINUTE, @Self.HoverSkills, 0.33);
+
+  Self.OnStartTask := @OnStartTask;
 end;
 
 procedure TAntiban.SetupBreaks();
@@ -648,6 +563,8 @@ begin
   Self.AddBreak(45  * ONE_MINUTE, 5  * ONE_MINUTE, 0.33, 0.15);
   Self.AddBreak(60  * ONE_MINUTE, 10 * ONE_MINUTE, 0.33, 0.2 + Login.Players[Login.PlayerIndex].BioHash);
   Self.AddBreak(120 * ONE_MINUTE, 30 * ONE_MINUTE, 0.33, 0.5 + Login.Players[Login.PlayerIndex].BioHash);
+
+  Self.OnBreaking := @OnBreaking;
 end;
 
 procedure TAntiban.SetupSleep();
@@ -660,7 +577,7 @@ begin
   Self.AddSleep(WLSettings.Sleep.Hour, WLSettings.Sleep.Length, 0.1, (0.8 + Login.Players[Login.PlayerIndex].BioHash));
 end;
 
-procedure TAntiban.WaitMovingTasks();
+procedure TAntiban.WalkingTasks();
 begin
   case Random(0, 500) of //only about 1% chance of antiban while walking
     0:
@@ -693,14 +610,12 @@ begin
 end;
 
 // Antiban tasks that can be performed while using walker.
+{$H-}
 procedure WalkerTasks(Walker: PRSWalker; Position: TPoint; Destination: TPoint);
 begin
-  ToStr(Walker);       //This has no purpose,
-  ToStr(Position);     //I just don't like to be spammed
-  ToStr(Destination);  //with unused variables.
-  Antiban.WaitMovingTasks();
+  Antiban.WalkingTasks();
 end;
-
+{$H+}
 
 procedure TAntiban.Setup(); //override me to add stuff!
 begin
@@ -719,7 +634,7 @@ begin
     Self.SetupSleep();
 
   if not InRange(Options.GetZoomLevel(), Self.MinZoom, Self.MaxZoom) then
-    Options.SetZoomLevel(Random(Self.MinZoom, Self.MaxZoom));
+    Self.AdjustZoom();
 
   //override me to add stuff!
 end;

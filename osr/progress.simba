@@ -29,46 +29,6 @@ type
   end;
 
 (*
-ProgressReport.GetNextCycleColor
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
-
-Not currently used for anything, just a fun experiment. Can be used to give an RGB cycle effect.
-You can see it in effect by uncommenting `Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);` in **TProgressReport.Update()**.
-*)
-function TProgressReport.GetNextCycleColor(Color, Step: Int32): Int32;
-var
-  R, G, B: Int32;
-begin
-  ColorToRGB(Color, R, G, B);
-
-  if (R = 255) and (G = 0) and (B < 255) then
-    B += Step
-  else if (R > 0)   and (G = 0)   and (B = 255) then
-    R -= Step
-  else if (R = 0)   and (G < 255) and (B = 255) then
-    G += Step
-  else if (R = 0)   and (G = 255) and (B > 0) then
-    B -= Step
-  else if (R < 255) and (G = 255) and (B = 0) then
-    R += Step
-  else if (R = 255) and (G > 0)   and (B = 0) then
-    G -= Step;
-
-  if R < 0    then R := 0;
-  if R > 255 then R := 255;
-
-  if G < 0    then G := 0;
-  if G > 255 then G := 255;
-
-  if B < 0    then B := 0;
-  if B > 255 then B := 255;
-
-  writeLn('R: ', R, ' G: ', G, ' B: ', B);
-  Result := RGBtoColor(R, G, B);
-end;
-
-(*
 ProgressReport.Terminate
 ~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TProgressReport.Terminate();
@@ -82,11 +42,8 @@ begin
 
   Self.BGImg.Clear();
   Self.BGImg.Free();
-
   RSClient.Image.Clear();
   RSClient.Image.Free(); //not sure if it needs to be freed?
-
-  Self.Terminated := True; //avoids multiple terminations in case the script is chained.
 end;
 
 (*
@@ -99,18 +56,20 @@ Internal method called when we need to setup TProgressReport.
 procedure TProgressReport.Setup();
 begin
   Self.BGImg := TMufasaBitmap.Create();
-  Self.BGImg.Clear();
+  Self.BGImg.SetName('Progress report background');
   Self.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
   Self.BGImg.setFontAntialiasing(True);
 
-  RSClient.Image := RSClient.Image;
   RSClient.Image.Clear();
+  RSClient.Image.SetName('RSClient image');
   RSClient.Image.setFontAntialiasing(True);
   RSClient.Image.setFontSize(13);
 
   if Self.BGImg.GetFonts().Contains('Consolas') then
+  begin
     Self.BGImg.setFontName('Consolas');
-  RSClient.Image.setFontName('Consolas');
+    RSClient.Image.setFontName('Consolas');
+  end;
 
   Self.TextColor := $006CFF;
 
@@ -138,7 +97,6 @@ begin
     FontColor -= $90A301 - $C8D100;
 
     Self.BGImg.DrawText(StrArray.Last(), [10, 135], FontColor);
-
     Self.IsSetup := True;
   end;
 

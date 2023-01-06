@@ -79,6 +79,22 @@ begin
 end;
 
 
+function TRSMainScreen.GetPlayerBox(x1: Double; x2: Double; y1: Double = 10; y2: Double=3): TBox; overload;
+var
+  A: Double := Minimap.GetCompassAngle(False);
+  Center: TPoint := Minimap.Center();
+  TPA: TPointArray;
+begin
+  TPA := [Minimap.VecToMS(Vec3(Center.X - x1, Center.Y, y1), A),
+          Minimap.VecToMS(Vec3(Center.X + x2, Center.Y, -y2), A)];
+
+  Result := TPA.Bounds();
+end;
+
+function TRSMainScreen.GetPlayerBox(size: Double; y1: Double = 10; y2: Double=3): TBox; overload;
+begin
+  Result := Self.GetPlayerBox(size, size, y1, y2);
+end;
 
 
 (*
@@ -181,8 +197,10 @@ end;
 
 function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
 begin
-  tpa := tpa.SortFrom(Self.Center());
+  if tpa = [] then
+    Exit;
 
+  tpa := tpa.SortFrom(Self.Center());
   Result := Self.PointWithinZoom(tpa.First());
 end;
 
@@ -396,7 +414,10 @@ begin
   locArray := locArray.SortFrom(Self.Center());
 
   for i := 0 to High(locArray) do
-    Result += Self.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle);
+    if Length(locArray) = Length(shapeArray) then
+      Result += Self.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle)
+    else
+      Result += Self.GetTileMS(locArray[i], shapeArray[0].Tile, offset, angle + shapeArray[0].Angle);
 end;
 
 function TRSMinimap.GetTileArrayMS(locArray: TPointArray; tile: Vector3; offset: TPoint = [0, 0]; angle: Single = $FFFF): TQuadArray; overload;
@@ -431,7 +452,10 @@ begin
     angle := Self.GetCompassAngle(False);
 
   for i := 0 to High(locArray) do
-    Result += Self.GetCuboidMS(locArray[i], shapeArray[i], offset, angle);
+    if Length(locArray) = Length(shapeArray) then
+      Result += Self.GetCuboidMS(locArray[i], shapeArray[i], offset, angle)
+    else
+      Result += Self.GetCuboidMS(locArray[i], shapeArray[0], offset, angle);
 end;
 
 function TRSMinimap.GetCuboidArrayMS(locArray: TPointArray; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidArray; overload;

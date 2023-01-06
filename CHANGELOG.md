@@ -1,3 +1,12 @@
+## [10.6.1](https://github.com/Torwent/WaspLib/compare/v10.6.0...v10.6.1) (2023-01-06)
+
+
+### Bug Fixes
+
+* had to rename TRSTanner to TRSTanScreen ([d39311d](https://github.com/Torwent/WaspLib/commit/d39311d3567f5534e381e9169e5b3b71ff0c9cce))
+
+
+
 # [10.6.0](https://github.com/Torwent/WaspLib/compare/v10.5.0...v10.6.0) (2023-01-06)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added Flight's silverscreen ([9590e9d](https://github.com/Torwent/WaspLib/commit/9590e9def32b8b5e8b6b32711ac8ea4ce7f9291c))
-
-
-
-# [10.2.0](https://github.com/Torwent/WaspLib/compare/v10.1.6...v10.2.0) (2023-01-05)
-
-
-### Features
-
-* added the Tanner interface ([be1092f](https://github.com/Torwent/WaspLib/commit/be1092f1dd637993dd00ad03176af40b691914bb))
 
 
 

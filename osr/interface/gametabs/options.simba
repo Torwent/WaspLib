@@ -18,14 +18,14 @@ type
     RIGHT_CLICK_CLAN
   );
 
-function TRSOptions.SetMaxBrightness: Boolean; override;
+function TRSOptions.SetMaxBrightness(): Boolean; override;
 begin
   if Result := Self.OpenTab(ERSOptionsTab.DISPLAY) then
     with Self.GetBrightnessSliderBounds() do
       Mouse.Click(X2 + Random(3, 5), Random(Y1, Y2), MOUSE_LEFT); 
 end;  
   
-function TRSOptions.LeaveHouse: Boolean;
+function TRSOptions.LeaveHouse(): Boolean;
 begin
   if not Self.OpenHouseOptions then
     Exit;
@@ -35,7 +35,7 @@ begin
   Result := WaitUntil(not Self.IsHouseOptionsOpen, SRL.TruncatedGauss(50, 1500), 5000);
 end;
 
-function TRSOptions.CallServant: Boolean;
+function TRSOptions.CallServant(): Boolean;
 var
   S: String;
 begin
@@ -49,7 +49,7 @@ begin
 end;
 
 
-function TRSOptions.GetDropDowns: TRSDropDownArray;
+function TRSOptions.GetDropDowns(): TRSDropDownArray;
 begin
   Result := Self.FindDropDown([[160, 18]]);
 end;
@@ -100,12 +100,12 @@ begin
     Exit(ERSAttackOption.RIGHT_CLICK_CLAN);
 end;
 
-function TRSOptions.GetPlayerAttackOption: ERSAttackOption;
+function TRSOptions.GetPlayerAttackOption(): ERSAttackOption;
 begin
   Result := Self.GetAttackOption(ERSOptionsDropDown.PLAYER_ATTACK_OPTIONS);
 end;
 
-function TRSOptions.GetNPCAttackOption: ERSAttackOption;
+function TRSOptions.GetNPCAttackOption(): ERSAttackOption;
 begin
   Result := Self.GetAttackOption(ERSOptionsDropDown.NPC_ATTACK_OPTIONS);
 end;
@@ -138,14 +138,14 @@ end;
 
 
 
-procedure TRSOptions.RenderSelf;
+procedure TRSOptions.RenderSelf();
 begin
   if SRL.CountColor(CHAT_COLOR_BLUE, Chat.GetLineBoxes[CHAT_INPUT_LINE]) > 14 then
     Keyboard.PressKey(VK_ENTER);
   Keyboard.Send('::renderself', VK_ENTER);
 end;
 
-procedure TRSOptions.ToggleRoofs;
+procedure TRSOptions.ToggleRoofs();
 begin
   Keyboard.Send('::toggleroofs', VK_ENTER);
 end;
@@ -158,6 +158,9 @@ end;
 
 function TRSOptions.HideRoofs(): Boolean;
 begin
+  if RSCacheParser.Disabled then
+    Exit(True);
+
   if Self.GetRoofsState() then
     Exit(True);
 
@@ -168,13 +171,18 @@ begin
     Keyboard.PressKey(VK_ENTER); //Clear input line.
 
   Keyboard.Send('::toggleroofs', VK_ENTER);
+  Result := True;
 
-  Result := Self.GetRoofsState();
+  if not Self.GetRoofsState() then
+    RSCacheParser.Disabled := True;
 end;
 
 
 function TRSOptions.ShowRoofs(): Boolean;
 begin
+  if RSCacheParser.Disabled then
+    Exit(True);
+
   if not Self.GetRoofsState() then
     Exit(True);
 
@@ -182,13 +190,27 @@ begin
     Keyboard.PressKey(VK_ENTER); //Clear input line.
 
   Keyboard.Send('::toggleroofs', VK_ENTER);
+  Result := True;
 
-  Result := not Self.GetRoofsState();
+  if Self.GetRoofsState() then
+    RSCacheParser.Disabled := True;
 end;
 
 function TRSOptions.GetBrightness(): Int32;
 begin
+  if RSCacheParser.Disabled then
+    Exit(Options.GetBrightnessLevel());
+
   Result := RSCacheParser.Brightness();
+
+  if Options.IsOpen() and (Options.GetCurrentTab() = ERSOptionsTab.DISPLAY) then
+  begin
+    if Options.GetBrightnessLevel() <> Result then
+    begin
+      Result := Options.GetBrightnessLevel();
+      RSCacheParser.Disabled := True;
+    end;
+  end;
 end;
 
 function TRSOptions.SetMaxBrightness(): Boolean; override;

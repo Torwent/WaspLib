@@ -9,6 +9,25 @@ Methods to handle MM2MS (Minimap to MainScreen). Extends SRL's MM2MS.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+
+function TRSMainScreen.GetPlayerBox(x1: Double; x2: Double; y1: Double = 10; y2: Double=3): TBox; overload;
+var
+  A: Double := Minimap.GetCompassAngle(False);
+  Center: TPoint := Minimap.Center();
+  TPA: TPointArray;
+begin
+  TPA := [Minimap.VecToMS(Vec3(Center.X - x1, Center.Y, y1), A),
+          Minimap.VecToMS(Vec3(Center.X + x2, Center.Y, -y2), A)];
+
+  Result := TPA.Bounds();
+end;
+
+function TRSMainScreen.GetPlayerBox(size: Double; y1: Double = 10; y2: Double=3): TBox; overload;
+begin
+  Result := Self.GetPlayerBox(size, size, y1, y2);
+end;
+
+
 (*
 MM2MS.SetupZoom
 ~~~~~~~~~~~~~~~
@@ -851,3 +870,44 @@ function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; DotFilters: TRSDotFil
 begin
   Result := Self.GetDotArrayTilesMS(Dot, DotFilters, [1, 1, Z]);
 end;
+
+
+
+(*
+Minimap.GetFaceablePoints
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetFaceablePoints(): TPointArray;
+
+Gives the center point of the 8 tiles that are directly close to the player.
+This are the tiles the player can "face".
+*)
+function TRSMinimap.GetFaceablePoints(): TPointArray;
+var
+  p: TPoint;
+begin
+  p := Self.Center();
+  Result := [
+    [p.X, p.Y - 4], [p.X + 4, p.Y - 4], [p.X + 4, p.Y], [p.X + 4, p.Y + 4],
+    [p.X, p.Y + 4], [p.X - 4, p.Y + 4], [p.X - 4, p.Y], [p.X - 4, p.Y - 4]
+  ];
+
+  Result := Result.Rotate(Self.GetCompassAngle(False), p.x, p.y);
+end;
+
+(*
+Minimap.GetCardinalPoints
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetCardinalPoints(): TPointArray;
+
+Gives the center point of the 4 cardinal points (North, West, South and East) that are directly close to the player.
+This are the tiles the player can "face".
+*)
+function TRSMinimap.GetCardinalPoints(): TPointArray;
+var
+  p: TPoint;
+begin
+  p := Self.Center();
+  Result := [[p.X, p.Y - 4], [p.X + 4, p.Y], [p.X, p.Y + 4], [p.X - 4, p.Y]];
+  Result := Result.Rotate(Self.GetCompassAngle(False), p.x, p.y);
+end;
+

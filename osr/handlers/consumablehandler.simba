@@ -571,7 +571,7 @@ Example
 function TRSBank.FindConsumable(consumableArray: TRSConsumableArray; out consumable: TRSConsumable): Boolean;
 begin
   for consumable in consumableArray do
-    if Self.ContainsItem(consumable.Item) then
+    if Self.ContainsItem(consumable.BankTab, consumable.Item) then
       Exit(True);
 end;
 
@@ -631,22 +631,25 @@ end;
 Bank.WithdrawConsumableAmount()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable): Int32;
-.. pascal:: function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; Consumable: TRSConsumable): Int32; overload;
+.. pascal:: function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; consumable: TRSConsumable): Int32; overload;
 
 Method used to return the amount we need to withdraw to meet the TRSConsumable.MinInvPoints.
 *)
 function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable): Int32;
 var
-  ConsumableHandler: PConsumableHandler := GetHandler(consumableType);
-  Consumable: TRSConsumable;
+  consumableHandler: PConsumableHandler := GetHandler(consumableType);
+  consumable: TRSConsumable;
 begin
-  for Consumable in ConsumableHandler^.ConsumableArray do
+  for Consumable in consumableHandler^.ConsumableArray do
   begin
-    case ConsumableHandler^.Amount of
+    case consumableHandler^.Amount of
       -1: Result := -1;
       -2: Result := -2;
-      0:  Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(Consumable));
-      else Result := ConsumableHandler^.Amount;
+      0: case ConsumableHandler^.MinInvPoints of
+           -1, -2: Result := ConsumableHandler^.MinInvPoints;
+           else Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(consumable));
+         end;
+      else Result := consumableHandler^.Amount;
     end;
 
     if Result > 0 then
@@ -654,16 +657,19 @@ begin
   end;
 end;
 
-function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; Consumable: TRSConsumable): Int32; overload;
+function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; consumable: TRSConsumable): Int32; overload;
 var
   ConsumableHandler: PConsumableHandler := GetHandler(consumableType);
 begin
-    case ConsumableHandler^.Amount of
-      -1: Result := -1;
-      -2: Result := -2;
-      0:  Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(Consumable));
-      else Result := ConsumableHandler^.Amount;
-    end;
+  case ConsumableHandler^.Amount of
+    -1: Result := -1;
+    -2: Result := -2;
+    0: case ConsumableHandler^.MinInvPoints of
+         -1, -2: Result := ConsumableHandler^.MinInvPoints;
+         else Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(consumable));
+       end;
+    else Result := ConsumableHandler^.Amount;
+  end;
 end;
 
 (*
@@ -702,7 +708,7 @@ begin
 
   withdrawAmount := Self.WithdrawConsumableAmount(consumableType, consumable);
 
-  if withdrawAmount <= 0 then
+  if (withdrawAmount = 0) then
     Exit(True); //We have enough food.
 
   Self.WithdrawItem(consumable.BankTab, [consumable.Item, withdrawAmount, False], False);

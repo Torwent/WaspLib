@@ -1,3 +1,12 @@
+## [10.6.4](https://github.com/Torwent/WaspLib/compare/v10.6.3...v10.6.4) (2023-01-08)
+
+
+### Bug Fixes
+
+* **maps:** gotr.png added to wasplib ([df203a2](https://github.com/Torwent/WaspLib/commit/df203a24cd878242ee4c8550c574c2ff5f3390f4))
+
+
+
 ## [10.6.3](https://github.com/Torwent/WaspLib/compare/v10.6.2...v10.6.3) (2023-01-08)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * RSFishingHandler ([b2ae8c7](https://github.com/Torwent/WaspLib/commit/b2ae8c723fcde39584ec5de5f9ff7a9cac696740))
-
-
-
-# [10.5.0](https://github.com/Torwent/WaspLib/compare/v10.4.0...v10.5.0) (2023-01-05)
-
-
-### Features
-
-* Added Flight's craftscreen ([68c3d9c](https://github.com/Torwent/WaspLib/commit/68c3d9c9103cbcc1edb26a5c1bcea1e17c3247d6))
 
 
 

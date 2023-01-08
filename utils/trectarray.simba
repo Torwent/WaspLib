@@ -3,12 +3,12 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-function TRectArray.ToTPA: TPointArray; constref;
+function TRectArray.ToTPA(): TPointArray; constref;
 var
   i: Int32;
 begin
   for i := 0 to High(Self) do
-    Result.Combine(Self[i].ToTPA);
+    Result.Combine(Self[i].ToTPA());
 end;
 
 procedure TRectArray.Extend(Arr:TRectArray);
@@ -31,34 +31,43 @@ begin
     MemMove(Other[0], result[Length(Self)], Length(Other)*SizeOf(Other[0]));
 end;
 
-//Joins any possible rectangles that are next to each other or within distance.
-procedure TRectArray.Join(Dist: Int32 = 1);
-var
-  TPA: TPointArray;
-  ATPA: T2DPointArray;
-begin
-  ATPA := Self.ToTPA.Cluster(dist);
-  Self := [];
 
-  for TPA in ATPA do
-    Self += TPA.MinAreaRect;
-end;
-
-function TRectArray.GetPolys: TPolyArray;
+function TRectArray.ToATPA(): T2DPointArray;
 var
   i: Int32;
 begin
   for i := 0 to High(Self) do
-    Result += Self[i].GetPoly;
+    Result += Self[i].ToTPA();
 end;
 
-function TRectArray.GetPolys(Other: TRectArray): TPolyArray; overload;
+//Joins any possible rectangles that are next to each other or within distance.
+procedure TRectArray.Join(dist: Int32 = 1);
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+begin
+  atpa := Self.ToTPA().Cluster(dist);
+  Self := [];
+
+  for tpa in atpa do
+    Self += tpa.MinAreaRect();
+end;
+
+function TRectArray.GetCuboids(): TCuboidArray;
 var
   i: Int32;
 begin
-  if Length(Self) <> Length(Other) then
+  for i := 0 to High(Self) do
+    Result += Self[i].GeTCuboid();
+end;
+
+function TRectArray.GetCuboids(other: TRectArray): TCuboidArray; overload;
+var
+  i: Int32;
+begin
+  if Length(Self) <> Length(other) then
     Exit;
 
   for i := 0 to High(Self) do
-    Result += Self[i].GetPoly(Other[i]);
+    Result += Self[i].GetCuboid(other[i]);
 end;

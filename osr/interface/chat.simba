@@ -1,0 +1,74 @@
+{$DEFINE WL_CHAT_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+(*
+Chat.GetDisplayNameBox
+~~~~~~~~~~~~~~~~~~~~~~
+function TRSChat.GetDisplayNameBox(Colors: TIntegerArray = [$FFFFFF, $000000]): TBox;
+function TRSChat.GetDisplayNameBox(Colors: TIntegerArray = [$FFFFFF, $000000]): TBox; overload;
+
+Get the user name box. Useful for certain things like hiding the username for screenshots.
+
+Example::
+
+  Debug(Chat.GetDisplayNameBox());
+*)
+function TRSChat.GetDisplayNameBox(colors: TIntegerArray = [$FFFFFF, $000000]; out color: Integer): TBox; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.GetLineBoxes()[CHAT_INPUT_LINE];
+  for color in colors do
+    if SRL.FindColors(tpa, color, Result) then
+      Exit(tpa.Bounds());
+end;
+
+function TRSChat.GetDisplayNameBox(colors: TIntegerArray = [$FFFFFF, $000000]): TBox; overload;
+var
+  c: Integer;
+begin
+  Result := Self.GetDisplayNameBox(colors, c);
+end;
+
+function TRSChat.HasContinue: Boolean;
+begin
+  Result := Self.FindOption('Click here to continue', [CHAT_COLOR_BLUE, CHAT_COLOR_WHITE]) or
+            Self.FindOption('Please wait', [CHAT_COLOR_BLUE, CHAT_COLOR_WHITE]);
+end;
+
+function TRSChat.LeveledUp: Boolean; override;
+begin
+  Result := inherited;
+
+  if Result then
+  begin
+    StatsPayload.Update(0, 0, 1, 0);
+    SaveScreenshot('LevelUp/levelup', True);
+  end;
+end;
+
+function TRSChat.HandleLevelUp(UseKeyboard: Boolean): Boolean;
+var
+  S: String;
+begin
+  if Self.LeveledUp then
+  begin
+    S := Self.GetOptions([CHAT_COLOR_BLACK])[0].Text;
+    S := S.After('is now ');
+    S := S.Before('.');
+
+    Result := Self.ClickContinue(UseKeyboard);
+    while Self.GetDisplayName = '' do
+    begin
+      Wait(60);
+      Self.ClickContinue(UseKeyboard);
+    end;
+  end;
+end;
+
+function TRSChat.FindQuery(Query: String): Boolean; overload;
+begin
+  Result := Query in Self.GetQuery;
+end;

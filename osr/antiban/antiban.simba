@@ -46,70 +46,6 @@ begin
   Result := inherited(timeOfDay.Replace('.', ':').Replace('-', ':').Replace(',', ':'), randomness);
 end;
 
-procedure TAntiban.TakeSleep(var task: TSleepTask); override;
-var
-  Countdown: TCountDown;
-  I: Int32;
-  ActiveTasks: PAntibanTaskArray;
-begin
-  ActiveTasks := Self.GetActiveTasks;
-  for i := 0 to High(ActiveTasks) do
-    ActiveTasks[i]^.Countdown.Pause;
-
-  Countdown.Init(Abs(Round(RandomLeft(task.Length, task.Length * task.StdVar))));
-
-  Self.DebugLn('Sleeping for ' + SRL.MsToTime(Countdown.TimeRemaining(), TIME_FORMAL));
-
-  if (@Self.OnStartSleep <> nil) then
-    Self.OnStartSleep(@Task);
-
-  if Random < Task.LogoutChance then
-  begin
-    Self.DebugLn('Logging out');
-
-    Logout.ClickLogout();
-  end;
-
-  if Random < 0.50 then
-    Self.LoseFocus();
-
-  while not Countdown.IsFinished() do
-  begin
-    Self.DebugLn('Sleep time remaining: ' + SRL.MsToTime(Countdown.TimeRemaining, TIME_FORMAL));
-
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-    if Length(ProgressReport.ProgressArray) > 2 then
-    begin
-      ProgressReport.ProgressArray[1] := PadR((' Sleeping      : ' + SRL.MsToTime(Countdown.TimeRemaining, Time_Short)), Round(ProgressReport.PadLength/2), ' ') +
-                             ' Runtime       : ' + SRL.MsToTime(ProgressReport.PTimeRunning^.ElapsedTime, Time_Short);
-      if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
-        ProgressReport.Update(ProgressReport.ProgressArray);
-    end;
-    {$ENDIF}
-
-    Wait(Min(Countdown.TimeRemaining, 60000 * 5));
-  end;
-
-  Self.DebugLn('Sleep finished');
-
-  if (@Self.OnFinishSleep <> nil) then
-    Self.OnFinishSleep(@task);
-
-    {
-  if InRange(CurrentPlayer, Low(Players), High(Players)) then
-    Players[CurrentPlayer].Login;
-}
-  // Offset all tasks & breaks
-  for i := 0 to High(Self.Breaks) do
-    Self.Breaks[i].NextAtTime += GetTickCount - (Countdown.Timeout - Countdown.Length);
-
-  for i := 0 to High(ActiveTasks) do
-    ActiveTasks[i]^.Countdown.Resume;
-
-  // Setup next time this break happens
-  task.NextAtTime := Self.TimeRunningAtClock(task.Time, task.StdVar);
-end;
-
 procedure TAntiban.AdjustZoom(); override;
 var
   zoom, newZoom: Int32;
@@ -582,6 +518,8 @@ begin
   Self.SetSleepHour();
   Self.SetSleepLength();
   Self.AddSleep(WLSettings.Sleep.Hour, WLSettings.Sleep.Length, 0.1, (0.8 + BioHash));
+
+  Self.OnSleeping := @OnSleeping;
 end;
 
 procedure TAntiban.WalkingTasks();

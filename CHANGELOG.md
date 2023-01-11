@@ -1,3 +1,12 @@
+## [10.6.5](https://github.com/Torwent/WaspLib/compare/v10.6.4...v10.6.5) (2023-01-11)
+
+
+### Bug Fixes
+
+* read notes. ([3de8f7c](https://github.com/Torwent/WaspLib/commit/3de8f7c3c830d7123f208be628c31d258e3a9eea))
+
+
+
 ## [10.6.4](https://github.com/Torwent/WaspLib/compare/v10.6.3...v10.6.4) (2023-01-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * had to rename TRSTanner to TRSTanScreen ([d39311d](https://github.com/Torwent/WaspLib/commit/d39311d3567f5534e381e9169e5b3b71ff0c9cce))
-
-
-
-# [10.6.0](https://github.com/Torwent/WaspLib/compare/v10.5.0...v10.6.0) (2023-01-06)
-
-
-### Features
-
-* RSFishingHandler ([b2ae8c7](https://github.com/Torwent/WaspLib/commit/b2ae8c723fcde39584ec5de5f9ff7a9cac696740))
 
 
 

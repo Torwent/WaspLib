@@ -3,40 +3,6 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-//TPoly is deprecated. will be removed soon. Use TCuboid instead.
-type
-  TPoly = type TPointArray; //Polygon type. A valid polygon needs to have at least 3 points.
-  TPolyArray = array of TPoly;
-
-function TPoly.Filter(TestSet: TPointArray): TPointArray; constref;
-var
-  i, count: UInt32;
-begin
-  if (High(TestSet) < 0) then
-    Exit;
-
-  SetLength(Result, Length(TestSet));
-  count := 0;
-  for i := 0 to High(TestSet) do
-  begin
-    if SRL.PointInPoly(TestSet[i], Self) then
-    begin
-      Result[count] := TestSet[i];
-      Inc(count);
-    end;
-  end;
-  SetLength(Result, Count);
-end;
-
-function TPolyArray.Combine(Other: TPolyArray): TPolyArray; constref;
-begin
-  SetLength(Result, Length(Self) + Length(Other));
-  if Length(self) > 0 then
-    MemMove(self[0], result[0], Length(self)*SizeOf(self[0]));
-  if Length(Other) > 0 then
-    MemMove(Other[0], result[Length(Self)], Length(Other)*SizeOf(Other[0]));
-end;
-
 
 type
   TCuboid = type TPointArray; //Polygon type. A valid polygon needs to have at least 3 points.
@@ -66,14 +32,21 @@ begin
   Result := TPointArray(Self).Rotate(angleRad, TPointArray(Self).Mean());
 end;
 
-procedure ShowOnClient(cuboid: TCuboid; color: Integer = $0000FF); overload;
-begin
-  ShowOnClient(TPointArray(cuboid), color);
-end;
+
 
 procedure TMufasaBitmap.DrawCuboid(cuboid: TCuboid; color: Integer = $0000FF); overload;
 begin
   Self.DrawTPA(TPointArray(cuboid).Connect(), color);
+end;
+
+procedure Debug(cuboid: TCuboid; color: Integer = $0000FF); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  bitmap.DrawCuboid(cuboid, color);
+  bitmap.Debug();
+  bitmap.Free();
 end;
 
 procedure TMufasaBitmap.DrawCuboidArray(cuboids: TCuboidArray; color: Integer = $0000FF); overload;
@@ -82,6 +55,17 @@ var
 begin
   for c in cuboids do
     Self.DrawCuboid(c, color);
+end;
+
+
+procedure ShowOnClient(cuboids: TCuboidArray; color: Integer = $0000FF); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  bitmap.DrawCuboidArray(cuboids, color);
+  bitmap.Debug();
+  bitmap.Free();
 end;
 
 

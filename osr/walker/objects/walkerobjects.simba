@@ -43,11 +43,16 @@ type
 
   PRSWalkerObjectArray = array of ^TRSWalkerObject;
 
+procedure TRSWalker.InternalSetup(); override;
+begin
+  inherited;
+  TRSWalkerObject.Walker := @Self;
+  TRSWalkerObject.Regions := [[0, 0, Self.Map.Map.getWidth()-1, Self.Map.Map.getHeight()-1]];
+end;
+
 procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
 begin
   inherited;
-
-  TRSWalkerObject.Walker := @Self;
   TRSWalkerObject.Regions := Regions;
 end;
 
@@ -164,75 +169,6 @@ end;
 
 
 
-// Searches for an object with ObjectSelf.Finder in the MainScreen with the
-// help of RSWalker. Good when objects don't move and precision is needed.
-function TRSWalkerObject.Find(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
-begin
-  MM2MS.SetupZoom();
-
-  if Self.Filter.Walker then
-  begin
-    cuboidArray := Self.GetCuboidArrayEx(floorTiles, roofTiles);
-
-    if cuboidArray = [] then
-      Exit(False);
-
-    atpa := Self.FindOnMainScreen(cuboidArray);
-  end
-
-  else if Self.Filter.Finder then
-    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
-
-  Result := atpa <> [];
-end;
-
-//instead of calling the previous function inside this one we actually make it slightly differently.
-//since we don't want to return as many parameters on this one we can improve it's performance slightly.
-function TRSWalkerObject.Find(out atpa: T2DPointArray): Boolean; overload;
-var
-  cuboidArray: TCuboidArray;
-begin
-  MM2MS.SetupZoom();
-
-  if Self.Filter.Walker then
-  begin
-    cuboidArray := Self.GetCuboidArray();
-
-    if cuboidArray = [] then
-      Exit(False);
-
-    atpa := Self.FindOnMainScreen(cuboidArray);
-  end
-
-  else if Self.Filter.Finder then
-  begin
-    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
-  end;
-
-  Result := atpa <> [];
-end;
-
-//This one is for True or False only but performs even better because it exits on the first match.
-function TRSWalkerObject.Find(): Boolean; overload;
-var
-  cuboidArray: TCuboidArray;
-begin
-  MM2MS.SetupZoom();
-
-  if Self.Filter.Walker then
-  begin
-    cuboidArray := Self.GetCuboidArray();
-
-    if cuboidArray = [] then
-      Exit(False);
-
-    Exit(Self.OnMainScreen(cuboidArray));
-  end;
-
-  if Self.Filter.Finder then
-    Result := MainScreen.FindObject(Self.Finder) <> [];
-end;
-
 
 // ClickHelper function used by object clicking functions.
 function TRSWalkerObject._ClickHelper(leftClick: Boolean): Boolean;
@@ -318,6 +254,76 @@ procedure TRSObject.Setup(height: Double; coordinates: TPointArray); overload;
 begin
   Self.Setup(1, height, coordinates);
 end;
+
+// Searches for an object with ObjectSelf.Finder in the MainScreen with the
+// help of RSWalker. Good when objects don't move and precision is needed.
+function TRSObject.Find(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboidArray := Self.GetCuboidArrayEx(floorTiles, roofTiles);
+
+    if cuboidArray = [] then
+      Exit(False);
+
+    atpa := Self.FindOnMainScreen(cuboidArray);
+  end
+
+  else if Self.Filter.Finder then
+    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
+
+  Result := atpa <> [];
+end;
+
+//instead of calling the previous function inside this one we actually make it slightly differently.
+//since we don't want to return as many parameters on this one we can improve it's performance slightly.
+function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
+var
+  cuboidArray: TCuboidArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboidArray := Self.GetCuboidArray();
+
+    if cuboidArray = [] then
+      Exit(False);
+
+    atpa := Self.FindOnMainScreen(cuboidArray);
+  end
+
+  else if Self.Filter.Finder then
+  begin
+    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
+  end;
+
+  Result := atpa <> [];
+end;
+
+//This one is for True or False only but performs even better because it exits on the first match.
+function TRSObject.Find(): Boolean; overload;
+var
+  cuboidArray: TCuboidArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboidArray := Self.GetCuboidArray();
+
+    if cuboidArray = [] then
+      Exit(False);
+
+    Exit(Self.OnMainScreen(cuboidArray));
+  end;
+
+  if Self.Filter.Finder then
+    Result := MainScreen.FindObject(Self.Finder) <> [];
+end;
+
 
 //add object to DebugObjectArray and call SRL.Debug to use this below.
 //Used to debug several objects at the same time.
@@ -889,7 +895,7 @@ end;
 
 
 //MMDot.Find functions
-function TRSMMDot.Find(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean; overload;
+function TRSMMDot.Find(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
@@ -911,7 +917,7 @@ begin
       Self.ClosestDot := TRSWalkerObject.Walker^.MSToWorld(atpa.First().Mean()); //not the best way since we are reversing operations but will do for now.
 end;
 
-function TRSMMDot.Find(out atpa: T2DPointArray): Boolean; override;
+function TRSMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
 var
   cuboidArray: TCuboidArray;
 begin
@@ -937,7 +943,7 @@ begin
       Self.ClosestDot := TRSWalkerObject.Walker^.MSToWorld(ATPA[0].Mean());
 end;
 
-function TRSMMDot.Find(): Boolean; override;
+function TRSMMDot.Find(): Boolean; overload;
 var
   cuboidArray: TCuboidArray;
 begin

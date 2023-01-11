@@ -31,22 +31,21 @@ begin
   Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
 end;
 
-
-procedure TRSWalker.InternalSetup(); override;
+function TRSWalkerMap.FindMap(Map: String): String; static; override;
 var
-  MinimapImage, MinimapSample: TMufasaBitmap;
+  Mask: String = '.png;.bmp;';
+  Files: TStringArray;
 begin
-  Self.Name := 'Walker';
+  if FileExists(Map) then
+    Exit(ExpandFileName(Map));
 
-  MinimapImage := Self.GetCleanMinimap();
-  MinimapSample := Self.ScaleMinimap(MinimapImage, Self.Scaling);
+  Mask := StringReplace(Mask, '.', Map + '.', [rfReplaceAll]);
 
-  Self.Cache := TMatchTemplateRGBCache.Create(Self.Map.ScaledMap.ToMatrix(), MinimapSample.ToMatrix());
-  Self.WebGraph := WaspWeb;
-  Self.ScreenWalk := True;
+  Files := FindFile(ExtractFileDir(Map), Mask, False, False) +
+           FindFile({$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator, Mask, True, False);
 
-  MinimapSample.Free();
-  MinimapImage.Free();
+  if Length(Files) > 0 then
+    Result := Files[0];
 end;
 
 procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
@@ -117,6 +116,25 @@ begin
     for I := 0 to High(HBitmaps) do
       HBitmaps[I].Free();
 end;
+
+
+procedure TRSWalker.InternalSetup(); override;
+var
+  MinimapImage, MinimapSample: TMufasaBitmap;
+begin
+  Self.Name := 'Walker';
+
+  MinimapImage := Self.GetCleanMinimap();
+  MinimapSample := Self.ScaleMinimap(MinimapImage, Self.Scaling);
+
+  Self.Cache := TMatchTemplateRGBCache.Create(Self.Map.ScaledMap.ToMatrix(), MinimapSample.ToMatrix());
+  Self.WebGraph := WaspWeb;
+  Self.ScreenWalk := True;
+
+  MinimapSample.Free();
+  MinimapImage.Free();
+end;
+
 
 procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
 begin
@@ -316,7 +334,7 @@ begin
 
   if Result and Self.ScreenWalk then
   begin
-    R := Minimap.PointToMSRect(mmPoint, Angle);
+    R := Minimap.PointToMSRect(mmPoint, 1, 1, Angle);
     Result := MainScreen.IsVisible(R.mean()) and (CountColor($000000, R.Bounds.Expand(0, MainScreen.Bounds)) = 0);
   end;
 end;

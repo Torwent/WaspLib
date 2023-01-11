@@ -65,6 +65,35 @@ begin
     DeleteFile(Path + FileArray[i]);
 end;
 
+
+function GetScreenshotPath(fileName: String): String;
+var
+  fileExt: String;
+  fileTime: String;
+begin
+  if not fileName.Contains(APPPATH + 'Screenshots' + DIRECTORYSEPARATOR) then
+    fileName := APPPATH + 'Screenshots'  + DIRECTORYSEPARATOR + fileName;
+
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
+    Exit;
+
+  fileName := ExtractFileName(fileName);
+  fileExt := ExtractFileExt(fileName);
+
+  if fileExt = '' then
+    fileExt := '.png'
+  else
+    fileName := fileName.Before(fileExt);
+
+  fileTime := '_' + FormatDateTime('yyyy-mm-dd_hh-mm-ss', Now());
+
+  DeleteOldFiles(Result, fileExt, 300);
+
+  Result += fileName + fileTime + fileExt;
+end;
+
+
 procedure SaveScreenshot(FileName: String); override;
 var
   Path: String;
@@ -143,7 +172,21 @@ begin
   SaveScreenshot('screenshot');
 end;
 
+procedure ForceSaveScreenshot(); overload;
+var
+  bmp: TMufasaBitmap;
+  b: TBox;
+  path: String;
+begin
+  bmp.FromClient();
+  b := Chat.GetDisplayNameBox();
+  if b <> Chat.GetLineBoxes()[CHAT_INPUT_LINE] then
+    bmp.DrawBoxFilled(b, False, $819DAC);
+  path := GetScreenshotPath('Terminated' + DIRECTORYSEPARATOR +'screenshot');
 
+  bmp.SaveToFile(path);
+  bmp.Free();
+end;
 procedure GenerateLog(FileName: String);
 var
   Path: String;

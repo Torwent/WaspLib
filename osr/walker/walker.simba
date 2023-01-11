@@ -18,6 +18,30 @@ const
   WALKER_MAP_VERSION = '1'; // Inc if images have changed
 
 type
+(*
+type RSHeightMap
+~~~~~~~~~~~~~~~~
+
+RSHeightMap is the type responsible for handling heights with walker when using WaspLib.
+This type does not need to be initiated as a variable and it's meant to be used directly with it's static methods.
+
+It has the following variables:
+  Enabled: Boolean;
+  Map: TMufasaBitmap;
+  MaxHeight: Double;
+  MathCache: Double;
+
+**Enabled** is used to toggle the RSHeightMap on/off. By default it will always be on unless there's not a heightmap available for the map you load into walker.
+the heightmap MUST be named the same as the map you load with an "h" prepended. E.G.: hWorld.png
+
+**Map** there's not much to talk about this one, it's simply the TMufasaBitmap loaded in the record.
+
+**MaxHeight** This is what will be considered the max height possible in the calculations made by RSHeightMap.
+There's no way to accurately know what this should be, you should debug heights and set a value that looks good to you.
+Values might also vary between regions but I find **30** to be a fine value that works well in a lot of places if not all.
+
+**MathCache**, not very important, simply a cache variable so we don't repeat calculations when it's not required.
+*)
   RSHeightMap = record(TSRLBaseRecord)
   class var
     Enabled: Boolean;
@@ -26,11 +50,36 @@ type
     MathCache: Double;
   end;
 
+(*
+RSHeightMap.GetColor
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSHeightMap.GetColor(p: TPoint): Int64; static;
+
+Returns the color of the heightmap at the specified point.
+
+Example
+-------
+
+  WriteLn RSHeightMap.GetColor([100, 100]);
+*)
 function RSHeightMap.GetColor(p: TPoint): Int64; static;
 begin
   Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
 end;
 
+(*
+TRSWalkerMap.FindMap
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerMap.FindMap(Map: String): String; static; override;
+
+Overrides SRL's TRSWalkerMap.FindMap() so it uses WaspLib's walker directory instead.
+This is an internal Walker method, you probably don't need to call it.
+
+Example
+-------
+
+  WriteLn TRSWalkerMap.FindMap('world');
+*)
 function TRSWalkerMap.FindMap(Map: String): String; static; override;
 var
   Mask: String = '.png;.bmp;';
@@ -48,6 +97,14 @@ begin
     Result := Files[0];
 end;
 
+(*
+TRSWalkerMap.Load
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+
+Overrides SRL's TRSWalkerMap.Load() so it loads the respective heightmap if it exists.
+This is an internal Walker method, you probably don't need to call it.
+*)
 procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
 var
   Bitmaps, HBitmaps: TMufasaBitmapArray;
@@ -117,7 +174,14 @@ begin
       HBitmaps[I].Free();
 end;
 
+(*
+Walker.InternalSetup
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.InternalSetup(); override;
 
+Overrides SRL's Walker.InternalSetup() so it uses WaspWeb as the walker webgraph and so it uses ScreenWalk by default.
+This is an internal Walker method, you probably don't need to call it.
+*)
 procedure TRSWalker.InternalSetup(); override;
 var
   MinimapImage, MinimapSample: TMufasaBitmap;
@@ -135,7 +199,13 @@ begin
   MinimapImage.Free();
 end;
 
+(*
+Walker.Setup
+~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
 
+Overrides SRL's Walker.Setup() so it uses WL_WALKER_MAP as it's default map for regions.
+*)
 procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
 begin
   Self.Scaling := Scaling;
@@ -145,7 +215,20 @@ begin
   Self.InternalSetup();
 end;
 
+(*
+Walker.GetHeight
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
 
+Returns the height of the player at the specified coordinate with the help of RSHeightMap.
+If p is [], which is the default then we will use our current position.
+global decides wether the coordinate is converted to global coordinates or internal walker coordinates (read about walker regions for more info).
+
+Example
+-------
+
+  WriteLn rsw.GetHeight();
+*)
 function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
 begin
   if p = [] then
@@ -164,45 +247,59 @@ end;
 
 
 (*
-procedure TRSWalker.DebugHeightTiles(Angle: Double = -1);
+Walker.DebugHeightTiles
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.DebugHeightTiles(angle: Double = -1);
+
+Displays a debug image of the tiles visible on the mainscreen with their height adjusted according to the RSHeightMap.
+This is very useful if you need to adjust RSHeightMap.MaxHeight.
+
+Example
+-------
+
+  rsw.DebugHeightTiles();
+*)
+procedure TRSWalker.DebugHeightTiles(angle: Double = -1);
 var
-  Position: TPoint;
-  TempTile: TPoint;
-  CurrentHeight, TileHeight, HeightDiff: Double;
+  position: TPoint;
+  tempTile: TPoint;
+  currentHeight, tileHeight, heightDiff: Double;
 
-  BMP: TMufasaBitmap;
-  X, Y: Int32;
-  Tile: Vector3;
-  TPA: TPointArray;
+  bitmap: TMufasaBitmap;
+  x, y: Int32;
+  tile: Vector3;
+  tpa: TPointArray;
 begin
-  if Angle = -1 then
-    Angle := Minimap.GetCompassAngle(False);
+  if angle = -1 then
+    angle := Minimap.GetCompassAngle(False);
 
-  Position := Self.GetMyPos();
-  CurrentHeight := Self.GetHeight(Position);
+  position := Self.GetMyPos();
+  currentHeight := Self.GetHeight(position);
 
-  BMP := TMufasaBitmap.CreateFromClient();
+  bitmap.FromClient();
 
-  for X := Minimap.Center().X - 25 * 4 to Minimap.Center().X + 25 * 4 with 4 do
-    for Y := Minimap.Center().Y - 25 * 4 to Minimap.Center().Y + 25 * 4 with 4 do
+  for x := Minimap.Center().X - 25 * 4 to Minimap.Center().X + 25 * 4 with 4 do
+    for y := Minimap.Center().Y - 25 * 4 to Minimap.Center().Y + 25 * 4 with 4 do
     begin
 
-      TempTile := Position + ([X, Y] - Minimap.Center());
-      TempTile := TempTile.Rotate(-Angle, Position);
-      TileHeight := Self.GetHeight(TempTile);
-      HeightDiff := CurrentHeight-TileHeight;
+      tempTile := position + ([x, y] - Minimap.Center());
+      tempTile := tempTile.Rotate(-angle, position);
+      tileHeight := Self.GetHeight(tempTile);
+      heightDiff := currentHeight-tileHeight;
 
-      Tile := Vec3(X, Y, HeightDiff).RotateXY(Angle, Minimap.Center().X, Minimap.Center().Y);
-      TPA := Minimap.VecToMsRect(Tile, 1, 1, Angle).ToTPA().Connect();
+      tile := Vec3(x, y, heightDiff).RotateXY(angle, Minimap.Center().X, Minimap.Center().Y);
+      tpa := Minimap.VecToMsRect(tile, 1, 1, angle).ToTPA().Connect();
 
-      if MainScreen.IsVisible(TPA) then
-        BMP.DrawTPA(TPA, Round(TileHeight * ($00ff00 + $00ff00)/ MAX_WALKER_HEIGHT));
+      if MainScreen.IsVisible(tpa) then
+      begin
+        tpa := MainScreen.Filter(tpa);
+        bitmap.DrawTPA(tpa, Round(tileHeight * ($00ff00 + $00ff00)/ RSHeightMap.MaxHeight));
+      end;
     end;
 
-  BMP.Show();
-  BMP.Free();
+  bitmap.Debug();
+  bitmap.Free();
 end;
-*)
 
 (*
 Walker.GetMyPos
@@ -283,6 +380,7 @@ begin
   Result := Self.GetHeight(p) - Self.GetHeight(q);
 end;
 
+
 (*
 RSHeightMap.DebugPosition
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -307,8 +405,6 @@ begin
   hMap.Debug();
   hMap.Free();
 end;
-
-
 
 
 
@@ -659,7 +755,7 @@ begin
   Result := Minimap.GetCuboidArrayMS(tmpArray, shapeArray, Offset, angle);
 end;
 
-(* TODO: FIXXXXX *)
+(* TODO: FIX TRSWalker.GetCuboidArrayMS *)
 function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; Offset: Vector2 = [0, 0]): TCuboidArray; overload;
 var
   angle, meHeight: Double;
@@ -732,263 +828,6 @@ function TRSWalker.InPoly(locArray: TPointArray): Boolean;
 begin
   Result := PointInPolygon(Self.GetMyPos(), locArray);
 end;
-
-
-
-//This walker overloads are a bit messy... I need to find a cleaner way to do this later on but basically makes sure we stop trying to walk when we already
-//red clicked the waspobject.
-function TRSWalker.Click(mmPoint: TPoint; upText: TStringArray; out redClicked: Boolean; randomness: Int32): Boolean; overload;
-var
-  p: TPoint;
-  line: TPointArray;
-  i, j: Int32;
-  hoveringTarget: Boolean;
-  msUpText, str: String;
-begin
-  if MainScreen.IsUpText('>') then
-  begin
-    ChooseOption.Select('Cancel');
-    Exit;
-  end;
-
-  Result := True;
-
-  if Self.ScreenWalk then
-  begin
-    repeat
-      i += 1;
-      p := mmPoint.Random(-randomness, randomness);
-      if i >= 15 then
-      begin
-        WriteLn 'Stuck in TRSWalker.Click infinite loop';
-        line := TPointArray.CreateFromLine(p, Minimap.Center());
-        for j := 0 to High(line) do
-          if Minimap.PointInZoomRectangle(line[j]) then
-          begin
-            p := line[j];
-            Break;
-          end;
-      end;
-    until Minimap.PointInZoomRectangle(p);
-
-    Mouse.Move(Minimap.PointToMsRect(p).Mean());
-    msUpText := MainScreen.GetUpText();
-
-    for str in upText do
-      if str in msUpText then
-      begin
-        hoveringTarget := True;
-        Break;
-      end;
-
-    if not hoveringTarget and not ('Walk here' in msUpText) then
-      Exit(ChooseOption.Select('Walk here'));
-  end else
-  begin
-    repeat
-      P := mmPoint.Random(-Randomness, Randomness);
-    until Minimap.IsPointOn(P);
-
-    Mouse.Move(P);
-  end;
-
-  Mouse.Click(MOUSE_LEFT);
-
-  // 15% chance of spam clicking
-  if (Randomness > 0) and (Random < Antiban.GetUniqueNumber(0.15, 0.1, 0.2)) then
-    for i := 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
-    begin
-      Mouse.Click(Mouse.Position, MOUSE_LEFT);
-
-      Wait(20, 150, wdLeft);
-    end;
-
-  redClicked := Self.ScreenWalk and hoveringTarget and MainScreen.DidRedClick;
-end;
-
-function TRSWalker.WalkFinalStep(playerPoint, worldPoint: TPoint; upText: TStringArray; out redClicked: Boolean; waitUntilDistance: Int32): Boolean; overload;
-var
-  mmPoint: TPoint;
-begin
-  if (@Self.OnWalkEvent <> nil) then
-    Self.OnWalkEvent(@Self, playerPoint, worldPoint);
-  if (@Self.OnWalkEventEx <> nil) then
-    Self.OnWalkEventEx(@Self, playerPoint, worldPoint);
-
-  if not Self.Enabled then
-    Exit(True);
-
-  mmPoint := Self.WorldToMM(playerPoint, worldPoint, Minimap.GetCompassAngle(False));
-  if (not Minimap.IsPointOn(mmPoint)) then
-    Exit(False);
-  if (Minimap.Center().DistanceTo(mmPoint) < 5) then
-    Exit(True);
-
-  Result := Self.Click(mmPoint, UpText, redClicked, 0);
-  if Result then
-    Self.WaitMoving(worldPoint, waitUntilDistance);
-end;
-
-function TRSWalker.WalkStep(playerPoint, worldPoint: TPoint; UpText: TStringArray; out redClicked: Boolean): Boolean; overload;
-var
-  mmPoint: TPoint;
-  waitUntilDistance: Int32;
-begin
-  if (@Self.OnWalkEvent <> nil) then
-    Self.OnWalkEvent(@Self, playerPoint, worldPoint);
-  if (@Self.OnWalkEventEx <> nil) then
-    Self.OnWalkEventEx(@Self, playerPoint, worldPoint);
-
-  if not Self.Enabled then
-    Exit(True);
-
-  mmPoint := Self.WorldToMM(playerPoint, worldPoint, Minimap.GetCompassAngle(False));
-  if (not Minimap.IsPointOn(mmPoint)) then
-    Exit(False);
-  if (Minimap.Center().DistanceTo(mmPoint) < 5) then
-    Exit(True);
-
-  Result := Self.Click(mmPoint, UpText, redClicked, Self.ClickRandomness);
-
-  if Result then
-  begin
-    if (Random() < 0.15) then // 15% chance of randomness else mean
-      waitUntilDistance := Random(Distance(Minimap.Center(), mmPoint))
-    else
-      waitUntilDistance := RandomMean(0, Distance(Minimap.Center(), mmPoint) + 10);
-
-    Self.WaitMoving(worldPoint, waitUntilDistance);
-  end
-end;
-
-function TRSWalker.WalkPath(Path: TPointArray; upText: TStringArray; out redClicked: Boolean; waitUntilDistance: Int32 = 0): Boolean; overload;
-
-  function BuildPath(TPA: TPointArray): TPointArray;
-  var
-    I, J: Int32;
-    line: TPointArray;
-  begin
-    for I := 1 to High(TPA) do
-    begin
-      line := TPointArray.CreateFromLine(TPA[I-1], TPA[I]);
-
-      J := 0;
-      while J < High(line) do
-      begin
-        Result += line[J];
-
-        // keep the steps low, as mainscreen walking might just have a few tiles visible when NearZoomMode is set True
-        if (Self.NearZoomMode) and ((Self.ScreenWalk) or (Self.AdaptiveWalk)) then
-          Inc(J, Random(1, 4))
-        else
-          Inc(J, Random(3, 12));
-      end;
-    end;
-
-    Result += TPA[High(TPA)];
-  end;
-
-  function AdvancePath(var Index: Int32; playerPoint: TPoint): Boolean;
-  var
-    Angle: Double := Minimap.GetCompassAngle(False);
-    Previous: Int32 := Index;
-    Nearest, Furthest: Int32;
-  begin
-    Nearest := Self.Path.IndexOf(Self.Path.NearestPoint(playerPoint));
-    Self.PathIndex := Nearest;
-
-    while (Nearest < High(Self.Path)) and (not Self.IsWalkable(Self.Path[Nearest+1], playerPoint, Angle)) do
-      Inc(Nearest);
-
-    Furthest := Nearest;
-    while (Furthest < High(Self.Path)) and Self.IsWalkable(Self.Path[Furthest+1], playerPoint, Angle) do
-      Inc(Furthest);
-
-    Index := Furthest;
-
-    // do the result check before randomness to avoid false error
-    Result := (Index > Previous);
-
-    // 15% chance of randomness else furthest
-    if Random() < 0.15 then
-      Index := Random(Nearest, Furthest);
-  end;
-
-var
-  playerPoint: TPoint;
-  index, fails: Int32;
-begin
-  Self.Enabled := True;
-  playerPoint := Self.GetMyPos();
-  Self.Path := BuildPath([playerPoint] + Path);
-
-  if Self.AdaptiveWalk then
-  begin
-    Self.AdaptiveToggleDistances.X := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.X + Random(-6,6);
-    Self.AdaptiveToggleDistances.Y := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.Y + Random(-16,16);
-    Self.AdaptiveWalkCheck(playerPoint);
-  end;
-
-  while Self.Enabled and (fails < 10) do
-  begin
-    playerPoint := Self.GetMyPos();
-
-    if AdvancePath(index, playerPoint) then
-      fails := 0
-    else
-    begin
-      Inc(fails);
-
-      // Likely haven't moved far enough to advance to next point
-      if (fails < 5) then begin
-        Wait(300);
-        Continue;
-      end else begin
-        // screen walking struggles, so disable it
-        if Self.AdaptiveWalk then
-          Self.ScreenWalk := False
-        else if (fails = 5) then
-          case SRL.Dice(50) of
-            True:  Minimap.SetCompassAngle(Minimap.GetCompassAngle() - RandomLeft(30, 360));
-            False: Minimap.SetCompassAngle(Minimap.GetCompassAngle() + RandomLeft(30, 360));
-          end;
-      end;
-
-      if (fails mod 2 = 0) then
-        Minimap.WaitFlag();
-    end;
-
-    if index = High(Self.Path) then
-    begin
-      if Self.WalkFinalStep(playerPoint, Self.Path[index], upText, redClicked, waitUntilDistance) then
-        Exit(True);
-    end else
-      Self.WalkStep(playerPoint, Self.Path[index], upText, redClicked);
-
-    if redClicked then
-      Exit(True);
-  end;
-
-  if fails = 10 then
-    Self.DebugLn('Failed to advance path');
-end;
-
-function TRSWalker.WebWalk(Destination: TPoint; UpText: TStringArray; out redClicked: Boolean; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
-var
-  Path: TPointArray;
-begin
-  if not InRange(PathRandomness, 0, 1) then
-    Self.Fatal('TRSWalker.WebWalk `PathRandomness` must be within 0..1');
-
-  Path   := Self.WebGraph.PathBetween(Self.GetMyPos, Destination, PathRandomness);
-  Result := Self.WalkPath(Path, UpText, redClicked, waitUntilDistance);
-end;
-
-function TRSWalker.WebWalk(Destination: TPointArray; UpText: TStringArray; out redClicked: Boolean; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
-begin
-  Result := Self.WebWalk(Self.GetClosestPoint(Destination), UpText, redClicked, waitUntilDistance, PathRandomness);
-end;
-
 
 
 begin

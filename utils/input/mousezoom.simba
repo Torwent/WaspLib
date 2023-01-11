@@ -1,0 +1,467 @@
+(*
+MouseZoom
+=========
+Methods to handle the zoom levels with he mouse wheel.
+
+This file was developed with help from data available through the RuneLite camera plugin.
+*)
+
+{$DEFINE WL_MOUSEZOOM_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+type TRSMouseZoom
+~~~~~~~~~~~~~~~~~
+  Record responsible to handle zooming with the mouse wheel and keep MM2MS.ZoomLevel in sync with the zoom slider.
+*)
+type
+  TRSMouseZoom = record(TSRLBaseRecord)
+    ZoomLevel: Int32;
+  class const
+    MAX_ZOOM: Int32 = 768;
+  end;
+
+(*
+RSMouseZoom.GetNext
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMouseZoom.GetNext(value: Int32; down: Boolean): Int32;
+.. pascal:: function TRSMouseZoom.GetNext(value: Int32; amount: Int32 = 1; down: Boolean = True): Int32; overload;
+
+Returns the next zoom level given your current one (value) and the direction you will be spinning the mouse wheel.
+You can optionally specify the number of scrolls you plan on doing via **amount**.
+
+Example
+-------
+
+  WriteLn('Current zoom value: ', value);
+  WriteLn('Next value on scroll up: ', RSMouseZoom.GetNext(value, False));
+  WriteLn('Next value on scroll down: ', RSMouseZoom.GetNext(value, True));
+*)
+function TRSMouseZoom.GetNext(value: Int32; down: Boolean): Int32;
+begin
+  if down then
+    Result := value-26
+  else
+    Result := value+24;
+
+  Result := EnsureRange(Result, 0, Self.MAX_ZOOM);
+end;
+
+function TRSMouseZoom.GetNext(value: Int32; amount: Int32 = 1; down: Boolean = True): Int32; overload;
+var
+  i: Int32;
+begin
+  Result := value;
+  for i := 0 to amount-1 do
+    Result := Self.GetNext(Result, down);
+end;
+
+
+function TRSMouseZoom.GetZoomLevel(): Int32; //Declared here to be used by the next functions but overriden later.
+begin
+  Result := -1;
+end;
+
+
+(*
+RSMouseZoom.Level2Slider
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMouseZoom.Level2Slider(value: Int32 = -1): Int32;
+
+As the name implies, this method is used to convert RSMouseZoom.ZoomLevel to MM2MS zoom slider levels (0..768 to 0..100).
+
+Example
+-------
+
+  WriteLn RSMouseZoom.Level2Slider(384); //should print 50.
+*)
+function TRSMouseZoom.Level2Slider(value: Int32 = -1): Int32;
+begin
+  if value < 0 then
+    value := Self.GetZoomLevel();
+
+  Result := Floor(value/8);
+
+  //The following levels do not exist in the slider, probably due to roundings.
+  //The scale of 0-100 is made up by us so we are bound to rounding issues.
+  if Result >= 13 then
+    Result += 1;
+
+  if Result >= 37 then
+    Result += 1;
+
+  if Result >= 63 then
+    Result += 1;
+
+  if Result >= 87 then
+    Result += 1;
+
+  Result := EnsureRange(Result, 0, 100);
+end;
+
+(*
+RSMouseZoom.Slider2Level
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMouseZoom.Slider2Level(value: Int32 = -1): Int32;
+
+As the name implies, this method is used to convert MM2MS.ZoomLevel to RSMouseZoom.ZoomLevel levels (0..100 to 0..768).
+Unlike the previous method though, this one is not 100% accurate but good enough.
+
+To understand why first you need to understand a few concepts:
+ - Even though we use the range 0..100 for slider levels, it's a made up range.
+ - Because of this, the slider actually has only 96 positions and 4 dead levels: 13, 37, 63 and 87.
+ - You can confirm this by trying to use `Options.SetZoomLevel(13)` or any other of those levels and then using `Options.GetZoomLevel()`.
+ - Each slider position actually has 8 RSmouseZoom zoom levels in it. TRSMouseZoom.MAX_ZOOM = 96*8 .
+
+Having understood that, you can now understand why it is not 100% accurate. If each slider level has 8 rsmousezoom levels in it, it's impossible to make it 100% accurate.
+
+Example
+-------
+
+  WriteLn RSMouseZoom.Slider2Level(50); //should print 384.
+*)
+function TRSMouseZoom.Slider2Level(value: Int32 = -1): Int32;
+begin
+  if value < 0 then
+    value := MM2MS.ZoomLevel;
+
+  if value >= 13 then
+    value -= 1;
+
+  if value >= 37 then
+    value -= 1;
+
+  if value >= 63 then
+    value -= 1;
+
+  if value >= 87 then
+    value -= 1;
+
+  Result := EnsureRange(value * 8, 0, Self.MAX_ZOOM);
+end;
+
+
+(*
+RSMouseZoom.Scroll
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMouseZoom.Scroll(amount: Int32 = 1; down: Boolean; moveMouse: Boolean = True);
+.. pascal:: procedure TRSMouseZoom.Scroll(amount: Int32 = 1; moveMouse: Boolean = True); overload;
+
+  Performs a mouse scroll in the direction specified and updates RSMouseZoom.ZoomLevel and MM2MS.ZoomLevel accordingly.
+  The scroll direction can be specified either with a boolean or with a positive/negative amount of scrolls, scroll up being positive.
+  You can also otpionally tell it to move the mouse to the mainscreen before scrolling.
+
+Example
+-------
+
+  RSMouseZoom.Scroll(5, True);
+*)
+procedure TRSMouseZoom.Scroll(amount: Int32 = 1; down: Boolean; moveMouse: Boolean = True);
+begin
+  Self.ZoomLevel := Self.GetNext(Self.ZoomLevel, amount, down);
+
+  MM2MS.ZoomLevel := Self.Level2Slider(Self.ZoomLevel);
+
+  if moveMouse then
+    Mouse.Scroll(InterfaceArea.Bounds(), amount, down)
+  else
+    Mouse.Scroll(amount, down);
+end;
+
+procedure TRSMouseZoom.Scroll(amount: Int32 = 1; moveMouse: Boolean = True); overload;
+begin
+  Self.Scroll(Floor(Sqrt(Power(amount,2))), amount < 0, moveMouse);
+end;
+
+
+(*
+RSMouseZoom.MaxZoom
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMouseZoom.MaxZoom(down: Boolean = True);
+
+  Maxes the zoom limit in the direction you specified.
+
+Example
+-------
+
+  RSMouseZoom.MaxZoom(True); //will zoom out to the limit.
+*)
+procedure TRSMouseZoom.MaxZoom(down: Boolean = True);
+var
+  scrolls: Int32;
+begin
+  if down then
+    scrolls := Floor(Self.ZoomLevel/26) + Random(3, 6)
+  else
+    scrolls := Floor((Self.MAX_ZOOM - Self.ZoomLevel)/24) + Random(3, 6);
+  Self.Scroll(scrolls, down, True);
+end;
+
+(*
+RSMouseZoom.MaxZoomBlind
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMouseZoom.MaxZoomBlind(down: Boolean = True);
+
+  Maxes the zoom limit without knowing the current zoom level.
+  This can be used to figure out the current zoom level if we don't know it yes.
+
+Example
+-------
+
+  RSMouseZoom.MaxZoomBlind(True); //will zoom out to the limit.
+*)
+procedure TRSMouseZoom.MaxZoomBlind(down: Boolean = True);
+var
+  scrolls: Int32;
+begin
+  if down then
+    scrolls := Floor(Self.MAX_ZOOM/26) + Random(3, 6)
+  else
+    scrolls := Floor(Self.MAX_ZOOM/24) + Random(3, 6);
+
+  Self.Scroll(scrolls, down, True);
+end;
+
+(*
+RSMouseZoom.GetZoomLevel
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMouseZoom.GetZoomLevel(): Int32;
+.. pascal:: function TRSMouseZoom.GetZoomLevel(): Int32; override;
+
+  This method is pre-declared to be used by other methods that require it but it's functionality required said methods to work therefor it's overriden.
+
+  Anyway, this simply returns RSMouseZoom.ZoomLevel if it is already set, if it's not set, it will attempt to set it up.
+
+Example
+-------
+
+  WriteLn RSMouseZoom.GetZoomLevel();
+*)
+function TRSMouseZoom.GetZoomLevel(): Int32; override;
+begin
+  if (Self.ZoomLevel > -1) then
+    Exit(Self.ZoomLevel);
+
+  if (MM2MS.ZoomLevel > -1) then
+  begin
+    Self.ZoomLevel := Self.Slider2Level(MM2MS.ZoomLevel);
+    Exit(Self.ZoomLevel);
+  end;
+
+  case Random(3) of
+    0:
+      begin
+        Self.DebugLn('Unknown zoom level, reading from options...');
+        Self.ZoomLevel := Self.Slider2Level(MM2MS.GetZoomLevel());
+        Self.DebugLn('Current zoom level: ' + ToString(Self.ZoomLevel));
+      end;
+    1:  Options.SetZoomLevel(Random(100));
+    else
+      Self.MaxZoomBlind(SRL.Dice(50));
+  end;
+
+  Result := Self.ZoomLevel;
+end;
+
+
+(*
+RSMouseZoom.SetZoomLevel
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
+
+  Set the specified zoom level. This assumes slider levels (so 0..100 range).
+  This will often miss the target by a couple of zoom levels due to how zooming with the mouse wheel works.
+  Assuming we end up within 4 zoom levels of the target level, it's assumed successful.
+
+Example
+-------
+
+  RSMouseZoom.SetZoomLevel(75); //will attempt to zoom in/out until you are within 4 levels of 75.
+*)
+function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
+var
+  trueLevel, amount: Int32;
+begin
+  if Self.ZoomLevel = -1 then
+  begin
+    Self.GetZoomLevel();
+
+    if Self.ZoomLevel = -1 then
+      Self.Fatal('Something went wrong while settings up the zoom level.');
+  end;
+
+
+  trueLevel := Self.Slider2Level(level);
+
+  if InRange(trueLevel, Self.ZoomLevel-26, Self.ZoomLevel+24) then
+    Self.MaxZoom(Antiban.BioDice());
+
+  amount := trueLevel - Self.ZoomLevel;
+
+  if Self.ZoomLevel > trueLevel then
+    amount := Floor(amount/26)
+  else
+    amount := Floor(amount/24);
+
+  Self.Scroll(amount);
+
+  Result := InRange(MM2MS.ZoomLevel, level-4, level+4);
+end;
+
+(*
+RSMouseZoom.RunStressTest
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMouseZoom.RunStressTest(iterations: Int32 = 19999);
+
+A simple stress test of RSMouseZoom. This will zoom in/out continuously for whatever many times you specified and keep
+track of `RSMouseZoom.ZoomLevel`, `MM2MS.ZoomLevel`, and the fail rate of `MM2MS.ZoomLevel` and `Options.GetZoomLevel()` which
+should always be in sync.
+
+.. note:: Be warned that you should never use this on an account you care! It can definitly get you banned!
+
+Example
+-------
+
+  RSMouseZoom.RunStressTest(39999); //will perform 40000 zoom in/outs randomly.
+*)
+procedure TRSMouseZoom.RunStressTest(iterations: Int32 = 19999);
+  procedure AntiLogout(i, iterations: Int32);
+  begin
+    if Frac(i/1000) = 0 then
+      WriteLn('Progress: ', i, ' of ', iterations);
+
+    if Frac(i/250) <> 0 then
+      Exit;
+
+    if Frac(i/500) = 0 then
+      Self.MaxZoom(SRL.Dice(50))
+    else
+      case SRL.Dice(50) of
+        True:  Minimap.SetCompassAngle(Minimap.GetCompassAngle() - SRL.SkewedRand(30, 360, 3));
+        False: Minimap.SetCompassAngle(Minimap.GetCompassAngle() + SRL.SkewedRand(30, 360, 3));
+      end;
+
+    Mouse.Move(InterfaceArea.Bounds(), True);
+  end;
+var
+  i, slider: Int32;
+  fails: TIntegerArray;
+  down: Boolean;
+begin
+  Options.SetZoomLevel(50);
+  Mouse.Move(InterfaceArea.Bounds(), True);
+
+  SetLength(fails, 5);
+  try
+    for i := 0 to iterations do
+    begin
+      AntiLogout(i, iterations);
+      Down := SRL.Dice(48);
+
+      Self.Scroll(1, down, True);
+      Wait(5);
+      slider := Options.GetZoomLevel();
+
+      if slider = MM2MS.ZoomLevel then
+        Continue;
+
+      fails[0] += 1;
+      if InRange(MM2MS.ZoomLevel, slider-2, slider+2) then
+        Continue;
+
+      fails[1] += 1;
+      if InRange(MM2MS.ZoomLevel, slider-5, slider+5) then
+        Continue;
+
+      fails[2] += 1;
+      if InRange(MM2MS.ZoomLevel, slider-10, slider+10) then
+        Continue;
+
+      fails[3] += 1;
+      if InRange(MM2MS.ZoomLevel, slider-15, slider+15) then
+        Continue;
+
+      fails[4] += 1;
+    end;
+  finally
+    iterations := i; //
+    WriteLn 'Level 0 fail = any fail.'+ LINEENDING + 'Level 1 fail = Fail that was off by 2' + LINEENDING +
+            'Level 2 fail = Fail that was off by 5' + LINEENDING +
+            'Level 3 fail = Fail that was off by 10 (this can really break things)' + LINEENDING +
+            'Level 4 fail = Fail that was off by 15 (this can really break things)';
+
+    for i := 0 to High(fails) do
+      WriteLn('Level ', i, ' fail rate: ', fails[i], '/', iterations, ' (', Round(fails[i]/iterations * 100, 2), '%)');
+  end;
+end;
+
+
+(*
+RSMouseZoom.DrawGraph
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMouseZoom.DrawGraph();
+
+Draw a simple graph of the RSMouseZoom data.
+
+Example
+-------
+
+  RSMouseZoom.DrawGraph();
+*)
+procedure TRSMouseZoom.DrawGraph();
+var
+  bmp: TMufasaBitmap;
+  i: Int32;
+  levelTPA, zInTPA, zOutTPA, zSlider: TPointArray;
+begin
+  bmp.Init();
+  bmp.SetSize(Self.MAX_ZOOM+10, Self.MAX_ZOOM+10);
+
+  bmp.Invert();
+  //bmp.Fill($ECECEC); probably has the same effect I think.
+
+  for i:=0 to bmp.GetWidth() do
+    if Frac(i/2) = 0 then
+      bmp.LineTo([i,0], [i,bmp.GetHeight()], $F5F5F5); //This makes it easier to see... makes alternating gray scale columns.
+
+  for i := 0 to Self.MAX_ZOOM do
+  begin
+    levelTPA += [i, i];
+    zInTPA   += [i, Self.GetNext(i, False)];
+    zOutTPA  += [i, Self.GetNext(i, True)];
+    zSlider  += [i, Self.Level2Slider(i)];
+  end;
+
+  bmp.DrawTPA(levelTPA, SRLColors.ORANGE);
+  bmp.DrawTPA(zInTPA, SRLColors.BLUE_OCEAN);
+  bmp.DrawTPA(zOutTPA, SRLColors.CYAN);
+  bmp.DrawTPA(zSlider, SRLColors.GREEN_SPRING);
+
+  bmp.Debug;
+  bmp.Free();
+end;
+
+(*
+var RSMouseZoom
+~~~~~~~~~~~~~~~
+  Global RSMouseZoom variable.
+*)
+var
+  RSMouseZoom: TRSMouseZoom;
+
+begin
+  RSMouseZoom.Name := 'RSMouseZoom';
+  RSMouseZoom.ZoomLevel := -1;
+end;
+
+function TRSOptions.SetZoomLevel(level: Int32): Boolean; override;
+begin
+  Result := inherited();
+  if not Result then
+    level := Options.GetZoomLevel();
+
+  RSMouseZoom.ZoomLevel := RSMouseZoom.Slider2Level(level);
+end;
+

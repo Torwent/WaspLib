@@ -10,7 +10,7 @@ type
     KARUULM_SLAYER_DUNGEON:     TBox;
     FREMMENNIK_SLAYER_CAVE:     TBox;
 
-    LUNAR_ISLAND:               TBox;
+    LUNAR_ISLE:                 TBox;
     ASGARNIA_ICE_DUNGEON:       TBox;
     SMOKE_DUNGEON:              TBox;
     IORWERTH_DUNGEON:           TBox;
@@ -70,17 +70,80 @@ type
     WOODCUTTING_GUILD:          TBox;
 
     BLAST_FURNACE:              TBox;
-    LUMBRIDGE_TOP_FLOOR:        TBox;
+    LUMBRIDGE_ROOF:             TBox;
     LUMBRIDGE_MID_FLOOR:        TBox;
-    LUMBRIDGE_BOTTOM_FLOOR:     TBox;
+    LUMBRIDGE_CELLAR:     TBox;
     BARBARIAN_AGILITY_COURSE:   TBox;
 
-    MYTHS_GUILD_LEVEL1:         TBox;
+    MYTHS_GUILD_MID_FLOOR:         TBox;
   end;
+
+  TRSNamedRegion = record
+    Name: String;
+    Bounds: TBox;
+  end;
+
+  TRSNamedRegionArray = array [EWLBankLocation(0)..EWLBankLocation(Ord(High(EWLBankLocation)))] of TRSNamedRegion;
+
+function TRSNamedRegionArray.IndexOf(name: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Name = name then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TRSNamedRegionArray.IndexOf(bounds: TBox): Int32; overload;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Bounds = bounds then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TRSNamedRegionArray.Find(name: String): TRSNamedRegion;
+begin
+  Result := Self[Self.IndexOf(name)];
+end;
+
+function TRSNamedRegionArray.Find(bounds: TBox): TRSNamedRegion; overload;
+begin
+  Result := Self[Self.IndexOf(bounds)];
+end;
+
+function TRSNamedRegionArray.GetStrings(): TStringArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].Name;
+end;
 
 var
   RSRegions: TRSRegions;
-  RSBankRegions: TRSBankRegionArray;
+  RSBankRegions: TRSNamedRegionArray;
+  RSNamedRegionsArray: array of TRSNamedRegion; //This is different from the above!
+
+procedure TRSNamedRegionArray.Setup();
+var
+  i, j: Int32;
+begin
+  for i := 0 to Ord(High(EWLBankLocation)) do
+  begin
+    for j := 0 to High(RSNamedRegionsArray) do
+    begin
+      if RSNamedRegionsArray[j].Name.ToLower().Replace('''','') = ToString(EWLBankLocation(i)).ToLower().Replace('_bank', '').Replace('_', ' ') then
+      begin
+        Self[i] := RSNamedRegionsArray[j];
+        Break;
+      end
+      else if j = High(RSNamedRegionsArray) then
+        WriteLn('DEBUG WARNING: EWLBankLocation: ', ToString(EWLBankLocation(i)).ToLower().Replace('_bank', '').Replace('_', ' '), ' doesn''t match any RSRegion!');
+    end;
+  end;
+end;
 
 begin
   RSRegions.ZEAH                        := [0, 0, 3661, 3612];
@@ -93,7 +156,7 @@ begin
   RSRegions.KARUULM_SLAYER_DUNGEON      := [313, 0, 1432, 814];
   RSRegions.FREMMENNIK_SLAYER_CAVE      := [2348, 2903, 3002, 3433];
 
-  RSRegions.LUNAR_ISLAND                := [4127, 1027, 4747, 1650];
+  RSRegions.LUNAR_ISLE                  := [4127, 1027, 4747, 1650];
   RSRegions.ASGARNIA_ICE_DUNGEON        := [5374, 1144, 6000, 1600];
   RSRegions.SMOKE_DUNGEON               := [212, 3352, 1100, 4600];
   RSRegions.IORWERTH_DUNGEON            := [3002, 2756, 3610, 3500];
@@ -153,44 +216,79 @@ begin
   RSRegions.YANILLE                     := [5509, 3879, 5955, 4200];
 
   RSRegions.BLAST_FURNACE               := [10308, 1406, 10560, 1642];
-  RSRegions.LUMBRIDGE_TOP_FLOOR         := [10346, 5218, 10546, 5475];
+  RSRegions.LUMBRIDGE_ROOF              := [10346, 5218, 10546, 5475];
   RSRegions.LUMBRIDGE_MID_FLOOR         := [9626, 5240, 9838, 5498];
-  RSRegions.LUMBRIDGE_BOTTOM_FLOOR      := [9839, 5269, 9838, 5472];
+  RSRegions.LUMBRIDGE_CELLAR            := [9839, 5269, 9838, 5472];
   RSRegions.BARBARIAN_AGILITY_COURSE    := [5361, 2021, 5718, 2388];
 
-  RSRegions.MYTHS_GUILD_LEVEL1          := [10321, 5604, 10560, 5830];
+  RSRegions.MYTHS_GUILD_MID_FLOOR       := [10321, 5604, 10560, 5830];
 
-
-  RSBankRegions := [
-    ['Al kharid', RSRegions.AL_KHARID],
+  RSNamedRegionsArray := [
+    ['Abyss', RSRegions.ABYSS],
+    ['Altars', RSRegions.ALTARS],
+    ['Al Kharid', RSRegions.AL_KHARID],
     ['Ardougne', RSRegions.ARDOUGNE],
-    ['Blast furnace', RSRegions.BLAST_FURNACE],
-    ['Castle wars', RSRegions.CASTLE_WARS],
+    ['Asgarnia Ice Dungeon', RSRegions.ASGARNIA_ICE_DUNGEON],
+    ['Barbarian Agility Course', RSRegions.BARBARIAN_AGILITY_COURSE],
+    ['Barbarian Village', RSRegions.BARBARIAN_VILLAGE],
+    ['Blast Furnace', RSRegions.BLAST_FURNACE],
+    ['Brimhaven Dungeon', RSRegions.BRIMHAVEN_DUNGEON],
+    ['Castle Wars', RSRegions.CASTLE_WARS],
+    ['Catacombs of Kourend', RSRegions.CATACOMBS_OF_KOUREND],
     ['Catherby', RSRegions.CATHERBY],
-    ['Crafting guild', RSRegions.CRAFTING_GUILD],
-    ['Draynor village', RSRegions.DRAYNOR_VILLAGE],
+    ['Chasm of Fire', RSRegions.CHASM_OF_FIRE],
+    ['Corsair Cove Dungeon', RSRegions.CORSAIR_COVE_DUNGEON],
+    ['Crafting Guild', RSRegions.CRAFTING_GUILD],
+    ['Crafting Guild Upstairs', RSRegions.CRAFTING_GUILD_UPSTAIRS],
+    ['Draynor Village', RSRegions.DRAYNOR_VILLAGE],
     ['Edgeville', RSRegions.EDGEVILLE],
     ['Falador', RSRegions.FALADOR],
-    ['Giants foundry', RSRegions.GIANTS_FOUNDRY],
+    ['Fremmennik Slayer Cave', RSRegions.FREMMENNIK_SLAYER_CAVE],
+    ['Giants'' Den', RSRegions.GIANTS_DEN],
+    ['Giants'' Foundry', RSRegions.GIANTS_FOUNDRY],
     ['Grand Exchange', RSRegions.GRAND_EXCHANGE],
     ['Guardians of the Rift', RSRegions.GUARDIANS_OF_THE_RIFT],
-    ['Hosidius kitchen', RSRegions.HOSIDIUS_KITCHEN],
-    ['Lumbridge cellar', RSRegions.LUMBRIDGE_BOTTOM_FLOOR],
-    ['Lumbridge top floor', RSRegions.LUMBRIDGE_TOP_FLOOR],
-    ['Lunar isle', RSRegions.LUNAR_ISLAND],
-    ['Mining guild', RSRegions.MINING_GUILD],
-    ['Motherload mine', RSRegions.MOTHERLOAD],
-    ['Myth''s guild', RSRegions.MYTHS_GUILD_LEVEL1],
+    ['Hespori', RSRegions.HESPORI],
+    ['Hosidius Fruit Stall House', RSRegions.HOSIDIUS_FRUIT_STALL_HOUSE],
+    ['Hosidius Kitchen', RSRegions.HOSIDIUS_KITCHEN],
+    ['Iorwerth Dungeon', RSRegions.IORWERTH_DUNGEON],
+    ['Kalphite Cave', RSRegions.KALPHITE_CAVE],
+    ['Kalphite Lair', RSRegions.KALPHITE_LAIR],
+    ['Karuulm Slayer Dungeon', RSRegions.KARUULM_SLAYER_DUNGEON],
+    ['King Black Dragon / Nightmare Zone', RSRegions.KBD_AND_NMZ],
+    ['Kourend Runecrafting', RSRegions.KOUREND_RUNECRAFTING],
+    ['Kraken Cove', RSRegions.KRAKEN_COVE],
+    ['Lumbridge', RSRegions.LUMBRIDGE],
+    ['Lumbridge Cellar', RSRegions.LUMBRIDGE_CELLAR],
+    ['Lumbridge Castle Mid Floor', RSRegions.LUMBRIDGE_MID_FLOOR],
+    ['Lumbridge Roof', RSRegions.LUMBRIDGE_ROOF],
+    ['Lunar Isle', RSRegions.LUNAR_ISLE],
+    ['Mining Guild', RSRegions.MINING_GUILD],
+    ['Mos Le''Harmless Cave', RSRegions.MOSLE_HARMLESS_CAVE],
+    ['Motherload Mine', RSRegions.MOTHERLOAD],
+    ['Mourner Tunnels', RSRegions.MOURNER_TUNNELS],
+    ['Musa Point', RSRegions.MUSA_POINT],
+    ['Myths'' Guild Mid Floor', RSRegions.MYTHS_GUILD_MID_FLOOR],
+    ['Otto''s Grotto', RSRegions.OTTOS_GROTTO],
     ['Piscarilius', RSRegions.PISCARILIUS],
     ['Prifddinas', RSRegions.PRIFDDINAS],
-    ['Rogues den', RSRegions.ROGUES_DEN],
-    ['Seer''s village', RSRegions.SEERS_VILLAGE],
-    ['Tzhaar', RSRegions.TZHAAR],
+    ['Rimmington', RSRegions.RIMMINGTON],
+    ['Rogues'' Den', RSRegions.ROGUES_DEN],
+    ['Seers'' Village', RSRegions.SEERS_VILLAGE],
+    ['Slayer Tower Floors', RSRegions.SLAYER_TOWER_FLOORS],
+    ['Slayer Tower Groundfloor', RSRegions.SLAYER_TOWER_GROUNDFLOOR],
+    ['Smoke Devil Dungeon', RSRegions.SMOKE_DEVIL_DUNGEON],
+    ['Smoke Dungeon', RSRegions.SMOKE_DUNGEON],
+    ['Stronghold Slayer Dungeon', RSRegions.STRONGHOLD_SLAYER_DUNGEON],
+    ['Mor Ul Rek', RSRegions.TZHAAR],
     ['Varrock', RSRegions.VARROCK],
+    ['Varrock East', RSRegions.VARROCK_EAST],
+    ['Varrock West', RSRegions.VARROCK_WEST],
     ['Wintertodt', RSRegions.WINTERTODT],
-    ['Woodcutting guild', RSRegions.WOODCUTTING_GUILD],
-    ['Yanille', RSRegions.YANILLE]
+    ['Woodcutting Guild', RSRegions.WOODCUTTING_GUILD],
+    ['Yanille', RSRegions.YANILLE],
+    ['Zul-Andra', RSRegions.ZULANDRA]
   ];
 
-  WLSettings.BankLocation := RSBankRegions[10]; //GE
+  RSBankRegions.Setup();
 end;

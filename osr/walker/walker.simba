@@ -64,6 +64,9 @@ Example
 *)
 function RSHeightMap.GetColor(p: TPoint): Int64; static;
 begin
+  if not RSHeightMap.Enabled then
+    Exit;
+
   Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
 end;
 
@@ -99,12 +102,40 @@ end;
 
 (*
 TRSWalkerMap.Load
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
 .. pascal:: procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
 
 Overrides SRL's TRSWalkerMap.Load() so it loads the respective heightmap if it exists.
 This is an internal Walker method, you probably don't need to call it.
 *)
+
+procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
+var
+  hFileName: String;
+begin
+  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
+  RSHeightMap.Enabled := RSHeightMap.Enabled and (RSHeightMap.MaxHeight > 0) and FileExists(hFileName);
+
+  Self.Map := Self.InternalLoadMap(FileName);
+  if RSHeightMap.Enabled then
+  begin
+    RSHeightMap.Map := Self.InternalLoadMap(hFileName);
+    RSHeightMap.Enabled := (Self.Map.getWidth() = RSHeightMap.Map.getWidth()) and
+                           (Self.Map.getHeight() = RSHeightMap.Map.getHeight());
+
+
+    if RSHeightMap.Enabled then
+      AddOnTerminate(@RSHeightMap.Map.Free)
+    else
+      RSHeightMap.Map.Free();
+  end;
+
+  Self.ScaledMap.Init();
+  AddOnTerminate(@Self.Free);
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+end;
+
 procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
 var
   Bitmaps, HBitmaps: TMufasaBitmapArray;
@@ -151,7 +182,7 @@ begin
     RSHeightMap.Map.Init();
     RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
     RSHeightMap.Map.SetName('Heightmap');
-    AddOnTerminate(@RSHeightMap.Map.Free);;
+    AddOnTerminate(@RSHeightMap.Map.Free);
   end;
 
   for I := 0 to High(Self.Regions) do
@@ -257,6 +288,9 @@ Example
 *)
 function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
 begin
+  if not RSHeightMap.Enabled then
+    Exit;
+
   if p = [] then
   begin
     global := True;
@@ -296,6 +330,9 @@ var
   tile: Vector3;
   tpa: TPointArray;
 begin
+  if not RSHeightMap.Enabled then
+    Exit;
+
   if angle = -1 then
     angle := Minimap.GetCompassAngle(False);
 
@@ -397,12 +434,18 @@ function TRSWalker.GetHeightDiff(p: TPoint): Double;
 var
   h: Double;
 begin
+  if not RSHeightMap.Enabled then
+    Exit;
+
   Self.GetMyPos(h);
   Result := h - Self.GetHeight(p);
 end;
 
 function TRSWalker.GetHeightDiff(p, q: TPoint): Double; overload;
 begin
+  if not RSHeightMap.Enabled then
+    Exit;
+
   Result := Self.GetHeight(p) - Self.GetHeight(q);
 end;
 

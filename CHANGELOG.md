@@ -1,3 +1,12 @@
+## [11.0.1](https://github.com/Torwent/WaspLib/compare/v11.0.0...v11.0.1) (2023-01-16)
+
+
+### Bug Fixes
+
+* added tithe farm region ([ca678e8](https://github.com/Torwent/WaspLib/commit/ca678e8de5160bb6a18e2161a4ec58e7cf4e3ba6))
+
+
+
 # [11.0.0](https://github.com/Torwent/WaspLib/compare/v10.6.5...v11.0.0) (2023-01-16)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **consumablehandler:** fixed a nasty bug in consumable handler that made it not wirthdraw food on certain scripts. ([b9c85a8](https://github.com/Torwent/WaspLib/commit/b9c85a86e9aa70834ddde3baf7d71b1d03350a48))
-
-
-
-## [10.6.2](https://github.com/Torwent/WaspLib/compare/v10.6.1...v10.6.2) (2023-01-06)
-
-
-### Bug Fixes
-
-* crafting guild upstairs map ([1928a86](https://github.com/Torwent/WaspLib/commit/1928a860dd2d9fc5c7f76589efb6c1338efa68b6))
 
 
 

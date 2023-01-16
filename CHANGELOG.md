@@ -1,3 +1,12 @@
+## [11.0.2](https://github.com/Torwent/WaspLib/compare/v11.0.1...v11.0.2) (2023-01-16)
+
+
+### Bug Fixes
+
+* forgot to add the weapon.json file.... whoops! ([58d390d](https://github.com/Torwent/WaspLib/commit/58d390db4c911ee11b27385071186c84bb9a1fff))
+
+
+
 ## [11.0.1](https://github.com/Torwent/WaspLib/compare/v11.0.0...v11.0.1) (2023-01-16)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **maps:** gotr.png added to wasplib ([df203a2](https://github.com/Torwent/WaspLib/commit/df203a24cd878242ee4c8550c574c2ff5f3390f4))
-
-
-
-## [10.6.3](https://github.com/Torwent/WaspLib/compare/v10.6.2...v10.6.3) (2023-01-08)
-
-
-### Bug Fixes
-
-* **consumablehandler:** fixed a nasty bug in consumable handler that made it not wirthdraw food on certain scripts. ([b9c85a8](https://github.com/Torwent/WaspLib/commit/b9c85a86e9aa70834ddde3baf7d71b1d03350a48))
 
 
 

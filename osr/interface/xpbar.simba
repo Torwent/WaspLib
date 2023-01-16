@@ -9,92 +9,42 @@ Methods to interact with the XP Drops.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-function TRSXPBar.IsOpen: Boolean; override;
-
-  function FindBorder: Boolean;
-  const
-    COLOR_BORDER = $233038;
-  var
-    ColorCount, MinCount, MaxCount: Int32;
-  begin
-    ColorCount := SRL.CountColor(COLOR_BORDER, Self.Bounds);
-    MinCount := (Self.Width*2 + Self.Height*2) - 16;
-    MaxCount := (Self.Width*2 + Self.Height*2) - 4;
-    Result :=  (ColorCount <= MaxCount) and (ColorCount >= MinCount);
-  end;
-
-  function UpdateLocation: Boolean;
-  var
-    Location: ERSXPBarLocation;
-    Size: ERSXPBarSize;
-  begin
-    for Location in ERSXPBarLocation do
-      for Size in ERSXPBarSize do
-      begin
-        Self.Cache := [];
-        Self.Alignment := Self.Alignments[Location][Size];
-        if FindBorder() then
-        begin
-          case Size of
-            ERSXPBarSize.SMALL:  Self.Font := RS_FONT_PLAIN_11;
-            ERSXPBarSize.MEDIUM: Self.Font := RS_FONT_PLAIN_12;
-            ERSXPBarSize.LARGE:  Self.Font := RS_FONT_BOLD_12;
-          end;
-
-          Exit(True);
-        end;
-      end;
-  end;
-
+function TRSXPBar.EarnedXP(currentXP: Int32): Boolean;
 begin
-  Result := FindBorder or UpdateLocation;
-end;
-
-
-function TRSXPBar.EarnedXP(CurrentXP: Int32): Boolean;
-begin
-  Result := CurrentXP > WL.XP.Previous;
+  Result := currentXP > WL.XP.Previous;
 
   if Result then
   begin
     if WL.XP.Previous > 0 then
-      StatsPayload.Update(CurrentXP-WL.XP.Previous, 0, 0, 0);
+      StatsPayload.Update(currentXP-WL.XP.Previous, 0, 0, 0);
     WL.Activity.Restart();
-    WL.XP.Previous := CurrentXP;
+    WL.XP.Previous := currentXP;
   end;
 end;
 
-function TRSXPBar.EarnedXP: Boolean; overload;
+function TRSXPBar.EarnedXP(): Boolean; overload;
 begin
   Result := Self.EarnedXP(Self.Read());
 end;
 
-function TRSXPBar.WaitXP(WaitTime: Int32 = 600; Interval: Int32 = -1): Boolean;
+function TRSXPBar.WaitXP(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
 begin
-  if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 200);
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 200);
 
-  Result := WaitUntil(Self.EarnedXP, Interval, WaitTime);
-end;
-
-
-function TRSXPBar.CircleIsOpen: Boolean;
-var
-  TPA: TPointArray;
-begin
-  if FindColors(TPA, 11592943, Minimap.GetXPCircle.Bounds) then
-    Result := Length(Minimap.GetXPCircle().Filter(TPA)) > 50;
+  Result := WaitUntil(Self.EarnedXP, interval, waitTime);
 end;
 
 function TRSXPBar.Read(): Int32; override;
 begin
-  Result := -1;
+  if not Self.IsSetup then
+    Self._Setup();
 
-  if not Self.CircleIsOpen() then
-    Self.Open();
+  //Self.SetupLocation() already checks Self.CircleIsOpen() but it's only called once.
+  if not Self.IsSetup or not Self.Enable() then
+    Exit;
 
-  if Self.IsOpen() then
-    Result := OCR.RecognizeNumber(Self.Bounds, TOCRColorRule.Create([$FFFFFF]), Self.Font);
+  Result := OCR.RecognizeNumber(Self.Bounds(), TOCRColorRule.Create([$FFFFFF]), Self.Font);
 
   WL.XP.IsSetup := (Result > 0) and (Result >= WL.XP.Previous);
 
@@ -108,3 +58,4 @@ begin
   if not WL.GameSettings.XPBarIsSetup and not MainScreen.HasInterface() then
     XPBarSetup.Fix();
 end;
+

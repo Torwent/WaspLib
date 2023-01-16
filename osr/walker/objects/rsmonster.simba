@@ -1,0 +1,88 @@
+(*
+RSMonters
+=========
+Methods to handle TRSMonters.
+TRSMonters are a type or TRSMMDot that can be fought.
+*)
+
+{$DEFINE WL_RSMONSTER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TRSMonster = record(TRSMMDot)
+    Name: String;
+    Hitpoints: Int32;
+    MaxHit: Int32;
+    AttackTypes: array of ERSAttackType;
+  end;
+
+  TRSMonsterArray = array of TRSMonster;
+  PRSMonster = ^TRSMonster;
+  PRSMonsterArray = array of PRSMonster;
+
+
+
+procedure TRSMonster.Setup(name: String); overload;
+var
+  size: Int32;
+begin
+  if name = '' then
+    Exit;
+
+  Self.Name := name;
+
+  Self.Setup();
+
+  Self.DotType := ERSMinimapDot.NPC;
+  Self.UpText += name;
+
+  Self.Hitpoints := MonsterData.GetInt(name, 'hitpoints');
+  Self.MaxHit := MonsterData.GetInt(name, 'max_hit');
+  size := MonsterData.GetInt(name, 'size');
+
+  case Size of
+    1:   Self.ShapeArray.SetShape([size, size, 0]);
+    2:   Self.ShapeArray.SetShape([1.25, 1.25, 0]);
+    else Self.ShapeArray.SetShape([size/2, size/2, 0]);
+  end;
+
+  Self.AttackTypes := MonsterData.GetAttackTypes(name);
+end;
+
+function TRSMonster.Attack(): Boolean;
+begin
+  if Self.SelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving();
+    Result := MainScreen.InCombat();
+  end;
+end;
+
+function TRSMonster.WalkAttack(): Boolean;
+var
+  Attacked: Boolean;
+begin
+  Attacked := (Self.Filter.Walker and Self.WalkSelectOption(['Attack'])) or
+               Self.SelectOption(['Attack']);
+
+  if Attacked then
+  begin
+    Minimap.WaitMoving();
+    Result := MainScreen.InCombat();
+  end;
+end;
+
+var
+  DebugMonsterArray: TRSMonsterArray;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugMonster: TRSMonster;
+begin
+  inherited;
+
+  for DebugMonster in DebugMonsterArray do
+    DebugMonster.Draw(Bitmap);
+end;

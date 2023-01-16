@@ -3,40 +3,75 @@
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-type
-  TPoly = type TPointArray; //Polygon type. A valid polygon needs to have at least 3 points.
-  TPolyArray = array of TPoly;
 
-function TPoly.Filter(TestSet: TPointArray): TPointArray; constref;
+type
+  TCuboid = type TPointArray; //Polygon type. A valid polygon needs to have at least 3 points.
+  TCuboidArray = array of TCuboid;
+
+function TCuboid.Filter(testSet: TPointArray): TPointArray;
 var
   i, count: UInt32;
 begin
-  if (High(TestSet) < 0) then
+  if (High(testSet) < 0) then
     Exit;
 
-  SetLength(Result, Length(TestSet));
+  SetLength(Result, Length(testSet));
   count := 0;
-  for i := 0 to High(TestSet) do
-  begin
-    if SRL.PointInPoly(TestSet[i], Self) then
+  for i := 0 to High(testSet) do
+    if PointInPolygon(testSet[i], Self) then
     begin
-      Result[count] := TestSet[i];
+      Result[count] := testSet[i];
       Inc(count);
     end;
-  end;
+
   SetLength(Result, Count);
 end;
 
-function TPolyArray.Combine(Other: TPolyArray): TPolyArray; constref;
+function TCuboid.Rotate(angleRad: Double): TCuboid; overload;
 begin
-  SetLength(Result, Length(Self) + Length(Other));
-  if Length(self) > 0 then
-    MemMove(self[0], result[0], Length(self)*SizeOf(self[0]));
-  if Length(Other) > 0 then
-    MemMove(Other[0], result[Length(Self)], Length(Other)*SizeOf(Other[0]));
+  Result := TPointArray(Self).Rotate(angleRad, TPointArray(Self).Mean());
 end;
 
-function GetDigit(Input: Extended; N: Int32): Int32;
+
+
+procedure TMufasaBitmap.DrawCuboid(cuboid: TCuboid; color: Integer = $0000FF); overload;
 begin
-  Result := Floor(Input * Power(10, N)) mod 10;
+  Self.DrawTPA(TPointArray(cuboid).Connect(), color);
+end;
+
+procedure Debug(cuboid: TCuboid; color: Integer = $0000FF); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  bitmap.DrawCuboid(cuboid, color);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+
+procedure TMufasaBitmap.DrawCuboidArray(cuboids: TCuboidArray; color: Integer = $0000FF); overload;
+var
+  c: TCuboid;
+begin
+  for c in cuboids do
+    Self.DrawCuboid(c, color);
+end;
+
+
+procedure ShowOnClient(cuboids: TCuboidArray; color: Integer = $0000FF);
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  bitmap.DrawCuboidArray(cuboids, color);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+
+
+function GetDigit(input: Extended; n: Int32): Int32;
+begin
+  Result := Floor(input * Power(10, n)) mod 10;
 end;

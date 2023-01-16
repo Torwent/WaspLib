@@ -29,7 +29,7 @@ type
     FINDER_OPTION: TStringArray;
   end;
 
-function TRSCollectBox.GetButtons: TRSButtonArray;
+function TRSCollectBox.GetButtons(): TRSButtonArray;
 begin
   Result := FindButtons([[83, 19], [21,21]]);
 end;
@@ -43,7 +43,7 @@ begin
 end;
 
 
-function TRSCollectBox.GetSlots: TBoxArray;
+function TRSCollectBox.GetSlots(): TBoxArray;
 begin
   Result := Grid(4, 2, 100, 74, [10, 10], [Self.X1 + 15, Self.Y1 + 44]);
 end;
@@ -85,7 +85,7 @@ begin
     Result := Boxes[Box];
 end;
 
-function TRSCollectBox.IsOpen: Boolean;
+function TRSCollectBox.IsOpen(): Boolean;
 begin
   Result := Self.IsTitle('Collection Box');
 end;
@@ -122,7 +122,7 @@ Initializes CollectBox variables.
 
 .. note:: This is automatically called on the **CollectBox** variable.
 *)
-procedure TRSCollectBox.Setup; override;
+procedure TRSCollectBox.Setup(); override;
 begin
   inherited;
 
@@ -192,7 +192,7 @@ begin
   Result := SRL.CountColor(CTS1(1118740, 35), Self.GetSlotBox(Slot, ITEM)) > 0;
 end;
 
-function TRSCollectBox.GetSlotsWithItems: TIntegerArray;
+function TRSCollectBox.GetSlotsWithItems(): TIntegerArray;
 var
   i: Int32;
 begin
@@ -210,7 +210,7 @@ begin
   Result := SRL.CountColor(CTS1(1118740, 35), Self.GetSlotBox(Slot, CHANGE)) > 0;
 end;
 
-function TRSCollectBox.GetSlotsWithChange: TIntegerArray;
+function TRSCollectBox.GetSlotsWithChange(): TIntegerArray;
 var
   i: Int32;
 begin
@@ -344,7 +344,7 @@ begin
 end;
 
 
-function TRSCollectBox.CollectToInventory: Boolean;
+function TRSCollectBox.CollectToInventory(): Boolean;
 begin
   if Self.GetFullSlots = [] then
     Exit;
@@ -352,7 +352,7 @@ begin
   Result := Self.GetButton(COLLECT_INVENTORY).Click;
 end;
 
-function TRSCollectBox.CollectToBank: Boolean;
+function TRSCollectBox.CollectToBank(): Boolean;
 begin
   if Self.GetFullSlots = [] then
     Exit;
@@ -362,63 +362,120 @@ end;
 
 
 
-// Tries to open a CollectBox  on a bank RSObject.
-// Returns true if collect box is open.
-function TRSCollectBox.Open(RSObject: TRSObject = CurrentBank): Boolean;
+//Extra bank opening methods using TRSObjects
+function TRSCollectBox.Hover(rsobject: TRSObject = []): Boolean; overload;
 begin
-  if MainScreen.HasInterface then
+  if rsobject = [] then
+    rsobject := RSObjects.Banks.GetClosest();
+
+  Result := rsobject.Hover();
+end;
+
+function TRSCollectBox.Open(rsobject: TRSObject = []): Boolean;
+begin
+  if MainScreen.HasInterface() then
   begin
-    if (Self.IsOpen or BankPin.IsOpen) then Exit(True)
-    else MainScreen.CloseInterface;
+    if (Self.IsOpen() or BankPin.IsOpen()) then
+      Exit(True)
+    else
+      MainScreen.CloseInterface();
   end;
 
-  if RSObject.SelectOption(['Collect']) then
+  if rsobject = [] then
+    rsobject := RSObjects.Banks.GetClosest();
+
+  if rsobject.SelectOption(['Collect']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Collect'])) then
   begin
-    Minimap.WaitMoving;
-    Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
-                         SRL.TruncatedGauss(50, 1500), 3000);
-  end
-  else if MainScreen.IsUpText('Banker') then
+    Minimap.WaitMoving();
+    Result := WaitUntil((Self.IsOpen() or BankPin.IsOpen()), RandomLeft(50, 1500), 3000);
+  end;
+end;
+
+function TRSCollectBox.WalkHover(rsobject: TRSObject = []): Boolean;
+begin
+  if rsobject = [] then
+    rsobject := RSObjects.Banks.GetClosest();
+
+  Result := rsobject.WalkHover();
+end;
+
+function TRSCollectBox.WalkOpen(rsobject: TRSObject = []): Boolean;
+begin
+  if MainScreen.HasInterface() then
   begin
-    ChooseOption.Open;
-    if ChooseOption.Select('Collect') then
-    begin
-      Minimap.WaitMoving;
-      Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
-                           SRL.TruncatedGauss(50, 1500), 3000);
-    end;
+    if (Self.IsOpen() or BankPin.IsOpen()) then
+      Exit(True)
+    else
+      MainScreen.CloseInterface();
+  end;
+
+  if rsobject = [] then
+    rsobject := RSObjects.Banks.GetClosest();
+
+  if rsobject.WalkSelectOption(['Collect']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Collect'])) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil((Self.IsOpen() or BankPin.IsOpen()), RandomLeft(50, 1500), 3000);
   end;
 end;
 
 
-// Walks to the bank object, and tries to do the same as above while walking.
-function TRSCollectBox.WalkOpen(RSObject: TRSObject = CurrentBank): Boolean;
+//Extra collectbox opening methods using TRSNPCs
+function TRSCollectBox.Hover(npc: TRSNPC): Boolean; overload;
 begin
-  if MainScreen.HasInterface then
+  if npc = [] then
+    npc := RSNPCs.Bankers.GetClosest();
+
+  Result := npc.Hover();
+end;
+
+function TRSCollectBox.Open(npc: TRSNPC): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
   begin
-    if (Self.IsOpen or BankPin.IsOpen) then Exit(True)
-    else MainScreen.CloseInterface;
+    if (Self.IsOpen() or BankPin.IsOpen()) then
+      Exit(True)
+    else
+      MainScreen.CloseInterface();
   end;
 
-  if RSObject.WalkSelectOption(['Collect']) then
+  if npc = [] then
+    npc := RSNPCs.Bankers.GetClosest();
+
+  if npc.SelectOption(['Collect']) then
   begin
-    Minimap.WaitMoving;
-    Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
-                         SRL.TruncatedGauss(50, 1500), 3000);
-  end
-  else if MainScreen.IsUpText('Banker') then
-  begin
-    ChooseOption.Open;
-    if ChooseOption.Select('Collect') then
-    begin
-      Minimap.WaitMoving;
-      Result := WaitUntil((Self.IsOpen or BankPin.IsOpen),
-                           SRL.TruncatedGauss(50, 1500), 3000);
-    end;
+    Minimap.WaitMoving();
+    Result := WaitUntil((Self.IsOpen() or BankPin.IsOpen()), RandomLeft(50, 1500), 3000);
   end;
 end;
 
+function TRSCollectBox.WalkHover(npc: TRSNPC): Boolean; overload;
+begin
+  if npc = [] then
+    npc := RSNPCs.Bankers.GetClosest();
 
+  Result := npc.WalkHover();
+end;
+
+function TRSCollectBox.WalkOpen(npc: TRSNPC): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if (Self.IsOpen() or BankPin.IsOpen()) then
+      Exit(True)
+    else
+      MainScreen.CloseInterface();
+  end;
+
+  if npc = [] then
+    npc := RSNPCs.Bankers.GetClosest();
+
+  if npc.WalkSelectOption(['Collect']) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil((Self.IsOpen() or BankPin.IsOpen()), RandomLeft(50, 1500), 3000);
+  end;
+end;
 
 
 

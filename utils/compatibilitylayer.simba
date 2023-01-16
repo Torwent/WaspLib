@@ -20,6 +20,33 @@ begin
   Result := -1;
 end;
 
+function TStringArray.Contains(const Value: String): Boolean; constref;
+begin
+  Result := Self.IndexOf(Value) > -1;
+end;
+
+function TStringArray.RandomValue(): String; constref;
+begin
+  if Self <> [] then
+    Result := Self[System.Random(Low(Self), High(Self))];
+end;
+
+function TStringList.ToStringArray(): TStringArray; constref;
+var
+  i: Int32;
+begin
+  for i := 0 to Self.getCount() -1 do
+    Result += Self.getStrings(i);
+end;
+
+
+function TRSItemArray.RandomValue(): TRSItem; constref;
+begin
+  if Self <> [] then
+    Result := Self[Random(0, High(Self))];
+end;
+
+
 //old String.Explode()
 function String.Split(Delimiter: String): TStringArray; constref;
 begin
@@ -48,6 +75,35 @@ begin
   Result := Lowercase(Self);
 end;
 
+function String.Contains(SubString: String): Boolean;
+begin
+  Result := Self.Pos(SubString) > 0;
+end;
+
+function String.ContainsAny(SubStrings: TStringArray): Boolean; overload;
+var
+  Str: String;
+begin
+  Result := False;
+  for Str in SubStrings do
+    if Self.Contains(Str) then
+      Exit(True);
+end;
+
+function String.ContainsAll(SubStrings: TStringArray): Boolean; overload;
+var
+  Str: String;
+begin
+  Result := True;
+  for Str in SubStrings do
+    if not Self.Contains(Str) then
+      Exit(False);
+end;
+
+
+
+
+
 //similar to TIntegerArray.ClearDuplicates()
 function TIntegerArray.Unique(): TIntegerArray;
 begin
@@ -65,14 +121,13 @@ begin
       Result += other[i];
 end;
 
+
+
+
 //new simba1500 function for all arrays, returns an array with the elements that are the same in the 2 input arrays.
 function TPointArray.Intersection(other: TPointArray): TPointArray; constref;
-var
-  i: Int32;
 begin
-  for i := 0 to High(other) do
-    if Self.Find(other[i]) > -1 then
-      Result += other[i];
+  GetSamePointsATPA([Self, Other], Result);
 end;
 
 //new simba1500 function for all arrays.
@@ -102,12 +157,71 @@ begin
   SortTPAFrom(Result, From);
 end;
 
+function TPointArray.IndexOf(const Value: TPoint): Integer; constref;
+begin
+  for Result := 0 to High(Self) do
+    if (Value.X = Self[Result].X) and (Value.Y = Self[Result].Y) then
+      Exit;
+
+  Result := -1;
+end;
+
+function TPointArray.RandomValue(): TPoint; constref;
+begin
+  if Length(Self) > 0 then
+    Result := Self[Random(0, High(Self))];
+end;
+
+//Similar to TPointArray.Fill()
+function TPointArray.ShapeFill(): TPointArray; constref;
+begin
+  Result := Self;
+  FillEllipse(Result);
+end;
+
+//Similar to TPointArray.Rotate() but takes a TPoint/Vector2 instead.
+function TPointArray.Rotate(AngleRad: Double; mid: Vector2): TPointArray; constref; overload;
+begin
+  Result := RotatePoints(Self, AngleRad, mid.X, mid.Y);
+end;
+
+function TPointArray.First(): TPoint;
+begin
+  if Length(Self) > 0 then
+    Result := Self[0];
+end;
+
+function TPointArray.Last(): TPoint;
+begin
+  if Length(Self) > 0 then
+    Result := Self[High(Self)];
+end;
+
+function TPointArray.CreateFromLine(start, stop: TPoint): TPointArray; static;
+begin
+  Result := TPAFromLine(start.X, start.Y, stop.X, stop.Y);
+end;
+
+
+
 //similar to TBox.Middle()
 function TBox.Center(): TPoint; constref;
 begin
   Result := Point((Self.X2 + Self.X1+1) div 2, (Self.Y2 + Self.Y1+1) div 2);
 end;
 
+
+function T2DPointArray.First(): TPointArray;
+begin
+  if Length(Self) > 0 then
+    Result := Self[0];
+end;
+
+function T2DPointArray.Last(): TPointArray;
+begin
+  if Length(Self) > 0 then
+    Result := Self[High(Self)];
+end;
 
 function T2DPointArray.ExcludeSize(MinLen:Int32; KeepIf:EComparator=__LT__): T2DPointArray; constref;
 var
@@ -135,10 +249,104 @@ begin
   Result := tmp;
 end;
 
-
-function TPointArray.ShapeFill(): TPointArray; constref;
+function T2DPointArray.SortFrom(From: TPoint): T2DPointArray; constref;
 begin
   Result := Self;
-  FillEllipse(Result);
+  SortATPAFromMidPoint(Result, From);
 end;
 
+function T2DPointArray.RandomValue(): TPointArray; constref;
+begin
+  if Length(Self) > 0 then
+    Result := Self[Random(0, High(Self))];
+end;
+
+//Exactly the same as SRL.PointInPoly()
+function PointInPolygon(pt: TPoint; Poly: TPointArray): Boolean;
+begin
+  Result := SRL.PointInPoly(pt, Poly);
+end;
+
+
+//RandomLeft, RandomMean, RandomRight same as SRL.NormalRange() and SRL.TruncatedGauss()
+function RandomLeft(min, max: Double): Double;
+begin
+  Result := SRL.TruncatedGauss(min, max);
+end;
+
+function RandomMean(min, max: Double): Double;
+begin
+  Result := SRL.NormalRange(min, max);
+end;
+
+function RandomRight(min, max: Double): Double;
+begin
+  Result := SRL.TruncatedGauss(max, min);
+end;
+
+
+function RandomLeft(min, max: Int64): Int64; overload;
+begin
+  Result := SRL.TruncatedGauss(min, max);
+end;
+
+function RandomMean(min, max: Int64): Int64; overload;
+begin
+  Result := SRL.NormalRange(min, max);
+end;
+
+function RandomRight(min, max: Int64): Int64; overload;
+begin
+  Result := SRL.TruncatedGauss(max, min);
+end;
+
+
+//Same as Point();
+function TPoint.Create(x, y: Int32): TPoint; static;
+begin
+  Result := Point(x, y);
+end;
+
+//Same as Box();
+function TBox.Create(x1, y1, x2, y2: Int32): TBox; static;
+begin
+  Result := Box(x1, y1, x2, y2);
+end;
+
+function TPointArray.NearestPoint(other: TPoint): TPoint;
+begin
+  if Length(Self) <= 0 then
+    Exit;
+
+  Self.Sort(other);
+  Result := Self[0];
+end;
+
+
+(*
+Minimap.GetZoomRectangle
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function Minimap.GetZoomRectangle: TRectangle;
+
+This function returns you a rectangle of what's visible on the MainScreen on the Minimap.
+
+Example
+-------
+
+.. code-block:: pascal
+
+  Debug(Minimap.GetZoomRectangle);
+*)
+function TRectangle.Normalize: TRectangle; constref
+begin
+  Result := Self.FixOrder();
+end;
+
+
+
+var
+  ScriptName: String;
+
+begin
+  ScriptName := ExtractFileName(ScriptFile).Before(ExtractFileExt(ScriptFile));
+end;

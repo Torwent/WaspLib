@@ -11,6 +11,11 @@ They also contain template functions and procedures that can be used as is or ov
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+(*
+const WELCOME_SENTENCES
+~~~~~~~~~~~~~~~~~~~~~~~
+  Global WELCOME_SENTENCES constant used to store advertising senteces to display in the progress report.
+*)
 const
   WELCOME_SENTENCES: TStringArray = [
     'Join WaspScripts today!',
@@ -20,13 +25,12 @@ const
     'The best public color bots',
     'Learn how to make scripts at',
     'Get that 99 with',
-    'Daily bans is not normal,',
+    'Daily bans are not normal,',
     'Everything is open source',
     'Imagine AHK on steroids',
     'Unleash the power of Simba'
   ];
 
-type
 (*
 type TBaseScript
 ~~~~~~~~~~~~~~~~
@@ -34,9 +38,8 @@ Record that holds common variables for most basic scripts.
 The variables that are part of **TBaseScript** are the following:
  - **Name**: String that holds the script name to be displayed in the log and on screen progress report.
  - **Version**: String that holds the script version to be displayed in the log and on screen progress report.
- - **IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
+ - **Self.IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
  - **TimeRunning**: TStopwatch variable that holds how long our **TBaseScript** has been running.
- - **StatsDebugTick**: Integer variabled used to register the last tick we printed a progress report.
  - **Action**: String variable used to print in Simba output or on screen progress report the current action the script is performing.
  - **PreviousAction**: String variable used to register the previous action. This is used to avoid spamming the logs.
  - **ExtraInfo**: String variable we can use to print extra information in Simba output or in on screen progress report. E.G. current state of variables.
@@ -45,16 +48,25 @@ The variables that are part of **TBaseScript** are the following:
  - **TotalProfit**:  Integer that holds the total profit our script has done.
  - **TimeLimit**: Integer variable to set a time limit for our script in milliseconds before ending the current script.
  - **ActionLimit**: Integer variable to set total action limit before ending the script.
+
+TBaseScript can be used as is or inherited from to extend it's functionality.
+
+Example
+-------
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TRSWalker;
+  end;
 *)
+type
   TBaseScript = record(TSRLBaseRecord)
-    ID: String;
-    Revision: String;
+    ID,
+    Revision,
+
+    BioHashStr,
     Welcome: String;
 
-    IsSetup: Boolean;
-
     TimeRunning: TStopwatch;
-    StatsDebugTick: UInt64;
+    ReportTimer: TTimer;
 
     Action: String;
     PreviousAction: String;
@@ -67,84 +79,236 @@ The variables that are part of **TBaseScript** are the following:
 
     TimeLimit: Int64;
     ActionLimit: Int32;
-    BioHashStr: String;
+
+    OnAntiban: Boolean;
+    IsSetup: Boolean;
   end;
 
 (*
-type TBaseWalkerScript
-~~~~~~~~~~~~~~~~
-Record that holds common variables for most scripts that use walker.
-This record inherits from **TBaseScript** and has all of it's variables too.
-The extra variables that are part of **TBaseWalkerScript** are:
- - **RSW**: TRSWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
+BaseScript.ShouldHandlePaint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.ShouldHandlePaint(): Boolean;
+
+Wrapper function used internally to decide if we should handle TWaspProgressReport.
 *)
-  TBaseWalkerScript = record(TBaseScript)
-    RSW: TRSWalker;
-  end;
+function TBaseScript.ShouldHandlePaint(): Boolean;
+begin
+  Result := WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug;
+end;
 
 (*
-type TBaseBankScript
-~~~~~~~~~~~~~~~~
-Record that holds common variables for most scripts that use a bank.
-This record inherits from **TBaseWalkerScript** and has all of it's variables as well as **TBaseScript's**.
-The extra variables that are part of **TBaseBankScript** are:
- - **ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
- - **ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
- - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
- - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
- - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
- - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
- - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
- - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
+BaseScript.ShouldDrawPaint
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.ShouldDrawPaint(): Boolean;
+
+Wrapper function used internally to decide if we should call TWaspProgressReport.Update().
+To avoid unnecessary redraw, when Self.Action and Self.PreviousAction are the same, we do not redraw.
 *)
-  TBaseBankScript = record(TBaseWalkerScript)
-    ScriptBank:   TRSObject;
-    ScriptBanker: TRSNPC;
+function TBaseScript.ShouldDrawPaint(): Boolean;
+begin
+  if Self.ShouldHandlePaint() then
+    Result := not ProgressReport.IsSetup or (Self.Action <> Self.PreviousAction);
+end;
 
-    BankTab: Int32;
+(*
+BaseScript.BuildTextReport
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.BuildTextReport(): TStringArray;
 
-    ItemLeftAmount: Int32;
-    HoveringBank: Boolean;
-    BankEmpty: Boolean;       //Used to cache if Bank doesn't have more of a certain item.
-    CollectEmpty: Boolean;    //Used to cache if CollectBox doesn't have more of a certain item.
-    CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
+Internal method used to build our text progress report.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Keep in mind that editing this will probably mess up the HUD report so if you customize this you should also customize **TBaseScript.BuildHUDReport()**.
+
+Example
+-------
+
+  function TBaseScript.BuildTextReport(): TStringArray; override;
+  var
+    ElapsedTime: UInt64;
+    XPEarned: Int32;
+  begin
+    ElapsedTime := Self.TimeRunning.ElapsedTime();
+    XPEarned := WL.PreviousXP - WL.InitialXP;
+
+    //Keep in mind this is just a quick example without spacing adjustments. This won't look good unless you add some variable padding.
+
+    Result += '[===============================]';
+    Result += '[ ' + Self.Name + ' ]';                    //Self.Name is the script name, usually set in TBaseScript.Init();
+    Result += '[===============================]';
+    Result += '[ Runtime    :  ' + SRL.MsToTime(ElapsedTime, Time_Short) +' ];
+    Result += '[ Xp gained  : ' + XPEarned + '(' + ToStr(NumberPerHour(XPEarned, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Nuggets    : ' + NuggetsCount + '(' + ToStr(NumberPerHour(NuggetsCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Coal       : ' + CoalCount + '(' + ToStr(NumberPerHour(CoalCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Gold       : ' + GoldCount + '(' + ToStr(NumberPerHour(GoldCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Mithril    : ' + MithrilCount + '(' + ToStr(NumberPerHour(MithrilCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Adamantite : ' + AdamantiteCount + '(' + ToStr(NumberPerHour(AdamantiteCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Runite     : ' + RuniteCount + '(' + ToStr(NumberPerHour(RuniteCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[===============================]';
+    Result += '[ ' + Self.Name + SRL.MsToTime(ShutdownTimer.TimeRemaining, Time_Short) + ' ]';
+    Result += '[===============================]';
   end;
-
-procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64); //override me to add more stuff.
+*)
+function TBaseScript.BuildTextReport(): TStringArray;
 var
-  ScriptStr: String;
+  ElapsedTime: UInt64;
+begin
+  if Self.Action = Self.PreviousAction then
+      Exit;
+
+  Self.DebugLn(Self.Action, Self.ExtraInfo);  //add action and extra info the the log.
+  ElapsedTime := Self.TimeRunning.ElapsedTime();
+
+  Result += ' Action        : ' + Self.Action;
+
+  Result += ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short).Trim();
+
+  Result += ' Total Actions : ' + ToStr(Self.TotalActions);
+  if Self.ActionLimit > -1 then
+    Result[High(Result)] += '/' + ToStr(Self.ActionLimit);
+
+  Result += ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
+
+  Result += ' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit);
+  Result += ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
+
+  Result += ' ' + Self.Welcome + ' waspscripts.com';
+end;
+
+(*
+BaseScript.BuildHUDReport
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.BuildHUDReport(): TStringArray;
+
+Internal method used for custom HUD reports.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Overriding **TBaseScript.BuildTextReport()** to set a custom report will likely need you to override this as well.
+*)
+function TBaseScript.BuildHUDReport(): TStringArray;
+begin
+  Result := [];
+end;
+
+(*
+BaseScript.PrintReport
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseScript.PrintReport(Sender: TObject);
+
+Internal method to print our progress report ("proggie").
+This is run on a timer setup by TBaseScript and also handles drawing the HUD progress report if it is enabled.
+It also is responsible for debugging the script with SRL.Debug() if we enable it.
+*)
+procedure TBaseScript.PrintReport();
+var
+  i: Int32;
+  str: String;
+{$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  tmpArr: TStringArray;
+{$ENDIF}
+begin
+  if not StatsClient.IsSetup or StatsClient.Timer.IsFinished() then
+  begin
+    if Self.BioHashStr = '' then
+      Self.BioHashStr := StatsClient.GenerateBioHash(BioHash);
+
+    StatsClient.SubmitStats(Self.BioHashStr);
+  end;
+
+  ProgressReport.ProgressArray := Self.BuildTextReport();
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if not Self.OnAntiban then
+  begin
+    if WLSettings.RemoteInput.ScriptDebug then
+      SRL.Debug(RSClient.Image)
+    else if Self.ShouldDrawPaint() then
+    begin
+      tmpArr := Self.BuildHUDReport();
+
+      if tmpArr <> [] then
+        ProgressReport.Update(tmpArr)
+      else
+        ProgressReport.Update(ProgressReport.ProgressArray);
+    end;
+  end;
+  {$ENDIF}
+
+  if WLSettings.TextReport and (ProgressReport.ProgressArray <> []) then
+  begin
+    WriteLn();
+    WriteLn(' ', PadL(Self.Name, 40, ' '));
+  end;
+
+  if WLSettings.TextReport and not Self.OnAntiban then
+    for i := 0 to High(ProgressReport.ProgressArray) do
+    begin
+      str := ProgressReport.ProgressArray[i];
+
+      if i < High(ProgressReport.ProgressArray) -1 then
+        str := PadR(str, 40, ' ') + ProgressReport.ProgressArray[i+1];
+
+      WriteLn str;
+      i += 1;
+    end;
+
+  Self.PreviousAction := Self.Action;
+end;
+
+(*
+BaseScript.Init
+~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and/or **MaxTime** -1 that will make
+`TBaseScript.ShouldStop() = True` when `TBaseScript.TotalActions = MaxAtions` or
+`TBaseScript.TimeRunning.ElapsedTime = MaxTime`.
+
+Can be used as is or overriden to do additional tasks.
+
+Example
+-------
+
+  var Script: TBaseScript;
+
+  begin
+    Script.Init(-1, 2 * ONE_DAY);
+  end;
+*)
+procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
 begin
   {$IFNDEF SCRIPT_CHAINER}
   ClearDebug();
   {$ENDIF}
-  //Self.Name := ScriptFile.Before('.simba').Replace('_', ' ').Capitalize();
+  Self.Name := ScriptName.Before('.simba').Replace('_', ' ').Capitalize();
 
-  AddOnTerminate(@SaveScreenshot);
+  AddOnTerminate(@ForceSaveScreenshot);
 
+  if Login.Players = [] then
+    Login.AddPlayer(ToStr(Random()),''); //make a random username for a random biohash if no users were added.
+
+  //TotalConsumableCost := 0;
+  Self.DisableDebugging := True;
   {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
   Self.ID := {$macro SCRIPT_ID};
   {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
   Self.Revision := {$macro SCRIPT_REVISION};
 
   GenerateLog(Self.Name);
-  ScriptStr := ToStr(Self);
-  ScriptStr := ScriptStr.Replace('{', '').Replace(', ', ',' + STR_NEW_LINE).Replace('}', '');
-  ScriptStr += STR_NEW_LINE + STR_NEW_LINE;
-  WriteFileContents(WL.LogFile, ScriptStr, True);
+  WriteFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding, True);
 
-  Welcome := WELCOME_SENTENCES.Random;
+  Self.Welcome := WELCOME_SENTENCES.RandomValue();
 
   Self.ActionLimit := -1;
   if MaxActions > -1 then
     Self.ActionLimit := Self.TotalActions + MaxActions;
 
-  TimeRunning.Start();
-  PTimeRunning := @TimeRunning;
+  Self.TimeRunning.Start();
+  ProgressReport.PTimeRunning := @Self.TimeRunning;
 
   if MaxTime > -1 then
-    TimeLimit := TimeRunning.ElapsedTime + MaxTime
+    Self.TimeLimit := Self.TimeRunning.ElapsedTime + MaxTime
   else
-    TimeLimit := -1;
+    Self.TimeLimit := -1;
 
   WL.Activity.Init(260000);
 
@@ -152,15 +316,19 @@ begin
     Exit;
 
   Self.IsSetup := True;
-
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if WLSettings.RemoteInput.Enabled then
   begin
+    {$IFDEF SCRIPT_GUI}
     RSClient.RemoteInput.Setup();
+    {$ENDIF}
     if WLSettings.RemoteInput.HUDReport then
       ProgressReport.Setup();
   end;
   {$ENDIF}
+
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
 
   Antiban.Setup();
 
@@ -172,11 +340,32 @@ begin
   //override me to add more stuff.
 end;
 
+
+
+procedure TBaseScript.SetAction(Action: String);
+begin
+  Self.Action := Action;
+  Self.PrintReport();
+end;
+
+(*
+BaseScript.DoAntiban
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
+
+Method used to call Antiban.DoAntiban(CheckBreaks, CheckSleeps).
+
+Example
+-------
+
+  Script.DoAntiban();
+*)
 function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
 begin
   Antiban.DismissRandom();
   Self.TimeRunning.Pause();
   WL.Activity.Pause();
+  Self.OnAntiban := True;
 
   try
     Result := Antiban.DoAntiban(CheckBreaks, CheckSleeps);
@@ -186,278 +375,296 @@ begin
 
   Self.TimeRunning.Resume();
   WL.Activity.Resume();
+  Self.OnAntiban := False;
 
   if not RSClient.IsLoggedIn() then
     Login.LoginPlayer();
 end;
 
-procedure TBaseScript.ProcessWhileWaiting();
-var
-  Str: String;
-  ElapsedTime: UInt64;
-  PreviousProfit: Int32;
-begin
-  PreviousProfit := TotalProfit;
-  Self.TotalProfit := (Self.TotalActions * Self.ActionProfit) - TotalConsumableCost;
-  StatsPayload.Update(0, Self.TotalProfit - PreviousProfit, 0, 0);
-  if not StatsClient.IsSetup or StatsClient.Timer.IsFinished() then
-  begin
-    if Self.BioHashStr = '' then
-      Self.BioHashStr := StatsClient.GenerateBioHash(BioHash);
+(*
+BaseScript.ShouldStop
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseScript.ShouldStop(): Boolean;
 
-    StatsClient.SubmitStats(Self.BioHashStr);
-  end;
+Method used to check if we reached the TBaseScript goals and it's time to stop it.
 
-  if (GetTickCount - StatsDebugTick) < 1000 then
-    Exit;
+.. note:: This doesn't stop the script. This simply returns true/false when called and it's up to you to stop the script.
 
-  Self.DebugLn(Action, ExtraInfo);
-  ElapsedTime := TimeRunning.ElapsedTime;
+Example
+-------
 
-  ProgressTitle := Name;
-  PadLength := ProgressTitle.Len + 6;
-
-  ProgressTitle    := PadL((' ' + ProgressTitle + ' '), 10, ' ');
-  ProgressTitle    := PadR(ProgressTitle, 90 - PadLength, ' ');
-
-  PadLength := ProgressTitle.Len;
-
-  ProgressArray := [];
-  ProgressArray += ProgressTitle;
-
-  Str := ' Action        : ' + Action;
-
-  ProgressArray += PadR((' Action        : ' + Action), Round(PadLength/2), ' ') +
-                         ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short);
-
-  if (ActionLimit = -1) then
-    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime))
-  else
-    ProgressArray += PadR((' Total Actions : ' + ToStr(TotalActions) + '/' + ToStr(ActionLimit)), Round(PadLength/2), ' ') +
-                           ' Actions/Hour  : ' + ToStr(NumberPerHour(TotalActions, ElapsedTime));
-
-  ProgressArray += PadR((' Total Profit  : ' + SRL.FormatNumber(TotalProfit)), Round(PadLength/2), ' ') +
-                         ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(TotalProfit, ElapsedTime));
-
-  ProgressArray += ' ' + Welcome + ' waspscripts.com';
-
-  ProgressArray += ExtraInfo;
-
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and
-     not WLSettings.RemoteInput.ScriptDebug and (Action <> PreviousAction) then
-    ProgressReport.Update(ProgressArray);
-  {$ENDIF}
-
-  for Str in ProgressArray do
-    Writeln(Str);
-
-  PreviousAction := Action;
-  StatsDebugTick := GetTickCount();
-
-  if WLSettings.RemoteInput.ScriptDebug then
-    SRL.Debug(RSClient.Image);
-end;
-
+  if Script.ShouldStop() then
+    TerminateScript();
+*)
 function TBaseScript.ShouldStop(): Boolean;
 begin
-  Result := ((ActionLimit > -1) and (TotalActions >= ActionLimit)) or
-            ((TimeLimit > -1) and (TimeRunning.ElapsedTime >= TimeLimit));
+  Result := ((Self.ActionLimit > -1) and (Self.TotalActions >= Self.ActionLimit)) or
+            ((Self.TimeLimit > -1) and (Self.TimeRunning.ElapsedTime >= Self.TimeLimit));
 
   if Result then
-    SaveScreenshot('ScriptEnding/shouldstop' + Name, True);
+    SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
 end;
 
+(*
+type TBaseWalkerScript
+~~~~~~~~~~~~~~~~~~~~~~
+Record that holds common variables for most scripts that use walker.
+This record extends **TBaseScript** and has all of it's variables too.
+The extra variables that are part of **TBaseWalkerScript** are:
+ - **RSW**: TRSWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
+*)
+type
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TRSWalker;
+  end;
 
+(*
+BaseWalkerScript.Init
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
 
-procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;//override me to add more stuff.
+Can be used as is or overriden to do additional tasks.
+*)
+procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   inherited;
 
-  RSW.OnWalkingEvent := @WalkerTasks;
+  //Self.RSW.OnWalkingEvent := @WalkerTasks;
 end;
 
+(*
+type TBaseBankScript
+~~~~~~~~~~~~~~~~~~~~
+Record that holds common variables for most scripts that use a bank.
+This record inherits from **TBaseWalkerScript** and which inherits from **TBaseScript's**.
+The extra variables that are part of **TBaseBankScript** are:
+ - **Self.ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
+ - **Self.ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
+ - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
+ - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
+ - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
+ - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
+ - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
+ - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
+*)
+type
+  TBaseBankScript = record(TBaseWalkerScript)
+    BankTab: Int32;
 
+    ItemLeftAmount: Int32;
+    HoveringBank: Boolean;
+    BankEmpty: Boolean;       //Used to cache if Bank doesn't have more of a certain item.
+    CollectEmpty: Boolean;    //Used to cache if CollectBox doesn't have more of a certain item.
+    CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
+  end;
 
-procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;//override me to add more stuff.
+(*
+BaseBankScript.Init
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
+
+Can be used as is or overriden to do additional tasks.
+*)
+procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   inherited;
 
-  BankTab := -1;
-  CollectTimer.Init(600000);
+  Self.BankTab := -1;
+  Self.CollectTimer.Init(600000);
 
   //override me to add more stuff.
 end;
 
-procedure TBaseBankScript.SetupWLBanks;
+(*
+BaseBankScript.Terminate
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.Terminate(): Boolean;
+
+Helper method to be called at the end of the life cycle of a TBaseBankScript.
+By default it simply attempts to open the TBaseBankScript.CurrentBank but it's meant to
+be overriden and inherited or completely be remade for proper termination of the TBaseBankScript.
+
+This is likely required if you want to chain several scripts together.
+
+.. note:: Consider taking a look at script_chainer.simba: https://github.com/Torwent/wasp-mini/blob/master/script_chainer.simba
+
+Example
+-------
+
+  Script1.Init();
+  repeat
+    //do stuff...
+  until Script1.ShouldStop();
+
+  Script1.Terminate();
+
+  Script2.Init();
+  repeat
+    //do stuff...
+  until Script2.ShouldStop();
+*)
+function TBaseBankScript.Terminate(): Boolean;
+var
+  i: Int32;
 begin
-  case WLSettings.BankLocation of
-    AL_KHARID_BANK:
-      begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.AlKharidBank;
-      end;
-
-    ARDOUGNE_NORTH_BANK:
-      begin
-		    RSW.Setup('x5723y3038');
-		    ScriptBank := RSObjects.ArdougneNorthBank;
-      end;
-
-    ARDOUGNE_SOUTH_BANK:
-      begin
-		    RSW.Setup('x5723y3038');
-		    ScriptBank := RSObjects.ArdougneSouthBank;
-      end;
-
-    CASTLE_WARS_BANK:
-      begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.CastleWarsBank;
-      end;
-
-    CATHERBY_BANK:
-      begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.CatherbyBank;
-      end;
-
-    CRAFT_GUILD_BANK:
-      begin
-		    RSW.Setup('x6953y3166');
-		    ScriptBank := RSObjects.CraftGuildBank;
-      end;
-
-    DRAYNOR_BANK:
-      begin
-		    RSW.Setup('x7617y3214');
-		    ScriptBank := RSObjects.DraynorBank;
-      end;
-
-    EDGEVILLE_BANK:
-      begin
-		    RSW.Setup('x7536y2363');
-		    ScriptBank := RSObjects.EdgevilleBank;
-      end;
-
-    FALADOR_EAST_BANK:
-      begin
-		    RSW.Setup('x7051y2796');
-		    ScriptBank := RSObjects.FaladorEastBank;
-      end;
-
-    FALADOR_WEST_BANK:
-      begin
-		    RSW.Setup('x7051y2796');
-		    ScriptBank := RSObjects.FaladorWestBank;
-      end;
-
-    GRAND_EXCHANGE_BANK:
-      begin
-		    RSW.Setup('x7789y2306');
-		    ScriptBank := RSObjects.GEBank;
-      end;
-
-    LUNAR_ISLAND_BANK:
-      begin
-		    RSW.Setup('x4127y1027');
-		    ScriptBank := RSObjects.LunarBank;
-      end;
-
-    MINING_GUILD_BANK:
-      begin
-		    RSW.Setup('x6291y497');
-		    ScriptBank := RSObjects.MiningGuildBank;
-      end;
-
-    PRIFDDINNAS_BANK:
-      begin
-		    RSW.Setup('x3583y1905');
-		    ScriptBank := RSObjects.PrifddinasBank;
-      end;
-
-    SEERS_BANK:
-      begin
-		    RSW.Setup('mainland');
-		    ScriptBank := RSObjects.SeersBank;
-      end;
-
-    TZHAAR_BANK:
-      begin
-		    RSW.Setup('x4333y310');
-		    ScriptBank := RSObjects.TzhaarBank;
-      end;
-
-    VARROCK_EAST_BANK:
-      begin
-		    RSW.Setup('x7536y2363');
-		    ScriptBank := RSObjects.VarrockEastBank;
-      end;
-
-    VARROCK_WEST_BANK:
-      begin
-		    RSW.Setup('x7789y2306');
-		    ScriptBank := RSObjects.VarrockWestBank;
-      end;
-
-    WINTERTODT_BANK:
-      begin
-		    RSW.Setup('x1549y224');
-		    ScriptBank := RSObjects.WintertodtBank;
-      end;
-  end;
-end;
-
-
-function TBaseBankScript.Terminate: Boolean;//override me to add more stuff.
-begin
-  for 0 to 5 do
+  for i := 0 to 5 do
   begin
-    if MainScreen.HasInterface then
+    if MainScreen.HasInterface() then
     begin
       if Result := Bank.IsOpen then Break
       else MainScreen.CloseInterface;
     end;
 
-    if Result := Bank.WalkOpen(ScriptBank) then
+    if Result := Bank.WalkOpen() then
       Break;
   end;
   //override me to add more stuff.
 end;
 
-procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
+(*
+BaseBankScript.CountItemsLeft
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
+
+Set's TBaseBankScript.ItemLeftAmount to be used by TBaseBankScript.ShouldHover().
+
+.. note:: For some scripts this might need to be overriten and rewritten.
+*)
+procedure TBaseBankScript.CountItemsLeft(item: TRSItem);
 begin
-  ItemLeftAmount := Inventory.CountItem(Item);
+  Self.ItemLeftAmount := Inventory.CountItem(item);
 end;
 
-function TBaseBankScript.ShouldHover: Boolean;
+(*
+BaseBankScript.ShouldHover
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.ShouldHover(): Boolean;
+
+Method used to decide if we should pre-hover the bank or not.
+It uses the amount of items left in the inventory stored by TBaseBankScript.CountItemsLeft()
+in TBaseBankScript.ItemLeftAmount() along with the player BioHash to decide if we want to
+pre-hover the bank.
+
+.. note:: This function simply returns true/false and doesn't actualy hover the bank.
+
+Example
+-------
+
+  if Script.ShouldHover() then
+    Script.Hover();
+*)
+function TBaseBankScript.ShouldHoverBank(): Boolean;
 begin
-  Result := ((ItemLeftAmount = 1) and SRL.Dice(10 + (90 * BioHash))) or
-            ((ItemLeftAmount = 2) and SRL.Dice(5 + (75 * BioHash))) or
-            ((ItemLeftAmount = 3) and SRL.Dice(5 + (60 * BioHash))) or
-            ((ItemLeftAmount = 4) and SRL.Dice(45 * BioHash)) or
-            ((ItemLeftAmount = 5) and SRL.Dice(30 * BioHash)) or
-            ((ItemLeftAmount = 6) and SRL.Dice(10 * BioHash)) or
+  Result := ((Self.ItemLeftAmount = 1) and SRL.Dice(10 + (90 * BioHash))) or
+            ((Self.ItemLeftAmount = 2) and SRL.Dice(5 + (75 * BioHash))) or
+            ((Self.ItemLeftAmount = 3) and SRL.Dice(5 + (60 * BioHash))) or
+            ((Self.ItemLeftAmount = 4) and SRL.Dice(45 * BioHash)) or
+            ((Self.ItemLeftAmount = 5) and SRL.Dice(30 * BioHash)) or
+            ((Self.ItemLeftAmount = 6) and SRL.Dice(10 * BioHash)) or
             SRL.Dice(5 * BioHash);
 end;
 
+(*
+BaseBankScript.Hover
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.Hover(): Boolean;
 
-function TBaseBankScript.Hover: Boolean;
+Moves the mouse to the TBaseBankScript.CurrentBank RSObject.
+
+Example
+-------
+
+  BankScript.Hover();
+*)
+function TBaseBankScript.HoverBank(): Boolean;
 begin
-  Result := HoveringBank := Bank.Hover(ScriptBank);
+  Result := Self.HoveringBank := Bank.Hover();
 end;
+
+
+
+
+(*
+BaseBankScript.Withdraw
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
+
+Withdraws **item** from the bank.
+
+Example
+-------
+  if Bank.IsOpen() then
+    BankScript.Withdraw(['Shark', 1, True]);
+*)
+function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
+var
+  invCount, stackCount: Int32;
+  useButton: Boolean;
+begin
+  if Self.BankTab = -1 then
+    Self.BankTab := Bank.FindItemTab(item.Item);
+
+  if Self.BankTab = -1 then
+  begin
+    Self.BankEmpty := True;
+    Exit;
+  end;
+
+  stackCount := Inventory.CountItemStack(item.Item);
+  invCount := Inventory.Count();
+
+  if (invCount = 28) then //no space to withdraw the item.
+  begin
+    if not Inventory.ContainsItem(item.Item) or (stackCount <= 0) then
+      Exit;
+  end;
+
+  useButton := item.Quantity <> 1;
+
+  if Bank.WithdrawItem(Self.BankTab, item, useButton) then
+    Result := WaitUntil((Inventory.Count() > invCount) or (Inventory.CountItemStack(item.Item) > stackCount), 100, 3000);
+
+  Self.BankEmpty := not Result and not Bank.ContainsItem(Item);
+
+  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+    Self.CollectEmpty := False;
+end;
+
+(*
+BaseBankScript.HandleCollectBox
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.HandleCollectBox(items: TRSItemArray): Boolean;
+
+Collects **items** from the collectbox.
+
+Example
+-------
+  if CollectBox.IsOpen() then
+    BankScript.HandleCollectBox();
+*)
+function TBaseBankScript.HandleCollectBox(items: TRSItemArray): Boolean;
+begin
+  Self.CollectEmpty := True;
+
+  if Result := CollectBox.ContainsAny(items) then
+  begin
+    Self.CollectEmpty := CollectBox.CollectToBank();
+    Self.BankEmpty := not Self.CollectEmpty;
+  end;
+end;
+
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
 begin
-  MM2MS.SetupZoom;
+  MM2MS.SetupZoom();
   if (Bitmap = RSClient.Image) then
-    Bitmap.Clear;
+    Bitmap.Clear();
 
   inherited(Bitmap);
 end;
-
-
-
-

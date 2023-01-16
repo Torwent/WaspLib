@@ -1,3 +1,12 @@
+## [11.0.4](https://github.com/Torwent/WaspLib/compare/v11.0.3...v11.0.4) (2023-01-16)
+
+
+### Bug Fixes
+
+* **seagulls:** minor fix to seagulls ([7ea49ed](https://github.com/Torwent/WaspLib/commit/7ea49ed812226633b96d160defd826c3cc4eb00b))
+
+
+
 ## [11.0.3](https://github.com/Torwent/WaspLib/compare/v11.0.2...v11.0.3) (2023-01-16)
 
 
@@ -36,15 +45,6 @@
 ### BREAKING CHANGES
 
 * This update will require you to update SRL and every single script!
-
-
-
-## [10.6.5](https://github.com/Torwent/WaspLib/compare/v10.6.4...v10.6.5) (2023-01-11)
-
-
-### Bug Fixes
-
-* read notes. ([3de8f7c](https://github.com/Torwent/WaspLib/commit/3de8f7c3c830d7123f208be628c31d258e3a9eea))
 
 
 

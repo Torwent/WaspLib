@@ -1,3 +1,17 @@
+# [11.0.0](https://github.com/Torwent/WaspLib/compare/v10.6.5...v11.0.0) (2023-01-16)
+
+
+### Features
+
+* simba1500 walker backport ([e0c0cb4](https://github.com/Torwent/WaspLib/commit/e0c0cb475959d1b976a25aad0c2817627a008b52))
+
+
+### BREAKING CHANGES
+
+* This update will require you to update SRL and every single script!
+
+
+
 ## [10.6.5](https://github.com/Torwent/WaspLib/compare/v10.6.4...v10.6.5) (2023-01-11)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * crafting guild upstairs map ([1928a86](https://github.com/Torwent/WaspLib/commit/1928a860dd2d9fc5c7f76589efb6c1338efa68b6))
-
-
-
-## [10.6.1](https://github.com/Torwent/WaspLib/compare/v10.6.0...v10.6.1) (2023-01-06)
-
-
-### Bug Fixes
-
-* had to rename TRSTanner to TRSTanScreen ([d39311d](https://github.com/Torwent/WaspLib/commit/d39311d3567f5534e381e9169e5b3b71ff0c9cce))
 
 
 

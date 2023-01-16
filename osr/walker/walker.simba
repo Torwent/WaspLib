@@ -14,6 +14,7 @@ Extensions to SRL's TRSWalker.
 const
   WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
+  WL_WALKER_MAP_VERSION = '1'; //Increment when maps are updated to force recaching.
 
 type
 (*
@@ -66,6 +67,83 @@ begin
     Exit;
 
   Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
+end;
+
+(*
+TRSWalkerMap.InternalCacheMap
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerMap.InternalCacheMap(FileName: String): String; static; override;
+
+Overrides SRL's TRSWalkerMap.InternalCacheMap() so maps cached files can be versioned with WL_WALKER_MAP_VERSION.
+Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
+This is an internal TRSWalkerMap method and you should probably not use it directly.
+*)
+function TRSWalkerMap.InternalCacheMap(FileName: String): String; static; override;
+var
+  Bitmap: TMufasaBitmap;
+begin
+  if ExtractFileExt(FileName) <> '.bmp' then
+  begin
+    Result := DATAPATH + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1File(FileName) + '.bmp';
+    if not FileExists(Result) then
+    begin
+      if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
+        TerminateScript('Failed to create TRSWalker cache directories.');
+
+      WriteLn('Caching ' + ExtractFileName(FileName) + ' this can take ~10 seconds.');
+
+      Bitmap.Init();
+      Bitmap.LoadFromFile(FileName);
+      Bitmap.SaveToFile(Result);
+      Bitmap.Free();
+    end;
+  end else
+    Result := FileName;
+end;
+
+(*
+TRSWalkerMap.InternalLoadMap
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerMap.InternalLoadMap(FileName: String; Region: TBox = []): TMufasaBitmap; static; override;
+
+Overrides SRL's TRSWalkerMap.InternalLoadMap() so maps cached files can be versioned with WL_WALKER_MAP_VERSION.
+Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
+This is an internal TRSWalkerMap method and you should probably not use it directly.
+*)
+function TRSWalkerMap.InternalLoadMap(FileName: String; Region: TBox = []): TMufasaBitmap; static; override;
+var
+  CacheFileName: String;
+begin
+  if ExtractFileExt(FileName) <> '.bmp' then
+  begin
+    CacheFileName := DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1String(FileName) + '.bmp';
+    if not FileExists(CacheFileName) then
+    begin
+      if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
+        TerminateScript('Failed to create TRSWalker cache directories.');
+
+      WriteLn('Caching ' + ExtractFileName(FileName) + ' this can take ~10 seconds.');
+
+      Result.Init();
+      Result.LoadFromFile(TRSWalkerMap.FindMap(FileName));
+      Result.SaveToFile(CacheFileName);
+      if (Region <> []) then
+        Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
+
+      Exit;
+    end;
+
+    FileName := CacheFileName;
+  end;
+
+  Result.Init();
+
+  if (Region <> []) then
+  begin
+    Result.LoadFromFile(FileName);
+    Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
+  end else
+    Result.LoadFromFile(FileName);
 end;
 
 (*

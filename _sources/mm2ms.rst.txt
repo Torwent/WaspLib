@@ -6,6 +6,22 @@ Methods to handle MM2MS (Minimap to MainScreen). Extends SRL's MM2MS.
 
 ------------
 
+type TRSMainScreenShape
+~~~~~~~~~~~~~~~~~~~~~~~~~
+
+This record holds information about the shape of a TRSWalkerObject and it's rotation.
+
+TRSMainScreenShape.Shape has 3 values, X, Y and Z. X and Y are how wide a object is, measured in game tiles.
+Z is the object height which has to be guessed and tested for a good value.
+
+For example, a bank chest would be roughly [1, 1, 4].
+A bank booth would be roughly [1, 1, 8].
+
+Angle is used to rotate an object and should be done in radians.
+
+
+------------
+
 MM2MS.SetupZoom
 ~~~~~~~~~~~~~~~
 .. code-block:: pascal
@@ -18,435 +34,8 @@ Example
 -------
 .. code-block:: pascal  
 
-.. code-block:: pascal
-
   MM2MS.SetupZoom;
   WriteLn MM2MS.ZoomLevel;
-
-
-------------
-
-Minimap.ZoomRadius
-~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function Minimap.ZoomRadius: Int32;
-
-This function returns you an approximate radius of what's viewable in the MainScreen on the Minimap.
-This is not 100% accurate since it was made with trial and error and eyeballing but works pretty well.
-
-THIS IS DEPRECATED
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  var
-    Bitmap: TMufasaBitmap;
-
-  begin
-    Bitmap.FromClient;
-
-    Bitmap.DrawCircle(Minimap.Center.X, Minimap.Center.Y, Minimap.ZoomRadius);
-
-    ShowBitmap(Bitmap);
-    FreeBitmap(Bitmap);
-  end;
-
-
-------------
-
-Minimap.GetZoomRectangle
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function Minimap.GetZoomRectangle: TRectangle;
-
-This function returns you a rectangle of what's visible on the MainScreen on the Minimap.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  Debug(Minimap.GetZoomRectangle);
-
-
-------------
-
-Minimap.PointInZoomRadius
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function Minimap.PointInZoomRadius(P: TPoint): Boolean;
-
-Check if a given point is within our ZoomRadius.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
-  WriteLn Minimap.PointInZoomRadius(P);
-
-
-------------
-
-Minimap.ZoomToPoint
-~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function Minimap.ZoomToPoint(P: TPoint): Int32;
-
-This function gives us a zoom level where **P** would be visible in the MainScreen.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
-  Options.SetZoomLevel(Minimap.ZoomToPoint(P));
-
-
-------------
-
-TRSMinimap.VecToMsRect
-~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.VecToMsRect(Vec: Vector3; Size: Double; Roll:Single): TRectangle; overload;
-.. code-block:: pascal
-
- function TRSMinimap.VecToMsRect(Vec: Vector3; XMultiplier, YMultiplier: Double; Roll:Single): TRectangle; overload;
-
-Overloads that return multiple tiles in a single rectangle.
-If you want to get tiles for an object that is 2 by 2 tiles you can set **Size** to 2 and you will be returned a 2 by 2 square of tiles.
-For rectangular shaped tiles you can use **XSize** and **YSize**.
-**XSize is the size from **East to West** and **YSize** is the size from **North to South**.
-
-This is a internal function and most times you won't be using this directly.
-
-
-------------
-
-Minimap.GetTileMS
-~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetTileMS(Loc: TPoint; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TRectangle;
-.. code-block:: pascal
-
- function TRSMinimap.GetTileMS(Loc: TPoint; Z: Double = 0): TRectangle; overload;
-
-Get a tile or multiple tile rectangle.
-**Loc** is the location on the minimap at the center of your rectangle.
-**TileVector** is used only for multiple tiles, you pass a Vector3 into it where:
- **X** will be the rectangle tiles from **East to West**.
- **Y** will be the rectangle tiles from **North to South**.
- **Z** will be the height the rectangle will be. This value is "eyeballed", for reference 0 is the players feet and 7 is the player head.
-
-If instead of a TileVector we pass in **Z**, we will get only a single tile where **Z** will be the same as **TileVector.Z**.
-
-**Offset is used to offset your result from the **Loc** passed in. For example, Minimap dots usually need [-2, -2] offset.
-**Angle** should be left as default in most cases but you can use it to get a rectangle from a camera angle you are not using at that moment or that you have cached.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  P := Minimap.GetDots(ERSMinimapDot.NPC)[0]; //find an npc dot and returns it's coodinates.
-  Debug(Minimap.GetTileMS(P, [2, 3, 0]));     //This will draw a recangle that is 2 by 3 tiles in the mainscreen where the NPC is.
-
-
-------------
-
-Minimap.GetTilePoly
-~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetTilePoly(Loc: TPoint; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TPoly;
-.. code-block:: pascal
-
- function TRSMinimap.GetTilePoly(Loc: TPoint; Z: Double = 0): TPoly; overload;
-
-To understand what this does, you should first understand what the functions above do.
-To put it simply, this will will first calculate a floor rectangle with **Z**, or **height** if you prefer of 0 and then calculate the top rectangle of the **Z** you specified.
-After this 2 rectangles are calculated a polygon is then made out of the two, resulting in the **minimum area shape that includes both rectangles** and it's what's returned.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  P := Minimap.GetDots(ERSMinimapDot.NPC)[0]; //find an npc dot and returns it's coodinates.
-  Debug(Minimap.GetTilePoly(P, [2, 3, 5]));     //This will draw a polygon that is 2 by 3 tiles and 5 height in the mainscreen where the NPC is.
-
-
-------------
-
-Minimap.GetTileArrayMS
-~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TRectArray;
-.. code-block:: pascal
-
- function TRSMinimap.GetTileArrayMS(LocArray: TPointArray; Z: Double = 0): TRectArray; overload;
-
-Gives you an array of rectangles of several tiles and they can be multiple tiles each.
-For an explanation of parameters check Minimap.GetTileMS.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  TPA := Minimap.GetDots(ERSMinimapDot.NPC);   //find all npc dots and returns their coodinates.
-  Debug(Minimap.GetTileArrayMS(P, [2, 3, 0])); //This will draw a recangle that is 2 by 3 tiles in the mainscreen where each NPC is.
-
-
-------------
-
-Minimap.GetTileArrayPolys
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetTileArrayPolys(LocArray: TPointArray; TileVector: Vector3; Offset: TPoint = [0, 0]; Angle: Single = $FFFF): TPolyArray;
-.. code-block:: pascal
-
- function TRSMinimap.GetTileArrayPolys(LocArray: TPointArray; Z: Double = 0): TPolyArray; overload;
-
-Gives you an array of polygons of several tiles and they can be multiple tiles each.
-For a better explanation of what this does check Minimap.GetTilePoly. This does the same but for multiple tiles.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  TPA := Minimap.GetDots(ERSMinimapDot.NPC);   //find all npc dots and returns their coodinates.
-  Debug(Minimap.GetTileArrayMS(P, [2, 3, 5])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
-
-
-------------
-
-type TRSDotFilter
-~~~~~~~~~~~~~~~~~
-  Used to filter mmdots
-
-
-------------
-
-Minimap.GetCircle
-~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetCircle(Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TCircle;
-Returns a circle in the Minimap, **Loc** being the middle point of the circle.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  var
-    P: TPoint;
-    Bitmap: TMufasaBitmap;
-
-  begin
-    P := Minimap.GetDots(ERSMinimapDots.NPC)[0];
-
-    Bitmap.FromClient;
-
-    Bitmap.DrawCircle(P.X, P.Y, Minimap.GetCircle(P, 5)); //Draws a circle in the minimap around an NPC of 5 radius.
-
-    ShowBitmap(Bitmap);
-    FreeBitmap(Bitmap);
-  end;
-
-
-------------
-
-Minimap.GetCircleArray
-~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetCircleArray(Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TCircleArray;
-Returns an array of circles in the minimap.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  var
-    P: TPoint;
-    TPA: TPointArray;
-    Bitmap: TMufasaBitmap;
-
-  begin
-    TPA := Minimap.GetDots(ERSMinimapDots.NPC);
-
-    Bitmap.FromClient;
-
-    for P in TPA do
-      Bitmap.DrawCircle(P.X, P.Y, Minimap.GetRadius(P, 5));
-
-    ShowBitmap(Bitmap);
-    FreeBitmap(Bitmap);
-  end;
-
-
-------------
-
-Minimap.GetDotInCircle
-~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetDotInCircle(Dot: ERSMinimapDot; Loc, Radius: Int32; Offset: TPoint = [0, 0]): TPoint;
-
-Functions to get the **ERSMinimapDots** in a circle. Returns only the first dot found.
-This is useful to know if a minimap dot is within range for example.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  var
-    Bitmap: TMufasaBitmap;
-
-  begin
-    Bitmap.FromClient;
-
-    //Draws a white cross on the first NPC dot found within our 8 pixel radius of the minimap center.
-    Bitmap.DrawCross(Minimap.GetDotInCircle(ERSMinimapDot.NPC, Minimap.Center, 8), 4, $FFFFFF);
-
-    ShowBitmap(Bitmap);
-    FreeBitmap(Bitmap);
-  end;
-
-
-------------
-
-Minimap.GetDotInCircleArray
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetDotInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
-
-Same as above but for an array of circles.
-Returns only the first dot found in each circle in the array.
-It's a bit hard to explain it's uses but I personally use it in RSMMDots to accurately find the Minimap Dots while filtering out the ones I do not want.
-
-
-------------
-
-Minimap.GetDotArrayInCircle
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetDotArrayInCircle(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
-
-Functions to get the **ERSMinimapDots** in a circle. Returns all dots found.
-This is useful to know if minimap dots are within range for example.
-
-Example
--------
-.. code-block:: pascal  
-
-.. code-block:: pascal
-
-  var
-    P: TPoint;
-    TPA: TPointArray;
-    Bitmap: TMufasaBitmap;
-
-  begin
-    Bitmap.FromClient;
-
-    TPA := Minimap.GetDotArrayInCircle(ERSMinimapDot.NPC, Minimap.Center, 8); //Get all npc dots that are within 8 pixels of the minimap center;
-
-    for P in TPA do
-      Bitmap.DrawCross(P, 4, $FFFFFF); //Will draw a white cross in each npc dot
-
-    ShowBitmap(Bitmap);
-    FreeBitmap(Bitmap);
-  end;
-
-
-------------
-
-Minimap.GetDotArrayInCircleArray
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetDotArrayInCircleArray(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Offset: TPoint = [0, 0]): TPointArray;
-
-Same as above but for an array of circles.
-Returns all dots found in each circle in the array.
-It's a bit hard to explain it's uses but I personally use it in RSMMDots to accurately find the Minimap Dots while filtering out the ones I do not want.
-
-
-------------
-
-Minimap.GetDotTileMS
-~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectangle;
-.. code-block:: pascal
-
- function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Z: Double = 0): TRectangle; overload;
-.. code-block:: pascal
-
- function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectArray; overload;
-.. code-block:: pascal
-
- function TRSMinimap.GetDotTileMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Z: Double = 0): TRectArray; overload;
-
-I'm not going to be too detailed on this one, if you read the previous functions documentations you can understand what this does.
-Depending on the function you use it either:
-  Combines **Minimap.GetTileMS** with **Minimap.GetDotInCircle** to return a tile of a minimap dot within a circle.
-  Combines **Minimap.GetTileArrayMS** with **Minimap.GetDotInCircleArray** to return a tile of one minimap dot in each circle array we have.
-
-
-------------
-
-Minimap.GetDotArrayTilesMS
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. code-block:: pascal
-
- function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectArray;
-.. code-block:: pascal
-
- function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Loc: TPoint; Radius: Int32; Z: Double = 0): TRectArray; overload;
-.. code-block:: pascal
-
- function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; TileVector: Vector3; Offset, RadiusOffset: TPoint = [0, 0]): TRectArray; overload;
-.. code-block:: pascal
-
- function TRSMinimap.GetDotArrayTilesMS(Dot: ERSMinimapDot; Locs: TPointArray; Radius: Int32; Z: Double = 0): TRectArray; overload;
-
-I'm not going to be too detailed on this one, if you read the previous functions documentations you can understand what this does.
-Depending on the function you use it either:
-  Combines **Minimap.GetTileArrayMS** with **Minimap.GetDotArrayInCircle** to return the tiles of all minimap dots within a circle.
-  Combines **Minimap.GetTileArrayMS** with **Minimap.GetDotArrayInCircleArray** to return the tiles of all minimap dots in each circle array we have.
 
 
 ------------
@@ -471,6 +60,176 @@ Minimap.GetCardinalPoints
 
 Gives the center point of the 4 cardinal points (North, West, South and East) that are directly close to the player.
 This are the tiles the player can "face".
+
+
+------------
+
+Minimap.PointWithinZoom
+~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.PointWithinZoom(p: TPoint; out Corner: TPoint): Boolean;
+.. code-block:: pascal
+
+ function TRSMinimap.PointWithinZoom(p: TPoint): Boolean; overload;
+.. code-block:: pascal
+
+ function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
+
+Method used to know if a point is within reach of the Zoom rectangle without adjusting the zoom level.
+Check TRSMinimap.GetZoomRectangle for information on the Zoom rectangle.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn Minimap.PointWithinZoom([620, 100]);
+
+
+------------
+
+Minimap.FacePoint
+~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.FacePoint(p: TPoint; randomness: Int32 = 0): Boolean;
+
+This method will rotate the camera so that **P** is within the zoom rectangle without adjusting the zoom level.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn Minimap.FacePoint([620, 100]); //keep in mind this example uses a static point, you will probably never do this.
+
+
+------------
+
+MainScreen.FacePoint
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMainScreen.FacePoint(p: TPoint; randomness: Int32 = 0): Boolean; override;
+
+TODO: ADD THIS TO SRL.
+
+Overriden for a more desirable functionality.
+The original function simply makes the point be straight up of the mainscreen, without regard wether it's visible or not.
+This version of the function instead just makes sure that the point is visible as long as it `Minimap.PointWithinZoom` is true.
+
+
+------------
+
+Minimap.ZoomToVisiblePoint
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.ZoomToVisiblePoint(p: TPoint): Int32;
+
+TODO: THIS NEEDS TO BE REWORKED. IT'S NOT RELIABLE RIGHT NOW.
+
+This function gives us a zoom level where **P** would be visible in the MainScreen.
+
+Example
+-------
+.. code-block:: pascal  
+
+  P := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
+  Options.SetZoomLevel(Minimap.ZoomToVisiblePoint(P));
+
+
+------------
+
+Minimap.AdjustZoomToPoint
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.AdjustZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
+
+TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
+
+This function adjusts the zoom level so **P** TRSMinimap.PointWithinZoom() is true.
+
+
+------------
+
+Minimap.MakePointVisible
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
+.. code-block:: pascal
+
+ function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;
+
+TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
+
+Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible on the Mainscreen.
+
+
+------------
+
+Minimap.GetCuboidMS
+~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]; roll: Single = $FFFF): TPointArray;
+
+To understand what this does, you should read about **TRSMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
+
+To put it simply, this will will first calculate a floor rectangle with **tile.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **tile.Z** you specified.
+
+After this 2 rectangles are calculated a polygon is then made out of the two, resulting in a ConvexHull which is returned.
+
+This is perfect to to get an accurate bounding polygon of objects and NPCs which you can use to accurately color search after.
+
+The example below will show you how it could be used to retrieve an accurate player bounding polygon.
+
+Example
+-------
+.. code-block:: pascal  
+
+  P := Minimap.GetDots(ERSMinimapDot.PLAYER)[0];         //find a player dot and returns it's coodinates.
+  offset := [2 , 2];                                     //Minimap dots are actually returned with a slight offset of -2, -2 when converting them to the mainscreen.
+  Debug(Minimap.GetCuboidMS(P, [1, 1, 7], offset));     //This will draw a polygon around the nearest player.
+
+
+------------
+
+Minimap.GetTileArrayMS
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.GetTileArrayMS(locArray: TPointArray; tile: Vector3; offset: TPoint = [0, 0]; angle: Single = $FFFF): TRectArray;
+
+Gives you an array of rectangles of several tiles and they can be multiple tiles each.
+For an explanation of parameters check Minimap.GetTileMS.
+
+Example
+-------
+.. code-block:: pascal  
+
+  tpa := Minimap.GetDots(ERSMinimapDot.NPC);   //find all npc dots and returns their coodinates.
+  Debug(Minimap.GetTileArrayMS(P, [2, 3, 0])); //This will draw a recangle that is 2 by 3 tiles in the mainscreen where each NPC is.
+
+
+------------
+
+Minimap.GetCuboidArrayMS
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSMinimap.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3; offset: Vector2 = [0, 0]; angle: Single = $FFFF): T2DPointArray;
+
+Gives you an array of mainscreen polygons. Read **Minimap.GetCuboidMS** for more information.
+
+Example
+-------
+.. code-block:: pascal  
+
+  tpa := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
+  Debug(Minimap.GetCuboidArrayMS(tpa, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
 
 
 ------------

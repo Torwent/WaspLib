@@ -8,15 +8,21 @@ They also contain template functions and procedures that can be used as is or ov
 
 ------------
 
+const WELCOME_SENTENCES
+~~~~~~~~~~~~~~~~~~~~~~~
+  Global WELCOME_SENTENCES constant used to store advertising senteces to display in the progress report.
+
+
+------------
+
 type TBaseScript
 ~~~~~~~~~~~~~~~~
 Record that holds common variables for most basic scripts.
 The variables that are part of **TBaseScript** are the following:
  - **Name**: String that holds the script name to be displayed in the log and on screen progress report.
  - **Version**: String that holds the script version to be displayed in the log and on screen progress report.
- - **IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
+ - **Self.IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
  - **TimeRunning**: TStopwatch variable that holds how long our **TBaseScript** has been running.
- - **StatsDebugTick**: Integer variabled used to register the last tick we printed a progress report.
  - **Action**: String variable used to print in Simba output or on screen progress report the current action the script is performing.
  - **PreviousAction**: String variable used to register the previous action. This is used to avoid spamming the logs.
  - **ExtraInfo**: String variable we can use to print extra information in Simba output or in on screen progress report. E.G. current state of variables.
@@ -26,32 +32,344 @@ The variables that are part of **TBaseScript** are the following:
  - **TimeLimit**: Integer variable to set a time limit for our script in milliseconds before ending the current script.
  - **ActionLimit**: Integer variable to set total action limit before ending the script.
 
+TBaseScript can be used as is or inherited from to extend it's functionality.
+
+Example
+-------
+.. code-block:: pascal  
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TRSWalker;
+  end;
+
+
+------------
+
+BaseScript.ShouldHandlePaint
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseScript.ShouldHandlePaint(): Boolean;
+
+Wrapper function used internally to decide if we should handle TWaspProgressReport.
+
+
+------------
+
+BaseScript.ShouldDrawPaint
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseScript.ShouldDrawPaint(): Boolean;
+
+Wrapper function used internally to decide if we should call TWaspProgressReport.Update().
+To avoid unnecessary redraw, when Self.Action and Self.PreviousAction are the same, we do not redraw.
+
+
+------------
+
+BaseScript.BuildTextReport
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseScript.BuildTextReport(): TStringArray;
+
+Internal method used to build our text progress report.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Keep in mind that editing this will probably mess up the HUD report so if you customize this you should also customize **TBaseScript.BuildHUDReport()**.
+
+Example
+-------
+.. code-block:: pascal  
+
+  function TBaseScript.BuildTextReport(): TStringArray; override;
+  var
+    ElapsedTime: UInt64;
+    XPEarned: Int32;
+  begin
+    ElapsedTime := Self.TimeRunning.ElapsedTime();
+    XPEarned := WL.PreviousXP - WL.InitialXP;
+
+    //Keep in mind this is just a quick example without spacing adjustments. This won't look good unless you add some variable padding.
+
+    Result += '[===============================]';
+    Result += '[ ' + Self.Name + ' ]';                    //Self.Name is the script name, usually set in TBaseScript.Init();
+    Result += '[===============================]';
+    Result += '[ Runtime    :  ' + SRL.MsToTime(ElapsedTime, Time_Short) +' ];
+    Result += '[ Xp gained  : ' + XPEarned + '(' + ToStr(NumberPerHour(XPEarned, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Nuggets    : ' + NuggetsCount + '(' + ToStr(NumberPerHour(NuggetsCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Coal       : ' + CoalCount + '(' + ToStr(NumberPerHour(CoalCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Gold       : ' + GoldCount + '(' + ToStr(NumberPerHour(GoldCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Mithril    : ' + MithrilCount + '(' + ToStr(NumberPerHour(MithrilCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Adamantite : ' + AdamantiteCount + '(' + ToStr(NumberPerHour(AdamantiteCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[ Runite     : ' + RuniteCount + '(' + ToStr(NumberPerHour(RuniteCount, ElapsedTime)) + ' / hr)     ]';
+    Result += '[===============================]';
+    Result += '[ ' + Self.Name + SRL.MsToTime(ShutdownTimer.TimeRemaining, Time_Short) + ' ]';
+    Result += '[===============================]';
+  end;
+
+
+------------
+
+BaseScript.BuildHUDReport
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseScript.BuildHUDReport(): TStringArray;
+
+Internal method used for custom HUD reports.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Overriding **TBaseScript.BuildTextReport()** to set a custom report will likely need you to override this as well.
+
+
+------------
+
+BaseScript.PrintReport
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TBaseScript.PrintReport(Sender: TObject);
+
+Internal method to print our progress report ("proggie").
+This is run on a timer setup by TBaseScript and also handles drawing the HUD progress report if it is enabled.
+It also is responsible for debugging the script with SRL.Debug() if we enable it.
+
+
+------------
+
+BaseScript.Init
+~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and/or **MaxTime** -1 that will make
+`TBaseScript.ShouldStop() = True` when `TBaseScript.TotalActions = MaxAtions` or
+`TBaseScript.TimeRunning.ElapsedTime = MaxTime`.
+
+Can be used as is or overriden to do additional tasks.
+
+Example
+-------
+.. code-block:: pascal  
+
+  var Script: TBaseScript;
+
+  begin
+    Script.Init(-1, 2 * ONE_DAY);
+  end;
+
+
+------------
+
+BaseScript.DoAntiban
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
+
+Method used to call Antiban.DoAntiban(CheckBreaks, CheckSleeps).
+
+Example
+-------
+.. code-block:: pascal  
+
+  Script.DoAntiban();
+
+
+------------
+
+BaseScript.ShouldStop
+~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseScript.ShouldStop(): Boolean;
+
+Method used to check if we reached the TBaseScript goals and it's time to stop it.
+
+.. note:: This doesn't stop the script. This simply returns true/false when called and it's up to you to stop the script.
+
+Example
+-------
+.. code-block:: pascal  
+
+  if Script.ShouldStop() then
+    TerminateScript();
+
 
 ------------
 
 type TBaseWalkerScript
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
 Record that holds common variables for most scripts that use walker.
-This record inherits from **TBaseScript** and has all of it's variables too.
+This record extends **TBaseScript** and has all of it's variables too.
 The extra variables that are part of **TBaseWalkerScript** are:
  - **RSW**: TRSWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
 
 
 ------------
 
+BaseWalkerScript.Init
+~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
+
+Can be used as is or overriden to do additional tasks.
+
+
+------------
+
 type TBaseBankScript
-~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~
 Record that holds common variables for most scripts that use a bank.
-This record inherits from **TBaseWalkerScript** and has all of it's variables as well as **TBaseScript's**.
+This record inherits from **TBaseWalkerScript** and which inherits from **TBaseScript's**.
 The extra variables that are part of **TBaseBankScript** are:
- - **ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
- - **ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
+ - **Self.ScriptBank**: PRSObject pointer that points to our current bank TRSObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsobject
+ - **Self.ScriptBanker**: PRSNPC pointer that points to our current banker TRSNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-trsmmdot
  - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
  - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
  - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
  - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
  - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
  - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
+
+
+------------
+
+BaseBankScript.Init
+~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TBaseBankScript.Init(MaxActions: Int32; MaxTime: Int64); override;
+
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
+
+Can be used as is or overriden to do additional tasks.
+
+
+------------
+
+BaseBankScript.Terminate
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseBankScript.Terminate(): Boolean;
+
+Helper method to be called at the end of the life cycle of a TBaseBankScript.
+By default it simply attempts to open the TBaseBankScript.CurrentBank but it's meant to
+be overriden and inherited or completely be remade for proper termination of the TBaseBankScript.
+
+This is likely required if you want to chain several scripts together.
+
+.. note:: Consider taking a look at script_chainer.simba: https://github.com/Torwent/wasp-mini/blob/master/script_chainer.simba
+
+Example
+-------
+.. code-block:: pascal  
+
+  Script1.Init();
+  repeat
+    //do stuff...
+  until Script1.ShouldStop();
+
+  Script1.Terminate();
+
+  Script2.Init();
+  repeat
+    //do stuff...
+  until Script2.ShouldStop();
+
+
+------------
+
+BaseBankScript.CountItemsLeft
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TBaseBankScript.CountItemsLeft(Item: TRSItem);
+
+Set's TBaseBankScript.ItemLeftAmount to be used by TBaseBankScript.ShouldHover().
+
+.. note:: For some scripts this might need to be overriten and rewritten.
+
+
+------------
+
+BaseBankScript.ShouldHover
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseBankScript.ShouldHover(): Boolean;
+
+Method used to decide if we should pre-hover the bank or not.
+It uses the amount of items left in the inventory stored by TBaseBankScript.CountItemsLeft()
+in TBaseBankScript.ItemLeftAmount() along with the player BioHash to decide if we want to
+pre-hover the bank.
+
+.. note:: This function simply returns true/false and doesn't actualy hover the bank.
+
+Example
+-------
+.. code-block:: pascal  
+
+  if Script.ShouldHover() then
+    Script.Hover();
+
+
+------------
+
+BaseBankScript.Hover
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseBankScript.Hover(): Boolean;
+
+Moves the mouse to the TBaseBankScript.CurrentBank RSObject.
+
+Example
+-------
+.. code-block:: pascal  
+
+  BankScript.Hover();
+
+
+------------
+
+BaseBankScript.Withdraw
+~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
+
+Withdraws **item** from the bank.
+
+Example
+-------
+.. code-block:: pascal  
+  if Bank.IsOpen() then
+    BankScript.Withdraw(['Shark', 1, True]);
+
+
+------------
+
+BaseBankScript.HandleCollectBox
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TBaseBankScript.HandleCollectBox(items: TRSItemArray): Boolean;
+
+Collects **items** from the collectbox.
+
+Example
+-------
+.. code-block:: pascal  
+  if CollectBox.IsOpen() then
+    BankScript.HandleCollectBox();
 
 
 ------------

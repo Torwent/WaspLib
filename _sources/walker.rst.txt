@@ -1,0 +1,420 @@
+
+Walker extensions
+=================
+Extensions to SRL's TRSWalker.
+
+
+------------
+
+type RSHeightMap
+~~~~~~~~~~~~~~~~
+
+RSHeightMap is the type responsible for handling heights with walker when using WaspLib.
+This type does not need to be initiated as a variable and it's meant to be used directly with it's static methods.
+
+It has the following variables:
+  Enabled: Boolean;
+  Map: TMufasaBitmap;
+  MaxHeight: Double;
+  MathCache: Double;
+
+**Enabled** is used to toggle the RSHeightMap on/off. By default it will always be on unless there's not a heightmap available for the map you load into walker.
+the heightmap MUST be named the same as the map you load with an "h" prepended. E.G.: hWorld.png
+
+**Map** there's not much to talk about this one, it's simply the TMufasaBitmap loaded in the record.
+
+**MaxHeight** This is what will be considered the max height possible in the calculations made by RSHeightMap.
+There's no way to accurately know what this should be, you should debug heights and set a value that looks good to you.
+Values might also vary between regions but I find **30** to be a fine value that works well in a lot of places if not all.
+
+**MathCache**, not very important, simply a cache variable so we don't repeat calculations when it's not required.
+
+
+------------
+
+RSHeightMap.GetColor
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function RSHeightMap.GetColor(p: TPoint): Int64; static;
+
+Returns the color of the heightmap at the specified point.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn RSHeightMap.GetColor([100, 100]);
+
+
+------------
+
+TRSWalkerMap.FindMap
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalkerMap.FindMap(Map: String): String; static; override;
+
+Overrides SRL's TRSWalkerMap.FindMap() so it uses WaspLib's walker directory instead.
+This is an internal Walker method, you probably don't need to call it.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn TRSWalkerMap.FindMap('world');
+
+
+------------
+
+TRSWalkerMap.Load
+~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
+.. code-block:: pascal
+
+ procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+
+Overrides SRL's TRSWalkerMap.Load() so it loads the respective heightmap if it exists.
+This is an internal Walker method, you probably don't need to call it.
+
+
+------------
+
+Walker.InternalSetup
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TRSWalker.InternalSetup(); override;
+
+Overrides SRL's Walker.InternalSetup() so it uses WaspWeb as the walker webgraph and so it uses ScreenWalk by default.
+This is an internal Walker method, you probably don't need to call it.
+
+
+------------
+
+Walker.Setup
+~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
+
+Overrides SRL's Walker.Setup() so it uses WL_WALKER_MAP as it's default map for regions.
+
+
+------------
+
+Walker.SetupNamedRegion
+~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TRSWalker.SetupNamedRegion(region: TRSBankRegion = []); overload;
+
+Use this if you want to setup a walker with whatever the user has setup in WLSettings.BankLocation.
+You can optionally pass in your own **region** but it's really meant to use the default.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WLSettings.BankLocation := EWLBankLocation.CASTLE_WARS_BANK;
+  Walker.SetupNamedRegion();
+  Walker.Map.Map.Debug();
+
+
+------------
+
+Walker.GetHeight
+~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
+
+Returns the height of the player at the specified coordinate with the help of RSHeightMap.
+If p is [], which is the default then we will use our current position.
+global decides wether the coordinate is converted to global coordinates or internal walker coordinates (read about walker regions for more info).
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn rsw.GetHeight();
+
+
+------------
+
+Walker.DebugHeightTiles
+~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure TRSWalker.DebugHeightTiles(angle: Double = -1);
+
+Displays a debug image of the tiles visible on the mainscreen with their height adjusted according to the RSHeightMap.
+This is very useful if you need to adjust RSHeightMap.MaxHeight.
+
+Example
+-------
+.. code-block:: pascal  
+
+  rsw.DebugHeightTiles();
+
+
+------------
+
+Walker.GetMyPos
+~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetMyPos(out height: Double): TPoint; overload;
+
+Overload that also returns the player height.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn RSW.GetMyPos(height);
+  WriteLn height;
+
+
+------------
+
+Walker.GetHeightDiff
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetHeightDiff(p: TPoint): Double;
+.. code-block:: pascal
+
+ function TRSWalker.GetHeightDiff(p, q: TPoint): Double; overload;
+
+Returns the height difference between 2 points. If only one point is passed, the player position is used as one of them.
+
+Example
+-------
+.. code-block:: pascal  
+
+  WriteLn RSW.GetMyPos(RSW.GetMyPos(), [100, 100]);
+
+
+------------
+
+RSHeightMap.DebugPosition
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ procedure RSHeightMap.DebugPosition(p: TPoint);
+
+Debug a point in the loaded heightmap.
+
+Example
+-------
+.. code-block:: pascal  
+
+  RSHeightMap.DebugPosition(RSW.GetMyPos());
+
+
+------------
+
+TRSWalker.IsWalkable
+~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.IsWalkable(worldPoint: TPoint; playerPoint: TPoint; Angle: Double): Boolean; override;
+
+Overriden to change the default behavior of TRSWalker.IsWalkable(), specifically for ScreenWalking since I don't like the default behaviour.
+I find that minimap limits is extremely close to the render distance in the mainscreen, so personally I rather not
+have the function bother any further if **worldPoint** is not on the minimap.
+
+This override will affect both TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.AtTile
+~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
+.. code-block:: pascal
+
+ function TRSWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+
+method used to quickly check if we are within distance of a certain **worldPoint**. This distance is measure in pixels and in a radial way.
+You can optionally pass in a TPA to check if the closest point is within distance.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.GetClosestPoint
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
+
+method used to get the closest Point to the Player out of a TPA.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.WebWalk
+~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.WebWalk(Destination: TPointArray; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+
+method used to webwalk to the closest Point to the player.
+An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
+You will likely want to use the closest bank booth to you, so you use this.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.WorldToMM
+~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.WorldToMM(playerPoint: TPoint; worldPoints: TPointArray; Radians: Double): TPointArray; overload;
+.. code-block:: pascal
+
+ function TRSWalker.WorldToMM(worldPoints: TPointArray): TPointArray; overload;
+.. code-block:: pascal
+
+ function TRSWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
+.. code-block:: pascal
+
+ function TRSWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
+
+Overloaded methods required for TRSDotFilter. For more information on TRSDotFilter check their documentation.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.MakePointVisible
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.MakePointVisible(P: TPoint): Boolean;
+.. code-block:: pascal
+
+ function TRSWalker.MakePointVisible(TPA: TPointArray): Boolean; overload;
+
+Wrapper function used to attempt to make a Point visible on the MainScreen.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.GetCuboidMS
+~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
+.. code-block:: pascal
+
+ function TRSWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
+
+This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
+
+To understand what this does, you should read about **TRSMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
+This calls **TRSMinimap.GetCuboidMS()** internally which in turn will use both methods above.
+
+To put it simply, this will will first calculate a floor rectangle with **tile.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **tile.Z** you specified.
+
+After this 2 rectangles are calculated a polygon is then made out of the two, resulting in a ConvexHull which is returned.
+
+This is perfect to to get an accurate bounding polygon of objects and NPCs which you can use to accurately color search after.
+
+The example below will show you how it could be used to retrieve an accurate player bounding polygon:
+
+Example
+-------
+.. code-block:: pascal  
+  Debug(RSW.GetCuboidMS([100, 100], [1, 1, 4], Offset));     //This will draw a polygon around the coordinate [100, 100].
+
+
+------------
+
+TRSWalker.GetTileArrayMS
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
+.. code-block:: pascal
+
+ function TRSWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+
+This are wrapper functions to retrieve multiple tiles. Refer to SRL's TRSWalker.GetTileMSEx() and TRSWalker.GetTileMS() for more information.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
+
+
+------------
+
+TRSWalker.GetCuboidArrayMS
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+.. code-block:: pascal
+
+ function TRSWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+
+Gives you an array of mainscreen polygons. Read **Minimap.GetCuboidMS** for more information.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
+
+Example
+-------
+.. code-block:: pascal  
+
+  TPA := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and returns their coodinates.
+  Debug(Minimap.GetCuboidArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
+
+
+------------
+
+TRSWalker.GetMMPoly
+~~~~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.GetMMPoly(locArray: TPointArray): TPointArray;
+
+This function converts a list of points to their respective points in the minimap.
+This is extremely useful if you want to be sure you are within an area.
+To make a polygon or a polygon array easily you can use Simba/Includes/WaspLib/tools/walkerpolygon.simba.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
+
+Example
+-------
+.. code-block:: pascal  
+  Debug(RSW.GetMMPoly(TPA).Connect());    //This will draw your TPA on the minimap.
+
+
+------------
+
+TRSWalker.InPoly
+~~~~~~~~~~~~~~~~
+.. code-block:: pascal
+
+ function TRSWalker.InPoly(locArray: TPointArray): Boolean;
+
+Checks if you are inside a polygon. If you need to debug the polygon check the example in TRSWalker.GetMMPoly.
+
+This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
+
+
+
+------------

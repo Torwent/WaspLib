@@ -1,3 +1,12 @@
+## [11.0.3](https://github.com/Torwent/WaspLib/compare/v11.0.2...v11.0.3) (2023-01-16)
+
+
+### Bug Fixes
+
+* **walker:** added versioning to walker maps ([11dd8b0](https://github.com/Torwent/WaspLib/commit/11dd8b0f1a7311cfac023e0e59c77479190720d5))
+
+
+
 ## [11.0.2](https://github.com/Torwent/WaspLib/compare/v11.0.1...v11.0.2) (2023-01-16)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * read notes. ([3de8f7c](https://github.com/Torwent/WaspLib/commit/3de8f7c3c830d7123f208be628c31d258e3a9eea))
-
-
-
-## [10.6.4](https://github.com/Torwent/WaspLib/compare/v10.6.3...v10.6.4) (2023-01-08)
-
-
-### Bug Fixes
-
-* **maps:** gotr.png added to wasplib ([df203a2](https://github.com/Torwent/WaspLib/commit/df203a24cd878242ee4c8550c574c2ff5f3390f4))
 
 
 

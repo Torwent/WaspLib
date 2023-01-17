@@ -1,3 +1,12 @@
+## [11.0.5](https://github.com/Torwent/WaspLib/compare/v11.0.4...v11.0.5) (2023-01-17)
+
+
+### Bug Fixes
+
+* coordinate fixes and fixed utiltypes .Find() functions ([853aed4](https://github.com/Torwent/WaspLib/commit/853aed42e992f5abc94d41549aef7ac91ef6dc89))
+
+
+
 ## [11.0.4](https://github.com/Torwent/WaspLib/compare/v11.0.3...v11.0.4) (2023-01-16)
 
 
@@ -31,20 +40,6 @@
 ### Bug Fixes
 
 * added tithe farm region ([ca678e8](https://github.com/Torwent/WaspLib/commit/ca678e8de5160bb6a18e2161a4ec58e7cf4e3ba6))
-
-
-
-# [11.0.0](https://github.com/Torwent/WaspLib/compare/v10.6.5...v11.0.0) (2023-01-16)
-
-
-### Features
-
-* simba1500 walker backport ([e0c0cb4](https://github.com/Torwent/WaspLib/commit/e0c0cb475959d1b976a25aad0c2817627a008b52))
-
-
-### BREAKING CHANGES
-
-* This update will require you to update SRL and every single script!
 
 
 

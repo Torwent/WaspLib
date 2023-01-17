@@ -1,30 +1,55 @@
+(*
+Magic
+=====
+Extends SRL's TRSMagic.
+*)
+
 {$DEFINE WL_MAGIC_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-function TRSMagic.CastSpell(Spell: ERSSpell): Boolean; override;
+(*
+Magic._CastedSpell
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic._CastedSpell(spell: ERSSpell): Boolean;
+
+Internal helper function for better logic of wether we casted a spell or not.
+Used by WaspLib's TRSMagic.CastSpell() override.
+*)
+function TRSMagic._CastedSpell(spell: ERSSpell): Boolean;
+begin
+  if Self.IsOpen() and (Self.GetSelectedSpell() = spell) then
+    Exit(True);
+
+  Result := XPBar.EarnedXP() or Inventory.IsOpen();
+  Writeln Result;
+end;
+
+(*
+Magic.CastSpell
+~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.CastSpell(spell: ERSSpell): Boolean; override;
+
+Overrides the existing SRL TRSMagic.CastSpell() for better cast detection with
+the usage of TRSMagic._CastedSpell().
+*)
+function TRSMagic.CastSpell(spell: ERSSpell): Boolean; override;
 var
-  Selected: ERSSpell;
+  selected: ERSSpell;
 begin
   if not Self.Open() then
     Exit(False);
 
-  Selected := Self.GetSelectedSpell();
-  if (Selected := Self.GetSelectedSpell()) = Spell then
+  selected := Self.GetSelectedSpell();
+  if selected = spell then
     Exit(True);
 
-
-
   // Unselect
-  if (Selected <> ERSSpell.UNKNOWN) then
-    Self.MouseSpell(Selected, MOUSE_LEFT);
+  if (selected <> ERSSpell.UNKNOWN) then
+    Self.MouseSpell(selected, MOUSE_LEFT);
 
-
-  XPBar.EarnedXP; //Make sure WL.PreviousXP is set to current XP.
-  Result := Self.MouseSpell( Spell, MOUSE_LEFT) and
-            WaitUntil(
-                (Self.IsOpen and (Self.GetSelectedSpell = Spell)) or
-                 Inventory.IsOpen or XPBar.EarnedXP,
-                 100, SRL.TruncatedGauss(1000, 2000));
+  XPBar.EarnedXP(); //Make sure WL.PreviousXP is set to current XP.
+  Result := Self.MouseSpell(spell, MOUSE_LEFT) and
+            WaitUntil(Self._CastedSpell(spell), 100, SRL.TruncatedGauss(1000, 2000));
 end;

@@ -1,3 +1,12 @@
+## [11.0.7](https://github.com/Torwent/WaspLib/compare/v11.0.6...v11.0.7) (2023-01-17)
+
+
+### Bug Fixes
+
+* **TRSMMDots:** logic issue ([6013783](https://github.com/Torwent/WaspLib/commit/6013783afd6c1b14ba1cfd32142224098d79e754))
+
+
+
 ## [11.0.6](https://github.com/Torwent/WaspLib/compare/v11.0.5...v11.0.6) (2023-01-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walker:** added versioning to walker maps ([11dd8b0](https://github.com/Torwent/WaspLib/commit/11dd8b0f1a7311cfac023e0e59c77479190720d5))
-
-
-
-## [11.0.2](https://github.com/Torwent/WaspLib/compare/v11.0.1...v11.0.2) (2023-01-16)
-
-
-### Bug Fixes
-
-* forgot to add the weapon.json file.... whoops! ([58d390d](https://github.com/Torwent/WaspLib/commit/58d390db4c911ee11b27385071186c84bb9a1fff))
 
 
 

@@ -1,0 +1,549 @@
+(*
+MapMaker
+========
+Simple tool to make TBoxes for SRL's RSWalkerRegions or WaspLib's RSRegions.
+
+CURRENTLY NOT WORKING! Feel free to fix it.
+*)
+
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+{$I SRL-T/osr.simba}
+{$I WaspLib/osr.simba}
+{$H-}
+
+const
+  MAP_NAME: String = WL_WALKER_MAP;
+
+var
+  NodeArray: T2DPointArray := [
+
+  ];
+
+type
+  TRSMapMaker = record
+    Form: TForm;
+    ImageBox: TSimbaImageBox;
+
+    SelectedPolygon: Int32;
+
+    PolyIndexEdit: TEdit;
+    CoordinateEdit: TEdit;
+    SelectedNode: Int32;
+    Dragging: Boolean;
+    Map: TMufasaBitmap;
+    Name: String;
+
+    Offset: TPoint;
+  end;
+
+var
+  MapMaker: TRSMapMaker;
+
+begin
+  MapMaker.Map := TRSWalkerMap.InternalLoadMap(MAP_NAME);
+end;
+
+procedure TRSMapMaker.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Int32);
+begin
+  if Self.Dragging and (Self.SelectedNode > -1) then
+  begin
+    if X < 0 then X := 0;
+    if X > Self.ImageBox.GetCanvas().GetWidth() then X := Self.ImageBox.GetCanvas().GetWidth();
+
+    if Y < 0 then Y := 0;
+    if Y > Self.ImageBox.GetCanvas().GetHeight() then Y := Self.ImageBox.GetCanvas().GetHeight();
+
+
+    NodeArray[Self.SelectedPolygon][Self.SelectedNode].X := X;
+    NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y := Y;
+    NodeArray[Self.SelectedPolygon][Self.SelectedNode] += Self.Offset;
+
+    if Self.SelectedNode = 0 then
+    begin
+      if Length(NodeArray[Self.SelectedPolygon]) > 1 then
+        NodeArray[Self.SelectedPolygon][1].Y := NodeArray[Self.SelectedPolygon][0].Y;
+
+      if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+        NodeArray[Self.SelectedPolygon][3].X := NodeArray[Self.SelectedPolygon][0].X;
+    end;
+
+    if Self.SelectedNode = 1 then
+    begin
+      NodeArray[Self.SelectedPolygon][0].Y := NodeArray[Self.SelectedPolygon][1].Y;
+
+      if Length(NodeArray[Self.SelectedPolygon]) > 2 then
+        NodeArray[Self.SelectedPolygon][2].X := NodeArray[Self.SelectedPolygon][1].X;
+    end;
+
+    if Self.SelectedNode = 2 then
+    begin
+      NodeArray[Self.SelectedPolygon][1].X := NodeArray[Self.SelectedPolygon][2].X;
+
+      if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+        NodeArray[Self.SelectedPolygon][3].Y := NodeArray[Self.SelectedPolygon][2].Y;
+    end;
+
+    if Self.SelectedNode = 3 then
+    begin
+      NodeArray[Self.SelectedPolygon][0].X := NodeArray[Self.SelectedPolygon][3].X;
+      NodeArray[Self.SelectedPolygon][2].Y := NodeArray[Self.SelectedPolygon][3].Y;
+    end;
+
+    Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
+    Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y));
+    Self.ImageBox.Update();
+  end;
+end;
+
+
+procedure TRSMapMaker.AddToArray;
+begin
+  Self.SelectedPolygon := Length(NodeArray);
+  SetLength(NodeArray, Self.SelectedPolygon + 1);
+end;
+
+procedure TRSMapMaker.RemoveFromArray();
+begin
+  Delete(NodeArray, Self.SelectedPolygon, 1);
+  Self.SelectedPolygon := High(NodeArray);
+end;
+
+
+procedure TRSMapMaker.AddNode(p: TPoint);
+var
+  n, c: Int32;
+begin
+  if Self.SelectedPolygon < 0 then
+    Self.SelectedPolygon := 0;
+
+  n := Length(NodeArray);
+  if (n = 0) or (Self.SelectedPolygon > n) then
+    SetLength(NodeArray, n + 1);
+
+  c := Length(NodeArray[Self.SelectedPolygon]);
+  if c < 4 then
+    SetLength(NodeArray[Self.SelectedPolygon], c + 1);
+
+  if c > 3 then
+    c := 3;
+
+  NodeArray[Self.SelectedPolygon][c] := p + Self.Offset;
+
+  Self.SelectedNode := c;
+
+  if Self.SelectedNode = 0 then
+  begin
+    if Length(NodeArray[Self.SelectedPolygon]) > 1 then
+      NodeArray[Self.SelectedPolygon][1].Y := NodeArray[Self.SelectedPolygon][0].Y;
+
+    if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+      NodeArray[Self.SelectedPolygon][3].X := NodeArray[Self.SelectedPolygon][0].X;
+  end;
+
+  if Self.SelectedNode = 1 then
+  begin
+    NodeArray[Self.SelectedPolygon][0].Y := NodeArray[Self.SelectedPolygon][1].Y;
+
+    if Length(NodeArray[Self.SelectedPolygon]) > 2 then
+      NodeArray[Self.SelectedPolygon][2].X := NodeArray[Self.SelectedPolygon][1].X;
+  end;
+
+  if Self.SelectedNode = 2 then
+  begin
+    NodeArray[Self.SelectedPolygon][1].X := NodeArray[Self.SelectedPolygon][2].X;
+
+    if Length(NodeArray[Self.SelectedPolygon]) > 3 then
+      NodeArray[Self.SelectedPolygon][3].Y := NodeArray[Self.SelectedPolygon][2].Y;
+  end;
+
+  if Self.SelectedNode = 3 then
+  begin
+    NodeArray[Self.SelectedPolygon][0].X := NodeArray[Self.SelectedPolygon][3].X;
+    NodeArray[Self.SelectedPolygon][2].Y := NodeArray[Self.SelectedPolygon][3].Y;
+  end;
+
+  Self.ImageBox.Update();
+  Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
+  Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y));
+end;
+
+procedure TRSMapMaker.DeleteNode(n: Int32);
+var
+  i,curr: Int32;
+  marked: TIntegerArray;
+  p: TPoint;
+begin
+  p := NodeArray[Self.SelectedPolygon][n];
+  marked += n;
+
+  repeat
+    curr := marked.Pop();
+
+    for i:=0 to High(marked) do
+      if marked[i] > curr then Dec(marked[i]);
+
+    // remove the node itself
+    Delete(NodeArray[Self.SelectedPolygon], curr, 1);
+  until Length(marked) = 0;
+
+  if NodeArray[Self.SelectedPolygon] = [] then
+    Self.RemoveFromArray();
+
+  Self.SelectedNode := High(NodeArray[Self.SelectedPolygon]);
+  Self.ImageBox.Update();
+
+  if Self.SelectedPolygon > -1 then
+  begin
+    Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
+    if NodeArray[Self.SelectedPolygon] <> [] then
+      Self.CoordinateEdit.setCaption(ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].X) + ', ' + ToStr(NodeArray[Self.SelectedPolygon][Self.SelectedNode].Y))
+    else
+      Self.CoordinateEdit.setCaption('null, null');
+  end
+  else
+    Self.PolyIndexEdit.setCaption('null');
+end;
+
+
+procedure TRSMapMaker.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+var
+  I, J: Int32;
+  P: TPoint;
+begin
+  if Button <> mbLeft then
+    Exit;
+
+  Self.Dragging := True;
+
+  for I := 0 to High(NodeArray) do
+    for J := 0 to High(NodeArray[I]) do
+    begin
+      P := NodeArray[I][J] - Self.Offset;
+      if Distance(P.X, P.Y, X, Y) <= 3 then
+      begin
+        Self.SelectedPolygon := I;
+        Self.SelectedNode := J;
+        Self.PolyIndexEdit.setCaption(ToStr(Self.SelectedPolygon));
+        Self.CoordinateEdit.setCaption(ToStr(NodeArray[I][J].X) + ', ' + ToStr(NodeArray[I][J].Y));
+        Self.ImageBox.Update();
+        Exit;
+      end;
+    end;
+
+  Self.AddNode([X, Y]);
+end;
+
+procedure TRSMapMaker.OnMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+begin
+  if Button = mbLeft then
+    Self.Dragging := False;
+end;
+
+procedure TRSMapMaker.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_DELETE) and (SelectedNode > -1) then
+    DeleteNode(SelectedNode);
+end;
+
+procedure TRSMapMaker.DrawPolygons2(Area: TBox);
+var
+  I, J, Color: Int32;
+  P, Q: TPoint;
+  Canvas: TCanvas;
+begin            ;
+  if (Length(NodeArray) = 0) then
+    Exit;
+
+  Canvas := Self.ImageBox.GetCanvas();
+  for J := 0 to High(NodeArray) do
+  begin
+    if (Length(NodeArray[J]) > 0) then
+    begin
+      for i := 0 to High(NodeArray[J]) do
+      begin
+        P := NodeArray[J][i] - Self.Offset;
+
+        if I < High(NodeArray[J]) then
+          Q := NodeArray[J][I + 1]
+        else
+          Q := NodeArray[J][0];
+
+        Q := Q - Self.Offset;
+
+        if J = Self.SelectedPolygon then
+        begin
+          Canvas.GetPen.SetColor($00FF7F);
+          Color := $FFAAD4;
+        end
+        else
+        begin
+          Canvas.GetPen.SetColor($00FFFF);
+          Color := $0000FF;
+        end;
+
+        if P.InBox(Area) or Q.InBox(Area) then
+        begin
+          Canvas.MoveTo(P.x, P.y);
+          Canvas.LineTo(Q.x, Q.y);
+        end;
+
+        if P.InBox(Area) then
+        begin
+          Canvas.GetBrush.SetColor(Color);
+          Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
+        end;
+      end;
+
+      if InRange(Self.SelectedNode, Low(NodeArray[Self.SelectedPolygon]), High(NodeArray[Self.SelectedPolygon])) then
+      begin
+        Canvas.GetBrush.SetColor($FF0000);
+        P := NodeArray[Self.SelectedPolygon][Self.SelectedNode] - Self.Offset;
+        Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
+      end;
+    end;
+  end;
+end;
+
+procedure TRSMapMaker.DrawPolygons(Area: TBox);
+var
+  I, J, Color: Int32;
+  P, Q: TPoint;
+  Canvas: TCanvas;
+begin
+  if (Length(NodeArray) = 0) then
+    Exit;
+
+  Canvas := ImageBox.GetOverlay.GetCanvas;
+  for J := 0 to High(NodeArray) do
+  begin
+    if (Length(NodeArray[J]) > 0) then
+    begin
+      for i := 0 to High(NodeArray[J]) do
+      begin
+        P := NodeArray[J][i] - Offset;
+
+        if I < High(NodeArray[J]) then
+          Q := NodeArray[J][I + 1]
+        else
+          Q := NodeArray[J][0];
+
+        Q := Q - Offset;
+
+        if J = SelectedPolygon then
+        begin
+          Canvas.GetPen.SetColor($00FF7F);
+          Color := $FFAAD4;
+        end
+        else
+        begin
+          Canvas.GetPen.SetColor($00FFFF);
+          Color := $0000FF;
+        end;
+
+        if P.InBox(Area) or Q.InBox(Area) then
+        begin
+          Canvas.MoveTo(P.x, P.y);
+          Canvas.LineTo(Q.x, Q.y);
+        end;
+
+        if P.InBox(Area) then
+        begin
+          Canvas.GetBrush.SetColor(Color);
+          Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
+        end;
+      end;
+
+      if InRange(SelectedNode, Low(NodeArray[SelectedPolygon]), High(NodeArray[SelectedPolygon])) then
+      begin
+        Canvas.GetBrush.SetColor($FF0000);
+        P := NodeArray[SelectedPolygon][SelectedNode] - Offset;
+        Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
+      end;
+    end;
+  end;
+end;
+
+
+procedure TRSMapMaker.PaintArea(Sender: TObject; Canvas: TCanvas; R: TRect);
+begin
+  Self.DrawPolygons([R.Left, R.Top, R.Right, R.Bottom]);
+end;
+
+
+procedure TRSMapMaker.OnUnSelectNode(Sender: TObject);
+begin
+  Self.SelectedNode := -1;
+  Self.ImageBox.Update();
+end;
+
+
+procedure TRSMapMaker.OnResetNodeArray(Sender: TObject);
+begin
+  NodeArray := [];
+  Self.SelectedPolygon := -1;
+  Self.SelectedNode := -1;
+end;
+
+procedure TRSMapMaker.OnNewNodeArray(Sender: TObject);
+begin
+  Self.AddToArray;
+end;
+
+procedure TRSMapMaker.OnPrintNodeArray(Sender: TObject);
+var
+  i: Int32;
+  Str: String;
+  B: TBox;
+begin
+  Str += LineEnding + 'Add this to the end of Simba/Includes/WaspLib/osr/walker/walker.simba:' + LineEnding;
+
+  if Length(NodeArray) > 1 then
+  begin
+    for i := 0 to High(NodeArray) do
+    begin
+      B := NodeArray[i].Bounds();
+
+      if B.Height() < 200 then
+        Str += '  Your box height (' + ToStr(B.Height()) + 'px) is too small to be a map, you will have issues with this.'
+      else if B.Width() < 200 then
+        Str += '  Your box width (' + ToStr(B.Width()) + 'px) is too small to be a map, you will have issues with this.'
+      else
+      begin
+        Str += '  TRSMap.Setup(_MAP, [';
+
+        Str += ToStr(B.X1) + ', ' + ToStr(B.Y1) + ', ' + ToStr(B.X2) + ', ' + ToStr(B.Y2);
+
+        Str += ']);';
+      end;
+
+      Str += LineEnding;
+    end;
+  end
+  else if Length(NodeArray) = 1 then
+  begin
+      B := NodeArray[0].Bounds();
+
+      if B.Height() < 200 then
+        Str += '  Your box height (' + ToStr(B.Height()) + 'px) is too small to be a map, you will have issues with this.'
+      else if B.Width() < 200 then
+        Str += '  Your box width (' + ToStr(B.Width()) + 'px) is too small to be a map, you will have issues with this.'
+      else
+      begin
+        Str += '  TRSMap.Setup(_MAP, [';
+
+        Str += ToStr(B.X1) + ', ' + ToStr(B.Y1) + ', ' + ToStr(B.X2) + ', ' + ToStr(B.Y2);
+
+        Str += ']);';
+      end;
+  end;
+
+  WriteLn Str;
+end;
+
+
+procedure TRSMapMaker.OnFormShow(Sender: TObject);
+begin
+  Self.ImageBox.Update();
+  Self.PolyIndexEdit.setCaption('null');
+  Self.CoordinateEdit.setCaption('null, null');
+end;
+
+procedure TRSMapMaker.OnFormClose(Sender: TObject; var CloseAction: TCloseAction);
+begin
+  Self.OnPrintNodeArray(nil);
+end;
+
+procedure TRSMapMaker.Run();
+var
+  Panel: TPanel;
+  IndexLabel, NodeLabel: TLabel;
+  PrintButton, NewButton, ResetButton: TButton;
+begin
+  try
+    Self.Name :='MapMaker';
+
+    Self.Form.Init(nil);
+    Self.Form.SetPosition(poScreenCenter);
+    Self.Form.SetCaption('Map Maker');
+    Self.Form.SetWidth(1000);
+    Self.Form.SetHeight(1000);
+    Self.Form.GetFont.SetSize(10);
+    Self.Form.SetOnShow(@Self.OnFormShow);
+    Self.Form.SetOnClose(@Self.OnFormClose);
+
+    Panel.Init(Self.Form);
+    Panel.SetParent(Self.Form);
+    Panel.SetAutoSize(True);
+    Panel.SetAlign(alTop);
+
+    Self.CoordinateEdit.Init(Panel);
+    Self.CoordinateEdit.setParent(Panel);
+    Self.CoordinateEdit.setAutoSize(True);
+    Self.CoordinateEdit.setAlign(alLeft);
+
+    NodeLabel.Init(Panel);
+    NodeLabel.setParent(Panel);
+    NodeLabel.setAutoSize(True);
+    NodeLabel.setCaption(' Selected coordinate: ');
+    NodeLabel.setAlign(alLeft);
+
+    Self.PolyIndexEdit.Init(Panel);
+    Self.PolyIndexEdit.setParent(Panel);
+    Self.PolyIndexEdit.setAutoSize(True);
+    Self.PolyIndexEdit.setAlign(alLeft);
+
+    IndexLabel.Init(Panel);
+    IndexLabel.setParent(Panel);
+    IndexLabel.setAutoSize(True);
+    IndexLabel.setCaption(' Selected map: ');
+    IndexLabel.setAlign(alLeft);
+
+    ResetButton.Init(Panel);
+    ResetButton.SetParent(Panel);
+    ResetButton.SetAutoSize(True);
+    ResetButton.SetCaption('Reset');
+    ResetButton.SetOnClick(@Self.OnResetNodeArray);
+    ResetButton.setAlign(alLeft);
+
+    NewButton.Init(Panel);
+    NewButton.SetParent(Panel);
+    NewButton.SetAutoSize(True);
+    NewButton.SetCaption('New map');
+    NewButton.SetOnClick(@Self.OnNewNodeArray);
+    NewButton.setAlign(alLeft);
+
+    PrintButton.Init(Panel);
+    PrintButton.SetParent(Panel);
+    PrintButton.SetAutoSize(True);
+    PrintButton.SetCaption('Print maps');
+    PrintButton.SetOnClick(@Self.OnPrintNodeArray);
+    PrintButton.setAlign(alLeft);
+
+    Self.ImageBox.Init(Self.Form);
+    Self.ImageBox.SetParent(Self.Form);
+    Self.ImageBox.SetAlign(alClient);
+    Self.ImageBox.SetOnPaintArea(@Self.PaintArea);
+    Self.ImageBox.SetOnMouseMove(@Self.OnMouseMove);
+    Self.ImageBox.SetOnMouseDown(@Self.OnMouseDown);
+    Self.ImageBox.SetOnMouseUp(@Self.OnMouseUp);
+    Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
+    ImageBox.GetBackground.LoadFromMufasaBitmap(Self.Map);
+    ImageBox.BackgroundChanged;
+
+    WriteLn('Click:                Add or select node'    + LineEnding +
+            'Click + Drag:         Move selected node'    + LineEnding +
+            'Press Delete Key:     Remove Selected Node'  + LineEnding +
+            'Right Click + Drag:   Move around'           + LineEnding +
+            'Ctrl + Mouse Wheel:   Zoom');
+
+    Self.Form.ShowModal();
+    Self.Form.Free();
+  except
+    Writeln GetExceptionMessage;
+  end;
+end;
+
+begin
+  Sync(@MapMaker.Run);
+end.
+

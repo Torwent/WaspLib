@@ -1,3 +1,12 @@
+## [11.0.6](https://github.com/Torwent/WaspLib/compare/v11.0.5...v11.0.6) (2023-01-17)
+
+
+### Bug Fixes
+
+* refactored TRSMagic.CastSpell() for better logic. ([ce423fe](https://github.com/Torwent/WaspLib/commit/ce423fe11d95a95388d3efd604ebe4a9319c8748))
+
+
+
 ## [11.0.5](https://github.com/Torwent/WaspLib/compare/v11.0.4...v11.0.5) (2023-01-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * forgot to add the weapon.json file.... whoops! ([58d390d](https://github.com/Torwent/WaspLib/commit/58d390db4c911ee11b27385071186c84bb9a1fff))
-
-
-
-## [11.0.1](https://github.com/Torwent/WaspLib/compare/v11.0.0...v11.0.1) (2023-01-16)
-
-
-### Bug Fixes
-
-* added tithe farm region ([ca678e8](https://github.com/Torwent/WaspLib/commit/ca678e8de5160bb6a18e2161a4ec58e7cf4e3ba6))
 
 
 

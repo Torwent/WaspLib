@@ -1,3 +1,12 @@
+## [11.0.10](https://github.com/Torwent/WaspLib/compare/v11.0.9...v11.0.10) (2023-01-18)
+
+
+### Bug Fixes
+
+* this has been in SRL for a while. ([a4d9e50](https://github.com/Torwent/WaspLib/commit/a4d9e50905ee747c55dda3faa3db8e7d0fe15add))
+
+
+
 ## [11.0.9](https://github.com/Torwent/WaspLib/compare/v11.0.8...v11.0.9) (2023-01-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * refactored TRSMagic.CastSpell() for better logic. ([ce423fe](https://github.com/Torwent/WaspLib/commit/ce423fe11d95a95388d3efd604ebe4a9319c8748))
-
-
-
-## [11.0.5](https://github.com/Torwent/WaspLib/compare/v11.0.4...v11.0.5) (2023-01-17)
-
-
-### Bug Fixes
-
-* coordinate fixes and fixed utiltypes .Find() functions ([853aed4](https://github.com/Torwent/WaspLib/commit/853aed42e992f5abc94d41549aef7ac91ef6dc89))
 
 
 

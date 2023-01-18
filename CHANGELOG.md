@@ -1,3 +1,12 @@
+## [11.0.12](https://github.com/Torwent/WaspLib/compare/v11.0.11...v11.0.12) (2023-01-18)
+
+
+### Bug Fixes
+
+* updated wasplib template ([6b28c18](https://github.com/Torwent/WaspLib/commit/6b28c18f19de4c6f8e5a25a85a73398c825de38e))
+
+
+
 ## [11.0.11](https://github.com/Torwent/WaspLib/compare/v11.0.10...v11.0.11) (2023-01-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * better BaseBankScript.Withdraw() logic ([73fb6cd](https://github.com/Torwent/WaspLib/commit/73fb6cdca4d999fddca1bf1ec9d3ff04287f3921))
-
-
-
-## [11.0.7](https://github.com/Torwent/WaspLib/compare/v11.0.6...v11.0.7) (2023-01-17)
-
-
-### Bug Fixes
-
-* **TRSMMDots:** logic issue ([6013783](https://github.com/Torwent/WaspLib/commit/6013783afd6c1b14ba1cfd32142224098d79e754))
 
 
 

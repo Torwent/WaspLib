@@ -1,45 +1,45 @@
-## [10.6.5](https://github.com/Torwent/WaspLib/compare/v10.6.4...v10.6.5) (2023-01-11)
+## [11.0.9](https://github.com/Torwent/WaspLib/compare/v11.0.8...v11.0.9) (2023-01-18)
 
 
 ### Bug Fixes
 
-* read notes. ([3de8f7c](https://github.com/Torwent/WaspLib/commit/3de8f7c3c830d7123f208be628c31d258e3a9eea))
+* typo ([e94a1af](https://github.com/Torwent/WaspLib/commit/e94a1afd1edef8ca3989d4fdcb3fb7d807f4ad28))
 
 
 
-## [10.6.4](https://github.com/Torwent/WaspLib/compare/v10.6.3...v10.6.4) (2023-01-08)
-
-
-### Bug Fixes
-
-* **maps:** gotr.png added to wasplib ([df203a2](https://github.com/Torwent/WaspLib/commit/df203a24cd878242ee4c8550c574c2ff5f3390f4))
-
-
-
-## [10.6.3](https://github.com/Torwent/WaspLib/compare/v10.6.2...v10.6.3) (2023-01-08)
+## [11.0.8](https://github.com/Torwent/WaspLib/compare/v11.0.7...v11.0.8) (2023-01-18)
 
 
 ### Bug Fixes
 
-* **consumablehandler:** fixed a nasty bug in consumable handler that made it not wirthdraw food on certain scripts. ([b9c85a8](https://github.com/Torwent/WaspLib/commit/b9c85a86e9aa70834ddde3baf7d71b1d03350a48))
+* better BaseBankScript.Withdraw() logic ([73fb6cd](https://github.com/Torwent/WaspLib/commit/73fb6cdca4d999fddca1bf1ec9d3ff04287f3921))
 
 
 
-## [10.6.2](https://github.com/Torwent/WaspLib/compare/v10.6.1...v10.6.2) (2023-01-06)
-
-
-### Bug Fixes
-
-* crafting guild upstairs map ([1928a86](https://github.com/Torwent/WaspLib/commit/1928a860dd2d9fc5c7f76589efb6c1338efa68b6))
-
-
-
-## [10.6.1](https://github.com/Torwent/WaspLib/compare/v10.6.0...v10.6.1) (2023-01-06)
+## [11.0.7](https://github.com/Torwent/WaspLib/compare/v11.0.6...v11.0.7) (2023-01-17)
 
 
 ### Bug Fixes
 
-* had to rename TRSTanner to TRSTanScreen ([d39311d](https://github.com/Torwent/WaspLib/commit/d39311d3567f5534e381e9169e5b3b71ff0c9cce))
+* **TRSMMDots:** logic issue ([6013783](https://github.com/Torwent/WaspLib/commit/6013783afd6c1b14ba1cfd32142224098d79e754))
+
+
+
+## [11.0.6](https://github.com/Torwent/WaspLib/compare/v11.0.5...v11.0.6) (2023-01-17)
+
+
+### Bug Fixes
+
+* refactored TRSMagic.CastSpell() for better logic. ([ce423fe](https://github.com/Torwent/WaspLib/commit/ce423fe11d95a95388d3efd604ebe4a9319c8748))
+
+
+
+## [11.0.5](https://github.com/Torwent/WaspLib/compare/v11.0.4...v11.0.5) (2023-01-17)
+
+
+### Bug Fixes
+
+* coordinate fixes and fixed utiltypes .Find() functions ([853aed4](https://github.com/Torwent/WaspLib/commit/853aed42e992f5abc94d41549aef7ac91ef6dc89))
 
 
 

@@ -1,6 +1,6 @@
 (*
-Walker extensions
-=================
+Walker
+======
 Extensions to SRL's TRSWalker.
 *)
 
@@ -9,13 +9,12 @@ Extensions to SRL's TRSWalker.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-{$I walker_regions.simba}
 {$I waspweb.graph}
 
 const
   WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
-  WALKER_MAP_VERSION = '1'; // Inc if images have changed
+  WL_WALKER_MAP_VERSION = '1'; //Increment when maps are updated to force recaching.
 
 type
 (*
@@ -68,6 +67,83 @@ begin
     Exit;
 
   Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
+end;
+
+(*
+TRSWalkerMap.InternalCacheMap
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerMap.InternalCacheMap(FileName: String): String; static; override;
+
+Overrides SRL's TRSWalkerMap.InternalCacheMap() so maps cached files can be versioned with WL_WALKER_MAP_VERSION.
+Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
+This is an internal TRSWalkerMap method and you should probably not use it directly.
+*)
+function TRSWalkerMap.InternalCacheMap(FileName: String): String; static; override;
+var
+  Bitmap: TMufasaBitmap;
+begin
+  if ExtractFileExt(FileName) <> '.bmp' then
+  begin
+    Result := DATAPATH + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1File(FileName) + '.bmp';
+    if not FileExists(Result) then
+    begin
+      if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
+        TerminateScript('Failed to create TRSWalker cache directories.');
+
+      WriteLn('Caching ' + ExtractFileName(FileName) + ' this can take ~10 seconds.');
+
+      Bitmap.Init();
+      Bitmap.LoadFromFile(FileName);
+      Bitmap.SaveToFile(Result);
+      Bitmap.Free();
+    end;
+  end else
+    Result := FileName;
+end;
+
+(*
+TRSWalkerMap.InternalLoadMap
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerMap.InternalLoadMap(FileName: String; Region: TBox = []): TMufasaBitmap; static; override;
+
+Overrides SRL's TRSWalkerMap.InternalLoadMap() so maps cached files can be versioned with WL_WALKER_MAP_VERSION.
+Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
+This is an internal TRSWalkerMap method and you should probably not use it directly.
+*)
+function TRSWalkerMap.InternalLoadMap(FileName: String; Region: TBox = []): TMufasaBitmap; static; override;
+var
+  CacheFileName: String;
+begin
+  if ExtractFileExt(FileName) <> '.bmp' then
+  begin
+    CacheFileName := DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1String(FileName) + '.bmp';
+    if not FileExists(CacheFileName) then
+    begin
+      if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
+        TerminateScript('Failed to create TRSWalker cache directories.');
+
+      WriteLn('Caching ' + ExtractFileName(FileName) + ' this can take ~10 seconds.');
+
+      Result.Init();
+      Result.LoadFromFile(TRSWalkerMap.FindMap(FileName));
+      Result.SaveToFile(CacheFileName);
+      if (Region <> []) then
+        Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
+
+      Exit;
+    end;
+
+    FileName := CacheFileName;
+  end;
+
+  Result.Init();
+
+  if (Region <> []) then
+  begin
+    Result.LoadFromFile(FileName);
+    Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
+  end else
+    Result.LoadFromFile(FileName);
 end;
 
 (*
@@ -724,19 +800,29 @@ function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; shapeArray:
 var
   angle, meHeight: Double;
   i: Int32;
+  tmpShapes: TRSMainScreenShapeArray;
 begin
   locArray := locArray.SortFrom(me);
   angle := Minimap.GetCompassAngle(False);
+  SetLength(tmpShapes, Length(shapeArray));
+
   if RSHeightMap.Enabled then
-    meHeight := Self.GetHeight(me);
+    meHeight := Self.GetHeight(me)
+  else
+    tmpShapes := shapeArray;
 
   for i := 0 to High(locArray) do
   begin
     if RSHeightMap.Enabled then
-      shapeArray[i].Tile.Z -= Self.GetHeightDiff(locArray[i]);
+    begin
+      tmpShapes[i].Tile.X := shapeArray[i].Tile.X;
+      tmpShapes[i].Tile.Y := shapeArray[i].Tile.Y;
+      tmpShapes[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+      tmpShapes[i].Angle := shapeArray[i].Angle;
+    end;
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
-    Result += Minimap.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle);
+    Result += Minimap.GetTileMS(locArray[i], tmpShapes[i].Tile, offset, angle + tmpShapes[i].Angle);
   end;
 end;
 
@@ -807,24 +893,33 @@ var
   angle, meHeight: Double;
   i: Int32;
   tmpArray: TPointArray;
+  tmpShapes: TRSMainScreenShapeArray;
 begin
   angle := Minimap.GetCompassAngle(False);
   tmpArray := Copy(locArray);
+  SetLength(tmpShapes, Length(shapeArray));
 
   if RSHeightMap.Enabled then
-    meHeight := Self.GetHeight(me);
+    meHeight := Self.GetHeight(me)
+  else
+    tmpShapes := shapeArray;
 
   for i := 0 to High(tmpArray) do
   begin
     if RSHeightMap.Enabled then
-      shapeArray[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+    begin
+      tmpShapes[i].Tile.X := shapeArray[i].Tile.X;
+      tmpShapes[i].Tile.Y := shapeArray[i].Tile.Y;
+      tmpShapes[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+      tmpShapes[i].Angle := shapeArray[i].Angle;
+    end;
+
     tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
   end;
 
-  Result := Minimap.GetCuboidArrayMS(tmpArray, shapeArray, Offset, angle);
+  Result := Minimap.GetCuboidArrayMS(tmpArray, tmpShapes, Offset, angle);
 end;
 
-(* TODO: FIX TRSWalker.GetCuboidArrayMS *)
 function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; Offset: Vector2 = [0, 0]): TCuboidArray; overload;
 var
   angle, meHeight: Double;

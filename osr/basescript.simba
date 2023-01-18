@@ -59,7 +59,10 @@ Example
 *)
 type
   TBaseScript = record(TSRLBaseRecord)
-    Revision: String;
+    ID,
+    Revision,
+
+    BioHashStr,
     Welcome: String;
 
     TimeRunning: TStopwatch;
@@ -202,6 +205,14 @@ var
   tmpArr: TStringArray;
 {$ENDIF}
 begin
+  if not StatsClient.IsSetup or StatsClient.Timer.IsFinished() then
+  begin
+    if Self.BioHashStr = '' then
+      Self.BioHashStr := StatsClient.GenerateBioHash(BioHash);
+
+    StatsClient.SubmitStats(Self.BioHashStr);
+  end;
+
   ProgressReport.ProgressArray := Self.BuildTextReport();
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
@@ -277,6 +288,8 @@ begin
 
   //TotalConsumableCost := 0;
   Self.DisableDebugging := True;
+  {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+  Self.ID := {$macro SCRIPT_ID};
   {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
   Self.Revision := {$macro SCRIPT_REVISION};
 
@@ -318,8 +331,16 @@ begin
     Login.LoginPlayer();
 
   Antiban.Setup();
+
+  //wasp-stats
+  if not StatsClient.Disabled then
+    StatsClient.Disabled := not WLSettings.Stats;
+  StatsPayload.Setup(Self.ID, StatsClient.GeneratePassword());
+  StatsClient.TimeStamp := GetTickCount();
   //override me to add more stuff.
 end;
+
+
 
 procedure TBaseScript.SetAction(Action: String);
 begin
@@ -489,8 +510,10 @@ Example
   until Script2.ShouldStop();
 *)
 function TBaseBankScript.Terminate(): Boolean;
+var
+  i: Int32;
 begin
-  for 0 to 5 do
+  for i := 0 to 5 do
   begin
     if MainScreen.HasInterface() then
     begin
@@ -519,9 +542,9 @@ begin
 end;
 
 (*
-BaseBankScript.ShouldHover
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TBaseBankScript.ShouldHover(): Boolean;
+BaseBankScript.ShouldHoverBank
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.ShouldHoverBank(): Boolean;
 
 Method used to decide if we should pre-hover the bank or not.
 It uses the amount of items left in the inventory stored by TBaseBankScript.CountItemsLeft()
@@ -533,8 +556,8 @@ pre-hover the bank.
 Example
 -------
 
-  if Script.ShouldHover() then
-    Script.Hover();
+  if Script.ShouldHoverBank() then
+    Script.HoverBank();
 *)
 function TBaseBankScript.ShouldHoverBank(): Boolean;
 begin
@@ -548,23 +571,21 @@ begin
 end;
 
 (*
-BaseBankScript.Hover
-~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TBaseBankScript.Hover(): Boolean;
+BaseBankScript.HoverBank
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TBaseBankScript.HoverBank(): Boolean;
 
-Moves the mouse to the TBaseBankScript.CurrentBank RSObject.
+Moves the mouse to the closest RSObjects.Banks
 
 Example
 -------
 
-  BankScript.Hover();
+  BankScript.HoverBank();
 *)
 function TBaseBankScript.HoverBank(): Boolean;
 begin
   Result := Self.HoveringBank := Bank.Hover();
 end;
-
-
 
 
 (*
@@ -585,29 +606,31 @@ var
   useButton: Boolean;
 begin
   if Self.BankTab = -1 then
-    Self.BankTab := Bank.FindItemTab(item.Item);
-
-  if Self.BankTab = -1 then
   begin
-    Self.BankEmpty := True;
-    Exit;
+    Self.BankTab := Bank.FindItemTab(item.Item);
+    Self.BankEmpty := Self.BankTab = -1;
+
+    if Self.BankEmpty then
+      Exit;
   end;
 
   stackCount := Inventory.CountItemStack(item.Item);
-  invCount := Inventory.Count();
+  invCount   := Inventory.Count();
 
-  if (invCount = 28) then //no space to withdraw the item.
+  if (invCount = 28) then //maybe no space to withdraw the item.
   begin
+    //no space and we don't have the item or the item is not stackable. we can't withdraw.
     if not Inventory.ContainsItem(item.Item) or (stackCount <= 0) then
       Exit;
   end;
 
-  useButton := item.Quantity <> 1;
+  useButton := item.Quantity <> 1; //I'm gonna assume 1 quantity that it's a tool.
 
   if Bank.WithdrawItem(Self.BankTab, item, useButton) then
     Result := WaitUntil((Inventory.Count() > invCount) or (Inventory.CountItemStack(item.Item) > stackCount), 100, 3000);
 
-  Self.BankEmpty := not Result and not Bank.ContainsItem(Item);
+  if not Result then
+    Self.BankEmpty := not WaitUntil(Bank.ContainsItem(Self.BankTab, item), 300, 3000);
 
   if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
     Self.CollectEmpty := False;

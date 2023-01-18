@@ -1,3 +1,12 @@
+## [11.0.9](https://github.com/Torwent/WaspLib/compare/v11.0.8...v11.0.9) (2023-01-18)
+
+
+### Bug Fixes
+
+* typo ([e94a1af](https://github.com/Torwent/WaspLib/commit/e94a1afd1edef8ca3989d4fdcb3fb7d807f4ad28))
+
+
+
 ## [11.0.8](https://github.com/Torwent/WaspLib/compare/v11.0.7...v11.0.8) (2023-01-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * coordinate fixes and fixed utiltypes .Find() functions ([853aed4](https://github.com/Torwent/WaspLib/commit/853aed42e992f5abc94d41549aef7ac91ef6dc89))
-
-
-
-## [11.0.4](https://github.com/Torwent/WaspLib/compare/v11.0.3...v11.0.4) (2023-01-16)
-
-
-### Bug Fixes
-
-* **seagulls:** minor fix to seagulls ([7ea49ed](https://github.com/Torwent/WaspLib/commit/7ea49ed812226633b96d160defd826c3cc4eb00b))
 
 
 

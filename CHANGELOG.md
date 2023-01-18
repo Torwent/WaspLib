@@ -1,3 +1,12 @@
+## [11.0.8](https://github.com/Torwent/WaspLib/compare/v11.0.7...v11.0.8) (2023-01-18)
+
+
+### Bug Fixes
+
+* better BaseBankScript.Withdraw() logic ([73fb6cd](https://github.com/Torwent/WaspLib/commit/73fb6cdca4d999fddca1bf1ec9d3ff04287f3921))
+
+
+
 ## [11.0.7](https://github.com/Torwent/WaspLib/compare/v11.0.6...v11.0.7) (2023-01-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **seagulls:** minor fix to seagulls ([7ea49ed](https://github.com/Torwent/WaspLib/commit/7ea49ed812226633b96d160defd826c3cc4eb00b))
-
-
-
-## [11.0.3](https://github.com/Torwent/WaspLib/compare/v11.0.2...v11.0.3) (2023-01-16)
-
-
-### Bug Fixes
-
-* **walker:** added versioning to walker maps ([11dd8b0](https://github.com/Torwent/WaspLib/commit/11dd8b0f1a7311cfac023e0e59c77479190720d5))
 
 
 

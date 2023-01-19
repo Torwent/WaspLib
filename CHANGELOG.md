@@ -1,3 +1,12 @@
+## [11.0.13](https://github.com/Torwent/WaspLib/compare/v11.0.12...v11.0.13) (2023-01-19)
+
+
+### Bug Fixes
+
+* **StatsClient:** Removed levels from stats, it is now handled by the database ([718d1bf](https://github.com/Torwent/WaspLib/commit/718d1bf9e1b3c15a212c2581074dce6ae6aeee8c))
+
+
+
 ## [11.0.12](https://github.com/Torwent/WaspLib/compare/v11.0.11...v11.0.12) (2023-01-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * typo ([e94a1af](https://github.com/Torwent/WaspLib/commit/e94a1afd1edef8ca3989d4fdcb3fb7d807f4ad28))
-
-
-
-## [11.0.8](https://github.com/Torwent/WaspLib/compare/v11.0.7...v11.0.8) (2023-01-18)
-
-
-### Bug Fixes
-
-* better BaseBankScript.Withdraw() logic ([73fb6cd](https://github.com/Torwent/WaspLib/commit/73fb6cdca4d999fddca1bf1ec9d3ff04287f3921))
 
 
 

@@ -1,3 +1,12 @@
+## [11.0.16](https://github.com/Torwent/WaspLib/compare/v11.0.15...v11.0.16) (2023-01-19)
+
+
+### Bug Fixes
+
+* bank names in the scriptform is now capitalized. ([dc4b9fc](https://github.com/Torwent/WaspLib/commit/dc4b9fcc0721d392b7d10c1addec10c710d7f0b4))
+
+
+
 ## [11.0.15](https://github.com/Torwent/WaspLib/compare/v11.0.14...v11.0.15) (2023-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * updated wasplib template ([6b28c18](https://github.com/Torwent/WaspLib/commit/6b28c18f19de4c6f8e5a25a85a73398c825de38e))
-
-
-
-## [11.0.11](https://github.com/Torwent/WaspLib/compare/v11.0.10...v11.0.11) (2023-01-18)
-
-
-### Bug Fixes
-
-* Make sure the TBox is not out of bounds ([b576349](https://github.com/Torwent/WaspLib/commit/b57634907dabc88128bac562599503d7e3b6de26))
 
 
 

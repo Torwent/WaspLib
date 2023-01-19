@@ -1,3 +1,5 @@
+{$UNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}
+{$UNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}
 {$IFDEF WINDOWS}{$DEFINE SCRIPT_GUI}{$ENDIF}
 {$I SRL-T/osr.simba}
 {$I WaspLib/osr.simba}
@@ -17,18 +19,29 @@ var
 
 type
   EState = (
-    WAIT_STATE
+    WAIT_STATE,
+
+    OPEN_BANK,
+    WITHDRAW_ITEMS,
+    DEPOSIT_ITEMS,
+    DEPOSIT_RANDOM_ITEMS,
+    OPEN_COLLECT,
+    HANDLE_COLLECT,
+    CLOSE_INTERFACE,
+
+    OUT_OF_SUPPLIES,
+    END_SCRIPT
   );
 
-  TScript = record(TBaseWalkerScript)
+  TScript = record(TBaseBankScript)
     State: EState;
   end;
 
 procedure TAntiban.Setup(); override;
 begin
-  Antiban.Skills := [ERSSkill.TOTAL];
-  Antiban.MinZoom := 15;
-  Antiban.MaxZoom := 40;
+  Self.Skills := [ERSSkill.TOTAL];
+  Self.MinZoom := 15;
+  Self.MaxZoom := 40;
 
   inherited;
 end;
@@ -42,7 +55,40 @@ end;
 
 function TScript.GetState(): EState;
 begin
-  Exit(EState.WAIT_STATE);
+  if WL.Activity.IsFinished() then
+    Exit(END_SCRIPT);
+
+  if MainScreen.HasInterface() then
+  begin
+    if not Self.BankEmpty and Bank.IsOpen() then
+    begin
+      if True then  //add your deposit items condition
+        Exit(DEPOSIT_ITEMS);
+
+      if False then //add your withdraw items condition
+        Exit(WITHDRAW_ITEMS);
+    end;
+
+    if not Self.CollectEmpty and CollectBox.IsOpen() then
+      Exit(HANDLE_COLLECT);
+
+    Exit(CLOSE_INTERFACE);
+  end;
+
+  if True then //add your task is done condition
+  begin
+    if Self.BankEmpty then
+    begin
+      if Self.CollectEmpty then
+        Exit(OUT_OF_SUPPLIES);
+
+      Exit(OPEN_COLLECT);
+    end;
+
+    Exit(OPEN_BANK);
+  end;
+
+  Exit(WAIT_STATE);
 end;
 
 procedure TScript.Run(MaxActions: Int32; MaxTime: Int64);
@@ -55,6 +101,17 @@ begin
 
     case State of
       WAIT_STATE: Wait(500, 800);
+
+      OPEN_BANK: Bank.WalkOpen();
+
+      WITHDRAW_ITEMS: Self.Withdraw([]);
+      DEPOSIT_ITEMS: Bank.DepositAll();
+      DEPOSIT_RANDOM_ITEMS: Bank.DepositAllBut(Self.BankTab, []);
+      OPEN_COLLECT: CollectBox.WalkOpen();
+      HANDLE_COLLECT: Self.HandleCollectBox([]);
+      CLOSE_INTERFACE: MainScreen.CloseInterface();
+
+      OUT_OF_SUPPLIES, END_SCRIPT: Break;
     end;
 
     Self.DoAntiban();
@@ -77,7 +134,7 @@ begin
   CurrentTask := ETask(Self.Selector.Combobox.getItemIndex);
 end;
 
-procedure TConfig.Setup(); override;
+procedure TConfig.Setup(UseFood, UsePrayer, UseBank: Boolean); override;
 begin
   inherited;
 
@@ -98,7 +155,7 @@ end;
 
 procedure TConfig.Run(); override;
 begin
-  Self.Setup();
+  Self.Setup(False, False, True);
 
   inherited;
 end;

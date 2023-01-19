@@ -1,0 +1,122 @@
+{$UNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}
+{$UNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}
+{$IFDEF WINDOWS}{$DEFINE SCRIPT_GUI}{$ENDIF}
+{$I SRL-T/osr.simba}
+{$I WaspLib/osr.simba}
+
+begin
+  Login.PlayerIndex     := 0;
+  StatsPayload.Username := '';
+end;
+
+type
+  ETask = (
+    TASK_TO_DO
+  );
+
+var
+  CurrentTask: ETask := ETask.TASK_TO_DO;
+
+type
+  EState = (
+    WAIT_STATE,
+    END_SCRIPT
+  );
+
+  TScript = record(TBaseWalkerScript)
+    State: EState;
+  end;
+
+procedure TAntiban.Setup(); override;
+begin
+  Self.Skills := [ERSSkill.TOTAL];
+  Self.MinZoom := 15;
+  Self.MaxZoom := 40;
+
+  inherited;
+end;
+
+procedure TScript.Init(MaxActions: Int32; MaxTime: Int64); override;
+begin
+  inherited;
+
+  RSW.Setup([RSRegions.GRAND_EXCHANGE]);
+end;
+
+function TScript.GetState(): EState;
+begin
+  if WL.Activity.IsFinished() then
+    Exit(EOffererState.END_SCRIPT);
+
+  Exit(EState.WAIT_STATE);
+end;
+
+procedure TScript.Run(MaxActions: Int32; MaxTime: Int64);
+begin
+  Self.Init(MaxActions, MaxTime);
+
+  repeat
+    Self.State := Self.GetState();
+    Self.SetAction(ToStr(Self.State));
+
+    case State of
+      WAIT_STATE: Wait(500, 800);
+      END_SCRIPT: Break;
+    end;
+
+    Self.DoAntiban();
+  until Self.ShouldStop();
+end;
+
+var
+  Script: TScript;
+
+{$IFDEF SCRIPT_GUI}
+type
+  TConfig = record(TScriptForm)
+    Selector: TLabeledCombobox;
+  end;
+
+procedure TConfig.StartScript(Sender: TObject);
+begin
+  Self.Init(Sender);
+
+  CurrentTask := ETask(Self.Selector.Combobox.getItemIndex);
+end;
+
+procedure TConfig.Setup(); override;
+begin
+  inherited;
+
+  with Selector do
+  begin
+    Init(Self.SSPanel.Panel);
+    SetCaption('Task:');
+    SetLeft(5);
+    SetTop(35);
+    SetWidth(200);
+    Combobox.setStyle(csDropDownList);
+    AddItem('Task to do');
+    SetItemIndex(Ord(CurrentTask));
+  end;
+
+  Self.WLPanel.StartButton.setOnClick(@Self.StartScript);
+end;
+
+procedure TConfig.Run(); override;
+begin
+  Self.Setup();
+
+  inherited;
+end;
+
+var
+  Config: TConfig;
+{$ENDIF}
+
+begin
+  {$IFDEF SCRIPT_GUI}
+  Sync(@Config.Run);
+  {$ENDIF}
+  Script.Run(WLSettings.MaxActions, WLSettings.MaxTime);
+end.

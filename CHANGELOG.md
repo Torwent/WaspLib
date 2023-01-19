@@ -1,3 +1,12 @@
+## [11.0.15](https://github.com/Torwent/WaspLib/compare/v11.0.14...v11.0.15) (2023-01-19)
+
+
+### Performance Improvements
+
+* **RSFishingHandler:** small performance improvement ([44e2723](https://github.com/Torwent/WaspLib/commit/44e272311a8754d28968357811a613624ec43911))
+
+
+
 ## [11.0.14](https://github.com/Torwent/WaspLib/compare/v11.0.13...v11.0.14) (2023-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Make sure the TBox is not out of bounds ([b576349](https://github.com/Torwent/WaspLib/commit/b57634907dabc88128bac562599503d7e3b6de26))
-
-
-
-## [11.0.10](https://github.com/Torwent/WaspLib/compare/v11.0.9...v11.0.10) (2023-01-18)
-
-
-### Bug Fixes
-
-* this has been in SRL for a while. ([a4d9e50](https://github.com/Torwent/WaspLib/commit/a4d9e50905ee747c55dda3faa3db8e7d0fe15add))
 
 
 

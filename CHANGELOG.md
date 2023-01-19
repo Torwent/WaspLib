@@ -1,3 +1,12 @@
+## [11.0.14](https://github.com/Torwent/WaspLib/compare/v11.0.13...v11.0.14) (2023-01-19)
+
+
+### Bug Fixes
+
+* removed leftover debugging in casting magic spells ([db9cf8c](https://github.com/Torwent/WaspLib/commit/db9cf8c9dd9b694d529ff1ff45235b83d1e89bbb))
+
+
+
 ## [11.0.13](https://github.com/Torwent/WaspLib/compare/v11.0.12...v11.0.13) (2023-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * this has been in SRL for a while. ([a4d9e50](https://github.com/Torwent/WaspLib/commit/a4d9e50905ee747c55dda3faa3db8e7d0fe15add))
-
-
-
-## [11.0.9](https://github.com/Torwent/WaspLib/compare/v11.0.8...v11.0.9) (2023-01-18)
-
-
-### Bug Fixes
-
-* typo ([e94a1af](https://github.com/Torwent/WaspLib/commit/e94a1afd1edef8ca3989d4fdcb3fb7d807f4ad28))
 
 
 

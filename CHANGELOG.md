@@ -1,3 +1,12 @@
+## [11.0.19](https://github.com/Torwent/WaspLib/compare/v11.0.18...v11.0.19) (2023-01-20)
+
+
+### Bug Fixes
+
+* wasplib now reports to wasp-stats account bans. ([749e145](https://github.com/Torwent/WaspLib/commit/749e1453c112f21e63c5bad59fc2be70d48752a2))
+
+
+
 ## [11.0.18](https://github.com/Torwent/WaspLib/compare/v11.0.17...v11.0.18) (2023-01-20)
 
 
@@ -38,15 +47,6 @@
 ### Performance Improvements
 
 * **RSFishingHandler:** small performance improvement ([44e2723](https://github.com/Torwent/WaspLib/commit/44e272311a8754d28968357811a613624ec43911))
-
-
-
-## [11.0.14](https://github.com/Torwent/WaspLib/compare/v11.0.13...v11.0.14) (2023-01-19)
-
-
-### Bug Fixes
-
-* removed leftover debugging in casting magic spells ([db9cf8c](https://github.com/Torwent/WaspLib/commit/db9cf8c9dd9b694d529ff1ff45235b83d1e89bbb))
 
 
 

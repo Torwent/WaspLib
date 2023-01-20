@@ -1,0 +1,64 @@
+(*
+Login
+=====
+Overrides to SRL TRSLogin.
+*)
+
+{$DEFINE WL_LOGIN_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+(*
+Login.HandleMessage
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSLogin.HandleMessage(Message: String): Boolean; override;
+
+Overriden to submit to wasp stats if an account was banned.
+*)
+function TRSLogin.HandleMessage(Message: String): Boolean; override;
+begin
+  Self.DebugLn('WL Handling login message: ' + Message);
+
+  case Message of
+    LOGIN_MESSAGE_ACCOUNT_DISABLED,
+    LOGIN_MESSAGE_ACCOUNT_RULE_BREAKER:
+      begin
+        StatsPayload.Update(true);
+        StatsClient.SubmitStats(StatsClient.GenerateBioHash());
+
+        Self.Fatal('Account is banned!');
+      end;
+
+    // Cannot recover
+    LOGIN_MESSAGE_MEMBERS,
+    LOGIN_MESSAGE_IN_MEMBERS_AREA,
+    LOGIN_MESSAGE_NEED_SKILL_TOTAL,
+    LOGIN_MESSAGE_AUTHENTICATOR:
+      Result := False;
+
+    // Retry
+    LOGIN_MESSAGE_INVALID_CREDENTIALS,
+    LOGIN_MESSAGE_INVALID_USER_PASS:
+      Result := True;
+
+    // Retry after ~15 seconds
+    LOGIN_MESSAGE_ERROR_CONNECTING,
+    LOGIN_MESSAGE_ACCOUNT_NOT_LOGGED_OUT,
+    LOGIN_MESSAGE_LOGIN_SERVER_OFFLINE,
+    LOGIN_MESSAGE_ERROR_LOADING_PROFILE,
+    LOGIN_MESSAGE_CONNECTION_TIMED_OUT,
+    LOGIN_MESSAGE_LOGIN_LIMIT_EXCEEDED,
+    LOGIN_MESSAGE_WORLD_FULL:
+      begin
+        Wait(10000, 20000);
+
+        Result := True;
+      end;
+
+    // No handler
+    else
+      Self.Fatal('Unknown login message');
+  end;
+end;
+

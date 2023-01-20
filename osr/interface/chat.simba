@@ -28,13 +28,13 @@ begin
   b.Y2 -= 75;
 
   skillStr := OCR.Recognize(b, TOCRColorRule.Create([0]), RS_FONT_QUILL_8);
-  skillStr := skillStr.After('Your ').Before(' level').ToLower();
+  skillStr := skillStr.After('Your ').Before(' level').ToLower().Trim();
 
   for i := Ord(ERSSkill.ATTACK) to Ord(ERSSkill.TOTAL) do
     if skillStr in ToStr(ERSSkill(i)).After('ERSSkill.').ToLower() then
       Break;
 
-  if i = Ord(ERSSkill.TOTAL) then
+  if i >= Ord(ERSSkill.TOTAL) then
     Exit;
 
   BaseStats.IncrementLevel(ERSSkill(i));
@@ -42,10 +42,14 @@ begin
 end;
 
 
-function TRSChat.HandleLevelUp(useKeyboard: Boolean): Boolean;
+function TRSChat.HandleLevelUp(chance: Double = BioHash): Boolean;
+var
+  useKeyboard: Boolean;
 begin
-  if not Self.LeveledUp() then
-    Exit;
+  if chance = BioHash then
+    useKeyboard := Antiban.BioDice(EBioBehavior.KEYBOARD_CHAT_CHANCE)
+  else
+    useKeyboard := SRL.Dice(chance);
 
   repeat
     Self.ClickContinue(useKeyboard);

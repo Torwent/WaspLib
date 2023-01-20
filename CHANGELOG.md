@@ -1,3 +1,12 @@
+## [11.0.20](https://github.com/Torwent/WaspLib/compare/v11.0.19...v11.0.20) (2023-01-20)
+
+
+### Bug Fixes
+
+* bird nests ([ed3461c](https://github.com/Torwent/WaspLib/commit/ed3461cc865ef799c1bd908856ec287b6c57ab81))
+
+
+
 ## [11.0.19](https://github.com/Torwent/WaspLib/compare/v11.0.18...v11.0.19) (2023-01-20)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * bank names in the scriptform is now capitalized. ([dc4b9fc](https://github.com/Torwent/WaspLib/commit/dc4b9fcc0721d392b7d10c1addec10c710d7f0b4))
-
-
-
-## [11.0.15](https://github.com/Torwent/WaspLib/compare/v11.0.14...v11.0.15) (2023-01-19)
-
-
-### Performance Improvements
-
-* **RSFishingHandler:** small performance improvement ([44e2723](https://github.com/Torwent/WaspLib/commit/44e272311a8754d28968357811a613624ec43911))
 
 
 

@@ -1,3 +1,12 @@
+## [11.0.18](https://github.com/Torwent/WaspLib/compare/v11.0.17...v11.0.18) (2023-01-20)
+
+
+### Bug Fixes
+
+* reverting remoteinput change ([6d42336](https://github.com/Torwent/WaspLib/commit/6d423365a99be6d3f2c8eb410bca4ebf1e322246))
+
+
+
 ## [11.0.17](https://github.com/Torwent/WaspLib/compare/v11.0.16...v11.0.17) (2023-01-20)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * removed leftover debugging in casting magic spells ([db9cf8c](https://github.com/Torwent/WaspLib/commit/db9cf8c9dd9b694d529ff1ff45235b83d1e89bbb))
-
-
-
-## [11.0.13](https://github.com/Torwent/WaspLib/compare/v11.0.12...v11.0.13) (2023-01-19)
-
-
-### Bug Fixes
-
-* **StatsClient:** Removed levels from stats, it is now handled by the database ([718d1bf](https://github.com/Torwent/WaspLib/commit/718d1bf9e1b3c15a212c2581074dce6ae6aeee8c))
 
 
 

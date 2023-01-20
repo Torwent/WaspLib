@@ -1,3 +1,12 @@
+## [11.0.21](https://github.com/Torwent/WaspLib/compare/v11.0.20...v11.0.21) (2023-01-20)
+
+
+### Bug Fixes
+
+* BaseStats won't crash scripts anymore if the skill is not recognized from the chatbox ([9dc63c8](https://github.com/Torwent/WaspLib/commit/9dc63c8ca3e468b6de61d55d0a3f5e95167238fc))
+
+
+
 ## [11.0.20](https://github.com/Torwent/WaspLib/compare/v11.0.19...v11.0.20) (2023-01-20)
 
 
@@ -38,15 +47,6 @@
 * read comments ([8a15aab](https://github.com/Torwent/WaspLib/commit/8a15aab4dea6ee6e02348b5417f5d111ab844773))
 * revert gitignore ([1561936](https://github.com/Torwent/WaspLib/commit/1561936477f4c0d76428dcd149f3f709d4496934))
 * temporarily remove overrides.simba from gitignore ([1e11c1e](https://github.com/Torwent/WaspLib/commit/1e11c1e42c037dc5af5ea9404965412991ee0eb5))
-
-
-
-## [11.0.16](https://github.com/Torwent/WaspLib/compare/v11.0.15...v11.0.16) (2023-01-19)
-
-
-### Bug Fixes
-
-* bank names in the scriptform is now capitalized. ([dc4b9fc](https://github.com/Torwent/WaspLib/commit/dc4b9fcc0721d392b7d10c1addec10c710d7f0b4))
 
 
 

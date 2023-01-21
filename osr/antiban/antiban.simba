@@ -4,7 +4,7 @@
 {$ENDIF}
 
 {$H-}
-procedure OnStartTask(Task: PAntibanTask);
+procedure OnStartAntibanTask(Task: PAntibanTask);
 var
   str: String;
 begin
@@ -20,7 +20,7 @@ begin
     ProgressReport.Update(ProgressReport.ProgressArray);
 end;
 
-procedure OnBreaking(Task: PBreakTask; var countdown: TCountdown);
+procedure OnBreakingTask(Task: PBreakTask; var countdown: TCountdown);
 var
   str: String;
 begin
@@ -36,13 +36,17 @@ begin
     ProgressReport.Update(ProgressReport.ProgressArray);
 end;
 
-procedure OnSleeping(Task: PSleepTask; var countdown: TCountdown);
+procedure OnSleepingTask(Task: PSleepTask; var Countdown: TCountdown);
+var
+  str: String;
 begin
   if Length(ProgressReport.ProgressArray) < 1 then
     Exit;
 
-  //ProgressReport.ProgressArray[0] := ' Sleeping      : ' + SRL.MsToTime(countdown.TimeRemaining(), Time_Short).Trim();
-  //ProgressReport.ProgressArray[1] := ' Runtime       : ' + SRL.MsToTime(ProgressReport.PTimeRunning^.ElapsedTime, Time_Short).Trim();
+  str := ' Sleeping      : ' + SRL.MsToTime(countdown.TimeRemaining(), Time_Short).Trim();
+  ProgressReport.ProgressArray[0] := str;
+  str := ' Runtime       : ' + SRL.MsToTime(ProgressReport.PTimeRunning^.ElapsedTime, Time_Short).Trim();
+  ProgressReport.ProgressArray[1] := str;
 
   if WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.ScriptDebug then
     ProgressReport.Update(ProgressReport.ProgressArray);
@@ -502,7 +506,7 @@ begin
   if WLSettings.Antiban.GameTabs then
     Self.AddTask(18 * ONE_MINUTE, @Self.HoverSkills, 0.33);
 
-  Self.OnStartTask := @OnStartTask;
+  Self.OnStartTask := @OnStartAntibanTask;
 end;
 
 procedure TAntiban.SetupBreaks();
@@ -515,7 +519,7 @@ begin
   Self.AddBreak(60  * ONE_MINUTE, 10 * ONE_MINUTE, 0.33, 0.2 + BioHash);
   Self.AddBreak(120 * ONE_MINUTE, 30 * ONE_MINUTE, 0.33, 0.5 + BioHash);
 
-  Self.OnBreaking := @OnBreaking;
+  Self.OnBreaking := @OnBreakingTask;
 end;
 
 procedure TAntiban.SetupSleep();
@@ -527,7 +531,7 @@ begin
   Self.SetSleepLength();
   Self.AddSleep(WLSettings.Sleep.Hour, WLSettings.Sleep.Length, 0.1, (0.8 + BioHash));
 
-  Self.OnSleeping := @OnSleeping;
+  Self.OnSleeping := @OnSleepingTask;
 end;
 
 procedure TAntiban.WalkingTasks();

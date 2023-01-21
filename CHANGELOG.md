@@ -1,3 +1,12 @@
+## [11.0.23](https://github.com/Torwent/WaspLib/compare/v11.0.22...v11.0.23) (2023-01-21)
+
+
+### Bug Fixes
+
+* Antiban.AdjustZoom() now checks for interfaces first. ([936304c](https://github.com/Torwent/WaspLib/commit/936304c96c0c2fb696763ef8e2262b6530a35616))
+
+
+
 ## [11.0.22](https://github.com/Torwent/WaspLib/compare/v11.0.21...v11.0.22) (2023-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * wasplib now reports to wasp-stats account bans. ([749e145](https://github.com/Torwent/WaspLib/commit/749e1453c112f21e63c5bad59fc2be70d48752a2))
-
-
-
-## [11.0.18](https://github.com/Torwent/WaspLib/compare/v11.0.17...v11.0.18) (2023-01-20)
-
-
-### Bug Fixes
-
-* reverting remoteinput change ([6d42336](https://github.com/Torwent/WaspLib/commit/6d423365a99be6d3f2c8eb410bca4ebf1e322246))
 
 
 

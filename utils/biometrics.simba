@@ -20,14 +20,6 @@ var
   BioHash: Extended;
   BioHashOverride: Extended;
 
-(*
-Antiban.SetupBiometrics
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TAntiban.SetupBiometrics;
-
-This comes straight from older SRL versions.
-This basically sets up our BioHash which is a hash of the current player login username. Because usernames are unique, so will the BioHash.
-*)
 
 type
   EBioBehavior = (
@@ -46,6 +38,14 @@ type
     CONSUME_IN_BANK
   );
 
+(*
+Antiban.SetupBiometrics
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TAntiban.SetupBiometrics();
+
+This comes straight from older SRL versions.
+This basically sets up our BioHash which is a hash of the current player login username. Because usernames are unique, so will the BioHash.
+*)
 procedure TAntiban.SetupBiometrics();
 var
   h, i: UInt32;
@@ -72,21 +72,45 @@ begin
   DebugLn('Biohash: ' + ToStr(BioHash));
 end;
 
-function TAntiban.GetBehavior(Behavior: EBioBehavior): Int32;
+(*
+Antiban.GetBehavior
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.GetBehavior(behavior: EBioBehavior): Int32;
+
+Get the value that corresponds to the specified **behavior**.
+
+Example
+-------
+
+  WriteLn Antiban.GetBehavior(FKEY_CHANCE);
+*)
+function TAntiban.GetBehavior(behavior: EBioBehavior): Int32;
 begin
-  Result := GetDigit(BioHash, Ord(Behavior));
+  Result := GetDigit(BioHash, Ord(behavior));
 end;
 
-function TAntiban.GetChance(Behavior: EBioBehavior): Double;
+(*
+Antiban.GetChance
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.GetChance(behavior: EBioBehavior): Double;
+
+Get a probability from the current biohash that is represented by **behavior**.
+
+Example
+-------
+
+  WriteLn Antiban.GetChance(FKEY_CHANCE);
+*)
+function TAntiban.GetChance(behavior: EBioBehavior): Double;
 begin
-  Result := GetDigit(BioHash, Ord(Behavior)) / 10;
+  Result := GetDigit(BioHash, Ord(behavior)) / 10;
 end;
 
 
 (*
 Antiban.GetInfluencer
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TAntiban.GetInfluencer: Extended;
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TAntiban.GetInfluencer(): Extended;
 
 This generates a random number that is influenced by BioHash.
 There are times you will not want to use BioHash itself because it's value is static, this function let's you get a number that is random but heavily influenced by BioHash.
@@ -106,7 +130,7 @@ Antiban.GetUniqueNumber
 ~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal::
   function TAntiban.GetUniqueNumber(input: Extended): Extended;
-  function TAntiban.GetUniqueNumber(input, Sum: Extended): Extended; overload;
+  function TAntiban.GetUniqueNumber(input, min: Extended): Extended; overload;
   function TAntiban.GetUniqueNumber(input, min, max: Extended): Extended; overload;
 
 This generates a unique number based on your **input**.
@@ -121,12 +145,15 @@ Example
 *)
 function TAntiban.GetUniqueNumber(input: Extended): Extended;
 begin
-  Result := input * Self.GetInfluencer;
+  Result := input * Self.GetInfluencer();
 end;
 
-function TAntiban.GetUniqueNumber(input, sum: Extended): Extended; overload;
+function TAntiban.GetUniqueNumber(input, min: Extended): Extended; overload;
 begin
-  Result := Self.GetUniqueNumber(input) + sum;
+  Result := Self.GetUniqueNumber(input);
+
+  if Result < min then
+    Result := min;
 end;
 
 function TAntiban.GetUniqueNumber(input, min, max: Extended): Extended; overload;
@@ -137,7 +164,7 @@ end;
 
 (*
 Antiban.GetUniqueAverage
-~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal::
   function TAntiban.GetUniqueAverage(input: Extended; Iterations: Integer): Extended;
   function TAntiban.GetUniqueAverage(input, Sum: Extended; Iterations: Integer): Extended; overload;
@@ -163,13 +190,13 @@ begin
   Result := randomCases.Mean();
 end;
 
-function TAntiban.GetUniqueAverage(input, sum, iterations: Int32): Extended; overload;
+function TAntiban.GetUniqueAverage(input, min, iterations: Int32): Extended; overload;
 var
   i: Int32;
   randomCases: TExtendedArray;
 begin
   for i := 1 to iterations do
-    randomCases += Self.GetUniqueNumber(input, sum);
+    randomCases += Self.GetUniqueNumber(input, min);
 
   Result := randomCases.Mean();
 end;
@@ -188,18 +215,19 @@ end;
 
 (*
 Antiban.BioDice
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TAntiban.BioDice: Boolean;
+~~~~~~~~~~~~~~~
+.. pascal::
+  function TAntiban.BioDice(): Boolean;
+  function TAntiban.BioDice(Behaviour: EBioBehavior): Boolean; overload;
+  function TAntiban.BioDice(chance: Double): Boolean; overload;
 
-Throws a **SRL.Dice** heavily skewed in certain directions depending on your BioHash.
-BioHashes smaller than **0.15** will always return **False**.
-BioHashes bigger than **0.80** will always return **True**.
-BioHashes between 0.15 and 0.80 will randomly return True or False with true being more probable for higher BioHashes.
+Throws a **SRL.Dice** heavily skewed in certain directions depending on your BioHash and the parameters passed in.
 
 Example
 -------
 
-  UseBankEarly := Antiban.BioDice;
+  UseBankEarly := Antiban.BioDice();
+  WriteLn UseBankEarly;
 *)
 function TAntiban.BioDice(): Boolean;
 begin
@@ -228,25 +256,20 @@ begin
   Result := SRL.Dice(EnsureRange(chance * BioHash + (chance * 1.7), 0, 100));
 end;
 
-
 (*
-Antiban.InvertedBioDice
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TAntiban.InvertedBioDice: Boolean;
+Antiban.SetSleepHour
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TAntiban.SetSleepHour();
 
-Inverted **Antiban.BioDice**.
+Sets WLSettings.Sleep.Hour based on the current BioHash.
+WLSettings.Sleep.HourOverride will override this.
+
+Example
+-------
+
+  Antiban.SetSleepHour();
+  WriteLn WLSettings.Sleep.Hour;
 *)
-function TAntiban.InvertedBioDice(): Boolean;
-begin
-  Result := not Self.BioDice;
-end;
-
-function TAntiban.InvertedBioDice(Behaviour: EBioBehavior): Boolean; overload;
-begin
-  Result := not Self.BioDice(Behaviour);
-end;
-
-
 procedure TAntiban.SetSleepHour();
 var
   Sleep: UInt64;
@@ -266,6 +289,20 @@ begin
   WLSettings.Sleep.Hour := SRL.MsToTime(Sleep, Time_Bare);
 end;
 
+(*
+Antiban.SetSleepLength
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TAntiban.SetSleepLength();
+
+Sets WLSettings.Sleep.Length based on the current BioHash.
+WLSettings.Sleep.LengthOverride will override this.
+
+Example
+-------
+
+  Antiban.SetSleepLength();
+  WriteLn WLSettings.Sleep.Length;
+*)
 procedure TAntiban.SetSleepLength();
 begin
   if WLSettings.Sleep.LengthOverride <> 0 then
@@ -277,7 +314,24 @@ begin
   WLSettings.Sleep.Length := (7 * ONE_HOUR) + ((200 * ONE_MINUTE) * BioHash);
 end;
 
+(*
+BioWait
+~~~~~~~
+.. pascal::
+  procedure BioWait(time: UInt32);
+  procedure BioWait(min, max: UInt32; weight:EWaitDir=wdMean); overload;
 
+Wait() but skewed with BioHash. This is a simple function. It just multiplies
+**time**/**min**/**max** by BioHash and calls Wait() with them.
+Might need further improvement in the future.
+
+Example
+-------
+
+  Inventory.Open()
+  BioWait(4000);
+  Magic.Open();
+*)
 procedure BioWait(time: UInt32);
 begin
   Wait(Round(time * BioHash));

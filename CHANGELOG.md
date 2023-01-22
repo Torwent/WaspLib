@@ -1,3 +1,12 @@
+## [11.1.1](https://github.com/Torwent/WaspLib/compare/v11.1.0...v11.1.1) (2023-01-22)
+
+
+### Bug Fixes
+
+* add on screen walker debug method ([eb915e1](https://github.com/Torwent/WaspLib/commit/eb915e19f320eeda440c55d20b56c39c2ef39946))
+
+
+
 # [11.1.0](https://github.com/Torwent/WaspLib/compare/v11.0.24...v11.1.0) (2023-01-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Options.SetAttackOption() and Antiban callbacks ([08c9398](https://github.com/Torwent/WaspLib/commit/08c9398b4c6948cf9e90522c568204fb8d500087))
-
-
-
-## [11.0.21](https://github.com/Torwent/WaspLib/compare/v11.0.20...v11.0.21) (2023-01-20)
-
-
-### Bug Fixes
-
-* BaseStats won't crash scripts anymore if the skill is not recognized from the chatbox ([9dc63c8](https://github.com/Torwent/WaspLib/commit/9dc63c8ca3e468b6de61d55d0a3f5e95167238fc))
 
 
 

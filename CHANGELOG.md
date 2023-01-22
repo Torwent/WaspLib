@@ -1,3 +1,12 @@
+## [11.0.24](https://github.com/Torwent/WaspLib/compare/v11.0.23...v11.0.24) (2023-01-22)
+
+
+### Bug Fixes
+
+* sanityze input strings and better monster loading ([ed9efa7](https://github.com/Torwent/WaspLib/commit/ed9efa7ffece20003cb0012110635634ded55a67))
+
+
+
 ## [11.0.23](https://github.com/Torwent/WaspLib/compare/v11.0.22...v11.0.23) (2023-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * bird nests ([ed3461c](https://github.com/Torwent/WaspLib/commit/ed3461cc865ef799c1bd908856ec287b6c57ab81))
-
-
-
-## [11.0.19](https://github.com/Torwent/WaspLib/compare/v11.0.18...v11.0.19) (2023-01-20)
-
-
-### Bug Fixes
-
-* wasplib now reports to wasp-stats account bans. ([749e145](https://github.com/Torwent/WaspLib/commit/749e1453c112f21e63c5bad59fc2be70d48752a2))
 
 
 

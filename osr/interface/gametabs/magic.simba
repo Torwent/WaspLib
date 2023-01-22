@@ -16,6 +16,8 @@ Magic._CastedSpell
 
 Internal helper function for better logic of wether we casted a spell or not.
 Used by WaspLib's TRSMagic.CastSpell() override.
+
+And yes, I know casted is not a word.
 *)
 function TRSMagic._CastedSpell(spell: ERSSpell): Boolean;
 begin
@@ -51,4 +53,246 @@ begin
   XPBar.EarnedXP(); //Make sure WL.PreviousXP is set to current XP.
   Result := Self.MouseSpell(spell, MOUSE_LEFT) and
             WaitUntil(Self._CastedSpell(spell), 100, SRL.TruncatedGauss(1000, 2000));
+end;
+
+
+(*
+Magic.GetFilterButton
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.GetFilterButton(): TRSButton;
+
+Returns the filter button in the magic tab.
+
+Example
+-------
+
+  Debug([Magic.GetFilterButton()]);
+*)
+function TRSMagic.GetFilterButton(): TRSButton;
+var
+  b: TBox;
+begin
+  b := Self.Bounds();
+  b.Y1 := b.Y2 - 16;
+  b.X1 += 69;
+  b.X2 -= 69;
+
+  Result.Index := 0;
+  Result.Bounds := b;
+  Result.Middle := b.Middle();
+  Result.EnabledColors := Self.ButtonEnabledColors;
+end;
+
+(*
+Magic.FiltersIsOpen
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.FiltersIsOpen(): Boolean;
+
+Returns true/false if the filters interface of the magic tab is open.
+
+Example
+-------
+
+  WriteLn Magic.FiltersIsOpen();
+*)
+function TRSMagic.FiltersIsOpen(): Boolean;
+begin
+  Result := Self.IsOpen() and Self.GetFilterButton().Enabled();
+end;
+
+(*
+Magic.OpenFilters
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.OpenFilters(): Boolean;
+
+Attempts to open the filters interface of the magic tab.
+Returns true on success.
+
+Example
+-------
+
+  WriteLn Magic.OpenFilters();
+*)
+function TRSMagic.OpenFilters(): Boolean;
+begin
+  Result := Self.Open() and Self.GetFilterButton().Enable();
+end;
+
+
+(*
+Magic.GetBookSpellCount
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.GetBookSpellCount(): Int32;
+
+Returns the number of spells declared in SRL for the current spellbook.
+
+Example
+-------
+
+  WriteLn Magic.GetBookSpellCount();
+*)
+function TRSMagic.GetBookSpellCount(): Int32;
+begin
+  case Self.GetSpellBook() of
+    ERSSpellBook.STANDARD: Result := Ord(RS_STANDARD_SPELL_LAST) - Ord(RS_STANDARD_SPELL_FIRST);
+    ERSSpellBook.ARCEUUS:  Result := Ord(RS_ARCEUUS_SPELL_LAST) - Ord(RS_ARCEUUS_SPELL_FIRST);
+    ERSSpellBook.LUNAR:    Result := Ord(RS_LUNAR_SPELL_LAST) - Ord(RS_LUNAR_SPELL_FIRST);
+    ERSSpellBook.ANCIENT:  Result := Ord(RS_ANCIENT_SPELL_LAST) - Ord(RS_ANCIENT_SPELL_FIRST);
+  end;
+
+  Result += 1;
+end;
+
+(*
+Magic.CountSpells
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.CountSpells(): Int32;
+
+Returns the number of spells that exist in your magic tab.
+
+Example
+-------
+
+  WriteLn Magic.CountSpells();
+  if Magic.GetBookSpellCount() <> Magic.CountSpells() then
+    WriteLn 'Something is wrong!';
+*)
+function TRSMagic.CountSpells(): Int32;
+var
+  tpa, finalTPA: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+begin
+  if not Self.Open() then
+    Exit;
+
+  b := Self.Bounds();
+  b.Y2 -= 17;
+
+  SRL.FindColors(tpa, CTS2(1574932, 7, 3.33, 7.97), b);
+  finalTPA += tpa;
+
+  SRL.FindColors(tpa, CTS1(3033426, 1), b);
+  finalTPA += tpa;
+
+  SRL.FindColors(tpa, CTS1(1509900, 28), b);
+  finalTPA += tpa;
+
+  atpa := finalTPA.Cluster(3);
+  atpa.FilterSize(8, __GT__);
+
+  Result := Length(atpa);
+end;
+
+(*
+Magic.GetFilterButtons
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.GetFilterButtons(): TRSButtonArray;
+
+Returns the buttons of the magic tab filter interface.
+
+Example
+-------
+
+  Debug(Magic.GetFilterButtons());
+*)
+function TRSMagic.GetFilterButtons(): TRSButtonArray;
+var
+  i: Int32;
+  b: TBox;
+  tba: TBoxArray;
+begin
+  if not Self.FiltersIsOpen() then
+    Exit;
+
+  b := Self.Bounds();
+
+  tba := Grid(1, 6, 179, 24, [0, 1], [b.X1+2, b.Y1 + 53]);
+
+  SetLength(Result, Length(tba));
+
+  for i := 0 to High(tba) do
+  begin
+    Result[i].Index := i;
+    Result[i].Bounds := tba[i];
+    Result[i].Middle := tba[i].Middle;
+    Result[i].EnabledColors := [CTS1(5284953, 57)];
+  end;
+end;
+
+(*
+Magic.IsFiltered
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.IsFiltered(): Boolean;
+
+Returns wether the spells are currently filtered or not.
+Can work with the filter interface open or closed as long as the magic tab is open.
+
+Example
+-------
+
+  WriteLn Magic.IsFiltered();
+*)
+function TRSMagic.IsFiltered(): Boolean;
+begin
+  if Self.FiltersIsOpen() then
+    Exit(SRL.CountColor(CTS2(5945703, 20, 0.05, 0.58), Self.Bounds()) <> 222);
+
+  Result := Self.CountSpells() <> Self.GetBookSpellCount();
+end;
+
+(*
+Magic.DisableFilters
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMagic.DisableFilters(): Boolean;
+
+Attempts to disable magic spell filters.
+
+Example
+-------
+
+  WriteLn Magic.DisableFilters();
+*)
+function TRSMagic.DisableFilters(): Boolean;
+var
+  button: TRSButton;
+begin
+  if not Self.Open() then
+    Exit;
+
+  if not Self.IsFiltered() then
+    Exit(True);
+
+  if not Self.OpenFilters() then
+    Exit;
+
+  for button in Self.GetFilterButtons() do
+  begin
+    if not button.Enabled() then
+    begin
+      if button.Enable() then
+        WaitUntil(button.Enabled(), 300, 4000); //the buttons are quite slow to update...
+    end;
+  end;
+
+  Result := not Self.IsFiltered();
+end;
+
+(*
+GameTabs.GetCurrentTab
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSGameTabs.GetCurrentTab(): ERSGametab; override;
+
+Oveverriden to check if the spells are filtered and disable the filters.
+This is currently not in use!
+*)
+function TRSGameTabs.GetCurrentTab(): ERSGametab; override;
+begin
+  Result := inherited;
+
+  if Result = ERSGameTab.MAGIC then
+  begin
+    //if Magic.IsFiltered() then
+      //Magic.DisableFilters();
+  end;
 end;

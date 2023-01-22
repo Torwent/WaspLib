@@ -66,7 +66,8 @@ begin
   if not RSHeightMap.Enabled then
     Exit;
 
-  Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
+  if (p.X < RSHeightmap.Map.getWidth()) and (p.Y < RSHeightmap.Map.getHeight()) then
+    Result := RSHeightMap.Map.GetPixel(p.X, p.Y);
 end;
 
 (*
@@ -523,6 +524,51 @@ begin
     Exit;
 
   Result := Self.GetHeight(p) - Self.GetHeight(q);
+end;
+
+
+procedure TRSWalker.Draw(Bitmap: TMufasaBitmap);
+var
+  X1, Y1, X2, Y2, X, Y, w, h: Int32;
+  P: TPoint;
+  WorldBitmap, MinimapBitmap: TMufasaBitmap;
+  Position: TPoint;
+begin
+  Position := Self.GetMyPos();
+  if Self.RegionIndex > -1 then
+    Position := Self.Map.GlobalToRegion(Self.RegionIndex, Position);
+
+  w := Round(Minimap.Bounds().Width()/2);
+  h := Round(Minimap.Bounds().Height()/2);
+  X1 := Position.X - w;
+  Y1 := Position.Y - h;
+  X2 := Position.X + w;
+  Y2 := Position.Y + h;
+
+  X := Position.X - X1;
+  Y := Position.Y - Y1;
+
+  WorldBitmap := Self.Map.Map.Copy(X1, Y1, X2, Y2);
+  WorldBitmap.LineTo(Point(0, Y), Point(X2 - X1, Y), $00FF00);
+  WorldBitmap.LineTo(Point(X, 0), Point(X, Y2 - Y1), $00FF00);
+  WorldBitmap.DrawBox([X - 2, Y - 2, X + 2, Y + 2], $FFFFFF);
+
+  MinimapBitmap := Self.ScaleMinimap(Self.GetCleanMinimap(), 1);
+
+  P := MinimapBitmap.GetCenter();
+  if RSClient.Mode = ERSClientMode.FIXED then
+    P := P.Offset(0, 8).Rotate(-Minimap.GetCompassAngle(False), P);
+
+  MinimapBitmap.DrawBoxFilled([P.X - 1, P.Y - 1, P.X + 1, P.Y + 1], False, $FFFFFF);
+
+  WorldBitmap.DrawTransparent(Minimap.Bounds().X1 - (w * 2), Minimap.Bounds().Y1, Bitmap);
+  WorldBitmap.Free();
+
+  MinimapBitmap.DrawTransparent(Minimap.Bounds().X1 - (w * 4), Minimap.Bounds().Y1, Bitmap);
+  MinimapBitmap.Free();
+  Bitmap.setFontSize(15);
+  Bitmap.DrawText('Position: x' + ToStr(Position.X) + 'y' + ToStr(Position.Y), [0,5], $FFFFFF);
+  Bitmap.DrawText('Region: ' + ToStr(Self.RegionIndex), [0,30], $00FFFF);
 end;
 
 

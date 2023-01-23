@@ -257,7 +257,7 @@ begin
         Self.ZoomLevel := Self.Slider2Level(MM2MS.GetZoomLevel());
         Self.DebugLn('Current zoom level: ' + ToString(Self.ZoomLevel));
       end;
-    1:  Options.SetZoomLevel(Random(100));
+    1:  Options.SetZoomLevel(Random(101));
     else
       Self.MaxZoomBlind(SRL.Dice(50));
   end;
@@ -284,6 +284,9 @@ function TRSMouseZoom.SetZoomLevel(level: Int32): Boolean;
 var
   trueLevel, amount: Int32;
 begin
+  if not WL.GameSettings.MouseWheel then
+    Exit(Options.SetZoomLevel(level));
+
   if Self.ZoomLevel = -1 then
   begin
     Self.GetZoomLevel();
@@ -291,7 +294,6 @@ begin
     if Self.ZoomLevel = -1 then
       Self.Fatal('Something went wrong while settings up the zoom level.');
   end;
-
 
   trueLevel := Self.Slider2Level(level);
 
@@ -454,6 +456,7 @@ var
 begin
   RSMouseZoom.Name := 'RSMouseZoom';
   RSMouseZoom.ZoomLevel := -1;
+  WL.GameSettings.MouseWheel := True;
 end;
 
 function TRSOptions.SetZoomLevel(level: Int32): Boolean; override;
@@ -465,3 +468,20 @@ begin
   RSMouseZoom.ZoomLevel := RSMouseZoom.Slider2Level(level);
 end;
 
+function TRSGameTabs.GetCurrentTab: ERSGameTab; override;
+begin
+  Result := inherited;
+
+  if not WL.GameSettings.MouseWheelConfirmed and (Result = ERSGameTab.OPTIONS) then
+    if (Options.GetCurrentTab() = ERSOptionsTab.DISPLAY) then
+    begin
+      WL.GameSettings.MouseWheel := SRL.CountColor(200, Self.Bounds()) = 0;
+      WL.GameSettings.MouseWheelConfirmed := True;
+
+      if not WL.GameSettings.MouseWheel then
+      begin
+        RSMouseZoom.ZoomLevel := -1;
+        MM2MS.ZoomLevel := -1;
+      end;
+    end;
+end;

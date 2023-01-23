@@ -1,3 +1,12 @@
+## [11.1.3](https://github.com/Torwent/WaspLib/compare/v11.1.2...v11.1.3) (2023-01-23)
+
+
+### Bug Fixes
+
+* edited Quarry to QUARRY ([4932dd1](https://github.com/Torwent/WaspLib/commit/4932dd1831640d6a13009c389f8f105b8b6bb737))
+
+
+
 ## [11.1.2](https://github.com/Torwent/WaspLib/compare/v11.1.1...v11.1.2) (2023-01-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * sanityze input strings and better monster loading ([ed9efa7](https://github.com/Torwent/WaspLib/commit/ed9efa7ffece20003cb0012110635634ded55a67))
-
-
-
-## [11.0.23](https://github.com/Torwent/WaspLib/compare/v11.0.22...v11.0.23) (2023-01-21)
-
-
-### Bug Fixes
-
-* Antiban.AdjustZoom() now checks for interfaces first. ([936304c](https://github.com/Torwent/WaspLib/commit/936304c96c0c2fb696763ef8e2262b6530a35616))
 
 
 

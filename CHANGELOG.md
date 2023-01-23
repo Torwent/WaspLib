@@ -1,3 +1,12 @@
+## [11.1.2](https://github.com/Torwent/WaspLib/compare/v11.1.1...v11.1.2) (2023-01-23)
+
+
+### Bug Fixes
+
+* failsafes added, read notes. ([6787551](https://github.com/Torwent/WaspLib/commit/6787551869657c06fd28a0ff46bf6ca73d99f336))
+
+
+
 ## [11.1.1](https://github.com/Torwent/WaspLib/compare/v11.1.0...v11.1.1) (2023-01-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Antiban.AdjustZoom() now checks for interfaces first. ([936304c](https://github.com/Torwent/WaspLib/commit/936304c96c0c2fb696763ef8e2262b6530a35616))
-
-
-
-## [11.0.22](https://github.com/Torwent/WaspLib/compare/v11.0.21...v11.0.22) (2023-01-21)
-
-
-### Bug Fixes
-
-* Options.SetAttackOption() and Antiban callbacks ([08c9398](https://github.com/Torwent/WaspLib/commit/08c9398b4c6948cf9e90522c568204fb8d500087))
 
 
 

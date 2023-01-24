@@ -1,3 +1,12 @@
+## [11.1.5](https://github.com/Torwent/WaspLib/compare/v11.1.4...v11.1.5) (2023-01-24)
+
+
+### Bug Fixes
+
+* magic filters failsafe had a bug ([efede4e](https://github.com/Torwent/WaspLib/commit/efede4e705f51bd7391dcbc9405a4695d20ed055))
+
+
+
 ## [11.1.4](https://github.com/Torwent/WaspLib/compare/v11.1.3...v11.1.4) (2023-01-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add on screen walker debug method ([eb915e1](https://github.com/Torwent/WaspLib/commit/eb915e19f320eeda440c55d20b56c39c2ef39946))
-
-
-
-# [11.1.0](https://github.com/Torwent/WaspLib/compare/v11.0.24...v11.1.0) (2023-01-22)
-
-
-### Features
-
-* add filters handling to the magic tab ([9026f00](https://github.com/Torwent/WaspLib/commit/9026f0036b9210c1101ae3a2471448f8729ad510))
 
 
 

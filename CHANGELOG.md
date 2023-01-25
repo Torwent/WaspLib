@@ -1,3 +1,12 @@
+## [11.2.1](https://github.com/Torwent/WaspLib/compare/v11.2.0...v11.2.1) (2023-01-25)
+
+
+### Bug Fixes
+
+* varrock coordinates ([a67f934](https://github.com/Torwent/WaspLib/commit/a67f9347d69980004c1740e778c71bb67a3806f8))
+
+
+
 # [11.2.0](https://github.com/Torwent/WaspLib/compare/v11.1.6...v11.2.0) (2023-01-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * combathandler fix ([0a2d48e](https://github.com/Torwent/WaspLib/commit/0a2d48e36a4efdb1f430e562454862130e39996c))
-
-
-
-## [11.1.3](https://github.com/Torwent/WaspLib/compare/v11.1.2...v11.1.3) (2023-01-23)
-
-
-### Bug Fixes
-
-* edited Quarry to QUARRY ([4932dd1](https://github.com/Torwent/WaspLib/commit/4932dd1831640d6a13009c389f8f105b8b6bb737))
 
 
 

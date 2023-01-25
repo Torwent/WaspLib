@@ -1,3 +1,12 @@
+# [11.2.0](https://github.com/Torwent/WaspLib/compare/v11.1.6...v11.2.0) (2023-01-25)
+
+
+### Features
+
+* progress report now includes experience ([6e21768](https://github.com/Torwent/WaspLib/commit/6e21768590214c07fa9ff1a6f155a23db8929ae2))
+
+
+
 ## [11.1.6](https://github.com/Torwent/WaspLib/compare/v11.1.5...v11.1.6) (2023-01-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * edited Quarry to QUARRY ([4932dd1](https://github.com/Torwent/WaspLib/commit/4932dd1831640d6a13009c389f8f105b8b6bb737))
-
-
-
-## [11.1.2](https://github.com/Torwent/WaspLib/compare/v11.1.1...v11.1.2) (2023-01-23)
-
-
-### Bug Fixes
-
-* failsafes added, read notes. ([6787551](https://github.com/Torwent/WaspLib/commit/6787551869657c06fd28a0ff46bf6ca73d99f336))
 
 
 

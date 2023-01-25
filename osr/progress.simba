@@ -17,12 +17,13 @@ You can easily toggle the usage this on or off by switching the variables:
 {$ENDIF}
 
 (*
-type TProgressReport
+type ProgressReport
 ~~~~~~~~~~~~~~~~~~~~
 Type responsible for handling the HUDProgressReport, also commonly called as "Paint" or InGame/OnScreen Progress Report.
 *)
 type
-  TProgressReport = record
+  ProgressReport = record(TSRLBaseRecord)
+  class var
     BGImg: TMufasaBitmap;
     ClientImg: TMufasaBitmap;
 
@@ -43,98 +44,98 @@ type
 (*
 ProgressReport.Terminate
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.Terminate();
+.. pascal:: procedure ProgressReport.Terminate(); static;
 
 Internal method called automatically on termination. This will do things such as free used assetsa and clear the progress report from the game screen.
 *)
-procedure TProgressReport.Terminate();
+procedure ProgressReport.Terminate(); static;
 begin
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if Self.Terminated then //avoids multiple terminations in case the script is chained.
+  if ProgressReport.Terminated then //avoids multiple terminations in case the script is chained.
     Exit;
 
-  Self.BGImg.Clear();
-  Self.BGImg.Free();
+  ProgressReport.BGImg.Clear();
+  ProgressReport.BGImg.Free();
 
-  ClientImg.Clear();
-  ClientImg.Free(); //not sure if it needs to be freed?
+  ProgressReport.ClientImg.Clear();
+  ProgressReport.ClientImg.Free(); //not sure if it needs to be freed?
   {$ENDIF}
 end;
 
 (*
 ProgressReport.Setup
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.Setup();
+.. pascal:: procedure ProgressReport.Setup();  static;
 
-Internal method called when we need to setup TProgressReport.
+Internal method called when we need to setup ProgressReport.
 *)
-procedure TProgressReport.Setup();
+procedure ProgressReport.Setup(); static;
 begin
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  Self.BGImg.Init();
-  Self.BGImg.SetName('Progress report background');
-  Self.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
-  Self.BGImg.setFontAntialiasing(True);
+  ProgressReport.BGImg.Init();
+  ProgressReport.BGImg.SetName('Progress report background');
+  ProgressReport.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
+  ProgressReport.BGImg.setFontAntialiasing(True);
 
-  ClientImg := RSClient.Image();
+  ProgressReport.ClientImg := RSClient.Image();
 
-  ClientImg.Clear();
-  ClientImg.SetName('ClientImg');
-  ClientImg.setFontAntialiasing(True);
-  ClientImg.setFontSize(13);
+  ProgressReport.ClientImg.Clear();
+  ProgressReport.ClientImg.SetName('ClientImg');
+  ProgressReport.ClientImg.setFontAntialiasing(True);
+  ProgressReport.ClientImg.setFontSize(13);
 
-  if Self.BGImg.GetFonts().Contains('Consolas') then
+  if ProgressReport.BGImg.GetFonts().Contains('Consolas') then
   begin
-    Self.BGImg.setFontName('Consolas');
-    RSClient.Image().setFontName('Consolas');
+    ProgressReport.BGImg.setFontName('Consolas');
+    ProgressReport.ClientImg.setFontName('Consolas');
   end;
 
-  Self.TextColor := $006CFF;
-  Self.UsernameBox := Chat.GetDisplayNameBox();
+  ProgressReport.TextColor := $006CFF;
+  ProgressReport.UsernameBox := Chat.GetDisplayNameBox();
 
-  AddOnTerminate(@Self.Terminate);
+  AddOnTerminate(@ProgressReport.Terminate);
   {$ENDIF}
 end;
 
 (*
 ProgressReport.DrawBackground
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.DrawBackground(strArray: TStringArray; FontColor: Int32);
+.. pascal:: procedure ProgressReport.DrawBackground(strArray: TStringArray; FontColor: Int32);  static;
 
-Method that handles drawing the background of our TProgressReport.
-Usually called internally by TProgressReport.Update().
+Method that handles drawing the background of our ProgressReport.
+Usually called internally by ProgressReport.Update().
 *)
-procedure TProgressReport.DrawBackground(strArray: TStringArray; fontColor: Int32);
+procedure ProgressReport.DrawBackground(strArray: TStringArray; fontColor: Int32); static;
 begin
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if not Self.IsSetup then
+  if not ProgressReport.IsSetup then
   begin
     if strArray = [] then
       Exit;
 
-    Self.BGImg.setFontSize(18);
-    Self.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(Self.BGImg.GetWidth()/2) + 25, 7], FontColor, False);
+    ProgressReport.BGImg.setFontSize(18);
+    ProgressReport.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(ProgressReport.BGImg.GetWidth()/2) + 25, 7], FontColor, False);
 
-    Self.BGImg.setFontSize(14);
+    ProgressReport.BGImg.setFontSize(14);
     fontColor -= $90A301 - $C8D100;
 
-    Self.BGImg.DrawText(strArray[High(strArray)], [10, 135], fontColor);
-    Self.IsSetup := True;
+    ProgressReport.BGImg.DrawText(strArray[High(strArray)], [10, 135], fontColor);
+    ProgressReport.IsSetup := True;
   end;
 
-  RSClient.Image().DrawBitmap(Self.BGImg, [Chat.Bounds.X1, Chat.Bounds.Y1 - 12]);
+  ProgressReport.ClientImg.DrawBitmap(ProgressReport.BGImg, [Chat.Bounds().X1, Chat.Bounds().Y1 - 12]);
   {$ENDIF}
 end;
 
 (*
 ProgressReport.DrawProgress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.DrawProgress(strArray: TStringArray; fontColor: Int32);
+.. pascal:: procedure ProgressReport.DrawProgress(strArray: TStringArray; fontColor: Int32); static;
 
-Method that handles drawing the text of our TProgressReport.
-Usually called internally by TProgressReport.Update().
+Method that handles drawing the text of our ProgressReport.
+Usually called internally by ProgressReport.Update().
 *)
-procedure TProgressReport.DrawProgress(strArray: TStringArray; fontColor: Int32);
+procedure ProgressReport.DrawProgress(strArray: TStringArray; fontColor: Int32); static;
 var
   p, q: TPoint;
   i: Int32;
@@ -159,72 +160,64 @@ begin
     end;
   end;
 
-  Self.PreviousStrArray := strArray;
+  ProgressReport.PreviousStrArray := strArray;
   {$ENDIF}
 end;
 
 (*
 ProgressReport.HideProgress
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.HideProgress();
+.. pascal:: procedure ProgressReport.HideProgress();  static;
 
-Used to hide TProgressReport.
-Usually called internally by TProgressReport.Update().
+Used to hide ProgressReport.
+Usually called internally by ProgressReport.Update().
 *)
-procedure TProgressReport.HideProgress();
+procedure ProgressReport.HideProgress(); static;
 begin
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  Self.IsSetup := False;
+  ProgressReport.IsSetup := False;
 
-  ClientImg.DrawBoxFilled(Self.UsernameBox, True, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
+  ProgressReport.ClientImg.DrawBoxFilled(ProgressReport.UsernameBox, True, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
   {$ENDIF}
 end;
 
 (*
 ProgressReport.Update
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.Update(StrArray: TStringArray);
+.. pascal:: procedure ProgressReport.Update(StrArray: TStringArray);  static;
 
-Main method that should be called to used to start and update TProgressReport.
+Main method that should be called to used to start and update ProgressReport.
 
-To see TProgressReport.GetNextCycleColor() in action, which was just a fun experiment,
+To see ProgressReport.GetNextCycleColor() in action, which was just a fun experiment,
 uncomment `Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);`
 *)
-procedure TProgressReport.Update(StrArray: TStringArray);
+procedure ProgressReport.Update(strArray: TStringArray); static;
 begin
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  ClientImg.Clear();
+  ProgressReport.ClientImg.Clear();
 
-  if StrArray = [] then
+  if strArray = [] then
     Exit;
 
-  //Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);
-  Self.DrawBackground(StrArray, Self.TextColor);
-  Self.DrawProgress(StrArray, Self.TextColor);
+  //ProgressReport.TextColor := ProgressReport.GetNextCycleColor(ProgressReport.TextColor, 10);
+  ProgressReport.DrawBackground(strArray, ProgressReport.TextColor);
+  ProgressReport.DrawProgress(strArray, ProgressReport.TextColor);
   {$ENDIF}
 end;
 
 (*
 ProgressReport.Setup
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TProgressReport.Setup(); override;
+.. pascal:: procedure ProgressReport.Setup(); static; override;
 
-Overriden method to enable TProgressReport.Timer.
+Overriden method to enable ProgressReport.Timer.
 This required to be overriden or we couldn't call already declared methods in ProgressReport.CheckButton().
 
 THIS IS DISABLED IN SIMBA1400 SINCE THIS IS ONLY A THING IN SIMBA1500!
 *)
-procedure TProgressReport.Setup(); override;
+procedure ProgressReport.Setup(); static; override;
 begin
   inherited;
 
   //AddOnPause(@Self.HideProgress);
 end;
-
-(*
-var ProgressReport
-~~~~~~~~~~~~~~~~~~
-Global TProgressReport variable.
-*)
-var
-  ProgressReport: TProgressReport;

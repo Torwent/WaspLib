@@ -150,26 +150,29 @@ Example
 *)
 function TBaseScript.BuildTextReport(): TStringArray;
 var
-  ElapsedTime: UInt64;
+  elapsedTime: UInt64;
 begin
   if Self.Action = Self.PreviousAction then
       Exit;
 
   Self.DebugLn(Self.Action, Self.ExtraInfo);  //add action and extra info the the log.
-  ElapsedTime := Self.TimeRunning.ElapsedTime();
+  elapsedTime := Self.TimeRunning.ElapsedTime();
 
   Result += ' Action        : ' + Self.Action;
 
-  Result += ' Runtime       : ' + SRL.MsToTime(ElapsedTime, Time_Short).Trim();
+  Result += ' Runtime       : ' + SRL.MsToTime(elapsedTime, Time_Short).Trim();
 
   Result += ' Total Actions : ' + ToStr(Self.TotalActions);
   if Self.ActionLimit > -1 then
     Result[High(Result)] += '/' + ToStr(Self.ActionLimit);
 
-  Result += ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, ElapsedTime));
+  Result += ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, elapsedTime));
 
-  Result += ' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit);
-  Result += ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, ElapsedTime));
+  Result += ' Total Exp     : ' + SRL.FormatNumber(WL.XP.Previous - WL.XP.Start, 2);
+  Result += ' Exp/Hour      : ' + SRL.FormatNumber(NumberPerHour(WL.XP.Previous - WL.XP.Start, elapsedTime), 2);
+
+  Result += ' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit, 2);
+  Result += ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, elapsedTime), 2);
 
   Result += ' ' + Self.Welcome + ' waspscripts.com';
 end;
@@ -351,30 +354,37 @@ end;
 (*
 BaseScript.DoAntiban
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
+.. pascal:: function TBaseScript.DoAntiban(checkBreaks: Boolean = True; checkSleeps: Boolean = True): Boolean;
 
-Method used to call Antiban.DoAntiban(CheckBreaks, CheckSleeps).
+Method used to call Antiban.DoAntiban(checkBreaks, checkSleeps).
 
 Example
 -------
 
   Script.DoAntiban();
 *)
-function TBaseScript.DoAntiban(CheckBreaks: Boolean = True; CheckSleeps: Boolean = True): Boolean;
+function TBaseScript.DoAntiban(checkBreaks: Boolean = True; checkSleeps: Boolean = True): Boolean;
+var
+  timeCache: UInt64;
 begin
   Antiban.DismissRandom();
   Self.TimeRunning.Pause();
   WL.Activity.Pause();
+  StatsClient.Timer.Pause();
+  timeCache := GetTickCount();
   Self.OnAntiban := True;
 
   try
-    Result := Antiban.DoAntiban(CheckBreaks, CheckSleeps);
+    Result := Antiban.DoAntiban(checkBreaks, checkSleeps);
   except
     WriteLn(GetExceptionMessage());
   end;
 
   Self.TimeRunning.Resume();
   WL.Activity.Resume();
+  StatsClient.Timer.Resume();
+  timeCache := GetTickCount() - timeCache;
+  StatsClient.TimeStamp += timeCache;
   Self.OnAntiban := False;
 
   if not RSClient.IsLoggedIn() then
@@ -404,6 +414,7 @@ begin
   if Result then
     SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
 end;
+
 
 (*
 type TBaseWalkerScript

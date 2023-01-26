@@ -1,3 +1,12 @@
+## [11.3.1](https://github.com/Torwent/WaspLib/compare/v11.3.0...v11.3.1) (2023-01-26)
+
+
+### Bug Fixes
+
+* forgot to upload the true mapmaker. oops! ([c872c25](https://github.com/Torwent/WaspLib/commit/c872c25636c2d17927ec4746999b4a702cf562c0))
+
+
+
 # [11.3.0](https://github.com/Torwent/WaspLib/compare/v11.2.1...v11.3.0) (2023-01-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * gmaul ([b433d63](https://github.com/Torwent/WaspLib/commit/b433d63852fa8a55fb34e8db08fa6c8d59800e1b))
-
-
-
-## [11.1.5](https://github.com/Torwent/WaspLib/compare/v11.1.4...v11.1.5) (2023-01-24)
-
-
-### Bug Fixes
-
-* magic filters failsafe had a bug ([efede4e](https://github.com/Torwent/WaspLib/commit/efede4e705f51bd7391dcbc9405a4695d20ed055))
 
 
 

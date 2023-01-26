@@ -2,11 +2,10 @@
 MapMaker
 ========
 Simple tool to make TBoxes for SRL's RSWalkerRegions or WaspLib's RSRegions.
-
-CURRENTLY NOT WORKING! Feel free to fix it.
 *)
 
 {$DEFINE SRL_DISABLE_REMOTEINPUT}
+
 {$I SRL-T/osr.simba}
 {$I WaspLib/osr.simba}
 {$H-}
@@ -14,523 +13,529 @@ CURRENTLY NOT WORKING! Feel free to fix it.
 const
   MAP_NAME: String = WL_WALKER_MAP;
 
-
 type
   TRSMapMaker = record
     Form: TForm;
+    Panel: TPanel;
+    ButtonNewRegion, ButtonDeleteRegion, ButtonReset, ButtonPrintSelected, ButtonPrintAll: TButton;
+    RenameLabel: TLabel;
+    RenameEdit: TEdit;
+    ListBoxRegions: TListBox;
+
     ImageBox: TSimbaImageBox;
+    VisibleArea: TBox;
 
-    SelectBox: Int32;
-    BoxArray: T2DPointArray;
+    Index: Int32;
+    RegionArray: array of TRSNamedRegion;
 
-    PolyIndexEdit: TEdit;
-    CoordinateEdit: TEdit;
-    SelectedNode: Int32;
-    Dragging: Boolean;
-    Map: TMufasaBitmap;
-    Name: String;
-
-    Offset: TPoint;
+    SelectedPoint: TPoint;
+    Resizing, Dragging: Boolean;
   end;
 
 var
   MapMaker: TRSMapMaker;
 
-begin
-  MapMaker.Map := TRSWalkerMap.InternalLoadMap(MAP_NAME);
-  MapMaker.BoxArray := [[[7780,2300], [8400, 2950]]];
-end;
 
-procedure TRSMapMaker.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Int32);
+//Mouse
+procedure TRSMapMaker.OnMouseMove(sender: TObject; Shift: TShiftState; X, Y: Int32);
+var
+  diff: TPoint;
+  b: TBox;
+  tpa: TPointArray;
+  i: Int32;
 begin
-  if Self.Dragging and (Self.SelectedNode > -1) then
+  if not Self.Dragging or (Self.Index < 0) then
+    Exit;
+
+  b := Self.RegionArray[Self.Index].Bounds;
+
+  if Self.Resizing then
   begin
-    if X < 0 then X := 0;
-    if X > Self.ImageBox.GetCanvas().GetWidth() then X := Self.ImageBox.GetCanvas().GetWidth();
+    tpa := b.ToRectangle().ToTPA();
 
-    if Y < 0 then Y := 0;
-    if Y > Self.ImageBox.GetCanvas().GetHeight() then Y := Self.ImageBox.GetCanvas().GetHeight();
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+        Break;
 
+    if i > High(tpa) then
+      Exit;
 
-    Self.BoxArray[Self.SelectBox][Self.SelectedNode].X := X;
-    Self.BoxArray[Self.SelectBox][Self.SelectedNode].Y := Y;
-    Self.BoxArray[Self.SelectBox][Self.SelectedNode] += Self.Offset;
-
-    if Self.SelectedNode = 0 then
-    begin
-      if Length(Self.BoxArray[Self.SelectBox]) > 1 then
-        Self.BoxArray[Self.SelectBox][1].Y := Self.BoxArray[Self.SelectBox][0].Y;
-
-      if Length(Self.BoxArray[Self.SelectBox]) > 3 then
-        Self.BoxArray[Self.SelectBox][3].X := Self.BoxArray[Self.SelectBox][0].X;
+    Self.SelectedPoint := [X, Y];
+    tpa[i] := Self.SelectedPoint;
+    case i of
+      0: begin
+           tpa[3].X := X;
+           tpa[1].Y := Y;
+         end;
+      1: begin
+           tpa[2].X := X;
+           tpa[0].Y := Y;
+         end;
+      2: begin
+           tpa[1].X := X;
+           tpa[3].Y := Y;
+         end;
+      3: begin
+           tpa[0].X := X;
+           tpa[2].Y := Y;
+         end;
     end;
 
-    if Self.SelectedNode = 1 then
-    begin
-      Self.BoxArray[Self.SelectBox][0].Y := Self.BoxArray[Self.SelectBox][1].Y;
-
-      if Length(Self.BoxArray[Self.SelectBox]) > 2 then
-        Self.BoxArray[Self.SelectBox][2].X := Self.BoxArray[Self.SelectBox][1].X;
-    end;
-
-    if Self.SelectedNode = 2 then
-    begin
-      Self.BoxArray[Self.SelectBox][1].X := Self.BoxArray[Self.SelectBox][2].X;
-
-      if Length(Self.BoxArray[Self.SelectBox]) > 3 then
-        Self.BoxArray[Self.SelectBox][3].Y := Self.BoxArray[Self.SelectBox][2].Y;
-    end;
-
-    if Self.SelectedNode = 3 then
-    begin
-      Self.BoxArray[Self.SelectBox][0].X := Self.BoxArray[Self.SelectBox][3].X;
-      Self.BoxArray[Self.SelectBox][2].Y := Self.BoxArray[Self.SelectBox][3].Y;
-    end;
-
-    Self.PolyIndexEdit.setCaption(ToStr(Self.SelectBox));
-    Self.CoordinateEdit.setCaption(ToStr(Self.BoxArray[Self.SelectBox][Self.SelectedNode].X) + ', ' + ToStr(Self.BoxArray[Self.SelectBox][Self.SelectedNode].Y));
+    Self.RegionArray[Self.Index].Bounds := tpa.Bounds();
     Self.ImageBox.Update();
-  end;
-end;
-
-
-procedure TRSMapMaker.AddToArray;
-begin
-  Self.SelectBox := Length(Self.BoxArray);
-  SetLength(Self.BoxArray, Self.SelectBox + 1);
-end;
-
-procedure TRSMapMaker.RemoveFromArray();
-begin
-  Delete(Self.BoxArray, Self.SelectBox, 1);
-  Self.SelectBox := High(Self.BoxArray);
-end;
-
-
-procedure TRSMapMaker.AddNode(p: TPoint);
-var
-  n, boxPoints: Int32;
-begin
-  if Self.SelectBox < 0 then
-    Self.SelectBox := 0;
-
-  n := Length(Self.BoxArray);
-  if (n = 0) or (Self.SelectBox > n) then
-    SetLength(Self.BoxArray, n + 1);
-
-  boxPoints := Length(Self.BoxArray[Self.SelectBox]);
-  if boxPoints < 4 then
-    SetLength(Self.BoxArray[Self.SelectBox], boxPoints + 1);
-
-  if boxPoints > 3 then
-    boxPoints := 3;
-
-  Self.BoxArray[Self.SelectBox][boxPoints] := p + Self.Offset;
-
-  Self.SelectedNode := boxPoints;
-
-
-  WriteLn Self.BoxArray[Self.SelectBox];
-  WriteLn Self.SelectedNode;
-
-  if Self.SelectedNode = 0 then
-  begin
-    if Length(Self.BoxArray[Self.SelectBox]) > 1 then
-      Self.BoxArray[Self.SelectBox][1].Y := Self.BoxArray[Self.SelectBox][0].Y;
-
-    if Length(Self.BoxArray[Self.SelectBox]) > 3 then
-      Self.BoxArray[Self.SelectBox][3].X := Self.BoxArray[Self.SelectBox][0].X;
+    Exit;
   end;
 
-  if Self.SelectedNode = 1 then
-  begin
-    Self.BoxArray[Self.SelectBox][0].Y := Self.BoxArray[Self.SelectBox][1].Y;
+  diff := Self.SelectedPoint - [X, Y];
+  b := b.Offset([-diff.X, -diff.Y]);
 
-    if Length(Self.BoxArray[Self.SelectBox]) > 2 then
-      Self.BoxArray[Self.SelectBox][2].X := Self.BoxArray[Self.SelectBox][1].X;
-  end;
-
-  if Self.SelectedNode = 2 then
-  begin
-    Self.BoxArray[Self.SelectBox][1].X := Self.BoxArray[Self.SelectBox][2].X;
-
-    if Length(Self.BoxArray[Self.SelectBox]) > 3 then
-      Self.BoxArray[Self.SelectBox][3].Y := Self.BoxArray[Self.SelectBox][2].Y;
-  end;
-
-  if Self.SelectedNode = 3 then
-  begin
-    Self.BoxArray[Self.SelectBox][0].X := Self.BoxArray[Self.SelectBox][3].X;
-    Self.BoxArray[Self.SelectBox][2].Y := Self.BoxArray[Self.SelectBox][3].Y;
-  end;
-
+  Self.RegionArray[Self.Index].Bounds := b;
+  Self.SelectedPoint := [X, Y];
   Self.ImageBox.Update();
-  Self.PolyIndexEdit.setCaption(ToStr(Self.SelectBox));
-  Self.CoordinateEdit.setCaption(ToStr(Self.BoxArray[Self.SelectBox][Self.SelectedNode].X) + ', ' + ToStr(Self.BoxArray[Self.SelectBox][Self.SelectedNode].Y));
 end;
 
-procedure TRSMapMaker.DeleteNode(n: Int32);
+procedure TRSMapMaker.OnMouseDown(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 var
-  i,curr: Int32;
-  marked: TIntegerArray;
-  p: TPoint;
-begin
-  p := Self.BoxArray[Self.SelectBox][n];
-  marked += n;
-
-  repeat
-    curr := marked.Pop();
-
-    for i:=0 to High(marked) do
-      if marked[i] > curr then Dec(marked[i]);
-
-    // remove the node itself
-    Delete(Self.BoxArray[Self.SelectBox], curr, 1);
-  until Length(marked) = 0;
-
-  if Self.BoxArray[Self.SelectBox] = [] then
-    Self.RemoveFromArray();
-
-  Self.SelectedNode := High(Self.BoxArray[Self.SelectBox]);
-  Self.ImageBox.Update();
-
-  if Self.SelectBox > -1 then
-  begin
-    Self.PolyIndexEdit.setCaption(ToStr(Self.SelectBox));
-    if Self.BoxArray[Self.SelectBox] <> [] then
-      Self.CoordinateEdit.setCaption(ToStr(Self.BoxArray[Self.SelectBox][Self.SelectedNode].X) + ', ' + ToStr(Self.BoxArray[Self.SelectBox][Self.SelectedNode].Y))
-    else
-      Self.CoordinateEdit.setCaption('null, null');
-  end
-  else
-    Self.PolyIndexEdit.setCaption('null');
-end;
-
-
-procedure TRSMapMaker.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
-var
-  I, J: Int32;
-  P: TPoint;
+  i, j: Int32;
+  tpa: TPointArray;
 begin
   if Button <> mbLeft then
     Exit;
 
-  Self.Dragging := True;
+  Self.Index := -1;
+  Self.RenameEdit.Clear();
+  Self.SelectedPoint := Point(X, Y);
 
-  for I := 0 to High(Self.BoxArray) do
-    for J := 0 to High(Self.BoxArray[I]) do
-    begin
-      P := Self.BoxArray[I][J] - Self.Offset;
-      if Distance(P.X, P.Y, X, Y) <= 3 then
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    tpa := Self.RegionArray[i].Bounds.ToRectangle().ToTPA();
+
+    for j := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[j], 4) then
       begin
-        Self.SelectBox := I;
-        Self.SelectedNode := J;
-        Self.PolyIndexEdit.setCaption(ToStr(Self.SelectBox));
-        Self.CoordinateEdit.setCaption(ToStr(Self.BoxArray[I][J].X) + ', ' + ToStr(Self.BoxArray[I][J].Y));
-        Self.ImageBox.Update();
-        Exit;
+        Self.Index := i;
+        Self.ListBoxRegions.setItemIndex(Self.Index);
+        Self.Resizing := True;
+        Self.SelectedPoint := tpa[j];
+        Break;
       end;
-    end;
 
-  Self.AddNode([X, Y]);
+    if Self.Resizing then
+      Break;
+
+    if Self.SelectedPoint.InBox(Self.RegionArray[i].Bounds) then
+    begin
+      Self.Index := i;
+      Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+      Self.ListBoxRegions.setItemIndex(Self.Index);
+      Break;
+    end;
+  end;
+
+  Self.ImageBox.Update();
+  Self.Dragging := True;
 end;
 
-procedure TRSMapMaker.OnMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+procedure TRSMapMaker.OnMouseUp(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 begin
   if Button = mbLeft then
+  begin
     Self.Dragging := False;
-end;
-
-procedure TRSMapMaker.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
-begin
-  if (Key = VK_DELETE) and (SelectedNode > -1) then
-    DeleteNode(SelectedNode);
-end;
-
-procedure TRSMapMaker.DrawPolygons2(Area: TBox);
-var
-  I, J, Color: Int32;
-  P, Q: TPoint;
-  Canvas: TCanvas;
-begin            ;
-  if (Length(Self.BoxArray) = 0) then
-    Exit;
-
-  Canvas := Self.ImageBox.GetCanvas();
-  for J := 0 to High(Self.BoxArray) do
-  begin
-    if (Length(Self.BoxArray[J]) > 0) then
-    begin
-      for i := 0 to High(Self.BoxArray[J]) do
-      begin
-        P := Self.BoxArray[J][i] - Self.Offset;
-
-        if I < High(Self.BoxArray[J]) then
-          Q := Self.BoxArray[J][I + 1]
-        else
-          Q := Self.BoxArray[J][0];
-
-        Q := Q - Self.Offset;
-
-        if J = Self.SelectBox then
-        begin
-          Canvas.GetPen.SetColor($00FF7F);
-          Color := $FFAAD4;
-        end
-        else
-        begin
-          Canvas.GetPen.SetColor($00FFFF);
-          Color := $0000FF;
-        end;
-
-        if P.InBox(Area) or Q.InBox(Area) then
-        begin
-          Canvas.MoveTo(P.x, P.y);
-          Canvas.LineTo(Q.x, Q.y);
-        end;
-
-        if P.InBox(Area) then
-        begin
-          Canvas.GetBrush.SetColor(Color);
-          Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
-        end;
-      end;
-
-      if InRange(Self.SelectedNode, Low(Self.BoxArray[Self.SelectBox]), High(Self.BoxArray[Self.SelectBox])) then
-      begin
-        Canvas.GetBrush.SetColor($FF0000);
-        P := Self.BoxArray[Self.SelectBox][Self.SelectedNode] - Self.Offset;
-        Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
-      end;
-    end;
-  end;
-end;
-
-procedure TRSMapMaker.DrawPolygons(Area: TBox);
-var
-  I, J, Color: Int32;
-  P, Q: TPoint;
-  Canvas: TCanvas;
-begin
-  if (Length(Self.BoxArray) = 0) then
-    Exit;
-
-  Canvas := ImageBox.GetOverlay.GetCanvas;
-  for J := 0 to High(Self.BoxArray) do
-  begin
-    if (Length(Self.BoxArray[J]) > 0) then
-    begin
-      for i := 0 to High(Self.BoxArray[J]) do
-      begin
-        P := Self.BoxArray[J][i] - Offset;
-
-        if I < High(Self.BoxArray[J]) then
-          Q := Self.BoxArray[J][I + 1]
-        else
-          Q := Self.BoxArray[J][0];
-
-        Q := Q - Offset;
-
-        if J = Self.SelectBox then
-        begin
-          Canvas.GetPen.SetColor($00FF7F);
-          Color := $FFAAD4;
-        end
-        else
-        begin
-          Canvas.GetPen.SetColor($00FFFF);
-          Color := $0000FF;
-        end;
-
-        if P.InBox(Area) or Q.InBox(Area) then
-        begin
-          Canvas.MoveTo(P.x, P.y);
-          Canvas.LineTo(Q.x, Q.y);
-        end;
-
-        if P.InBox(Area) then
-        begin
-          Canvas.GetBrush.SetColor(Color);
-          Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
-        end;
-      end;
-
-      if InRange(SelectedNode, Low(Self.BoxArray[Self.SelectBox]), High(Self.BoxArray[Self.SelectBox])) then
-      begin
-        Canvas.GetBrush.SetColor($FF0000);
-        P := Self.BoxArray[Self.SelectBox][SelectedNode] - Offset;
-        Canvas.FillRect(P.X-3, P.Y-3, P.X+3, P.Y+3);
-      end;
-    end;
+    Self.Resizing := False;
   end;
 end;
 
 
-procedure TRSMapMaker.PaintArea(Sender: TObject; Canvas: TCanvas; R: TRect);
+procedure TRSMapMaker.DrawRegion(area: TBox);
+var
+  canvas: TCanvas;
+  tpa: TPointArray;
+  p: TPoint;
+  i, j: Int32;
 begin
-  Self.DrawPolygons([R.Left, R.Top, R.Right, R.Bottom]);
+  canvas := Self.ImageBox.getOverlay().GetCanvas();
+
+  canvas.GetPen().SetColor($00FF7F);
+
+  for i := 0 to High(RegionArray) do
+  begin
+    tpa := RegionArray[i].Bounds.ToRectangle().ToTPA();
+
+    if tpa.Connect().FilterBox(area) = [] then //Region not visibile right now.
+      Continue;
+
+    canvas.getPen().setWidth(2);
+    if i = Self.Index then
+    begin
+      canvas.GetPen().SetColor($00FFFF);
+      canvas.getBrush().setColor($0000FF);
+    end
+    else
+    begin
+      canvas.GetPen().SetColor($00FF7F);
+      canvas.getBrush().setColor($FFAAD4);
+    end;
+
+    for j := 0 to High(tpa) do
+    begin
+      p := tpa[j];
+      canvas.MoveTo(p.X, p.Y);
+
+      if j < High(TPA) then
+        canvas.LineTo(tpa[j+1].X, tpa[j+1].Y)
+      else
+        canvas.LineTo(tpa[0].X, tpa[0].Y);
+
+      if P.InBox(area) then
+        canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+    end;
+  end;
+
+  if Self.Resizing and Self.SelectedPoint.InBox(area) then
+  begin
+    canvas.getBrush().setColor($000000);
+    p := Self.SelectedPoint;
+    canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+  end;
+end;
+
+procedure TRSMapMaker.PaintArea(sender: TObject; canvas: TCanvas; r: TRect);
+begin
+  Self.VisibleArea := [r.Left, r.Top, r.Right, r.Bottom];
+  Self.DrawRegion(Self.VisibleArea);
 end;
 
 
-procedure TRSMapMaker.OnUnSelectNode(Sender: TObject);
+procedure TRSMapMaker.MoveToRegion();
+var
+  p: TPoint;
 begin
-  Self.SelectedNode := -1;
+  if Self.Index > -1 then
+  begin
+    p := Self.RegionArray[Self.Index].Bounds.Middle();
+    Self.ImageBox.MoveTo(p.X, p.Y);
+  end;
+
   Self.ImageBox.Update();
 end;
 
-
-procedure TRSMapMaker.OnResetBoxArray(Sender: TObject);
+procedure TRSMapMaker.DeleteRegions(all: Boolean = False);
 begin
-  Self.BoxArray := [];
-  Self.SelectBox := -1;
-  Self.SelectedNode := -1;
-end;
-
-procedure TRSMapMaker.OnNewBoxArray(Sender: TObject);
-begin
-  Self.AddToArray;
-end;
-
-procedure TRSMapMaker.OnPrintBoxArray(Sender: TObject);
-var
-  i: Int32;
-  Str: String;
-  B: TBox;
-begin
-  Str += LineEnding + 'Add this to the end of Simba/Includes/WaspLib/osr/walker/walker.simba:' + LineEnding;
-
-  if Length(Self.BoxArray) > 1 then
+  if all then
   begin
-    for i := 0 to High(Self.BoxArray) do
-    begin
-      B := Self.BoxArray[i].Bounds();
+    Self.RegionArray := [];
+    Self.ListBoxRegions.Clear();
+    Self.Index := -1;
+    Self.RenameEdit.Clear();
+    Exit;
+  end;
 
-      if B.Height() < 200 then
-        Str += '  Your box height (' + ToStr(B.Height()) + 'px) is too small to be a map, you will have issues with this.'
-      else if B.Width() < 200 then
-        Str += '  Your box width (' + ToStr(B.Width()) + 'px) is too small to be a map, you will have issues with this.'
-      else
-      begin
-        Str += '  TRSMap.Setup(_MAP, [';
+  Delete(Self.RegionArray, Self.Index, 1);
+  Self.ListBoxRegions.getItems().Delete(Self.Index);
 
-        Str += ToStr(B.X1) + ', ' + ToStr(B.Y1) + ', ' + ToStr(B.X2) + ', ' + ToStr(B.Y2);
+  Self.Index -= 1;
 
-        Str += ']);';
-      end;
-
-      Str += LineEnding;
-    end;
+  if Self.Index > -1 then
+  begin
+    Self.ListBoxRegions.setItemIndex(Self.Index);
+    Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
   end
-  else if Length(Self.BoxArray) = 1 then
-  begin
-      B := Self.BoxArray[0].Bounds();
-
-      if B.Height() < 200 then
-        Str += '  Your box height (' + ToStr(B.Height()) + 'px) is too small to be a map, you will have issues with this.'
-      else if B.Width() < 200 then
-        Str += '  Your box width (' + ToStr(B.Width()) + 'px) is too small to be a map, you will have issues with this.'
-      else
-      begin
-        Str += '  TRSMap.Setup(_MAP, [';
-
-        Str += ToStr(B.X1) + ', ' + ToStr(B.Y1) + ', ' + ToStr(B.X2) + ', ' + ToStr(B.Y2);
-
-        Str += ']);';
-      end;
-  end;
-
-  WriteLn Str;
+  else
+    Self.RenameEdit.Clear();
 end;
 
+procedure TRSMapMaker.ListBoxOnClick(sender: TObject);
+var
+  p: TPoint;
+begin
+  Self.Index := Self.ListBoxRegions.getItemIndex();
+  Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+  Self.MoveToRegion();
+end;
 
-procedure TRSMapMaker.OnFormShow(Sender: TObject);
+procedure TRSMapMaker.OnUnSelectNode(sender: TObject);
 begin
   Self.ImageBox.Update();
-  Self.PolyIndexEdit.setCaption('null');
-  Self.CoordinateEdit.setCaption('null, null');
 end;
 
-procedure TRSMapMaker.OnFormClose(Sender: TObject; var CloseAction: TCloseAction);
+
+procedure TRSMapMaker.OnRename(sender: TObject);
+var
+  str: String;
 begin
-  Self.OnPrintBoxArray(nil);
+  if Self.Index < 0 then
+    Exit;
+
+  str := Self.RenameEdit.getText();
+
+  Self.ListBoxRegions.getItems().setStrings(Self.Index, str);
+  Self.RegionArray[Self.Index].Name := str;
 end;
+
+
+
+procedure TRSMapMaker.OnDelete(sender: TObject);
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  Self.DeleteRegions();
+  Self.MoveToRegion();
+end;
+
+procedure TRSMapMaker.OnReset(sender: TObject);
+begin
+  Self.DeleteRegions(True);
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMapMaker.OnNewRegion(sender: TObject);
+var
+  region: TRSNamedRegion;
+  rect: TRect;
+begin
+  with region do
+  begin
+    Bounds := Box(Self.VisibleArea.Center(), 30, 30);
+    Name := 'New Region';
+  end;
+
+  Self.RegionArray += region;
+  Self.ListBoxRegions.getItems().Add(region.Name);
+  Self.RenameEdit.setText(region.Name);
+  Self.Index := High(Self.RegionArray);
+
+  Self.ImageBox.Update();
+end;
+
+
+procedure TRSMapMaker.OnPrintSelected(sender: TObject);
+var
+  i, padLen: Int32;
+  strLower, strUpper: String;
+  arrUpper, arrLower: TStringArray;
+  b: TBox;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  strLower := Self.RegionArray[Self.Index].Name;
+  strUpper := 'RSRegions.' + UpperCase(strLower).Replace(' ', '_').Replace('''', '');
+
+  strLower := "  RSNamedRegionsArray += ['" + strLower + "', " + strUpper + '];';
+  strUpper := '  ' + strUpper;
+
+
+  b := Self.RegionArray[Self.Index].Bounds;
+  strUpper += ' := [' + ToString(b.X1) + ', ' + ToString(b.Y1) + ', ' + ToString(b.X2) + ', ' + ToString(b.Y2) + '];';
+  WriteLn(LineEnding, LineEnding);
+  WriteLn strUpper;
+  WriteLn strLower;
+  WriteLn(LineEnding, LineEnding);
+end;
+
+procedure TRSMapMaker.OnPrint(sender: TObject);
+var
+  i, padLen: Int32;
+  strLower, strUpper: String;
+  arrUpper, arrLower: TStringArray;
+  b: TBox;
+begin
+  ClearDebug();
+
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    strLower := Self.RegionArray[i].Name;
+    strUpper := 'RSRegions.' + UpperCase(strLower).Replace(' ', '_').Replace('''', '');
+
+    arrLower += "    ['" + strLower + "', " + strUpper + '];';
+    strUpper := '  ' + strUpper;
+    arrUpper += strUpper;
+
+    if Length(strUpper) > padLen then
+      padLen := Length(strUpper);
+  end;
+
+  for i := 0 to High(arrUpper) do
+    arrUpper[i] := PadR(arrUpper[i], padLen, ' ');
+
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    b := Self.RegionArray[i].Bounds;
+    arrUpper[i] += ' := [' + ToString(b.X1) + ', ' + ToString(b.Y1) + ', ' + ToString(b.X2) + ', ' + ToString(b.Y2) + '];';
+  end;
+
+  WriteLn 'begin';
+
+  for i := 0 to High(arrUpper) do
+    WriteLn arrUpper[i];
+
+  WriteLn(LineEnding, '  RSNamedRegionsArray := [');
+
+  for i := 0 to High(arrLower) do
+    WriteLn arrLower[i];
+
+  WriteLn('  ];');
+  WriteLn(LineEnding, '  RSBankRegions.Setup();');
+  WriteLn('  RSCombatRegions.Setup();', LineEnding, 'end;');
+end;
+
+
+procedure TRSMapMaker.OnKeyDown(sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_DELETE) then
+    Self.OnDelete(sender);
+end;
+
+
+//Form stuff.
+procedure TRSMapMaker.OnFormShow(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMapMaker.OnFormClose(sender: TObject; var CloseAction: TCloseAction);
+begin
+  Self.OnPrint(nil);
+end;
+
+
+procedure TRSMapMaker.Init();
+var
+  region: TRSNamedRegion;
+begin
+  Self.Index := -1;
+  Self.RenameEdit.Clear();
+  Self.RegionArray := RSNamedRegionsArray;
+
+  for region in Self.RegionArray do
+    Self.ListBoxRegions.getItems().Add(region.Name);
+end;
+
 
 procedure TRSMapMaker.Run();
 var
-  Panel: TPanel;
-  IndexLabel, NodeLabel: TLabel;
-  PrintButton, NewButton, ResetButton: TButton;
+  mapImg: TMufasaBitmap;
 begin
   try
-    Self.Name :='MapMaker';
+    with Self.Form do
+    begin
+      Init(nil);
+      SetPosition(poScreenCenter);
+      SetCaption('Map Maker');
+      SetWidth(1400);
+      SetHeight(750);
+      GetFont.SetSize(10);
+      SetOnShow(@Self.OnFormShow);
+      SetOnClose(@Self.OnFormClose);
+    end;
 
-    Self.Form.Init(nil);
-    Self.Form.SetPosition(poScreenCenter);
-    Self.Form.SetCaption('Map Maker');
-    Self.Form.SetWidth(1000);
-    Self.Form.SetHeight(1000);
-    Self.Form.GetFont.SetSize(10);
-    Self.Form.SetOnShow(@Self.OnFormShow);
-    Self.Form.SetOnClose(@Self.OnFormClose);
+    with Self.Panel do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAutoSize(False);
+      SetAlign(alLeft);
+    end;
 
-    Panel.Init(Self.Form);
-    Panel.SetParent(Self.Form);
-    Panel.SetAutoSize(True);
-    Panel.SetAlign(alTop);
 
-    Self.CoordinateEdit.Init(Panel);
-    Self.CoordinateEdit.setParent(Panel);
-    Self.CoordinateEdit.setAutoSize(True);
-    Self.CoordinateEdit.setAlign(alLeft);
+    with Self.RenameEdit do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setAlign(alTop);
+      setOnEditingDone(@OnRename);
+    end;
 
-    NodeLabel.Init(Panel);
-    NodeLabel.setParent(Panel);
-    NodeLabel.setAutoSize(True);
-    NodeLabel.setCaption(' Selected coordinate: ');
-    NodeLabel.setAlign(alLeft);
+    Self.RenameEdit.getOnEditingDone
 
-    Self.PolyIndexEdit.Init(Panel);
-    Self.PolyIndexEdit.setParent(Panel);
-    Self.PolyIndexEdit.setAutoSize(True);
-    Self.PolyIndexEdit.setAlign(alLeft);
+    with Self.RenameLabel do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Rename Selected:');
+      setAlign(alTop);
+    end;
 
-    IndexLabel.Init(Panel);
-    IndexLabel.setParent(Panel);
-    IndexLabel.setAutoSize(True);
-    IndexLabel.setCaption(' Selected map: ');
-    IndexLabel.setAlign(alLeft);
 
-    ResetButton.Init(Panel);
-    ResetButton.SetParent(Panel);
-    ResetButton.SetAutoSize(True);
-    ResetButton.SetCaption('Reset');
-    ResetButton.SetOnClick(@Self.OnResetBoxArray);
-    ResetButton.setAlign(alLeft);
+    //Top buttons
+    with Self.ButtonReset do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Reset');
+      SetOnClick(@Self.OnReset);
+      setAlign(alTop);
+    end;
 
-    NewButton.Init(Panel);
-    NewButton.SetParent(Panel);
-    NewButton.SetAutoSize(True);
-    NewButton.SetCaption('New map');
-    NewButton.SetOnClick(@Self.OnNewBoxArray);
-    NewButton.setAlign(alLeft);
+    with Self.ButtonDeleteRegion do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Delete Region');
+      SetOnClick(@Self.OnDelete);
+      setAlign(alTop);
+    end;
 
-    PrintButton.Init(Panel);
-    PrintButton.SetParent(Panel);
-    PrintButton.SetAutoSize(True);
-    PrintButton.SetCaption('Print maps');
-    PrintButton.SetOnClick(@Self.OnPrintBoxArray);
-    PrintButton.setAlign(alLeft);
+    with Self.ButtonNewRegion do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('New Region');
+      SetOnClick(@Self.OnNewRegion);
+      setAlign(alTop);
+    end;
 
-    Self.ImageBox.Init(Self.Form);
-    Self.ImageBox.SetParent(Self.Form);
-    Self.ImageBox.SetAlign(alClient);
-    Self.ImageBox.SetOnPaintArea(@Self.PaintArea);
-    Self.ImageBox.SetOnMouseMove(@Self.OnMouseMove);
-    Self.ImageBox.SetOnMouseDown(@Self.OnMouseDown);
-    Self.ImageBox.SetOnMouseUp(@Self.OnMouseUp);
-    Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
-    ImageBox.GetBackground.LoadFromMufasaBitmap(Self.Map);
-    ImageBox.BackgroundChanged;
+    //Listbox
+    with Self.ListBoxRegions do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('RSRegions:');
+      setAlign(alClient);
+      setOnClick(@Self.ListBoxOnClick);
+    end;
+
+    //print
+    with Self.ButtonPrintSelected do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Selected Region');
+      SetOnClick(@Self.OnPrintSelected);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintAll do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print All Regions');
+      SetOnClick(@Self.OnPrint);
+      setAlign(alBottom);
+    end;
+
+
+    mapImg := TRSWalkerMap.InternalLoadMap(MAP_NAME);
+    with Self.ImageBox do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAlign(alClient);
+      SetOnPaintArea(@Self.PaintArea);
+      SetOnMouseMove(@Self.OnMouseMove);
+      SetOnMouseDown(@Self.OnMouseDown);
+      SetOnMouseUp(@Self.OnMouseUp);
+      SetOnKeyDown(@Self.OnKeyDown);
+      GetBackground.LoadFromMufasaBitmap(mapImg);
+      BackgroundChanged();
+    end;
+    mapImg.Free();
 
     WriteLn('Click:                Add or select node'    + LineEnding +
             'Click + Drag:         Move selected node'    + LineEnding +
@@ -538,10 +543,11 @@ begin
             'Right Click + Drag:   Move around'           + LineEnding +
             'Ctrl + Mouse Wheel:   Zoom');
 
+    Self.Init();
     Self.Form.ShowModal();
     Self.Form.Free();
   except
-    Writeln GetExceptionMessage;
+    Writeln GetExceptionMessage();
   end;
 end;
 

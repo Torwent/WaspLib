@@ -1,3 +1,12 @@
+# [11.3.0](https://github.com/Torwent/WaspLib/compare/v11.2.1...v11.3.0) (2023-01-26)
+
+
+### Features
+
+* mapmaker finished ([10b17dc](https://github.com/Torwent/WaspLib/commit/10b17dc6e8bdc2c2326eae179a09897de114790f))
+
+
+
 ## [11.2.1](https://github.com/Torwent/WaspLib/compare/v11.2.0...v11.2.1) (2023-01-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * magic filters failsafe had a bug ([efede4e](https://github.com/Torwent/WaspLib/commit/efede4e705f51bd7391dcbc9405a4695d20ed055))
-
-
-
-## [11.1.4](https://github.com/Torwent/WaspLib/compare/v11.1.3...v11.1.4) (2023-01-24)
-
-
-### Bug Fixes
-
-* combathandler fix ([0a2d48e](https://github.com/Torwent/WaspLib/commit/0a2d48e36a4efdb1f430e562454862130e39996c))
 
 
 

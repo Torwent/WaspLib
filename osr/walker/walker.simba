@@ -853,19 +853,15 @@ begin
   SetLength(tmpShapes, Length(shapeArray));
 
   if RSHeightMap.Enabled then
-    meHeight := Self.GetHeight(me)
-  else
-    tmpShapes := shapeArray;
+    meHeight := Self.GetHeight(me);
+
+  tmpShapes := Copy(shapeArray);
 
   for i := 0 to High(locArray) do
   begin
     if RSHeightMap.Enabled then
-    begin
-      tmpShapes[i].Tile.X := shapeArray[i].Tile.X;
-      tmpShapes[i].Tile.Y := shapeArray[i].Tile.Y;
       tmpShapes[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
-      tmpShapes[i].Angle := shapeArray[i].Angle;
-    end;
+
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
     Result += Minimap.GetTileMS(locArray[i], tmpShapes[i].Tile, offset, angle + tmpShapes[i].Angle);
@@ -938,40 +934,36 @@ function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shapeArra
 var
   angle, meHeight: Double;
   i: Int32;
+
   tmpArray: TPointArray;
-  tmpShapes: TRSMainScreenShapeArray;
+  heightArray: TDoubleArray;
 begin
   angle := Minimap.GetCompassAngle(False);
   tmpArray := Copy(locArray);
-  SetLength(tmpShapes, Length(shapeArray));
+  SetLength(heightArray, Length(shapeArray));
 
   if RSHeightMap.Enabled then
-    meHeight := Self.GetHeight(me)
-  else
-    tmpShapes := shapeArray;
+    meHeight := Self.GetHeight(me);
 
   for i := 0 to High(tmpArray) do
   begin
     if RSHeightMap.Enabled then
-    begin
-      tmpShapes[i].Tile.X := shapeArray[i].Tile.X;
-      tmpShapes[i].Tile.Y := shapeArray[i].Tile.Y;
-      tmpShapes[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
-      tmpShapes[i].Angle := shapeArray[i].Angle;
-    end;
-
+      heightArray[i] := meHeight - Self.GetHeight(locArray[i])
+    else
+      heightArray[i] := 0;
     tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
   end;
 
-  Result := Minimap.GetCuboidArrayMS(tmpArray, tmpShapes, Offset, angle);
+  Result := Minimap.GetCuboidArrayMSEx(tmpArray, shapeArray, heightArray, offset, angle);
 end;
 
-function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; Offset: Vector2 = [0, 0]): TCuboidArray; overload;
+function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]): TCuboidArray; overload;
 var
   angle, meHeight: Double;
   i: Int32;
   tmpArray: TPointArray;
   shapeArray: TRSMainScreenShapeArray;
+  heightArray: TDoubleArray;
 begin
   angle := Minimap.GetCompassAngle(False);
   tmpArray := Copy(locArray);
@@ -983,11 +975,13 @@ begin
   begin
     shapeArray += shape;
     if RSHeightMap.Enabled then
-      shapeArray[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+      heightArray[i] := meHeight - Self.GetHeight(locArray[i])
+    else
+      heightArray[i] := 0;
     tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
   end;
 
-  Result := Minimap.GetCuboidArrayMS(tmpArray, shape, Offset, angle);
+  Result := Minimap.GetCuboidArrayMSEx(tmpArray, shapeArray, heightArray, offset, angle);
 end;
 
 function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TCuboidArray; overload;

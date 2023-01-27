@@ -95,43 +95,84 @@ begin
 end;
 
 procedure TRSMapMaker.OnMouseDown(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+  function checkCorners(b: TBox): Boolean;
+  var
+    tpa: TPointArray;
+    i: Int32
+  begin
+    tpa := b.ToRectangle().ToTPA();
+
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+      begin
+        Self.ListBoxRegions.setItemIndex(Self.Index);
+        Self.RenameEdit.setText(Self.ListBoxRegions.GetSelectedText());
+        Self.Resizing := True;
+        Self.SelectedPoint := tpa[i];
+        Self.ImageBox.Update();
+        Self.Dragging := True;
+        Exit(True);
+      end;
+  end;
+
 var
-  i, j: Int32;
   tpa: TPointArray;
+  indices: TIntegerArray;
+  i: Int32;
+  dist, currentDist: Double;
 begin
   if Button <> mbLeft then
     Exit;
 
-  Self.Index := -1;
-  Self.RenameEdit.Clear();
   Self.SelectedPoint := Point(X, Y);
 
-  for i := 0 to High(Self.RegionArray) do
+  if (Self.Index > -1) and checkCorners(Self.RegionArray[Self.Index].Bounds) then
+    Exit;
+
+  if (Self.Index > -1) and Self.SelectedPoint.InBox(Self.RegionArray[Self.Index].Bounds) then
   begin
-    tpa := Self.RegionArray[i].Bounds.ToRectangle().ToTPA();
+    Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+    Self.ImageBox.Update();
+    Self.Dragging := True;
+    Exit;
+  end;
 
-    for j := 0 to High(tpa) do
-      if Self.SelectedPoint.WithinDistance(tpa[j], 4) then
-      begin
-        Self.Index := i;
-        Self.ListBoxRegions.setItemIndex(Self.Index);
-        Self.Resizing := True;
-        Self.SelectedPoint := tpa[j];
-        Break;
-      end;
+  Self.RenameEdit.Clear();
 
-    if Self.Resizing then
-      Break;
+  for Self.Index := 0 to High(Self.RegionArray) do
+  begin
+    if checkCorners(Self.RegionArray[Self.Index].Bounds) then
+      Exit;
 
-    if Self.SelectedPoint.InBox(Self.RegionArray[i].Bounds) then
+    if Self.SelectedPoint.InBox(Self.RegionArray[Self.Index].Bounds) then
     begin
-      Self.Index := i;
-      Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
-      Self.ListBoxRegions.setItemIndex(Self.Index);
-      Break;
+      tpa += Self.RegionArray[Self.Index].Bounds.Center();
+      indices += Self.Index;
     end;
   end;
 
+  if tpa = [] then
+  begin
+    Self.Index := -1;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  for i := 0 to High(tpa) do
+  begin
+    currentDist := tpa[i].DistanceTo(Self.SelectedPoint);
+    if (dist = 0) or (dist > currentDist) then
+      dist := currentDist;
+  end;
+
+  for i := 0 to High(tpa) do
+    if tpa[i].DistanceTo(Self.SelectedPoint) = dist then
+      Break;
+
+  Self.Index := indices[i];
+
+  Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+  Self.ListBoxRegions.setItemIndex(Self.Index);
   Self.ImageBox.Update();
   Self.Dragging := True;
 end;
@@ -538,8 +579,9 @@ begin
     mapImg.Free();
 
     WriteLn('Click:                Add or select node'    + LineEnding +
-            'Click + Drag:         Move selected node'    + LineEnding +
-            'Press Delete Key:     Remove Selected Node'  + LineEnding +
+            'Click + Drag:         Move selected shape'    + LineEnding +
+            'Click + Drag Point:   Move selected point'    + LineEnding +
+            'Press Delete Key:     Remove selected shape'  + LineEnding +
             'Right Click + Drag:   Move around'           + LineEnding +
             'Ctrl + Mouse Wheel:   Zoom');
 

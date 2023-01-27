@@ -1,3 +1,12 @@
+## [11.3.3](https://github.com/Torwent/WaspLib/compare/v11.3.2...v11.3.3) (2023-01-27)
+
+
+### Bug Fixes
+
+* height not being applied when heightmap was in use ([3dd67dc](https://github.com/Torwent/WaspLib/commit/3dd67dc53339ee84a49b538fdd89c3d95e64f3bd))
+
+
+
 ## [11.3.2](https://github.com/Torwent/WaspLib/compare/v11.3.1...v11.3.2) (2023-01-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * varrock coordinates ([a67f934](https://github.com/Torwent/WaspLib/commit/a67f9347d69980004c1740e778c71bb67a3806f8))
-
-
-
-# [11.2.0](https://github.com/Torwent/WaspLib/compare/v11.1.6...v11.2.0) (2023-01-25)
-
-
-### Features
-
-* progress report now includes experience ([6e21768](https://github.com/Torwent/WaspLib/commit/6e21768590214c07fa9ff1a6f155a23db8929ae2))
 
 
 

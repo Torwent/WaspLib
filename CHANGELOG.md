@@ -1,3 +1,12 @@
+## [11.3.5](https://github.com/Torwent/WaspLib/compare/v11.3.4...v11.3.5) (2023-01-27)
+
+
+### Bug Fixes
+
+* tweaks to improve makiing a point visible ([e1aa283](https://github.com/Torwent/WaspLib/commit/e1aa2835ff2d1fe772480ab28a1ed8ff2df38e7c))
+
+
+
 ## [11.3.4](https://github.com/Torwent/WaspLib/compare/v11.3.3...v11.3.4) (2023-01-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * forgot to upload the true mapmaker. oops! ([c872c25](https://github.com/Torwent/WaspLib/commit/c872c25636c2d17927ec4746999b4a702cf562c0))
-
-
-
-# [11.3.0](https://github.com/Torwent/WaspLib/compare/v11.2.1...v11.3.0) (2023-01-26)
-
-
-### Features
-
-* mapmaker finished ([10b17dc](https://github.com/Torwent/WaspLib/commit/10b17dc6e8bdc2c2326eae179a09897de114790f))
 
 
 

@@ -1,3 +1,12 @@
+## [11.3.4](https://github.com/Torwent/WaspLib/compare/v11.3.3...v11.3.4) (2023-01-27)
+
+
+### Bug Fixes
+
+* increased the RSHeightMap.MaxHeight ([4996908](https://github.com/Torwent/WaspLib/commit/49969086e2e9496b1fdfd2fdde6f6ac5c0ee7b38))
+
+
+
 ## [11.3.3](https://github.com/Torwent/WaspLib/compare/v11.3.2...v11.3.3) (2023-01-27)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * mapmaker finished ([10b17dc](https://github.com/Torwent/WaspLib/commit/10b17dc6e8bdc2c2326eae179a09897de114790f))
-
-
-
-## [11.2.1](https://github.com/Torwent/WaspLib/compare/v11.2.0...v11.2.1) (2023-01-25)
-
-
-### Bug Fixes
-
-* varrock coordinates ([a67f934](https://github.com/Torwent/WaspLib/commit/a67f9347d69980004c1740e778c71bb67a3806f8))
 
 
 

@@ -1,3 +1,12 @@
+## [11.3.2](https://github.com/Torwent/WaspLib/compare/v11.3.1...v11.3.2) (2023-01-27)
+
+
+### Bug Fixes
+
+* finish mapmaker ([5c401af](https://github.com/Torwent/WaspLib/commit/5c401afba077dad25798cd397749ad0af8f4847f))
+
+
+
 ## [11.3.1](https://github.com/Torwent/WaspLib/compare/v11.3.0...v11.3.1) (2023-01-26)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * progress report now includes experience ([6e21768](https://github.com/Torwent/WaspLib/commit/6e21768590214c07fa9ff1a6f155a23db8929ae2))
-
-
-
-## [11.1.6](https://github.com/Torwent/WaspLib/compare/v11.1.5...v11.1.6) (2023-01-25)
-
-
-### Bug Fixes
-
-* gmaul ([b433d63](https://github.com/Torwent/WaspLib/commit/b433d63852fa8a55fb34e8db08fa6c8d59800e1b))
 
 
 

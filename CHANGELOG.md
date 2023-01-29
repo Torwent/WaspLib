@@ -1,3 +1,12 @@
+## [11.3.6](https://github.com/Torwent/WaspLib/compare/v11.3.5...v11.3.6) (2023-01-29)
+
+
+### Bug Fixes
+
+* fixed poh map ([f6d0a67](https://github.com/Torwent/WaspLib/commit/f6d0a67da08041429a09a772566f003ed864f23a))
+
+
+
 ## [11.3.5](https://github.com/Torwent/WaspLib/compare/v11.3.4...v11.3.5) (2023-01-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * finish mapmaker ([5c401af](https://github.com/Torwent/WaspLib/commit/5c401afba077dad25798cd397749ad0af8f4847f))
-
-
-
-## [11.3.1](https://github.com/Torwent/WaspLib/compare/v11.3.0...v11.3.1) (2023-01-26)
-
-
-### Bug Fixes
-
-* forgot to upload the true mapmaker. oops! ([c872c25](https://github.com/Torwent/WaspLib/commit/c872c25636c2d17927ec4746999b4a702cf562c0))
 
 
 

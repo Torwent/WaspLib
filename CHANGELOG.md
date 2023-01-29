@@ -1,3 +1,12 @@
+## [11.4.2](https://github.com/Torwent/WaspLib/compare/v11.4.1...v11.4.2) (2023-01-29)
+
+
+### Bug Fixes
+
+* logic fix to interface scrolling ([068fd98](https://github.com/Torwent/WaspLib/commit/068fd980cf19f45c473ed741c44ed9336d05747e))
+
+
+
 ## [11.4.1](https://github.com/Torwent/WaspLib/compare/v11.4.0...v11.4.1) (2023-01-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * tweaks to improve makiing a point visible ([e1aa283](https://github.com/Torwent/WaspLib/commit/e1aa2835ff2d1fe772480ab28a1ed8ff2df38e7c))
-
-
-
-## [11.3.4](https://github.com/Torwent/WaspLib/compare/v11.3.3...v11.3.4) (2023-01-27)
-
-
-### Bug Fixes
-
-* increased the RSHeightMap.MaxHeight ([4996908](https://github.com/Torwent/WaspLib/commit/49969086e2e9496b1fdfd2fdde6f6ac5c0ee7b38))
 
 
 

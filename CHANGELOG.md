@@ -1,3 +1,12 @@
+## [11.4.1](https://github.com/Torwent/WaspLib/compare/v11.4.0...v11.4.1) (2023-01-29)
+
+
+### Bug Fixes
+
+* several fixes, read notes. ([653cfda](https://github.com/Torwent/WaspLib/commit/653cfdabf1e27b14bb318995fe5dbcc04c09072d))
+
+
+
 # [11.4.0](https://github.com/Torwent/WaspLib/compare/v11.3.6...v11.4.0) (2023-01-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * increased the RSHeightMap.MaxHeight ([4996908](https://github.com/Torwent/WaspLib/commit/49969086e2e9496b1fdfd2fdde6f6ac5c0ee7b38))
-
-
-
-## [11.3.3](https://github.com/Torwent/WaspLib/compare/v11.3.2...v11.3.3) (2023-01-27)
-
-
-### Bug Fixes
-
-* height not being applied when heightmap was in use ([3dd67dc](https://github.com/Torwent/WaspLib/commit/3dd67dc53339ee84a49b538fdd89c3d95e64f3bd))
 
 
 

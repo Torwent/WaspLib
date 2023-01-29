@@ -1,0 +1,67 @@
+(*
+Logout
+======
+Extends SRL's TRSLogout.
+*)
+
+{$DEFINE WL_LOGOUT_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+
+function TRSLogout.GetLikeButtons(): TRSButtonArray;
+begin
+  Result := Self.FindButtons([[60, 30]]);
+end;
+
+function TRSLogout.GetLikeButton(): TRSButton;
+var
+  buttons: TRSButtonArray;
+begin
+  buttons := Self.GetLikeButtons();
+  if Length(buttons) = 2 then
+    Result := buttons[0];
+end;
+
+function TRSLogout.GetDislikeButton(): TRSButton;
+var
+  buttons: TRSButtonArray;
+begin
+  buttons := Self.GetLikeButtons();
+  if Length(buttons) = 2 then
+    Result := buttons[1];
+end;
+
+function TRSLogout.UsedLikeButtons(): Boolean;
+var
+  button: TRSButton;
+begin
+  for button in Self.GetLikeButtons() do
+    if button.Enabled() then
+      Exit(True);
+end;
+
+
+function TRSLogout.ClickLogout(Attempts: Int32 = 5; TryTime: Int32 = 20000): Boolean; override;
+var
+  Interval: UInt64;
+  i: Int32;
+begin
+  if (not Self.Open()) or (not Self.CloseWorldSwitcher()) then
+    Exit;
+
+  Interval := TryTime div Attempts;
+
+  if Antiban.BioDice(USES_LIKE_BUTTONS) then
+  begin
+    if Antiban.BioDice(TENDS_TO_LIKE) then
+      Self.GetLikeButton().Enable()
+    else
+      Self.GetDislikeButton().Enable();
+  end;
+
+  for i := 1 to Attempts do
+    if Self.GetButton(ERSLogoutButton.CLICK_HERE).Click() and WaitUntil(not RSClient.IsLoggedIn(), 500, Interval + SRL.NormalRange(-2000, 2000)) then
+      Exit(True);
+end;

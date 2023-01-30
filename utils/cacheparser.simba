@@ -35,10 +35,36 @@ RSCacheParser.Setup
 Internal method called automatically simply by including WaspLib.
 *)
 procedure RSCacheParser.Setup(); static;
+var
+  dir: String;
+  {$IFDEF WINDOWS}
+  winDirs: TStringArray;
+  {$ENDIF}
 begin
-  RSCacheParser.Directory := {$IFDEF WINDOWS}GetEnvironmentVariable('userprofile'){$ELSE}GetEnvironmentVariable('HOME'){$ENDIF};
-  RSCacheParser.Directory += DirectorySeparator + 'jagexcache' + DirectorySeparator;
-  RSCacheParser.Directory += 'oldschool' + DirectorySeparator + 'LIVE' + DirectorySeparator;
+  {$IFDEF WINDOWS}
+  winDirs := [
+    GetEnvironmentVariable('USERPROFILE'),
+    GetEnvironmentVariable('ONEDRIVE'),
+    GetEnvironmentVariable('HOMEPATH')
+    ];
+
+  for dir in winDirs do
+  begin
+    dir += DirectorySeparator + 'jagexcache' + DirectorySeparator;
+    dir += 'oldschool' + DirectorySeparator + 'LIVE' + DirectorySeparator;
+    if DirectoryExists(dir) then
+      Break;
+  end;
+  {$ELSE}
+    dir := GetEnvironmentVariable('HOME');
+    dir += DirectorySeparator + 'jagexcache' + DirectorySeparator;
+    dir += 'oldschool' + DirectorySeparator + 'LIVE' + DirectorySeparator;
+  {$ENDIF}
+
+  if DirectoryExists(dir) then
+    RSCacheParser.Directory := dir
+  else
+    RSCacheParser.Disabled := True;
 end;
 
 (*
@@ -54,6 +80,9 @@ begin
     1: Result := ReadFileContents(RSCacheParser.Directory + 'preferences.dat');
     2: Result := ReadFileContents(RSCacheParser.Directory + 'preferences2.dat');
   end;
+
+  if Result = '' then
+    RSCacheParser.Disabled := True;
 end;
 
 (*

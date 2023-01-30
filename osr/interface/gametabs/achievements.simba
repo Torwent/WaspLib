@@ -1,0 +1,137 @@
+{$DEFINE WL_ACHIEVEMENTS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  ERSAchievementTab = (
+    SUMMARY,
+    QUESTS,
+    DIARIES,
+    FAVOUR
+  );
+
+  ERSSummaryButton = (
+    QUESTS_COMPLETED,
+    DIARIES_COMPLETED,
+    COMBAT_ACHIEVEMENTS,
+    COLLECTION_LOG,
+    TIME_PLAYED
+  );
+
+  TRSAchievements = type TRSInterface;
+
+
+procedure TRSAchievements.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'Achievements';
+end;
+
+procedure TRSAchievements.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  Self.Alignment.Left := [@GameTab.X1];
+  Self.Alignment.Right := [@GameTab.X2];
+  Self.Alignment.Top := [@GameTab.Y1];
+  Self.Alignment.Bottom := [@GameTab.Y2];
+end;
+
+
+function TRSAchievements.IsOpen(): Boolean;
+begin
+  Result := (GameTabs.GetCurrentTab = ERSGameTab.QUESTS);
+end;
+
+function TRSAchievements.Open(): Boolean;
+begin
+  Result := GameTabs.Open(ERSGameTab.OPTIONS);
+end;
+
+
+function TRSAchievements.GetButtons(): TRSButtonArray;
+begin
+  Result := Self.FindButtons([[89,52], [182, 24]]);
+end;
+
+function TRSAchievements.GetButton(button: ERSSummaryButton): TRSButton;
+var
+  Buttons: TRSButtonArray := Self.GetButtons();
+begin
+  if Length(Buttons) = Length(ERSSummaryButton) then
+    Result := Buttons[Button];
+end;
+
+
+function TRSAchievements.GetTabs(): TBoxArray;
+begin
+  Result := Grid(3, 1, 55, 24, [9], [Self.X1, Self.Y1 + 5]);
+end;
+
+function TRSAchievements.GetCurrentTab(): ERSAchievementTab;
+var
+  tabs: TBoxArray;
+  i: Int32;
+begin
+  tabs := Self.GetTabs();
+
+  for i := 0 to High(tabs) do
+  begin
+    if SRL.CountColor(4741213, tabs[i]) < 50 then //finds the one without the bottom white line
+      Exit(ERSAchievementTab(i));
+  end
+end;
+
+function TRSAchievements.OpenTab(tab: ERSAchievementTab): Boolean;
+begin
+  if not Self.Open() then
+    Exit(False);
+  if Self.GetCurrentTab() = tab then
+    Exit(True);
+
+  Mouse.Click(Self.GetTabs[tab], MOUSE_LEFT);
+
+  Result := WaitUntil(Self.GetCurrentTab = tab, SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+
+
+procedure TRSAchievements.Draw(bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  bitmap.DrawButtons(Self.GetButtons());
+end;
+
+
+var
+  Achievements: TRSAchievements;
+
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  Achievements.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  Achievements.Setup;
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Achievements.Draw(Bitmap);
+end;
+
+

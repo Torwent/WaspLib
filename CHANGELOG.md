@@ -1,3 +1,21 @@
+# [11.5.0](https://github.com/Torwent/WaspLib/compare/v11.4.3...v11.5.0) (2023-01-30)
+
+
+### Features
+
+* add some methods to interact with the achievements tabtz ([b6f78a5](https://github.com/Torwent/WaspLib/commit/b6f78a59905b110f907e5af0c999ac95cafc763d))
+
+
+
+## [11.4.3](https://github.com/Torwent/WaspLib/compare/v11.4.2...v11.4.3) (2023-01-30)
+
+
+### Bug Fixes
+
+* chat scrolling should now be fully working ([05c3b2a](https://github.com/Torwent/WaspLib/commit/05c3b2a5023818cde354af6ac207db4d718d47c6))
+
+
+
 ## [11.4.2](https://github.com/Torwent/WaspLib/compare/v11.4.1...v11.4.2) (2023-01-29)
 
 
@@ -22,24 +40,6 @@
 ### Features
 
 * added some new antiban stuff ([a6add78](https://github.com/Torwent/WaspLib/commit/a6add7834fbb663fae05cf8d656e7fb0f0ec371f))
-
-
-
-## [11.3.6](https://github.com/Torwent/WaspLib/compare/v11.3.5...v11.3.6) (2023-01-29)
-
-
-### Bug Fixes
-
-* fixed poh map ([f6d0a67](https://github.com/Torwent/WaspLib/commit/f6d0a67da08041429a09a772566f003ed864f23a))
-
-
-
-## [11.3.5](https://github.com/Torwent/WaspLib/compare/v11.3.4...v11.3.5) (2023-01-27)
-
-
-### Bug Fixes
-
-* tweaks to improve makiing a point visible ([e1aa283](https://github.com/Torwent/WaspLib/commit/e1aa2835ff2d1fe772480ab28a1ed8ff2df38e7c))
 
 
 

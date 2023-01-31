@@ -1,3 +1,12 @@
+## [11.5.1](https://github.com/Torwent/WaspLib/compare/v11.5.0...v11.5.1) (2023-01-31)
+
+
+### Bug Fixes
+
+* cached xp now stats at 0 properly ([d4ad993](https://github.com/Torwent/WaspLib/commit/d4ad993b59cfb614b65841a70aa82255978509b6))
+
+
+
 # [11.5.0](https://github.com/Torwent/WaspLib/compare/v11.4.3...v11.5.0) (2023-01-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * several fixes, read notes. ([653cfda](https://github.com/Torwent/WaspLib/commit/653cfdabf1e27b14bb318995fe5dbcc04c09072d))
-
-
-
-# [11.4.0](https://github.com/Torwent/WaspLib/compare/v11.3.6...v11.4.0) (2023-01-29)
-
-
-### Features
-
-* added some new antiban stuff ([a6add78](https://github.com/Torwent/WaspLib/commit/a6add7834fbb663fae05cf8d656e7fb0f0ec371f))
 
 
 

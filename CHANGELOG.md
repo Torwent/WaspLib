@@ -1,3 +1,12 @@
+## [11.6.1](https://github.com/Torwent/WaspLib/compare/v11.6.0...v11.6.1) (2023-02-01)
+
+
+### Bug Fixes
+
+* StrToTime() was crashing on certain time formats ([e7e56ec](https://github.com/Torwent/WaspLib/commit/e7e56ecddeca20dba3a5753da1ab253c60d5dab4))
+
+
+
 # [11.6.0](https://github.com/Torwent/WaspLib/compare/v11.5.2...v11.6.0) (2023-02-01)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add some methods to interact with the achievements tabtz ([b6f78a5](https://github.com/Torwent/WaspLib/commit/b6f78a59905b110f907e5af0c999ac95cafc763d))
-
-
-
-## [11.4.3](https://github.com/Torwent/WaspLib/compare/v11.4.2...v11.4.3) (2023-01-30)
-
-
-### Bug Fixes
-
-* chat scrolling should now be fully working ([05c3b2a](https://github.com/Torwent/WaspLib/commit/05c3b2a5023818cde354af6ac207db4d718d47c6))
 
 
 

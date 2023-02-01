@@ -1,3 +1,12 @@
+# [11.6.0](https://github.com/Torwent/WaspLib/compare/v11.5.2...v11.6.0) (2023-02-01)
+
+
+### Features
+
+* added achievements tab antiban ([66fa326](https://github.com/Torwent/WaspLib/commit/66fa32662662e131f7d29d90877e1566d65a6d7c))
+
+
+
 ## [11.5.2](https://github.com/Torwent/WaspLib/compare/v11.5.1...v11.5.2) (2023-02-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * chat scrolling should now be fully working ([05c3b2a](https://github.com/Torwent/WaspLib/commit/05c3b2a5023818cde354af6ac207db4d718d47c6))
-
-
-
-## [11.4.2](https://github.com/Torwent/WaspLib/compare/v11.4.1...v11.4.2) (2023-01-29)
-
-
-### Bug Fixes
-
-* logic fix to interface scrolling ([068fd98](https://github.com/Torwent/WaspLib/commit/068fd980cf19f45c473ed741c44ed9336d05747e))
 
 
 

@@ -47,7 +47,7 @@ end;
 
 function TRSAchievements.Open(): Boolean;
 begin
-  Result := GameTabs.Open(ERSGameTab.OPTIONS);
+  Result := GameTabs.Open(ERSGameTab.QUESTS);
 end;
 
 
@@ -67,7 +67,7 @@ end;
 
 function TRSAchievements.GetTabs(): TBoxArray;
 begin
-  Result := Grid(3, 1, 55, 24, [9], [Self.X1, Self.Y1 + 5]);
+  Result := Grid(4, 1, 41, 19, [5], [Self.X1+2, Self.Y1 + 5]);
 end;
 
 function TRSAchievements.GetCurrentTab(): ERSAchievementTab;
@@ -85,17 +85,56 @@ begin
 end;
 
 function TRSAchievements.OpenTab(tab: ERSAchievementTab): Boolean;
+var
+  button: ERSSummaryButton;
 begin
   if not Self.Open() then
     Exit(False);
-  if Self.GetCurrentTab() = tab then
-    Exit(True);
+
+  case Self.GetCurrentTab() of
+    tab: Exit(True);
+    SUMMARY:
+      if ((tab = QUESTS) or (tab = DIARIES)) and Antiban.BioDice(MOUSE_GRAVITY) then //MOUSE_GRAVITY is not related to this at all but I figure I could use it.
+      begin
+        case tab of
+          QUESTS:  button := QUESTS_COMPLETED;
+          DIARIES: button := DIARIES_COMPLETED;
+        end;
+
+        Self.GetButton(button).Click();
+        Exit(WaitUntil(Self.GetCurrentTab() = tab, SRL.TruncatedGauss(50, 1500), 3000));
+      end;
+  end;
 
   Mouse.Click(Self.GetTabs[tab], MOUSE_LEFT);
-
-  Result := WaitUntil(Self.GetCurrentTab = tab, SRL.TruncatedGauss(50, 1500), 3000);
+  Result := WaitUntil(Self.GetCurrentTab() = tab, SRL.TruncatedGauss(50, 1500), 3000);
 end;
 
+{$H-}
+function TRSAchievements.GetScrollArea(scrollBar: TRSScrollBar): TBox; override;
+var
+  tab: ERSAchievementTab;
+begin
+  tab := Self.GetCurrentTab();
+  if (tab <> QUESTS) and (tab <> DIARIES) then
+    Exit;
+
+  Result := Self.Bounds();
+
+  if tab = QUESTS then
+  begin
+    Result.X1 += 9;
+    Result.Y1 += 51;
+    Result.X2 -= 6;
+    Result.Y2 -= 45;
+  end
+  else
+  begin
+    Result.Y1 += 45;
+    Result.Y2 -= 4;
+  end;
+end;
+{$H+}
 
 
 procedure TRSAchievements.Draw(bitmap: TMufasaBitmap); override;

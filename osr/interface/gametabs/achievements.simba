@@ -71,17 +71,22 @@ begin
 end;
 
 function TRSAchievements.GetCurrentTab(): ERSAchievementTab;
+const
+  COLORS: array of TCTS2Color = [
+    [4418165, 11, 0.18, 0.78],
+    [15230302, 13, 0.15, 1.81],
+    [5743700, 20, 0.38, 0.58],
+    [10760042, 20, 0.09, 0.88]
+  ];
 var
-  tabs: TBoxArray;
+  b: TBox;
   i: Int32;
 begin
-  tabs := Self.GetTabs();
+  b := GameTabs.GetTabBox(ERSGameTab.QUESTS);
 
-  for i := 0 to High(tabs) do
-  begin
-    if SRL.CountColor(4741213, tabs[i]) < 50 then //finds the one without the bottom white line
+  for i := 0 to High(COLORS) do
+    if SRL.CountColor(COLORS[i], b) > 0 then
       Exit(ERSAchievementTab(i));
-  end
 end;
 
 function TRSAchievements.OpenTab(tab: ERSAchievementTab): Boolean;
@@ -135,6 +140,36 @@ begin
   end;
 end;
 {$H+}
+
+function TRSAchievements.RandomScroll(down: Boolean = True): Boolean; override;
+var
+  scrollBar: TRSScrollBar;
+  i, times: Int32;
+begin
+  scrollBar := Self.GetScrollBar();
+
+  if not scrollBar.IsVisible() or not Self.CanScroll() then
+    Exit;
+
+  Result := True;
+
+  if down and (scrollBar.Position = 100) then
+    Exit
+  else if not down and (scrollBar.Position = 0) then
+    Exit;
+
+  times := Round(Antiban.GetUniqueNumber(5, 3, 8));
+
+  if down then
+  begin
+    for i := 1 to times do
+      Mouse.Scroll(Self.GetScrollArea(scrollBar), Random(1, 3), True);
+    Exit;
+  end;
+
+  for i := 1 to times do
+    Mouse.Scroll(Self.GetScrollArea(scrollBar), Random(1, 3), False);
+end;
 
 
 procedure TRSAchievements.Draw(bitmap: TMufasaBitmap); override;

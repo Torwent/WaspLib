@@ -1,3 +1,12 @@
+# [11.7.0](https://github.com/Torwent/WaspLib/compare/v11.6.1...v11.7.0) (2023-02-01)
+
+
+### Features
+
+* **antiban:** new method to move items in the inventory to different slots ([d8a9976](https://github.com/Torwent/WaspLib/commit/d8a9976dba538aaa3f1c684ff8a73afddb948922))
+
+
+
 ## [11.6.1](https://github.com/Torwent/WaspLib/compare/v11.6.0...v11.6.1) (2023-02-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * cached xp now stats at 0 properly ([d4ad993](https://github.com/Torwent/WaspLib/commit/d4ad993b59cfb614b65841a70aa82255978509b6))
-
-
-
-# [11.5.0](https://github.com/Torwent/WaspLib/compare/v11.4.3...v11.5.0) (2023-01-30)
-
-
-### Features
-
-* add some methods to interact with the achievements tabtz ([b6f78a5](https://github.com/Torwent/WaspLib/commit/b6f78a59905b110f907e5af0c999ac95cafc763d))
 
 
 

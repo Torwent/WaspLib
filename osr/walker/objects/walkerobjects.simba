@@ -242,7 +242,7 @@ begin
   if Self.Filter.Skip then
     Exit;
 
-  coordinates := Self.Regions.Filter(coordinates);
+  coordinates := TRSWalkerObject.Regions.Filter(coordinates);
 
   Self.Filter.Skip := coordinates = [];
   if Self.Filter.Skip then
@@ -367,6 +367,79 @@ begin
 end;
 
 
+(*
+TRSWalkerObject._UpTextCheck
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerObject._UpTextCheck(out shouldExit: Boolean): Boolean;
+
+Internal TRSWalkerObject helper method that is used by all hovering methods.
+You probably don't need to use this directly.
+*)
+function TRSWalkerObject._UpTextCheck(out shouldExit: Boolean): Boolean;
+var
+  upText: String;
+begin
+  shouldExit := True;
+
+  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
+    Exit;
+
+  upText := MainScreen.GetUpText();
+
+  if ('>' in upText) and not TRSWalkerObject.CurrentUpText.Contains('Use') then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
+  if Self.Filter.UpText and (Self.UpText in upText) then
+    Exit(True);
+
+  shouldExit := False;
+end;
+
+(*
+TRSWalkerObject._WalkUpTextCheck
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSWalkerObject._WalkUpTextCheck(out shouldExit: Boolean): Boolean;
+
+Internal TRSWalkerObject helper method that is used by all walking hover methods.
+You probably don't need to use this directly.
+*)
+function TRSWalkerObject._WalkUpTextCheck(out shouldExit: Boolean): Boolean;
+var
+  upText: String;
+  strArray: TStringArray;
+begin
+  shouldExit := True;
+
+  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
+    Exit;
+
+  upText := MainScreen.GetUpText();
+
+  if ('>' in upText) and not TRSWalkerObject.CurrentUpText.Contains('Use') then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
+  if TRSWalkerObject.RedClicked or (Self.Filter.UpText and (Self.UpText in upText)) then
+    Exit(True);
+
+  if Self.Filter.UpText then
+  begin
+    strArray := Self.UpText;
+    if Self.ActionUpText <> [] then
+      strArray := Self.ActionUpText;
+
+    if TRSWalkerObject.CurrentUpText <> strArray then
+      TRSWalkerObject.CurrentUpText := strArray;
+  end;
+
+  shouldExit := False;
+end;
+
 
 (*
 TRSWalkerObject._ClickHelper
@@ -380,12 +453,12 @@ This is what's responsible for deciding if we click a target we are hovering or 
 *)
 function TRSWalkerObject._ClickHelper(leftClick: Boolean): Boolean;
 begin
-  if Self.CurrentUpText <> [] then
-    Self.CurrentUpText := [];
+  if TRSWalkerObject.CurrentUpText <> [] then
+    TRSWalkerObject.CurrentUpText := [];
 
-  if Self.RedClicked then
+  if TRSWalkerObject.RedClicked then
   begin
-    Self.RedClicked := False;
+    TRSWalkerObject.RedClicked := False;
     Exit(True);
   end;
 
@@ -394,7 +467,7 @@ begin
     if Self.Filter.UpText and ChooseOption.Select(Self.UpText) then
       Exit(True);
     ChooseOption.Close();
-    Exit(False);
+    Exit;
   end;
 
   if leftClick then
@@ -424,12 +497,12 @@ This is what is responsible for deciding if we just left click a target we are h
 *)
 function TRSWalkerObject._SelectHelper(action: TStringArray): Boolean;
 begin
-  if Self.CurrentUpText <> [] then
-    Self.CurrentUpText := [];
+  if TRSWalkerObject.CurrentUpText <> [] then
+    TRSWalkerObject.CurrentUpText := [];
 
-  if Self.RedClicked then
+  if TRSWalkerObject.RedClicked then
   begin
-    Self.RedClicked := False;
+    TRSWalkerObject.RedClicked := False;
     Exit(True);
   end;
 
@@ -582,7 +655,7 @@ begin
     cuboidArray := Self.GetCuboidArrayEx(floorTiles, roofTiles);
 
     if cuboidArray = [] then
-      Exit(False);
+      Exit;
 
     atpa := Self.FindOnMainScreen(cuboidArray);
   end
@@ -605,7 +678,7 @@ begin
     cuboidArray := Self.GetCuboidArray();
 
     if cuboidArray = [] then
-      Exit(False);
+      Exit;
 
     atpa := Self.FindOnMainScreen(cuboidArray);
   end
@@ -629,7 +702,7 @@ begin
     cuboidArray := Self.GetCuboidArray();
 
     if cuboidArray = [] then
-      Exit(False);
+      Exit;
 
     Exit(Self.OnMainScreen(cuboidArray));
   end;
@@ -720,13 +793,12 @@ You should not use this directly.
 *)
 function TRSObject._AsyncHoverHelper(): Boolean;
 var
+  shouldExit: Boolean;
   atpa: T2DPointArray;
 begin
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-    Exit(True);
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   if Self.Find(atpa) then
   begin
@@ -748,16 +820,15 @@ function TRSObject._AsyncHoverHelper(attempts: Int32): Boolean; overload;
   end;
 
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
 begin
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-    Exit(True);
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   for attempt := 0 to attempts do
   begin
@@ -805,16 +876,15 @@ You should not use this directly.
 *)
 function TRSObject._HoverHelper(attempts: Int32): Boolean;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
 begin
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-    Exit(True);
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   for attempt := 0 to attempts do
   begin
@@ -866,30 +936,18 @@ function TRSObject._AsyncWalkHoverHelper(attempts: Int32): Boolean;
     Result := atpa.RandomValue();
   end;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
-  strArray: TStringArray;
 begin
   if not Self.Filter.Walker then
     Exit(Self._HoverHelper(attempts));
 
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.RedClicked or (Self.Filter.UpText and MainScreen.IsUpText(Self.UpText)) then
-    Exit(True);
-
-  if Self.Filter.UpText then
-  begin
-    strArray := Self.UpText;
-    if Self.ActionUpText <> [] then
-      strArray := Self.ActionUpText;
-
-    if Self.CurrentUpText <> strArray then
-      Self.CurrentUpText := strArray;
-  end;
+  Result := Self._WalkUpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   for attempt := 0 to attempts do
   begin
@@ -950,30 +1008,18 @@ This is responsible for deciding wether we should walk to a TRSObject target or 
 *)
 function TRSObject._WalkHoverHelper(attempts: Int32): Boolean;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
-  strArray: TStringArray;
 begin
   if not Self.Filter.Walker then
     Exit(Self._HoverHelper(attempts));
 
-  if Self.RedClicked or (Self.Filter.UpText and MainScreen.IsUpText(Self.UpText)) then
-    Exit(True);
-
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText then
-  begin
-    strArray := Self.UpText;
-    if Self.ActionUpText <> [] then
-      strArray := Self.ActionUpText;
-
-    if Self.CurrentUpText <> strArray then
-      Self.CurrentUpText := strArray;
-  end;
+  Result := Self._WalkUpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   for attempt := 0 to attempts do
   begin
@@ -1069,7 +1115,7 @@ begin
   end;
 
   if Self.Filter.Walker and not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) then
-    Exit(False);
+    Exit;
 
   Result := (async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
 end;
@@ -1114,12 +1160,12 @@ begin
   if not Self.Filter.Walker then
     Exit;
 
-  if Self.Filter.UpText and (Self.CurrentUpText <> Self.UpText) then
-    Self.CurrentUpText := Self.UpText;
+  if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
+    TRSWalkerObject.CurrentUpText := Self.UpText;
 
   if not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) and
      not TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15) then
-      Exit(False);
+      Exit;
 
   Result := (async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
 end;
@@ -1420,7 +1466,7 @@ begin
     cuboidArray := Self.GetCuboidArrayEx(mmPoints, dots, dotFilters, floorTiles, roofTiles);
 
     if cuboidArray = [] then
-      Exit(False);
+      Exit;
 
     atpa := Self.FindOnMainScreen(cuboidArray);
   end
@@ -1444,7 +1490,7 @@ begin
     cuboidArray := Self.GetCuboidArray();
 
     if cuboidArray = [] then
-      Exit(False);
+      Exit;
 
     atpa := Self.FindOnMainScreen(cuboidArray);
   end
@@ -1470,7 +1516,7 @@ begin
     cuboidArray := Self.GetCuboidArray();
 
     if cuboidArray = [] then
-      Exit(False);
+      Exit;
 
     Exit(Self.OnMainScreen(cuboidArray));
   end;
@@ -1590,13 +1636,15 @@ You should not use this directly.
 *)
 function TRSMMDot._AsyncHoverHelper(): Boolean;
 var
+  shouldExit: Boolean;
   atpa: T2DPointArray;
 begin
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
+  if Self.Filter.MinimapDot and (Minimap.GetDots(Self.DotType) = []) then
+    Exit;
 
-  if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-    Exit(True);
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   if Self.Find(atpa) then
   begin
@@ -1617,18 +1665,17 @@ function TRSMMDot._AsyncHoverHelper(attempts: Int32): Boolean; overload;
     Result := atpa.RandomValue();
   end;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
 begin
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-    Exit(True);
-
   if Self.Filter.MinimapDot and (Minimap.GetDots(Self.DotType) = []) then
+    Exit;
+
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
     Exit;
 
   for attempt := 0 to attempts do
@@ -1685,18 +1732,17 @@ You should not use this directly.
 *)
 function TRSMMDot._HoverHelper(attempts: Int32): Boolean;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
 begin
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-    Exit(True);
-
   if Self.Filter.MinimapDot and (Minimap.GetDots(Self.DotType) = []) then
+    Exit;
+
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
     Exit;
 
   for attempt := 0 to attempts do
@@ -1753,30 +1799,18 @@ function TRSMMDot._AsyncWalkHoverHelper(attempts: Int32): Boolean;
     Result := atpa.RandomValue();
   end;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
-  strArray: TStringArray;
 begin
   if not Self.Filter.Walker then
     Exit(Self._HoverHelper(attempts));
 
-  if Self.RedClicked or (Self.Filter.UpText and MainScreen.IsUpText(Self.UpText)) then
-    Exit(True);
-
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText then
-  begin
-    strArray := Self.UpText;
-    if Self.ActionUpText <> [] then
-      strArray := Self.ActionUpText;
-
-    if Self.CurrentUpText <> strArray then
-      Self.CurrentUpText := strArray;
-  end;
+  Result := Self._WalkUpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   for attempt := 0 to attempts do
   begin
@@ -1846,30 +1880,18 @@ This is responsible for deciding wether we should walk to a TRSMMDot target or n
 *)
 function TRSMMDot._WalkHoverHelper(attempts: Int32): Boolean;
 var
+  shouldExit: Boolean;
   attempt: Int32;
   atpa: T2DPointArray;
   tpa: TPointArray;
   angle: Double;
-  strArray: TStringArray;
 begin
   if not Self.Filter.Walker then
     Exit(Self._HoverHelper(attempts));
 
-  if Self.RedClicked or (Self.Filter.UpText and MainScreen.IsUpText(Self.UpText)) then
-    Exit(True);
-
-  if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
-    Exit(False);
-
-  if Self.Filter.UpText then
-  begin
-    strArray := Self.UpText;
-    if Self.ActionUpText <> [] then
-      strArray := Self.ActionUpText;
-
-    if Self.CurrentUpText <> strArray then
-      Self.CurrentUpText := strArray;
-  end;
+  Result := Self._WalkUpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
 
   for attempt := 0 to attempts do
   begin
@@ -1935,7 +1957,7 @@ Example
 *)
 function TRSMMDot.AsyncHover(): Boolean;
 begin
-  Result := Self._AsyncHoverHelper;
+  Result := Self._AsyncHoverHelper();
 end;
 
 (*
@@ -1973,7 +1995,7 @@ begin
   end;
 
   if Self.Filter.Walker and not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) then
-    Exit(False);
+    Exit;
 
   Result := (Async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
 end;
@@ -2020,12 +2042,12 @@ begin
   if not Self.Filter.Walker then
     Exit;
 
-  if Self.Filter.UpText and (Self.CurrentUpText <> Self.UpText) then
-    Self.CurrentUpText := Self.UpText;
+  if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
+    TRSWalkerObject.CurrentUpText := Self.UpText;
 
   if not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) and
      not TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15) then
-      Exit(False);
+      Exit;
 
   Result := (Async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
 end;

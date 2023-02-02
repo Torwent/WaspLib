@@ -1,3 +1,12 @@
+## [11.7.2](https://github.com/Torwent/WaspLib/compare/v11.7.1...v11.7.2) (2023-02-02)
+
+
+### Bug Fixes
+
+* **StatsClient:** StatsClient now shutsdown if the connection is deemed too slow ([44d210d](https://github.com/Torwent/WaspLib/commit/44d210d8af1b6a4c2683758ea6492a30a817acec))
+
+
+
 ## [11.7.1](https://github.com/Torwent/WaspLib/compare/v11.7.0...v11.7.1) (2023-02-02)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added achievements tab antiban ([66fa326](https://github.com/Torwent/WaspLib/commit/66fa32662662e131f7d29d90877e1566d65a6d7c))
-
-
-
-## [11.5.2](https://github.com/Torwent/WaspLib/compare/v11.5.1...v11.5.2) (2023-02-01)
-
-
-### Bug Fixes
-
-* fixes to the newly added achievements tab ([f873134](https://github.com/Torwent/WaspLib/commit/f8731344ce6f1ac5ef4e9ec9baa88e71f1c3a155))
 
 
 

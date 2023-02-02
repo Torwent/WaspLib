@@ -150,6 +150,7 @@ type
     Timer: TCountDown;
     TimeStamp: UInt64;
     IsSetup: Boolean;
+    Benchmark: TIntegerArray;
   end;
 
 (*
@@ -295,6 +296,7 @@ function TStatsClient.POST(route: String; payload: TStringArray): String;
 var
   i: Int32;
   finalPayload: String;
+  responseTime: UInt64;
 begin
   if Self.Disabled then
     Exit;
@@ -307,9 +309,22 @@ begin
       finalPayload += '&';
   end;
 
+  responseTime := GetTickCount();
   Result := PostHTTPPage(Self.HTTPClient, Self.StatsServer + route, finalPayload);
+  responseTime := GetTickCount() - responseTime;
 
-  Self.DebugLn(Result);
+  Self.DebugLn(Result + ' Response took: ' + ToStr(responseTime) + 'ms.');
+
+  if Length(Self.Benchmark) > 5 then
+    Self.Benchmark.Del(0, 1);
+
+  Self.Benchmark += responseTime;
+
+  if (Length(Self.Benchmark) > 5) and (Self.Benchmark.Mean() > 3000) then
+  begin
+    Self.DebugLn('Connection to ' + Self.StatsServer + ' is slower than it should. StatsClient will be disabled.');
+    Self.Disabled := True;
+  end;
 end;
 
 

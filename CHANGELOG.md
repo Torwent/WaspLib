@@ -1,3 +1,12 @@
+## [11.7.1](https://github.com/Torwent/WaspLib/compare/v11.7.0...v11.7.1) (2023-02-02)
+
+
+### Bug Fixes
+
+* fix tithe rsobjects ([bdf8b1c](https://github.com/Torwent/WaspLib/commit/bdf8b1cdc0816385587864bc00223af030fbe31d))
+
+
+
 # [11.7.0](https://github.com/Torwent/WaspLib/compare/v11.6.1...v11.7.0) (2023-02-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fixes to the newly added achievements tab ([f873134](https://github.com/Torwent/WaspLib/commit/f8731344ce6f1ac5ef4e9ec9baa88e71f1c3a155))
-
-
-
-## [11.5.1](https://github.com/Torwent/WaspLib/compare/v11.5.0...v11.5.1) (2023-01-31)
-
-
-### Bug Fixes
-
-* cached xp now stats at 0 properly ([d4ad993](https://github.com/Torwent/WaspLib/commit/d4ad993b59cfb614b65841a70aa82255978509b6))
 
 
 

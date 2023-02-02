@@ -560,12 +560,10 @@ begin
   begin
     if Self.HandleHealth then
     begin
-      Self.State := 'EAT_FOOD';
-      Exit(Self.State);
+      Exit('EAT_FOOD');
     end;
 
-    Self.State := 'LOW_HEALTH';
-    Exit(Self.State);
+    Exit('LOW_HEALTH');
   end;
 
   if Self.HandlePrayer then
@@ -574,20 +572,17 @@ begin
 
     if (PrayCache > 0) and not Minimap.IsPrayerEnabled() then
     begin
-      Self.State := 'ENABLE_QPRAY';
-      Exit(Self.State);
+      Exit('ENABLE_QPRAY');
     end;
 
     if (PrayCache <= Self.MinPrayPoints) then
     begin
       if Inventory.ContainsConsumable(ERSConsumable.PRAYER_CONSUMABLE) then
       begin
-        Self.State := 'DRINK_PRAYER';
-        Exit(Self.State);
+        Exit('DRINK_PRAYER');
       end;
 
-      Self.State := 'LOW_PRAYER';
-      Exit(Self.State);
+      Exit('LOW_PRAYER');
     end;
   end;
 
@@ -595,26 +590,22 @@ begin
   begin
     if Inventory.ContainsConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE) then
     begin
-      Self.State := 'DRINK_ANTIFIRE';
-      Exit(Self.State);
+      Exit('DRINK_ANTIFIRE');
     end;
 
-    Self.State := 'NO_ANTIFIRE';
-    Exit(Self.State);
+    Exit('NO_ANTIFIRE');
   end;
 
   if Self.NeedAntiPoison() then
   begin
     if Self.HandleVenom and Inventory.ContainsConsumable(ERSConsumable.VENOM_CONSUMABLE) then
     begin
-      Self.State := 'DRINK_ANTIVENOM';
-      Exit(Self.State);
+      Exit('DRINK_ANTIVENOM');
     end;
 
     if Self.HandlePoison and Inventory.ContainsConsumable(ERSConsumable.POISON_CONSUMABLE) then
     begin
-      Self.State := 'DRINK_ANTIPOISON';
-      Exit(Self.State);
+      Exit('DRINK_ANTIPOISON');
     end;
   end;
 
@@ -628,38 +619,32 @@ begin
 
   if Self.NeedBoost() then
   begin
-    Self.State := 'DRINK_BOOST';
-    Exit(Self.State);
+    Exit('DRINK_BOOST');
   end;
 
   if Self.DoingSpec and Self.CanSpec() then
   begin
-    Self.State := 'SPEC_MONSTER';
-    Exit(Self.State);
+    Exit('SPEC_MONSTER');
   end;
 
   if Self.CanSpec() then
   begin
-    Self.State := 'USE_SPECIAL_ATT';
-    Exit(Self.State);
+    Exit('USE_SPECIAL_ATT');
   end;
 
   if Self.NeedRegear() then
   begin
-    Self.State := 'REEQUIP_GEAR';
-    Exit(Self.State);
+    Exit('REEQUIP_GEAR');
   end;
 
   if Self.BuryBones and Inventory.ContainsAny(REMAINS) then
   begin
-    Self.State := 'BURY_BONES';
-    Exit(Self.State);
+    Exit('BURY_BONES');
   end;
 
   if not MainScreen.InCombat() then
   begin
-    Self.State := 'ATTACK_MONSTER';
-    Exit(Self.State);
+    Exit('ATTACK_MONSTER');
   end;
 
   Result := 'WAIT_IN_COMBAT';
@@ -671,6 +656,7 @@ procedure TCombatHandler.DoActions(HandlerState: String = '');
 begin
   if HandlerState = '' then
     HandlerState := Self.GetState();
+  Self.State := HandlerState;
 
   case HandlerState of
     'EAT_FOOD':         Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE);
@@ -689,6 +675,8 @@ begin
     'WAIT_IN_COMBAT':   MainScreen.WaitInCombat(Self.InCombatTimer.Length);
     'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
       Self.Terminate;
+  else
+    raise 'TCombatHandler.DoActions received non-registered HandlerState: ' + HandlerState;
   end;
 
   if Self.LootEnabled and not Self.DoingSpec then

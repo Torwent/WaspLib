@@ -1,3 +1,12 @@
+## [11.7.3](https://github.com/Torwent/WaspLib/compare/v11.7.2...v11.7.3) (2023-02-05)
+
+
+### Bug Fixes
+
+* trigger auto bump ([7072a70](https://github.com/Torwent/WaspLib/commit/7072a700e9f5ba24eaac6f2e4b819112563c6434))
+
+
+
 ## [11.7.2](https://github.com/Torwent/WaspLib/compare/v11.7.1...v11.7.2) (2023-02-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * StrToTime() was crashing on certain time formats ([e7e56ec](https://github.com/Torwent/WaspLib/commit/e7e56ecddeca20dba3a5753da1ab253c60d5dab4))
-
-
-
-# [11.6.0](https://github.com/Torwent/WaspLib/compare/v11.5.2...v11.6.0) (2023-02-01)
-
-
-### Features
-
-* added achievements tab antiban ([66fa326](https://github.com/Torwent/WaspLib/commit/66fa32662662e131f7d29d90877e1566d65a6d7c))
 
 
 

@@ -1,3 +1,12 @@
+## [11.7.4](https://github.com/Torwent/WaspLib/compare/v11.7.3...v11.7.4) (2023-02-05)
+
+
+### Bug Fixes
+
+* **RSObjects:** PC coords and typo ([e521505](https://github.com/Torwent/WaspLib/commit/e5215057f1c0e850b6615e724aa2266b522f5f58))
+
+
+
 ## [11.7.3](https://github.com/Torwent/WaspLib/compare/v11.7.2...v11.7.3) (2023-02-05)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **antiban:** new method to move items in the inventory to different slots ([d8a9976](https://github.com/Torwent/WaspLib/commit/d8a9976dba538aaa3f1c684ff8a73afddb948922))
-
-
-
-## [11.6.1](https://github.com/Torwent/WaspLib/compare/v11.6.0...v11.6.1) (2023-02-01)
-
-
-### Bug Fixes
-
-* StrToTime() was crashing on certain time formats ([e7e56ec](https://github.com/Torwent/WaspLib/commit/e7e56ecddeca20dba3a5753da1ab253c60d5dab4))
 
 
 

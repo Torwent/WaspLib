@@ -5,10 +5,13 @@ Simple tool to make TBoxes for SRL's RSWalkerRegions or WaspLib's RSRegions.
 *)
 
 {$DEFINE SRL_DISABLE_REMOTEINPUT}
-
 {$I SRL-T/osr.simba}
 {$I WaspLib/osr.simba}
 {$H-}
+
+begin
+  RSNamedRegionsArray; //CTRL + Click to get to the file quickly.
+end;
 
 const
   MAP_NAME: String = WL_WALKER_MAP;
@@ -17,7 +20,7 @@ type
   TRSMapMaker = record
     Form: TForm;
     Panel: TPanel;
-    ButtonNewRegion, ButtonDeleteRegion, ButtonReset, ButtonPrintSelected, ButtonPrintAll: TButton;
+    ButtonNewRegion, ButtonDeleteRegion, ButtonReset, ButtonPrintSelected, ButtonPrintEnums, ButtonPrintAll: TButton;
     RenameLabel: TLabel;
     RenameEdit: TEdit;
     ListBoxRegions: TListBox;
@@ -34,7 +37,6 @@ type
 
 var
   MapMaker: TRSMapMaker;
-
 
 //Mouse
 procedure TRSMapMaker.OnMouseMove(sender: TObject; Shift: TShiftState; X, Y: Int32);
@@ -425,6 +427,37 @@ begin
   WriteLn('  RSCombatRegions.Setup();', LineEnding, 'end;');
 end;
 
+procedure TRSMapMaker.OnPrintEnum(sender: TObject);
+var
+  i, padLen: Int32;
+  str: String;
+  arr: TStringArray;
+begin
+  ClearDebug();
+
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    str := Self.RegionArray[i].Name.Replace("'", "''");
+    str := '    ' + UpperCase(str).Replace(' ', '_').Replace('''', '').Replace('-', '') + ':';
+    arr += str;
+
+    if Length(str) > padLen then
+      padLen := Length(str);
+  end;
+
+  for i := 0 to High(arr) do
+    arr[i] := PadR(arr[i], padLen, ' ') + ' TBox;';
+
+
+  WriteLn 'type';
+  WriteLn '  TRSRegions = record';
+
+  for i := 0 to High(arr) do
+    WriteLn arr[i];
+
+  WriteLn'  end;';
+end;
+
 
 procedure TRSMapMaker.OnKeyDown(sender: TObject; var Key: Word; Shift: TShiftState);
 begin
@@ -552,6 +585,16 @@ begin
       SetAutoSize(True);
       SetCaption('Print Selected Region');
       SetOnClick(@Self.OnPrintSelected);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintEnums do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print All RSRegion Enum');
+      SetOnClick(@Self.OnPrintEnum);
       setAlign(alBottom);
     end;
 

@@ -1,3 +1,12 @@
+# [11.8.0](https://github.com/Torwent/WaspLib/compare/v11.7.4...v11.8.0) (2023-02-06)
+
+
+### Features
+
+* dumped coordinates. More info in comments ([bb536b6](https://github.com/Torwent/WaspLib/commit/bb536b6c8a91e766cb820855a1958ade316d3517))
+
+
+
 ## [11.7.4](https://github.com/Torwent/WaspLib/compare/v11.7.3...v11.7.4) (2023-02-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fix tithe rsobjects ([bdf8b1c](https://github.com/Torwent/WaspLib/commit/bdf8b1cdc0816385587864bc00223af030fbe31d))
-
-
-
-# [11.7.0](https://github.com/Torwent/WaspLib/compare/v11.6.1...v11.7.0) (2023-02-01)
-
-
-### Features
-
-* **antiban:** new method to move items in the inventory to different slots ([d8a9976](https://github.com/Torwent/WaspLib/commit/d8a9976dba538aaa3f1c684ff8a73afddb948922))
 
 
 

@@ -1,3 +1,12 @@
+## [11.8.4](https://github.com/Torwent/WaspLib/compare/v11.8.3...v11.8.4) (2023-02-07)
+
+
+### Bug Fixes
+
+* more coordinates and some tweaks ([7be6798](https://github.com/Torwent/WaspLib/commit/7be6798da73db8fbfa9d889b6f224202d4169485))
+
+
+
 ## [11.8.3](https://github.com/Torwent/WaspLib/compare/v11.8.2...v11.8.3) (2023-02-07)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * dumped coordinates. More info in comments ([bb536b6](https://github.com/Torwent/WaspLib/commit/bb536b6c8a91e766cb820855a1958ade316d3517))
-
-
-
-## [11.7.4](https://github.com/Torwent/WaspLib/compare/v11.7.3...v11.7.4) (2023-02-05)
-
-
-### Bug Fixes
-
-* **RSObjects:** PC coords and typo ([e521505](https://github.com/Torwent/WaspLib/commit/e5215057f1c0e850b6615e724aa2266b522f5f58))
 
 
 

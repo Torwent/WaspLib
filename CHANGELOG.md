@@ -1,3 +1,12 @@
+## [11.8.5](https://github.com/Torwent/WaspLib/compare/v11.8.4...v11.8.5) (2023-02-07)
+
+
+### Bug Fixes
+
+* better failsafe when getting height from heightmap ([9a3f39f](https://github.com/Torwent/WaspLib/commit/9a3f39f4754b4a96011b15f46e7cae8d7fa1fae1))
+
+
+
 ## [11.8.4](https://github.com/Torwent/WaspLib/compare/v11.8.3...v11.8.4) (2023-02-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * remove leftover debugging ([692ec67](https://github.com/Torwent/WaspLib/commit/692ec6730ed81f22281fb06f6ee6958b5451b29c))
-
-
-
-# [11.8.0](https://github.com/Torwent/WaspLib/compare/v11.7.4...v11.8.0) (2023-02-06)
-
-
-### Features
-
-* dumped coordinates. More info in comments ([bb536b6](https://github.com/Torwent/WaspLib/commit/bb536b6c8a91e766cb820855a1958ade316d3517))
 
 
 

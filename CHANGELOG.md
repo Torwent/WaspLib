@@ -1,3 +1,12 @@
+## [11.8.2](https://github.com/Torwent/WaspLib/compare/v11.8.1...v11.8.2) (2023-02-07)
+
+
+### Bug Fixes
+
+* some walker setup fixes ([e2e8a48](https://github.com/Torwent/WaspLib/commit/e2e8a483ccbe0326ddc9c1da10c74a416d15fb20))
+
+
+
 ## [11.8.1](https://github.com/Torwent/WaspLib/compare/v11.8.0...v11.8.1) (2023-02-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * trigger auto bump ([7072a70](https://github.com/Torwent/WaspLib/commit/7072a700e9f5ba24eaac6f2e4b819112563c6434))
-
-
-
-## [11.7.2](https://github.com/Torwent/WaspLib/compare/v11.7.1...v11.7.2) (2023-02-02)
-
-
-### Bug Fixes
-
-* **StatsClient:** StatsClient now shutsdown if the connection is deemed too slow ([44d210d](https://github.com/Torwent/WaspLib/commit/44d210d8af1b6a4c2683758ea6492a30a817acec))
 
 
 

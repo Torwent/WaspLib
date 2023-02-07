@@ -12,6 +12,7 @@ Extensions to SRL's TRSWalker.
 {$I waspweb.graph}
 
 const
+  WL_WALKER_DIR = {$MACRO CURRENT_DIRECTORY};
   WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
   WL_WALKER_MAP_VERSION = '3'; //Increment when maps are updated to force recaching.
@@ -187,14 +188,16 @@ Overrides SRL's TRSWalkerMap.Load() so it loads the respective heightmap if it e
 This is an internal Walker method, you probably don't need to call it.
 *)
 
-procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
+procedure TRSWalkerMap.Load(fileName: String; scaling: Integer); override;
 var
   hFileName: String;
 begin
-  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
+  fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
+
+  hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
   RSHeightMap.Enabled := RSHeightMap.Enabled and (RSHeightMap.MaxHeight > 0) and FileExists(hFileName);
 
-  Self.Map := Self.InternalLoadMap(FileName);
+  Self.Map := Self.InternalLoadMap(fileName);
   if RSHeightMap.Enabled then
   begin
     RSHeightMap.Map := Self.InternalLoadMap(hFileName);
@@ -210,7 +213,7 @@ begin
 
   Self.ScaledMap.Init();
   AddOnTerminate(@Self.Free);
-  Self.Map.Downsample(Scaling, Self.ScaledMap);
+  Self.Map.Downsample(scaling, Self.ScaledMap);
 end;
 
 procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
@@ -219,6 +222,8 @@ var
   I: Integer;
   hFileName: String;
 begin
+  fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
+
   hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
   RSHeightMap.Enabled := RSHeightMap.Enabled and (RSHeightMap.MaxHeight > 0) and FileExists(hFileName);
 
@@ -305,22 +310,6 @@ begin
 
   MinimapSample.Free();
   MinimapImage.Free();
-end;
-
-(*
-Walker.Setup
-~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-
-Overrides SRL's Walker.Setup() so it uses WL_WALKER_MAP as it's default map for regions.
-*)
-procedure TRSWalker.Setup(regions: TBoxArray; Scaling: Integer = 8); override;
-begin
-  Self.Scaling := Scaling;
-
-  Self.Map.Load(WL_WALKER_MAP, Regions, Scaling);
-
-  Self.InternalSetup();
 end;
 
 (*

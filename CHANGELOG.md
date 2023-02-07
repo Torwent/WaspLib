@@ -1,3 +1,12 @@
+## [11.8.3](https://github.com/Torwent/WaspLib/compare/v11.8.2...v11.8.3) (2023-02-07)
+
+
+### Bug Fixes
+
+* **TRSAction:** AlchItemArray was being set to empty in Simba 1400 ([954c9bd](https://github.com/Torwent/WaspLib/commit/954c9bd154d943e0aefcfc73a98e2f002cf948bf))
+
+
+
 ## [11.8.2](https://github.com/Torwent/WaspLib/compare/v11.8.1...v11.8.2) (2023-02-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSObjects:** PC coords and typo ([e521505](https://github.com/Torwent/WaspLib/commit/e5215057f1c0e850b6615e724aa2266b522f5f58))
-
-
-
-## [11.7.3](https://github.com/Torwent/WaspLib/compare/v11.7.2...v11.7.3) (2023-02-05)
-
-
-### Bug Fixes
-
-* trigger auto bump ([7072a70](https://github.com/Torwent/WaspLib/commit/7072a700e9f5ba24eaac6f2e4b819112563c6434))
 
 
 

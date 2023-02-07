@@ -1,3 +1,12 @@
+## [11.8.1](https://github.com/Torwent/WaspLib/compare/v11.8.0...v11.8.1) (2023-02-07)
+
+
+### Bug Fixes
+
+* remove leftover debugging ([692ec67](https://github.com/Torwent/WaspLib/commit/692ec6730ed81f22281fb06f6ee6958b5451b29c))
+
+
+
 # [11.8.0](https://github.com/Torwent/WaspLib/compare/v11.7.4...v11.8.0) (2023-02-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **StatsClient:** StatsClient now shutsdown if the connection is deemed too slow ([44d210d](https://github.com/Torwent/WaspLib/commit/44d210d8af1b6a4c2683758ea6492a30a817acec))
-
-
-
-## [11.7.1](https://github.com/Torwent/WaspLib/compare/v11.7.0...v11.7.1) (2023-02-02)
-
-
-### Bug Fixes
-
-* fix tithe rsobjects ([bdf8b1c](https://github.com/Torwent/WaspLib/commit/bdf8b1cdc0816385587864bc00223af030fbe31d))
 
 
 

@@ -1,0 +1,658 @@
+(*
+PolygonMaker
+========
+Simple tool to make polygons for TRSWalker.
+*)
+
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+{$I SRL-T/osr.simba}
+{$I WaspLib/osr.simba}
+{$H-}
+
+const
+  POLYGONS: T2DPointArray = [
+
+	];
+
+const
+  MAP_NAME: String = WL_WALKER_MAP;
+
+type
+  TRSNamedPolygon = record
+    Name: String;
+    Polygon: TPointArray;
+  end
+
+  TRSPolygonMaker = record
+    Form: TForm;
+    Panel: TPanel;
+    ButtonNewPolygon, ButtonDeletePolygon, ButtonReset, ButtonPrintSelected, ButtonPrintAll, ButtonPrintATPA: TButton;
+    RenameLabel: TLabel;
+    RenameEdit: TEdit;
+    ListPolygons: TListBox;
+
+    ImageBox: TSimbaImageBox;
+    VisibleArea: TBox;
+
+    Index: Int32;
+    PolygonArray: array of TRSNamedPolygon;
+
+    SelectedPoint: TPoint;
+    MovingPoint, Dragging: Boolean;
+  end;
+
+var
+  MapMaker: TRSPolygonMaker;
+
+//Mouse
+procedure TRSPolygonMaker.OnMouseMove(sender: TObject; Shift: TShiftState; X, Y: Int32);
+var
+  diff: TPoint;
+  tpa: TPointArray;
+  i: Int32;
+begin
+  if not Self.Dragging or (Self.Index < 0) then
+    Exit;
+
+  tpa := Self.PolygonArray[Self.Index].Polygon;
+
+  if Self.MovingPoint then
+  begin
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+        Break;
+
+    if i > High(tpa) then
+      Exit;
+
+    Self.SelectedPoint := [X, Y];
+    tpa[i] := Self.SelectedPoint;
+
+    Self.PolygonArray[Self.Index].Polygon := tpa;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  diff := Self.SelectedPoint - [X, Y];
+
+  Self.PolygonArray[Self.Index].Polygon := tpa.Offset(-diff.X, -diff.Y);
+  Self.SelectedPoint := [X, Y];
+  Self.ImageBox.Update();
+end;
+
+procedure TRSPolygonMaker.OnMouseDown(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+  function checkCorners(tpa: TPointArray): Boolean;
+  var
+    i: Int32
+  begin
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+      begin
+        Self.ListPolygons.setItemIndex(Self.Index);
+        Self.RenameEdit.setText(Self.ListPolygons.GetSelectedText());
+        Self.MovingPoint := True;
+        Self.SelectedPoint := tpa[i];
+        Self.ImageBox.Update();
+        Self.Dragging := True;
+        Exit(True);
+      end;
+  end;
+
+var
+  tpa, tmp: TPointArray;
+  indices: TIntegerArray;
+  i: Int32;
+  dist, currentDist: Double;
+begin
+  if Button <> mbLeft then
+    Exit;
+
+  Self.SelectedPoint := Point(X, Y);
+
+  if (Self.Index > -1) and checkCorners(Self.PolygonArray[Self.Index].Polygon) then
+    Exit;
+
+  if (Self.Index > -1) and SRL.PointInPoly(Self.SelectedPoint, Self.PolygonArray[Self.Index].Polygon) then
+  begin
+    Self.RenameEdit.setText(Self.PolygonArray[Self.Index].Name);
+    Self.Dragging := True;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  if (Self.Index > -1) then
+  begin
+    tpa := Self.PolygonArray[Self.Index].Polygon;
+
+    for i := 5 to 100 do
+    begin
+      tmp := tpa.PointsInRangeOf([Self.SelectedPoint], 5, i);
+
+      if (Length(tmp) > 2) or (i = 2000) then
+        Exit;
+
+      if Length(tmp) = 2 then
+        Break;
+    end;
+
+    if i <= 100 then
+    begin
+      i := tpa.IndexOf(tmp[1]);
+      tpa.Insert(Self.SelectedPoint, i);
+      Self.PolygonArray[Self.Index].Polygon := tpa;
+
+      Self.MovingPoint := True;
+      Self.Dragging := True;
+      Self.ImageBox.Update();
+      Exit;
+    end;
+  end;
+
+  tpa := [];
+
+  Self.RenameEdit.Clear();
+
+  for Self.Index := 0 to High(Self.PolygonArray) do
+  begin
+    if checkCorners(Self.PolygonArray[Self.Index].Polygon) then
+      Exit;
+
+    if SRL.PointInPoly(Self.SelectedPoint, Self.PolygonArray[Self.Index].Polygon) then
+    begin
+      tpa += Self.PolygonArray[Self.Index].Polygon.Mean();
+      indices += Self.Index;
+    end;
+  end;
+
+  if tpa = [] then
+  begin
+    Self.Index := -1;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  for i := 0 to High(tpa) do
+  begin
+    currentDist := tpa[i].DistanceTo(Self.SelectedPoint);
+    if (dist = 0) or (dist > currentDist) then
+      dist := currentDist;
+  end;
+
+  for i := 0 to High(tpa) do
+    if tpa[i].DistanceTo(Self.SelectedPoint) = dist then
+      Break;
+
+  Self.Index := indices[i];
+
+  Self.RenameEdit.setText(Self.PolygonArray[Self.Index].Name);
+  Self.ListPolygons.setItemIndex(Self.Index);
+  Self.ImageBox.Update();
+  Self.Dragging := True;
+end;
+
+procedure TRSPolygonMaker.OnMouseUp(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+begin
+  if Button <> mbLeft then
+    Exit;
+
+  Self.Dragging := False;
+  Self.MovingPoint := False;
+end;
+
+
+procedure TRSPolygonMaker.DrawPolygon(area: TBox);
+var
+  canvas: TCanvas;
+  tpa: TPointArray;
+  p: TPoint;
+  i, j: Int32;
+begin
+  canvas := Self.ImageBox.getOverlay().GetCanvas();
+
+  canvas.GetPen().SetColor($00FF7F);
+
+  for i := 0 to High(PolygonArray) do
+  begin
+    tpa := PolygonArray[i].Polygon;
+
+    if tpa.Connect().FilterBox(area) = [] then //Polygon not visibile right now.
+      Continue;
+
+    canvas.getPen().setWidth(2);
+    if i = Self.Index then
+    begin
+      canvas.GetPen().SetColor($00FFFF);
+      canvas.getBrush().setColor($0000FF);
+    end
+    else
+    begin
+      canvas.GetPen().SetColor($00FF7F);
+      canvas.getBrush().setColor($FFAAD4);
+    end;
+
+    for j := 0 to High(tpa) do
+    begin
+      p := tpa[j];
+      canvas.MoveTo(p.X, p.Y);
+
+      if j < High(TPA) then
+        canvas.LineTo(tpa[j+1].X, tpa[j+1].Y)
+      else
+        canvas.LineTo(tpa[0].X, tpa[0].Y);
+
+      if P.InBox(area) then
+        canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+    end;
+  end;
+
+  if Self.MovingPoint and Self.SelectedPoint.InBox(area) then
+  begin
+    canvas.getBrush().setColor($000000);
+    p := Self.SelectedPoint;
+    canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+  end;
+end;
+
+procedure TRSPolygonMaker.PaintArea(sender: TObject; canvas: TCanvas; r: TRect);
+begin
+  Self.VisibleArea := [r.Left, r.Top, r.Right, r.Bottom];
+  Self.DrawPolygon(Self.VisibleArea);
+end;
+
+
+procedure TRSPolygonMaker.MoveToPolygon();
+var
+  p: TPoint;
+begin
+  if Self.Index > -1 then
+  begin
+    p := Self.PolygonArray[Self.Index].Polygon.Mean();
+    Self.ImageBox.MoveTo(p.X, p.Y);
+  end;
+
+  Self.ImageBox.Update();
+end;
+
+procedure TRSPolygonMaker.DeletePolygons(all: Boolean = False);
+begin
+  if all then
+  begin
+    Self.PolygonArray := [];
+    Self.ListPolygons.Clear();
+    Self.Index := -1;
+    Self.RenameEdit.Clear();
+    Exit;
+  end;
+
+  Delete(Self.PolygonArray, Self.Index, 1);
+  Self.ListPolygons.getItems().Delete(Self.Index);
+
+  Self.Index -= 1;
+
+  if Self.Index > -1 then
+  begin
+    Self.ListPolygons.setItemIndex(Self.Index);
+    Self.RenameEdit.setText(Self.PolygonArray[Self.Index].Name);
+  end
+  else
+    Self.RenameEdit.Clear();
+end;
+
+procedure TRSPolygonMaker.ListBoxOnClick(sender: TObject);
+begin
+  Self.Index := Self.ListPolygons.getItemIndex();
+  Self.RenameEdit.setText(Self.PolygonArray[Self.Index].Name);
+  Self.MoveToPolygon();
+end;
+
+procedure TRSPolygonMaker.OnUnSelectNode(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+
+procedure TRSPolygonMaker.OnRename(sender: TObject);
+var
+  str: String;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  str := Self.RenameEdit.getText();
+
+  Self.ListPolygons.getItems().setStrings(Self.Index, str);
+  Self.PolygonArray[Self.Index].Name := str;
+end;
+
+
+
+procedure TRSPolygonMaker.OnDelete(sender: TObject);
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  Self.DeletePolygons();
+  Self.MoveToPolygon();
+end;
+
+procedure TRSPolygonMaker.OnReset(sender: TObject);
+begin
+  Self.DeletePolygons(True);
+  Self.ImageBox.Update();
+end;
+
+procedure TRSPolygonMaker.OnNewPolygon(sender: TObject);
+var
+  polygon: TRSNamedPolygon;
+begin
+  with polygon do
+  begin
+    Polygon := Box(Self.VisibleArea.Center(), 30, 30).ToRectangle().ToTPA();
+    Name := 'New Polygon';
+  end;
+
+  Self.PolygonArray += polygon;
+  Self.ListPolygons.getItems().Add(polygon.Name);
+  Self.RenameEdit.setText(polygon.Name);
+  Self.Index := High(Self.PolygonArray);
+
+  Self.ImageBox.Update();
+end;
+
+
+procedure TRSPolygonMaker.OnPrintSelected(sender: TObject);
+var
+  str: String;
+  tpa: TPointArray;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  str := Self.PolygonArray[Self.Index].Name;
+  str := str.Replace(' ', '').Replace('''', '');
+  str += ' := ';
+
+  tpa := Self.PolygonArray[Self.Index].Polygon;
+
+  str += tpa.ToString();
+
+  WriteLn(LineEnding, LineEnding);
+  WriteLn str;
+  WriteLn(LineEnding, LineEnding);
+end;
+
+procedure TRSPolygonMaker.OnPrint(sender: TObject);
+var
+  i: Int32;
+  str: String;
+  tpa: TPointArray;
+begin
+  ClearDebug();
+
+  for i := 0 to High(Self.PolygonArray) do
+  begin
+    str := Self.PolygonArray[i].Name;
+    str := str.Replace(' ', '').Replace('''', '');
+    str += ' := ';
+
+    tpa := Self.PolygonArray[i].Polygon;
+
+    str += tpa.ToString();
+    WriteLn str;
+  end;
+end;
+
+procedure TRSPolygonMaker.OnPrintATPA(sender: TObject);
+var
+  i: Int32;
+  str: String;
+  tpa: TPointArray;
+begin
+  ClearDebug();
+
+  WriteLn 'atpa := [';
+
+  for i := 0 to High(Self.PolygonArray) do
+  begin
+    str := '  ';
+    tpa := Self.PolygonArray[i].Polygon;
+
+    str += tpa.ToString(False);
+
+    if i < High(Self.PolygonArray) then
+      str += ',';
+
+    WriteLn str;
+  end;
+
+  WriteLn '];';
+end;
+
+
+procedure TRSPolygonMaker.OnKeyDown(sender: TObject; var Key: Word; Shift: TShiftState);
+var
+  tmp: TPointArray;
+begin
+  if Key = VK_ESCAPE then
+  begin
+    Self.Index := -1;
+    Self.ListPolygons.setItemIndex(-1);
+    Self.MovingPoint := False;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  if Key <> VK_DELETE then
+    Exit;
+
+  if Self.Index < 0 then
+    Exit;
+
+  tmp := Self.PolygonArray[Self.Index].Polygon;
+  if tmp.Contains(Self.SelectedPoint) then
+  begin
+    tmp.Remove(Self.SelectedPoint);
+    Self.PolygonArray[Self.Index].Polygon := tmp;
+    if Length(tmp) > 0 then
+    begin
+      tmp := tmp.SortFrom(Self.SelectedPoint);
+      Self.SelectedPoint := tmp[0];
+
+      Self.MovingPoint := True;
+      Self.ImageBox.Update();
+      Exit;
+    end;
+  end;
+
+  Self.OnDelete(sender);
+end;
+
+
+//Form stuff.
+procedure TRSPolygonMaker.OnFormShow(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+procedure TRSPolygonMaker.OnFormClose(sender: TObject; var CloseAction: TCloseAction);
+begin
+  Self.OnPrint(nil);
+end;
+
+
+procedure TRSPolygonMaker.Init();
+var
+  i: Int32;
+  polygon: TRSNamedPolygon;
+begin
+  Self.Index := -1;
+  Self.RenameEdit.Clear();
+
+  for i := 0 to High(POLYGONS) do
+  begin
+    polygon.Name := 'Polygon ' + ToStr(i);
+    polygon.Polygon := POLYGONS[i];
+
+    Self.PolygonArray += polygon;
+    Self.ListPolygons.getItems().Add(polygon.Name);
+    if i = High(POLYGONS) then
+    begin
+      Self.RenameEdit.setText(polygon.Name);
+      Self.Index := High(Self.PolygonArray);
+      Self.ImageBox.Update();
+    end;
+  end;
+end;
+
+
+procedure TRSPolygonMaker.Run();
+var
+  mapImg: TMufasaBitmap;
+begin
+  try
+    with Self.Form do
+    begin
+      Init(nil);
+      SetPosition(poScreenCenter);
+      SetCaption('Polygon Maker');
+      SetWidth(1400);
+      SetHeight(750);
+      GetFont.SetSize(10);
+      SetOnShow(@Self.OnFormShow);
+      SetOnClose(@Self.OnFormClose);
+    end;
+
+    with Self.Panel do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAutoSize(False);
+      SetAlign(alLeft);
+    end;
+
+
+    with Self.RenameEdit do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setAlign(alTop);
+      setOnEditingDone(@OnRename);
+    end;
+
+    with Self.RenameLabel do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Rename Selected:');
+      setAlign(alTop);
+    end;
+
+
+    //Top buttons
+    with Self.ButtonReset do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Reset');
+      SetOnClick(@Self.OnReset);
+      setAlign(alTop);
+    end;
+
+    with Self.ButtonDeletePolygon do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Delete Polygon');
+      SetOnClick(@Self.OnDelete);
+      setAlign(alTop);
+    end;
+
+    with Self.ButtonNewPolygon do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('New Polygon');
+      SetOnClick(@Self.OnNewPolygon);
+      setAlign(alTop);
+    end;
+
+    //Listbox
+    with Self.ListPolygons do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Polygons:');
+      setAlign(alClient);
+      setOnClick(@Self.ListBoxOnClick);
+      SetOnKeyDown(@Self.OnKeyDown);
+    end;
+
+    //print
+    with Self.ButtonPrintSelected do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Selected Polygon');
+      SetOnClick(@Self.OnPrintSelected);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintAll do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print All Polygons');
+      SetOnClick(@Self.OnPrint);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintATPA do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print ATPA');
+      SetOnClick(@Self.OnPrintATPA);
+      setAlign(alBottom);
+    end;
+
+    mapImg := TRSWalkerMap.InternalLoadMap(MAP_NAME);
+    with Self.ImageBox do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAlign(alClient);
+      SetOnPaintArea(@Self.PaintArea);
+      SetOnMouseMove(@Self.OnMouseMove);
+      SetOnMouseDown(@Self.OnMouseDown);
+      SetOnMouseUp(@Self.OnMouseUp);
+      SetOnKeyDown(@Self.OnKeyDown);
+      GetBackground.LoadFromMufasaBitmap(mapImg);
+      BackgroundChanged();
+    end;
+    mapImg.Free();
+
+    WriteLn('Click:                Add or select node'    + LineEnding +
+            'Click + Drag:         Move selected shape'    + LineEnding +
+            'Click + Drag Point:   Move selected point'    + LineEnding +
+            'Press Delete Key:     Remove selected shape'  + LineEnding +
+            'Right Click + Drag:   Move around'           + LineEnding +
+            'Ctrl + Mouse Wheel:   Zoom');
+
+    Self.Init();
+    Self.Form.ShowModal();
+    Self.Form.Free();
+  except
+    Writeln GetExceptionMessage();
+  end;
+end;
+
+begin
+  Sync(@MapMaker.Run);
+end.
+

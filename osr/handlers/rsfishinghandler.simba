@@ -9,13 +9,11 @@ RSFishingHandler is a full color fishing bot that is highly customizable.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-type
-  ERSFishingType = (
+type ERSFishingType = (
     NET, BIG_NET, BAIT, LURE, BARBARIAN_ROD,  CAGE, HARPOON, KARAMBWAN
   );
 
-  RSFishingHandler = record(TSRLBaseRecord)
-  class var
+type RSFishingHandler = record(TSRLBaseRecord) class var
     Tool: TRSItem;
     Bait: TRSItem;
     Option: String;
@@ -28,9 +26,10 @@ type
 
     IsFishing: Boolean;
     Debug: Boolean;
+    Filters: T2DPointArray;
+
     IsSetup: Boolean;
-  class const
-    COLORS: array of TCTS2Color = [
+  class const COLORS: array of TCTS2Color = [
       [15123359, 7, 0.25, 1.45],
       [14596504, 7, 0.15, 1.4],
       [11641749, 8, 0.13, 1.59],
@@ -331,6 +330,16 @@ begin
     if shore.Contains(tpa.Mean()) then
       atpa += tpa.grow(normalizedDistance);
 
+  if (RSFishingHandler.Filters <> []) and (TRSWalkerObject.Walker <> nil) then
+  begin
+    tmp := RSFishingHandler.Filters;
+    tmp := TRSWalkerObject.Walker^.GetMSPolygonArray(tmp);
+
+    atpa := MainScreen.FilterInPolygon(atpa, tmp);
+    if atpa = [] then
+      Exit;
+  end;
+
   atpa := atpa.SortFrom(MainScreen.GetPlayerBox().Center());
 
   Result := atpa <> [];
@@ -407,6 +416,15 @@ begin
   for tpa in tmp do
     if shore.Contains(tpa.Mean()) then
       atpa += tpa.grow(normalizeDistance);
+
+  if (RSFishingHandler.Filters <> []) and (TRSWalkerObject.Walker <> nil) then
+  begin
+    tmp := RSFishingHandler.Filters;
+    tmp := TRSWalkerObject.Walker^.GetMSPolygonArray(tmp);
+    atpa := MainScreen.FilterInPolygon(atpa, tmp);
+    if atpa = [] then
+      Exit;
+  end;
 
   atpa := atpa.SortFrom(MainScreen.GetPlayerBox.Center());
 
@@ -574,8 +592,9 @@ end;
 (*
 RSFishingHandler.ClickSpot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function RSFishingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
-.. pascal:: function RSFishingHandler.ClickSpot(): Boolean; static; overload;
+.. pascal::
+  function RSFishingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
+  function RSFishingHandler.ClickSpot(): Boolean; static; overload;
 
 Click the closest fishing spot to the player and switches RSFishingHandler to "IsFishing".
 We can check if we are still fishing with RSFishingHandler.CheckFishing().

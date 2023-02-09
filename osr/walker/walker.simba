@@ -15,9 +15,8 @@ const
   WL_WALKER_DIR = {$MACRO CURRENT_DIRECTORY};
   WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
-  WL_WALKER_MAP_VERSION = '4'; //Increment when maps are updated to force recaching.
+  WL_WALKER_MAP_VERSION = '5'; //Increment when maps are updated to force recaching.
 
-type
 (*
 type RSHeightMap
 ~~~~~~~~~~~~~~~~
@@ -42,9 +41,8 @@ Values might also vary between regions but I find **30** to be a fine value that
 
 **MathCache**, not very important, simply a cache variable so we don't repeat calculations when it's not required.
 *)
-  RSHeightMap = record(TSRLBaseRecord)
-  class var
-    Enabled: Boolean;
+type RSHeightMap = record(TSRLBaseRecord) class var
+    Disabled: Boolean;
     Map: TMufasaBitmap;
     MaxHeight: Double;
     MathCache: Double;
@@ -64,7 +62,7 @@ Example
 *)
 function RSHeightMap.GetColor(p: TPoint): Int64; static;
 begin
-  if not RSHeightMap.Enabled then
+  if RSHeightMap.Disabled then
     Exit;
 
   if not InRange(p.X, 0, RSHeightmap.Map.getWidth() - 1) then
@@ -200,20 +198,20 @@ begin
   fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
 
   hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
-  RSHeightMap.Enabled := RSHeightMap.Enabled and (RSHeightMap.MaxHeight > 0) and FileExists(hFileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
 
   Self.Map := Self.InternalLoadMap(fileName);
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
   begin
     RSHeightMap.Map := Self.InternalLoadMap(hFileName);
-    RSHeightMap.Enabled := (Self.Map.getWidth() = RSHeightMap.Map.getWidth()) and
-                           (Self.Map.getHeight() = RSHeightMap.Map.getHeight());
+    RSHeightMap.Disabled := (Self.Map.getWidth() <> RSHeightMap.Map.getWidth())
+                       or (Self.Map.getHeight() <> RSHeightMap.Map.getHeight());
 
 
-    if RSHeightMap.Enabled then
-      AddOnTerminate(@RSHeightMap.Map.Free)
+    if RSHeightMap.Disabled then
+      RSHeightMap.Map.Free()
     else
-      RSHeightMap.Map.Free();
+      AddOnTerminate(@RSHeightMap.Map.Free);
   end;
 
   Self.ScaledMap.Init();
@@ -230,7 +228,8 @@ begin
   fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
 
   hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
-  RSHeightMap.Enabled := RSHeightMap.Enabled and (RSHeightMap.MaxHeight > 0) and FileExists(hFileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or
+                         (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
 
   SetLength(Self.Regions, Length(ARegions));
   SetLength(Self.RegionOffsets, Length(ARegions));
@@ -242,7 +241,7 @@ begin
     Self.RegionOffsets[I] := TPoint.Create(ARegions[I].X1, ARegions[I].Y1);
 
     Bitmaps[I] := Self.InternalLoadMap(FileName, ARegions[I]);
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
       HBitmaps[I] := Self.InternalLoadMap(hFileName, ARegions[I]);
 
     if (ARegions[I] <> RSWalkerRegions.WORLD) then
@@ -251,7 +250,7 @@ begin
       Self.RegionOffsets[I].Y -= Padding;
 
       Bitmaps[I].Pad(Padding);
-      if RSHeightMap.Enabled then
+      if not RSHeightMap.Disabled then
         HBitmaps[I].Pad(Padding);
     end;
 
@@ -264,7 +263,7 @@ begin
   Self.Map.SetName('Walker.Map');
   AddOnTerminate(@Self.Map.Free);
 
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
   begin
     RSHeightMap.Map.Init();
     RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
@@ -275,7 +274,7 @@ begin
   for I := 0 to High(Self.Regions) do
   begin
     Self.Map.DrawBitmap(Bitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
       RSHeightMap.Map.DrawBitmap(HBitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
   end;
 
@@ -287,7 +286,7 @@ begin
   for I := 0 to High(Bitmaps) do
     Bitmaps[I].Free();
 
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     for I := 0 to High(HBitmaps) do
       HBitmaps[I].Free();
 end;
@@ -359,7 +358,7 @@ Example
 *)
 function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
 begin
-  if not RSHeightMap.Enabled then
+  if RSHeightMap.Disabled then
     Exit;
 
   if p = [] then
@@ -401,7 +400,7 @@ var
   tile: Vector3;
   tpa: TPointArray;
 begin
-  if not RSHeightMap.Enabled then
+  if RSHeightMap.Disabled then
     Exit;
 
   if angle = -1 then
@@ -505,7 +504,7 @@ function TRSWalker.GetHeightDiff(p: TPoint): Double;
 var
   h: Double;
 begin
-  if not RSHeightMap.Enabled then
+  if RSHeightMap.Disabled then
     Exit;
 
   Self.GetMyPos(h);
@@ -514,7 +513,7 @@ end;
 
 function TRSWalker.GetHeightDiff(p, q: TPoint): Double; overload;
 begin
-  if not RSHeightMap.Enabled then
+  if RSHeightMap.Disabled then
     Exit;
 
   Result := Self.GetHeight(p) - Self.GetHeight(q);
@@ -684,29 +683,47 @@ end;
 (*
 TRSWalker.WorldToMM
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.WorldToMM(playerPoint: TPoint; worldPoints: TPointArray; Radians: Double): TPointArray; overload;
-.. pascal:: function TRSWalker.WorldToMM(worldPoints: TPointArray): TPointArray; overload;
-.. pascal:: function TRSWalker.WorldToMM(DotFilter: TRSDotFilter): TRSDotFilter; overload;
-.. pascal:: function TRSWalker.WorldToMM(DotFilterArray: TRSDotFilterArray): TRSDotFilterArray; overload;
+.. pascal::
+  function TRSWalker.WorldToMM(me: TPoint; tpa: TPointArray; radians: Double): TPointArray; overload;
+  function TRSWalker.WorldToMM(tpa: TPointArray): TPointArray; overload;
+  function TRSWalker.WorldToMM(me: TPoint; atpa: T2DPointArray; radians: Double): T2DPointArray; overload;
+  function TRSWalker.WorldToMM(atpa: T2DPointArray): TPointArray; overload;
+  function TRSWalker.WorldToMM(me: TPoint; dotFilter: TRSDotFilter; roll: Double = $FFFF): TRSDotFilter; overload;
+  function TRSWalker.WorldToMM(dotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
 
-Overloaded methods required for TRSDotFilter. For more information on TRSDotFilter check their documentation.
+Overloaded methods required for ATPAs and TRSDotFilters. For more information on TRSDotFilter check their documentation.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.WorldToMM(playerPoint: TPoint; worldPoints: TPointArray; Radians: Double): TPointArray; overload;
+function TRSWalker.WorldToMM(me: TPoint; tpa: TPointArray; radians: Double): TPointArray; overload;
 var
-  P: TPoint;
+  p: TPoint;
 begin
-  for P in worldPoints do
-    Result += Self.WorldToMM(playerPoint, P, Radians);
+  for p in tpa do
+    Result += Self.WorldToMM(me, p, radians);
 end;
 
-function TRSWalker.WorldToMM(worldPoints: TPointArray): TPointArray; overload;
+function TRSWalker.WorldToMM(tpa: TPointArray): TPointArray; overload;
 begin
-  Result := Self.WorldToMM(Self.GetMyPos(), worldPoints, Minimap.GetCompassAngle(False));
+  Result := Self.WorldToMM(Self.GetMyPos(), tpa, Minimap.GetCompassAngle(False));
 end;
 
-function TRSWalker.WorldToMM(playerPoint: TPoint; dotFilter: TRSDotFilter; roll: Double = $FFFF): TRSDotFilter; overload;
+
+function TRSWalker.WorldToMM(me: TPoint; atpa: T2DPointArray; radians: Double): T2DPointArray; overload;
+var
+  tpa: TPointArray;
+begin
+  for tpa in atpa do
+    Result += Self.WorldToMM(me, tpa, radians);
+end;
+
+function TRSWalker.WorldToMM(atpa: T2DPointArray): T2DPointArray; overload;
+begin
+  Result := Self.WorldToMM(Self.GetMyPos(), atpa, Minimap.GetCompassAngle(False));
+end;
+
+
+function TRSWalker.WorldToMM(me: TPoint; dotFilter: TRSDotFilter; roll: Double = $FFFF): TRSDotFilter; overload;
 var
   p: TPoint;
 begin
@@ -719,7 +736,7 @@ begin
     Result.Circle := [P.X, P.Y, dotFilter.Circle.Radius];
   end;
 
-  Result.TPA      := Self.WorldToMM(playerPoint, dotFilter.TPA, roll);
+  Result.TPA      := Self.WorldToMM(me, dotFilter.TPA, roll);
   Result.Inside   := dotFilter.Inside;
   Result.HasTimer := dotFilter.HasTimer;
   Result.Timer    := dotFilter.Timer;
@@ -730,7 +747,7 @@ begin
   Result := Self.WorldToMM(Self.GetMyPos(), dotFilter, roll);
 end;
 
-function TRSWalker.WorldToMM(playerPoint: TPoint; DotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
+function TRSWalker.WorldToMM(me: TPoint; DotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
 var
   dotFilter: TRSDotFilter;
 begin
@@ -738,7 +755,7 @@ begin
     roll := Minimap.GetCompassAngle(False);
 
   for dotFilter in dotFilterArray do
-    Result += Self.WorldToMM(playerPoint, dotFilter, roll);
+    Result += Self.WorldToMM(me, dotFilter, roll);
 end;
 
 function TRSWalker.WorldToMM(dotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
@@ -800,7 +817,7 @@ var
 begin
   angle := Minimap.GetCompassAngle(False);
   loc   := Self.WorldToMM(me, loc, Angle);
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     shape.Tile.Z -= Self.GetHeightDiff(me, loc);
   Result := Minimap.GetCuboidMS(loc, shape, offset, angle);
 end;
@@ -846,14 +863,14 @@ begin
   angle := Minimap.GetCompassAngle(False);
   SetLength(tmpShapes, Length(shapeArray));
 
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
   tmpShapes := Copy(shapeArray);
 
   for i := 0 to High(locArray) do
   begin
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
       tmpShapes[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
 
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
@@ -869,12 +886,12 @@ var
 begin
   locArray := locArray.SortFrom(me);
   angle := Minimap.GetCompassAngle(False);
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
   for i := 0 to High(locArray) do
   begin
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
      shape.Tile.Z -= Self.GetHeightDiff(locArray[i]);
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
@@ -889,12 +906,12 @@ var
 begin
   locArray := locArray.SortFrom(me);
   angle := Minimap.GetCompassAngle(False);
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
   for i := 0 to High(locArray) do
   begin
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
       tile.Z -= Self.GetHeightDiff(locArray[i]);
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
@@ -936,12 +953,12 @@ begin
   tmpArray := Copy(locArray);
   SetLength(heightArray, Length(shapeArray));
 
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
   for i := 0 to High(tmpArray) do
   begin
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
       heightArray[i] := meHeight - Self.GetHeight(locArray[i])
     else
       heightArray[i] := 0;
@@ -962,13 +979,13 @@ begin
   angle := Minimap.GetCompassAngle(False);
   tmpArray := Copy(locArray);
 
-  if RSHeightMap.Enabled then
+  if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
   for i := 0 to High(tmpArray) do
   begin
     shapeArray += shape;
-    if RSHeightMap.Enabled then
+    if not RSHeightMap.Disabled then
       heightArray[i] := meHeight - Self.GetHeight(locArray[i])
     else
       heightArray[i] := 0;
@@ -995,7 +1012,7 @@ end;
 (*
 TRSWalker.GetMMPoly
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetMMPoly(locArray: TPointArray): TPointArray;
+.. pascal:: function TRSWalker.GetMMPoly(tpa: TPointArray): TPointArray; deprecated 'Use TRSWalker.WorldToMM() instead.';
 
 This function converts a list of points to their respective points in the minimap.
 This is extremely useful if you want to be sure you are within an area.
@@ -1007,9 +1024,23 @@ Example
 -------
   Debug(RSW.GetMMPoly(TPA).Connect());    //This will draw your TPA on the minimap.
 *)
-function TRSWalker.GetMMPoly(locArray: TPointArray): TPointArray;
+function TRSWalker.GetMMPoly(tpa: TPointArray): TPointArray; deprecated 'Use TRSWalker.WorldToMM() instead.';
 begin
-  Result := Self.WorldToMM(locArray);
+  Result := Self.WorldToMM(tpa);
+end;
+
+function TRSWalker.GetMSPolygon(tpa: TPointArray): TPointArray;
+begin
+  Result := Minimap.ArrToMs(Self.WorldToMM(tpa));
+end;
+
+function TRSWalker.GetMSPolygonArray(atpa: T2DPointArray): T2DPointArray;
+var
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  atpa := Self.WorldToMM(Self.GetMyPos(), atpa, angle);
+  Result := Minimap.ArrToMs(atpa, angle);
 end;
 
 (*
@@ -1029,6 +1060,5 @@ end;
 
 
 begin
-  RSHeightMap.Enabled := True;
   RSHeightMap.MaxHeight := 70;
 end;

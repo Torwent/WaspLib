@@ -213,7 +213,7 @@ begin
   end;
 end;
 
-function TRSMainScreen.Filter(BoxArray: TBoxArray): TBoxArray; overload;
+function TRSMainScreen.Filter(boxArray: TBoxArray): TBoxArray; overload;
 var
   B: TBox;
 begin
@@ -222,7 +222,7 @@ begin
       Result += B;
 end;
 
-function TRSMainScreen.Filter(RectArray: TRectArray): TRectArray; overload;
+function TRSMainScreen.Filter(rectArray: TRectArray): TRectArray; overload;
 var
   Rect: TRectangle;
 begin
@@ -238,6 +238,64 @@ begin
   for cuboid in cuboidArray do
     Result += Self.Filter(cuboid);
 end;
+
+
+(*
+MainScreen.FilterInPolygon
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TRSMainScreen.FilterInPolygon(tpa, polygon: TPointArray): TPointArray;
+  function TRSMainScreen.FilterInPolygon(atpa: T2DPointArray; polygon: TPointArray): T2DPointArray; overload;
+
+Filters the given TPointArray or T2DPointArray and returns only those that are visible within a polygon on the mainScreen.
+*)
+function TRSMainScreen.FilterInPolygon(tpa, polygon: TPointArray): TPointArray;
+begin
+  tpa := Self.Filter(tpa);
+
+  if tpa = [] then
+    Exit;
+
+  polygon := polygon.Connect().ShapeFill();
+  polygon := Self.Filter(polygon);
+
+  if polygon = [] then
+    Exit;
+
+  Result := tpa.Intersection(polygon);
+end;
+
+function TRSMainScreen.FilterInPolygon(atpa: T2DPointArray; polygon: TPointArray): T2DPointArray; overload;
+var
+  tpa: TPointArray;
+begin
+  for tpa in atpa do
+  begin
+    tpa := Self.FilterInPolygon(tpa, polygon);
+    if tpa <> [] then
+      Result += tpa;
+  end;
+end;
+
+function TRSMainScreen.FilterInPolygon(atpa, polygonArray: T2DPointArray): T2DPointArray; overload;
+var
+  tpa: TPointArray;
+  polygon: TPointArray;
+begin
+  for tpa in atpa do
+  begin
+    for polygon in polygonArray do
+    begin
+      if not SRL.PointInPoly(tpa.Mean(), polygon) then
+        Continue;
+      tpa := Self.FilterInPolygon(tpa, polygon);
+      if tpa <> [] then
+        Result += tpa;
+    end;
+  end;
+end;
+
+
 
 
 (*

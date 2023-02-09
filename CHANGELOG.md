@@ -1,3 +1,12 @@
+# [11.9.0](https://github.com/Torwent/WaspLib/compare/v11.8.7...v11.9.0) (2023-02-09)
+
+
+### Features
+
+* polygon filters ([42105d9](https://github.com/Torwent/WaspLib/commit/42105d9766299301d1aeaa5a14f00af31823948d))
+
+
+
 ## [11.8.7](https://github.com/Torwent/WaspLib/compare/v11.8.6...v11.8.7) (2023-02-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * more coordinates and some tweaks ([7be6798](https://github.com/Torwent/WaspLib/commit/7be6798da73db8fbfa9d889b6f224202d4169485))
-
-
-
-## [11.8.3](https://github.com/Torwent/WaspLib/compare/v11.8.2...v11.8.3) (2023-02-07)
-
-
-### Bug Fixes
-
-* **TRSAction:** AlchItemArray was being set to empty in Simba 1400 ([954c9bd](https://github.com/Torwent/WaspLib/commit/954c9bd154d943e0aefcfc73a98e2f002cf948bf))
 
 
 

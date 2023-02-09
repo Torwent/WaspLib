@@ -1,3 +1,12 @@
+## [11.8.7](https://github.com/Torwent/WaspLib/compare/v11.8.6...v11.8.7) (2023-02-09)
+
+
+### Bug Fixes
+
+* memory leak in TPA.ShapeFill() fixed ([a0d1076](https://github.com/Torwent/WaspLib/commit/a0d10765c4318a225411ee43b23c597f03d3a9da))
+
+
+
 ## [11.8.6](https://github.com/Torwent/WaspLib/compare/v11.8.5...v11.8.6) (2023-02-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSAction:** AlchItemArray was being set to empty in Simba 1400 ([954c9bd](https://github.com/Torwent/WaspLib/commit/954c9bd154d943e0aefcfc73a98e2f002cf948bf))
-
-
-
-## [11.8.2](https://github.com/Torwent/WaspLib/compare/v11.8.1...v11.8.2) (2023-02-07)
-
-
-### Bug Fixes
-
-* some walker setup fixes ([e2e8a48](https://github.com/Torwent/WaspLib/commit/e2e8a483ccbe0326ddc9c1da10c74a416d15fb20))
 
 
 

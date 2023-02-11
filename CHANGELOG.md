@@ -1,3 +1,13 @@
+## [11.9.1](https://github.com/Torwent/WaspLib/compare/v11.9.0...v11.9.1) (2023-02-11)
+
+
+### Bug Fixes
+
+* several fixes, read notes ([214847d](https://github.com/Torwent/WaspLib/commit/214847d6d1539eb799e20e1057592c475fb4fedb))
+* TRSWalkerGetClosestPoint() refactor ([e5ffd91](https://github.com/Torwent/WaspLib/commit/e5ffd91dd9b4e47fe673802061e8490d4641ec93))
+
+
+
 # [11.9.0](https://github.com/Torwent/WaspLib/compare/v11.8.7...v11.9.0) (2023-02-09)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * better failsafe when getting height from heightmap ([9a3f39f](https://github.com/Torwent/WaspLib/commit/9a3f39f4754b4a96011b15f46e7cae8d7fa1fae1))
-
-
-
-## [11.8.4](https://github.com/Torwent/WaspLib/compare/v11.8.3...v11.8.4) (2023-02-07)
-
-
-### Bug Fixes
-
-* more coordinates and some tweaks ([7be6798](https://github.com/Torwent/WaspLib/commit/7be6798da73db8fbfa9d889b6f224202d4169485))
 
 
 

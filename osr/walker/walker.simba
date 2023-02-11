@@ -660,15 +660,46 @@ method used to get the closest Point to the Player out of a TPA.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
+function TRSWalker.GetClosestPoint(destinations: TPointArray): TPoint;
+var
+  paths, shortPaths: T2DPointArray;
+  path, shortPath: TPointArray;
+  shortest: Int32;
+  me, destination: TPoint;
 begin
-  Result := worldPointArray.NearestPoint(Self.GetMyPos());
+  me := Self.GetMyPos();
+  for destination in destinations do
+  begin
+    path := Self.WebGraph.PathBetween(me, destination, 0);
+    if path <> [] then
+      paths += path;
+  end;
+
+  shortest := Length(paths.Smallest());
+
+  for path in paths do
+    if Length(path) = shortest then
+      shortPaths += path;
+
+  for path in shortPaths do
+  begin
+    if shortPath = [] then
+    begin
+      shortPath := path;
+      Continue;
+    end;
+
+    if me.DistanceTo(path.Last()) < me.DistanceTo(shortPath.Last()) then
+      shortPath := path;;
+  end;
+
+  Result := shortPath.Last();
 end;
 
 (*
 TRSWalker.WebWalk
 ~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.WebWalk(Destination: TPointArray; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+.. pascal:: function TRSWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Extended = 0): Boolean; overload;
 
 method used to webwalk to the closest Point to the player.
 An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
@@ -676,9 +707,12 @@ You will likely want to use the closest bank booth to you, so you use this.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.WebWalk(Destination: TPointArray; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+function TRSWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Extended = 0): Boolean; overload;
+var
+  destination: TPoint;
 begin
-  Result := Self.WebWalk(Self.GetClosestPoint(Destination), waitUntilDistance, PathRandomness);
+  destination := Self.GetClosestPoint(destinations);
+  Result := Self.WebWalk(destination, waitUntilDistance, pathRandomness);
 end;
 
 

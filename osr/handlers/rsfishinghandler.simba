@@ -14,21 +14,18 @@ type ERSFishingType = (
   );
 
 type RSFishingHandler = record(TSRLBaseRecord) class var
-    Tool: TRSItem;
-    Bait: TRSItem;
-    Option: String;
-    LeftClick: Boolean;
-
+    Tool, Bait: TRSItem;
     FishingType: ERSFishingType;
+
+    Option: String;
     CurrentSpot: TPoint;
     CompassAngle: Double;
+    TimerLength: Int32;
     Timer: TCountDown;
 
-    IsFishing: Boolean;
-    Debug: Boolean;
     Filters: T2DPointArray;
 
-    IsSetup: Boolean;
+    LeftClick, IsFishing, Debug, IsSetup: Boolean;
   class const COLORS: array of TCTS2Color = [
       [15123359, 7, 0.25, 1.45],
       [14596504, 7, 0.15, 1.4],
@@ -58,7 +55,7 @@ This will:
   - Reset RSFishingHandler.CurrentSpot;
   - Set RSFishingHandler.IsFishing to False;
 *)
-procedure RSFishingHandler.Setup(fishType: ERSFishingType); static;
+procedure RSFishingHandler.Setup(fishType: ERSFishingType; timerLength: Int32 = 30000); static;
 var
   found: Boolean;
   baits: TRSItemArray;
@@ -154,6 +151,9 @@ begin
     TerminateScript('Missing tool.');
 
   RSFishingHandler.IsSetup := True;
+
+  RSFishingHandler.TimerLength := timerLength;
+  RSFishingHandler.Timer := [timerLength, 1, 1];
 end;
 
 (*
@@ -534,7 +534,7 @@ begin
   end;
 
   if xpEarned then
-    RSFishingHandler.Timer.Restart(-20000, 10000);
+    RSFishingHandler.Timer.Restart(-Round(RSFishingHandler.TimerLength * 0.6), Round(RSFishingHandler.TimerLength * 0.3));
   Result := RSFishingHandler.IsFishing;
 end;
 
@@ -558,7 +558,7 @@ begin
 
   if xpEarned then
   begin
-    RSFishingHandler.Timer.Restart(-7777, 7777);
+    RSFishingHandler.Timer.Restart(-Round(RSFishingHandler.TimerLength * 0.25), Round(RSFishingHandler.TimerLength * 0.25));;
     RSFishingHandler.CurrentSpot := RSFishingHandler.FindWaterDirection().Mean();
   end;
 
@@ -591,7 +591,7 @@ end;
 
 (*
 RSFishingHandler.ClickSpot
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal::
   function RSFishingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
   function RSFishingHandler.ClickSpot(): Boolean; static; overload;
@@ -678,7 +678,7 @@ begin
   RSFishingHandler.CurrentSpot := RSFishingHandler.FindWaterDirection().Mean();
   RSFishingHandler.CompassAngle := Minimap.GetCompassAngle(False);
   RSFishingHandler.IsFishing := True;
-  RSFishingHandler.Timer.Restart(-20000, 10000);
+  RSFishingHandler.Timer.Restart(-Round(RSFishingHandler.TimerLength * 0.6), Round(RSFishingHandler.TimerLength * 0.3));;
   Result := True;
   Wait(1200, 2400);
 
@@ -692,9 +692,4 @@ var
 begin
   if RSFishingHandler.FindSpot(atpa) then
     Result := RSFishingHandler.ClickSpot(atpa);
-end;
-
-
-begin
-   RSFishingHandler.Timer := [30000, 1, 1];
 end;

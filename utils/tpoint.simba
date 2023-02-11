@@ -21,25 +21,27 @@ begin
   Result := InRange(Self.DistanceTo(A) + Self.DistanceTo(B), TotalDist - ThirdDist, TotalDist + ThirdDist);
 end;
 
-function TPoint.WithinDistance(P: TPoint; Distance: Int32 = 15): Boolean;
+function TPoint.WithinDistance(p: TPoint; dist: Int32 = 15): Boolean;
 begin
-  Result := Self.DistanceTo(P) <= Distance;
+  Result := Self.DistanceTo(p) <= dist;
 end;
 
-function TPoint.WithinDistance(PointArray: TPointArray; Distance: Int32 = 15): Boolean; overload;
+function TPoint.WithinDistance(tpa: TPointArray; dist: Int32 = 15): Boolean; overload;
 var
-  P: TPoint;
+  p: TPoint;
 begin
-  for P in PointArray do
-    if Self.WithinDistance(P, Distance) then
+  tpa := tpa.ConvexHull(); //reduce the points we check
+
+  if SRL.PointInPoly(Self, tpa) then
+    Exit(True);
+
+  for p in tpa do
+    if Self.WithinDistance(p, dist) then
       Exit(True);
 end;
 
-function TPoint.WithinDistance(ATPA: T2DPointArray; Distance: Int32 = 15): Boolean; overload;
-var
-  PointArray: TPointArray;
+function TPoint.WithinDistance(atpa: T2DPointArray; dist: Int32 = 15): Boolean; overload;
 begin
-  for PointArray in ATPA do
-    if Self.WithinDistance(PointArray, Distance) then
-      Exit(True);
+  atpa := atpa.SortFrom(Self);
+  Result := Self.WithinDistance(atpa[0], dist);
 end;

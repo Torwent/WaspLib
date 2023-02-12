@@ -1,3 +1,12 @@
+## [11.9.3](https://github.com/Torwent/WaspLib/compare/v11.9.2...v11.9.3) (2023-02-12)
+
+
+### Bug Fixes
+
+* user input is now temporarily blocked when zooming with the mouse ([192c39d](https://github.com/Torwent/WaspLib/commit/192c39d84a09d50c72571f7898ce8d93631bece7))
+
+
+
 ## [11.9.2](https://github.com/Torwent/WaspLib/compare/v11.9.1...v11.9.2) (2023-02-11)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * memory leak in TPA.ShapeFill() fixed ([a0d1076](https://github.com/Torwent/WaspLib/commit/a0d10765c4318a225411ee43b23c597f03d3a9da))
-
-
-
-## [11.8.6](https://github.com/Torwent/WaspLib/compare/v11.8.5...v11.8.6) (2023-02-08)
-
-
-### Bug Fixes
-
-* **coordinates:** pest control ([d1ddd10](https://github.com/Torwent/WaspLib/commit/d1ddd10d403949fc92aca50b7fbc688a36c30f84))
 
 
 

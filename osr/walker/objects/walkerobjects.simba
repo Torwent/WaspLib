@@ -382,12 +382,23 @@ You probably don't need to use this directly.
 *)
 function TRSWalkerObject._UpTextCheck(out shouldExit: Boolean): Boolean;
 var
+  strArray: TStringArray;
   upText: String;
 begin
   shouldExit := True;
 
   if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
     Exit;
+
+  if Self.Filter.UpText then
+  begin
+    strArray := Self.UpText;
+    if Self.ActionUpText <> [] then
+      strArray := Self.ActionUpText;
+
+    if TRSWalkerObject.CurrentUpText <> strArray then
+      TRSWalkerObject.CurrentUpText := strArray;
+  end;
 
   upText := MainScreen.GetUpText();
 
@@ -421,16 +432,6 @@ begin
   if (MainScreen.Mode = ERSClientMode.FIXED) and MainScreen.HasInterface() then
     Exit;
 
-  upText := MainScreen.GetUpText();
-
-  if ('>' in upText) and not TRSWalkerObject.CurrentUpText.Contains('Use') then
-  begin
-    ChooseOption.Select('Cancel');
-    Exit;
-  end;
-
-  if TRSWalkerObject.RedClicked or (Self.Filter.UpText and (Self.UpText in upText)) then
-    Exit(True);
 
   if Self.Filter.UpText then
   begin
@@ -441,6 +442,17 @@ begin
     if TRSWalkerObject.CurrentUpText <> strArray then
       TRSWalkerObject.CurrentUpText := strArray;
   end;
+
+  upText := MainScreen.GetUpText();
+
+  if ('>' in upText) and not TRSWalkerObject.CurrentUpText.Contains('Use') then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
+  if TRSWalkerObject.RedClicked or (Self.Filter.UpText and (Self.UpText in upText)) then
+    Exit(True);
 
   shouldExit := False;
 end;
@@ -2010,6 +2022,9 @@ begin
       Exit(True);
     ChooseOption.Close();
   end;
+
+  if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
+    TRSWalkerObject.CurrentUpText := Self.UpText;
 
   if Self.Filter.Walker and not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) then
     Exit;

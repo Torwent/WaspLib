@@ -1,3 +1,12 @@
+## [11.9.4](https://github.com/Torwent/WaspLib/compare/v11.9.3...v11.9.4) (2023-02-13)
+
+
+### Bug Fixes
+
+* using items on TRSWalkerObjects should work properly now ([6020df0](https://github.com/Torwent/WaspLib/commit/6020df03fe972e79c80a0a32d7c11b1899d989ab))
+
+
+
 ## [11.9.3](https://github.com/Torwent/WaspLib/compare/v11.9.2...v11.9.3) (2023-02-12)
 
 
@@ -32,15 +41,6 @@
 ### Features
 
 * polygon filters ([42105d9](https://github.com/Torwent/WaspLib/commit/42105d9766299301d1aeaa5a14f00af31823948d))
-
-
-
-## [11.8.7](https://github.com/Torwent/WaspLib/compare/v11.8.6...v11.8.7) (2023-02-09)
-
-
-### Bug Fixes
-
-* memory leak in TPA.ShapeFill() fixed ([a0d1076](https://github.com/Torwent/WaspLib/commit/a0d10765c4318a225411ee43b23c597f03d3a9da))
 
 
 

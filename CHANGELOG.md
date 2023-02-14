@@ -1,3 +1,12 @@
+## [11.9.6](https://github.com/Torwent/WaspLib/compare/v11.9.5...v11.9.6) (2023-02-14)
+
+
+### Bug Fixes
+
+* fishinghandler now right clicks less ([85f1424](https://github.com/Torwent/WaspLib/commit/85f1424ba8aa7aacb2853b6c04d4cf820cc65d5e))
+
+
+
 ## [11.9.5](https://github.com/Torwent/WaspLib/compare/v11.9.4...v11.9.5) (2023-02-13)
 
 
@@ -31,16 +40,6 @@
 ### Bug Fixes
 
 * improved simba folding in progress report page ([ff98ea8](https://github.com/Torwent/WaspLib/commit/ff98ea8c3e6623c692201ea3fd5051ff33405416))
-
-
-
-## [11.9.1](https://github.com/Torwent/WaspLib/compare/v11.9.0...v11.9.1) (2023-02-11)
-
-
-### Bug Fixes
-
-* several fixes, read notes ([214847d](https://github.com/Torwent/WaspLib/commit/214847d6d1539eb799e20e1057592c475fb4fedb))
-* TRSWalkerGetClosestPoint() refactor ([e5ffd91](https://github.com/Torwent/WaspLib/commit/e5ffd91dd9b4e47fe673802061e8490d4641ec93))
 
 
 

@@ -315,8 +315,8 @@ begin
   atpa := [];
   if not WaitUntil(FindSpot(tpa, bounds), 50, waitTime) then
     Exit;
-  tpa := tpa.Unique();
 
+  tpa := tpa.Unique();
   tmp := tpa.Cluster(MainScreen.NormalizeDistance(22));
   tmp := tmp.ExcludeSize(MainScreen.NormalizeDistance(26), __LT__);
 
@@ -324,8 +324,8 @@ begin
     Exit;
 
   shore := RSFishingHandler.GetMSShoreLine();
-
   normalizedDistance := MainScreen.NormalizeDistance(12);
+
   for tpa in tmp do
     if shore.Contains(tpa.Mean()) then
       atpa += tpa.grow(normalizedDistance);
@@ -341,7 +341,6 @@ begin
   end;
 
   atpa := atpa.SortFrom(MainScreen.GetPlayerBox().Center());
-
   Result := atpa <> [];
 end;
 
@@ -399,7 +398,6 @@ var
   normalizeDistance: Int32;
 begin
   atpa := [];
-
   if not WaitSpot(tpa, bounds, waitTime) then
     Exit;
 
@@ -475,7 +473,6 @@ begin
   end;
 
   tpa := atpa.Merge().Connect().ShapeFill().Grow(MainScreen.NormalizeDistance(18));
-
   Result := not tpa.Contains(p);
 
   if RSFishingHandler.Debug then
@@ -494,6 +491,18 @@ var
   atpa: T2DPointArray;
 begin
   Result := RSFishingHandler.SpotMoved(atpa);
+end;
+
+(*
+RSFishingHandler._StoppedFishing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler._StoppedFishing(): Boolean; static;
+
+Internal helper method to check for quick things that guarantee us we are not fishing anymore.
+*)
+function RSFishingHandler._StoppedFishing(): Boolean; static;
+begin
+  Result := RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp();
 end;
 
 (*
@@ -519,7 +528,7 @@ function RSFishingHandler.CheckFishing(out atpa: T2DPointArray): Boolean; static
 var
   xpEarned: Boolean;
 begin
-  if RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() then
+  if RSFishingHandler._StoppedFishing() then
   begin
     RSFishingHandler.Reset();
     Exit;
@@ -542,7 +551,7 @@ function RSFishingHandler.CheckFishing(): Boolean; static; overload;
 var
   xpEarned: Boolean;
 begin
-  if RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() then
+  if RSFishingHandler._StoppedFishing() then
   begin
     RSFishingHandler.Reset();
     Exit;

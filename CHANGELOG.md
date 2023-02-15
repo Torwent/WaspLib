@@ -1,3 +1,12 @@
+## [11.10.2](https://github.com/Torwent/WaspLib/compare/v11.10.1...v11.10.2) (2023-02-15)
+
+
+### Bug Fixes
+
+* TRSWalker.GetClosestPoint fallback ([44ec94f](https://github.com/Torwent/WaspLib/commit/44ec94f7de65cde3990e19e906e5683e528e8f5b))
+
+
+
 ## [11.10.1](https://github.com/Torwent/WaspLib/compare/v11.10.0...v11.10.1) (2023-02-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **coordinates:** fixed hosidius bank ([f96cbea](https://github.com/Torwent/WaspLib/commit/f96cbea6167ef771c52c305a6a7fd4656c15a778))
-
-
-
-## [11.9.4](https://github.com/Torwent/WaspLib/compare/v11.9.3...v11.9.4) (2023-02-13)
-
-
-### Bug Fixes
-
-* using items on TRSWalkerObjects should work properly now ([6020df0](https://github.com/Torwent/WaspLib/commit/6020df03fe972e79c80a0a32d7c11b1899d989ab))
 
 
 

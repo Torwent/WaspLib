@@ -1,3 +1,12 @@
+# [11.10.0](https://github.com/Torwent/WaspLib/compare/v11.9.6...v11.10.0) (2023-02-15)
+
+
+### Features
+
+* new TPoint methods ([1816491](https://github.com/Torwent/WaspLib/commit/18164913fa6fac868b45acc6179352f674932b03))
+
+
+
 ## [11.9.6](https://github.com/Torwent/WaspLib/compare/v11.9.5...v11.9.6) (2023-02-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * user input is now temporarily blocked when zooming with the mouse ([192c39d](https://github.com/Torwent/WaspLib/commit/192c39d84a09d50c72571f7898ce8d93631bece7))
-
-
-
-## [11.9.2](https://github.com/Torwent/WaspLib/compare/v11.9.1...v11.9.2) (2023-02-11)
-
-
-### Bug Fixes
-
-* improved simba folding in progress report page ([ff98ea8](https://github.com/Torwent/WaspLib/commit/ff98ea8c3e6623c692201ea3fd5051ff33405416))
 
 
 

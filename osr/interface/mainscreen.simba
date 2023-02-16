@@ -91,26 +91,26 @@ begin
   begin
     if Self.HasInterface() then
     begin
-      if Bank.Bounds.Expand(5).Contains(tpa) and Bank.IsOpen() then
+      if Bank.Bounds().Expand(5).Contains(tpa) and Bank.IsOpen() then
         Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(tpa) and Anvil.IsOpen() then
+      if Anvil.Bounds().Expand(5).Contains(tpa) and Anvil.IsOpen() then
         Exit(False);
     end;
 
-    if Chat.Bounds.Expand(5).Contains(tpa) and Chat.IsOpen() then
+    if Chat.Bounds().Expand(5).Contains(tpa) and Chat.IsOpen() then
       Exit(False);
-    if ChatButtons.Bounds.Expand(5).Contains(tpa) then
+    if ChatButtons.Bounds().Expand(5).Contains(tpa) then
       Exit(False);
-    if Minimap.Bounds.Expand(55).Contains(tpa) then
+    if Minimap.Bounds().Expand(55).Contains(tpa) then
       Exit(False);
-    if GameTabs.Bounds.Expand(5).Contains(tpa) then
+    if GameTabs.Bounds().Expand(5).Contains(tpa) then
       Exit(False);
   end;
 end;
 
 function TRSMainScreen.IsVisible(B: TBox): Boolean; overload;
 begin
-  Result := Self.Bounds.Expand(-10).Contains(B.ToRectangle.ToTPA.FilterBox(Self.Bounds));
+  Result := Self.Bounds().Expand(-10).Contains(B.ToRectangle.ToTPA.FilterBox(Self.Bounds));
 
   if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
   begin
@@ -179,45 +179,40 @@ Filters the given TPointArray, TBoxArray, TRectArray or TCuboidArray and returns
 *)
 function TRSMainScreen.Filter(tpa: TPointArray): TPointArray;
 var
-  P: TPoint;
+  p: TPoint;
 begin
   Result := tpa := tpa.FilterBox(Self.Bounds());
 
-  if (Result <> []) and (RSClient.Mode <> ERSClientMode.FIXED) then
+  if (Result = []) or (RSClient.Mode = ERSClientMode.FIXED) then
+    Exit;
+
+  if Self.HasInterface() then
   begin
-    if Self.HasInterface() then
-    begin
-      TPA := Result.FilterBox(InterfaceArea.Bounds());
-      for P in TPA do
-        Result.Del(Result.Find(P));
-    end;
-
-    if Chat.IsOpen() then
-    begin
-      TPA := Result.FilterBox(Chat.Bounds());
-      for P in TPA do
-        Result.Del(Result.Find(P));
-    end;
-
-    TPA := Result.FilterBox(ChatButtons.Bounds());
-    for P in TPA do
-      Result.Del(Result.Find(P));
-
-    TPA := Result.FilterBox(Minimap.Bounds().Expand(50));
-    for P in TPA do
-      Result.Del(Result.Find(P));
-
-    TPA := Result.FilterBox(GameTabs.Bounds());
-    for P in TPA do
-      Result.Del(Result.Find(P));
+    tpa := Result.FilterBox(InterfaceArea.Bounds());
+    Result := Result.Difference(tpa);
   end;
+
+  if Chat.IsOpen() then
+  begin
+    tpa := Result.FilterBox(Chat.Bounds());
+    Result := Result.Difference(tpa);
+  end;
+
+  tpa := Result.FilterBox(ChatButtons.Bounds().Expand(0, 2));
+  Result := Result.Difference(tpa);
+
+  tpa := Result.FilterBox(Minimap.Bounds().Expand(54, 13));
+  Result := Result.Difference(tpa);
+
+  tpa := Result.FilterBox(GameTabs.Bounds());
+  Result := Result.Difference(tpa);
 end;
 
 function TRSMainScreen.Filter(boxArray: TBoxArray): TBoxArray; overload;
 var
-  B: TBox;
+  b: TBox;
 begin
-  for B in BoxArray do
+  for b in BoxArray do
     if Self.IsVisible(B) then
       Result += B;
 end;

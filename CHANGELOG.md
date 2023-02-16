@@ -1,3 +1,12 @@
+## [11.10.4](https://github.com/Torwent/WaspLib/compare/v11.10.3...v11.10.4) (2023-02-16)
+
+
+### Bug Fixes
+
+* reenable walker antiban tasks ([e89fc5a](https://github.com/Torwent/WaspLib/commit/e89fc5a83bb08d5d8b6e8e152f8ef4c7ee18f8d3))
+
+
+
 ## [11.10.3](https://github.com/Torwent/WaspLib/compare/v11.10.2...v11.10.3) (2023-02-16)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * new TPoint methods ([1816491](https://github.com/Torwent/WaspLib/commit/18164913fa6fac868b45acc6179352f674932b03))
-
-
-
-## [11.9.6](https://github.com/Torwent/WaspLib/compare/v11.9.5...v11.9.6) (2023-02-14)
-
-
-### Bug Fixes
-
-* fishinghandler now right clicks less ([85f1424](https://github.com/Torwent/WaspLib/commit/85f1424ba8aa7aacb2853b6c04d4cf820cc65d5e))
 
 
 

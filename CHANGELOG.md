@@ -1,3 +1,12 @@
+## [11.10.3](https://github.com/Torwent/WaspLib/compare/v11.10.2...v11.10.3) (2023-02-16)
+
+
+### Bug Fixes
+
+* **walker:** oops, missed one line... ([9a0edf9](https://github.com/Torwent/WaspLib/commit/9a0edf987224516a9820b4f9f23861ade747c6ae))
+
+
+
 ## [11.10.2](https://github.com/Torwent/WaspLib/compare/v11.10.1...v11.10.2) (2023-02-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fishinghandler now right clicks less ([85f1424](https://github.com/Torwent/WaspLib/commit/85f1424ba8aa7aacb2853b6c04d4cf820cc65d5e))
-
-
-
-## [11.9.5](https://github.com/Torwent/WaspLib/compare/v11.9.4...v11.9.5) (2023-02-13)
-
-
-### Bug Fixes
-
-* **coordinates:** fixed hosidius bank ([f96cbea](https://github.com/Torwent/WaspLib/commit/f96cbea6167ef771c52c305a6a7fd4656c15a778))
 
 
 

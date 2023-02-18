@@ -1,3 +1,12 @@
+## [11.10.6](https://github.com/Torwent/WaspLib/compare/v11.10.5...v11.10.6) (2023-02-18)
+
+
+### Bug Fixes
+
+* tweaks to bank chests rsobjects ([1af0afb](https://github.com/Torwent/WaspLib/commit/1af0afb5bc3ea83072479ccd4455c8e8ed51456b))
+
+
+
 ## [11.10.5](https://github.com/Torwent/WaspLib/compare/v11.10.4...v11.10.5) (2023-02-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * TRSWalker.GetClosestPoint fallback ([44ec94f](https://github.com/Torwent/WaspLib/commit/44ec94f7de65cde3990e19e906e5683e528e8f5b))
-
-
-
-## [11.10.1](https://github.com/Torwent/WaspLib/compare/v11.10.0...v11.10.1) (2023-02-15)
-
-
-### Bug Fixes
-
-* removed methods that are now part of SRLT ([f02ac96](https://github.com/Torwent/WaspLib/commit/f02ac96f4249bab1931afaaa99b4002d2e262fd2))
 
 
 

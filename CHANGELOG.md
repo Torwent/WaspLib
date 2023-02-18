@@ -1,3 +1,12 @@
+## [11.10.7](https://github.com/Torwent/WaspLib/compare/v11.10.6...v11.10.7) (2023-02-18)
+
+
+### Bug Fixes
+
+* fix logic in Walker.GetClosestPoint() ([c372c18](https://github.com/Torwent/WaspLib/commit/c372c1889f5244e31cb9d5bff5277c070647efff))
+
+
+
 ## [11.10.6](https://github.com/Torwent/WaspLib/compare/v11.10.5...v11.10.6) (2023-02-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walker:** oops, missed one line... ([9a0edf9](https://github.com/Torwent/WaspLib/commit/9a0edf987224516a9820b4f9f23861ade747c6ae))
-
-
-
-## [11.10.2](https://github.com/Torwent/WaspLib/compare/v11.10.1...v11.10.2) (2023-02-15)
-
-
-### Bug Fixes
-
-* TRSWalker.GetClosestPoint fallback ([44ec94f](https://github.com/Torwent/WaspLib/commit/44ec94f7de65cde3990e19e906e5683e528e8f5b))
 
 
 

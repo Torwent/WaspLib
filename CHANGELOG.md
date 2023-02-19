@@ -1,3 +1,12 @@
+## [11.10.8](https://github.com/Torwent/WaspLib/compare/v11.10.7...v11.10.8) (2023-02-19)
+
+
+### Bug Fixes
+
+* TRSWalker.SetupNamedRegion() fixed ([b3ec43c](https://github.com/Torwent/WaspLib/commit/b3ec43c5b8a6772320b3dc68f5876abd2f427acb))
+
+
+
 ## [11.10.7](https://github.com/Torwent/WaspLib/compare/v11.10.6...v11.10.7) (2023-02-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * reenable walker antiban tasks ([e89fc5a](https://github.com/Torwent/WaspLib/commit/e89fc5a83bb08d5d8b6e8e152f8ef4c7ee18f8d3))
-
-
-
-## [11.10.3](https://github.com/Torwent/WaspLib/compare/v11.10.2...v11.10.3) (2023-02-16)
-
-
-### Bug Fixes
-
-* **walker:** oops, missed one line... ([9a0edf9](https://github.com/Torwent/WaspLib/commit/9a0edf987224516a9820b4f9f23861ade747c6ae))
 
 
 

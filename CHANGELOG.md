@@ -1,3 +1,12 @@
+## [11.10.10](https://github.com/Torwent/WaspLib/compare/v11.10.9...v11.10.10) (2023-02-22)
+
+
+### Bug Fixes
+
+* forgot to reenable remoteinput ([2967de8](https://github.com/Torwent/WaspLib/commit/2967de80c81a1b1ee02747ae84b454d8f148862a))
+
+
+
 ## [11.10.9](https://github.com/Torwent/WaspLib/compare/v11.10.8...v11.10.9) (2023-02-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * tweaks to bank chests rsobjects ([1af0afb](https://github.com/Torwent/WaspLib/commit/1af0afb5bc3ea83072479ccd4455c8e8ed51456b))
-
-
-
-## [11.10.5](https://github.com/Torwent/WaspLib/compare/v11.10.4...v11.10.5) (2023-02-16)
-
-
-### Bug Fixes
-
-* massive performance improvements ([53c88a1](https://github.com/Torwent/WaspLib/commit/53c88a1272254d9f42f860cdc33713c5695f32bc))
 
 
 

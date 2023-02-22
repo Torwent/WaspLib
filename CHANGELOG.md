@@ -1,3 +1,12 @@
+## [11.10.9](https://github.com/Torwent/WaspLib/compare/v11.10.8...v11.10.9) (2023-02-22)
+
+
+### Bug Fixes
+
+* several tiny tweaks, read notes ([0ac1e13](https://github.com/Torwent/WaspLib/commit/0ac1e13c0d3d1cc28b50db6eba31152b1cb4e875))
+
+
+
 ## [11.10.8](https://github.com/Torwent/WaspLib/compare/v11.10.7...v11.10.8) (2023-02-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * massive performance improvements ([53c88a1](https://github.com/Torwent/WaspLib/commit/53c88a1272254d9f42f860cdc33713c5695f32bc))
-
-
-
-## [11.10.4](https://github.com/Torwent/WaspLib/compare/v11.10.3...v11.10.4) (2023-02-16)
-
-
-### Bug Fixes
-
-* reenable walker antiban tasks ([e89fc5a](https://github.com/Torwent/WaspLib/commit/e89fc5a83bb08d5d8b6e8e152f8ef4c7ee18f8d3))
 
 
 

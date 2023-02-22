@@ -186,25 +186,31 @@ begin
     Self.Enabled := False;
 end;
 
+(*
+TRSWalkerObject._Setup
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalkerObject._Setup();
+
+Base internal TRSWalkerObject setup method. You probably won't need to call this directly, it's called by the next setup methods automatically.
+*)
+procedure TRSWalkerObject._Setup();
+begin
+  Self.Filter.MinimapDot := True;
+  Self.Filter.Finder     := True;
+  Self.Filter.UpText     := True;
+end;
 
 (*
 TRSWalkerObject.Setup
 ~~~~~~~~~~~~~~~~~~~~~
 .. pascal::
-  procedure TRSWalkerObject.Setup();
-  procedure TRSWalkerObject.Setup(coordinates: TPointArray); overload;
+  procedure TRSWalkerObject.Setup(coordinates: TPointArray);
   procedure TRSWalkerObject.Setup(upText: TStringArray); overload;
 
-TRSWalkerObject setup methods. You usually need to call 2 of this:
+TRSWalkerObject setup methods. You usually need to call of this.
 
-- The version with coordinates
-
-- The version with uptext
-
-
-The version without parameters is automatically called by the one that takes in the uptext.
-
-They should also be called in that order because `TRSWalkerObject.Setup(coordinates: TPointArray)` is where
+The method that takes in coordinates should be called first.
+That is because `TRSWalkerObject.Setup(coordinates: TPointArray)` is where
 we decide if TRSWalkerObject.Filter.Skip is going to be true or not.
 
 Keep in mind if you don't use a TRSWalker in your script and want to use TRSWalkerObjects, you will need to manually setup them in your script
@@ -234,14 +240,7 @@ Example
     obj.Setup(['My', 'uptext']);
   end;
 *)
-procedure TRSWalkerObject.Setup();
-begin
-  Self.Filter.MinimapDot := True;
-  Self.Filter.Finder     := True;
-  Self.Filter.UpText     := True;
-end;
-
-procedure TRSWalkerObject.Setup(coordinates: TPointArray); overload;
+procedure TRSWalkerObject.Setup(coordinates: TPointArray);
 begin
   Self.Filter.Skip := TRSWalkerObject.Walker = nil;
   if Self.Filter.Skip then
@@ -263,7 +262,7 @@ begin
   if Self.Filter.Skip then
     Exit;
 
-  Self.Setup();
+  Self._Setup();
 
   Self.UpText := upText;
 
@@ -649,24 +648,16 @@ end;
 
 
 (*
-TRSObject.Find
-~~~~~~~~~~~~~~
-.. pascal::
-  function TRSObject.Find(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
-  function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
-  function TRSObject.Find(): Boolean; overload;
+TRSObject.FindEx
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSObject.FindEx(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
 
-TRSObject methods used to find a TRSObject. If found returns true, if not returns false.
-The first one is mostly meant for debugging and you should avoid calling it instead of the last 2 because it's slower due to gathering more data for the user.
-This is what is used in `Debug(TRSObject)`.
+TRSObject method used to find a TRSObject. If found returns true, if not returns false.
+This "extended" method in particular is only meant for debugging and should be avoided outside of development/debugging.
+This is what is used when you call `Debug(TRSObject)`.
 
-Example
--------
-
-  WriteLn RSObjects.GEBank.Find(atpa); //Be in ge and with a walker setup there.
-  Debug(atpa);
 *)
-function TRSObject.Find(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TRSObject.FindEx(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
@@ -686,7 +677,21 @@ begin
   Result := atpa <> [];
 end;
 
-//since we don't want to return as many parameters on this one we can improve it's performance slightly.
+(*
+TRSObject.Find
+~~~~~~~~~~~~~~
+.. pascal::
+  function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
+  function TRSObject.Find(): Boolean; overload;
+
+TRSObject methods used to find a TRSObject. If found returns true, if not returns false.
+
+Example
+-------
+
+  WriteLn RSObjects.GEBank.Find(atpa); //Be in ge and with a walker setup there.
+  Debug(atpa);
+*)
 function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
 var
   cuboidArray: TCuboidArray;
@@ -754,7 +759,7 @@ var
   atpa: T2DPointArray;
   i: Int32;
 begin
-  Self.Find(floorTiles, roofTiles, cuboidArray, atpa);
+  Self.FindEx(floorTiles, roofTiles, cuboidArray, atpa);
 
   bitmap.DrawATPA(atpa);
   if atpa <> [] then
@@ -790,8 +795,8 @@ begin
   Self.Draw(Bitmap);
   Bitmap.DrawBoxFilled(Chat.GetDisplayNameBox(), False, $00FFFF);
 
-  ForceDirectories('Screenshots\RSObjects');
-  filePath := 'Screenshots\RSObjects\Debug-' + ToStr(GetTickCount) + '.png';
+  filePath := GetScreenshotPath('TRSObject');
+
   Bitmap.SaveToFile(filePath);
   WriteLn('Send ', filePath, ' to Torwent on discord!');
   Bitmap.Debug();
@@ -1469,24 +1474,15 @@ end;
 
 
 (*
-TRSMMDot.Find
-~~~~~~~~~~~~~
-.. pascal::
-  function TRSMMDot.Find(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
-  function TRSMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
-  function TRSMMDot.Find(): Boolean; overload;
+TRSMMDot.FindEx
+~~~~~~~~~~~~~~~
+.. pascal:: function TRSMMDot.FindEx(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
 
 TRSMMDot methods used to find a TRSMMDot. If found returns true, if not returns false.
-The first one is mostly meant for debugging and you should avoid calling it instead of the last 2 because it's slower due to gathering more data for the user.
-This is what is used in `Debug(TRSMMDot)`.
-
-Example
--------
-
-  WriteLn RSNPCs.LumbridgeCook.Find(atpa); //Be in lumbridge castle and with a walker setup there.
-  Debug(atpa);
+This "extended" method in particular is only meant for debugging and should be avoided outside of development/debugging.
+This is what is used when you call `Debug(TRSMMDot)`.
 *)
-function TRSMMDot.Find(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TRSMMDot.FindEx(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
@@ -1508,6 +1504,21 @@ begin
       Self.ClosestDot := TRSWalkerObject.Walker^.MSToWorld(atpa.First().Mean()); //not the best way since we are reversing operations but will do for now.
 end;
 
+(*
+TRSMMDot.Find
+~~~~~~~~~~~~~
+.. pascal::
+  function TRSMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
+  function TRSMMDot.Find(): Boolean; overload;
+
+TRSMMDot methods used to find a TRSMMDot. If found returns true, if not returns false.
+
+Example
+-------
+
+  WriteLn RSNPCs.LumbridgeCook.Find(atpa); //Be in lumbridge castle and with a walker setup there.
+  Debug(atpa);
+*)
 function TRSMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
 var
   cuboidArray: TCuboidArray;
@@ -1578,7 +1589,7 @@ var
   atpa: T2DPointArray;
   i: Int32;
 begin
-  Self.Find(mmPoints, dots, dotFilters, floorTiles, roofTiles, cuboidArray, atpa);
+  Self.FindEx(mmPoints, dots, dotFilters, floorTiles, roofTiles, cuboidArray, atpa);
 
   //Minimap drawing
   for i := 0 to High(mmPoints) do
@@ -1642,8 +1653,7 @@ begin
   Self.Draw(Bitmap);
   Bitmap.DrawBoxFilled(Chat.GetDisplayNameBox(), False, $00FFFF);
 
-  ForceDirectories('Screenshots\RSMMDots');
-  filePath := 'Screenshots\RSMMDots\Debug-' + ToStr(GetTickCount) + '.png';
+  filePath := GetScreenshotPath('TRSMMDot');
   Bitmap.SaveToFile(filePath);
   WriteLn('Send ', filePath, ' to Torwent on discord!');
   Bitmap.Debug();
@@ -2232,7 +2242,7 @@ begin
   if Self.Filter.Skip then
     Exit;
 
-  Self.Setup();
+  Self._Setup();
 
   Self.UpText := upText;
 
@@ -2256,7 +2266,7 @@ begin
   if Self.Filter.Skip then
     Exit;
 
-  Self.Setup();
+  Self._Setup();
 
   Self.UpText := upText;
 
@@ -2280,7 +2290,7 @@ begin
   if Self.Filter.Skip then
     Exit;
 
-  Self.Setup();
+  Self._Setup();
 
   Self.UpText := upText;
 

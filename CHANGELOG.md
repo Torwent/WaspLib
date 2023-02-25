@@ -1,3 +1,12 @@
+## [11.10.11](https://github.com/Torwent/WaspLib/compare/v11.10.10...v11.10.11) (2023-02-25)
+
+
+### Bug Fixes
+
+* added varrock sewers to wasplib ([dd900ef](https://github.com/Torwent/WaspLib/commit/dd900ef57fa2bf83944ed8451adaba5ab0cf7b28))
+
+
+
 ## [11.10.10](https://github.com/Torwent/WaspLib/compare/v11.10.9...v11.10.10) (2023-02-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fix logic in Walker.GetClosestPoint() ([c372c18](https://github.com/Torwent/WaspLib/commit/c372c1889f5244e31cb9d5bff5277c070647efff))
-
-
-
-## [11.10.6](https://github.com/Torwent/WaspLib/compare/v11.10.5...v11.10.6) (2023-02-18)
-
-
-### Bug Fixes
-
-* tweaks to bank chests rsobjects ([1af0afb](https://github.com/Torwent/WaspLib/commit/1af0afb5bc3ea83072479ccd4455c8e8ed51456b))
 
 
 

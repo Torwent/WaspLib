@@ -1,3 +1,12 @@
+## [11.10.12](https://github.com/Torwent/WaspLib/compare/v11.10.11...v11.10.12) (2023-02-26)
+
+
+### Bug Fixes
+
+* **TRSWalkerObject:** now always the closest objects are prioritized ([a9bfea3](https://github.com/Torwent/WaspLib/commit/a9bfea3a556d66654a30c83b09f5464c1f86356e))
+
+
+
 ## [11.10.11](https://github.com/Torwent/WaspLib/compare/v11.10.10...v11.10.11) (2023-02-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * TRSWalker.SetupNamedRegion() fixed ([b3ec43c](https://github.com/Torwent/WaspLib/commit/b3ec43c5b8a6772320b3dc68f5876abd2f427acb))
-
-
-
-## [11.10.7](https://github.com/Torwent/WaspLib/compare/v11.10.6...v11.10.7) (2023-02-18)
-
-
-### Bug Fixes
-
-* fix logic in Walker.GetClosestPoint() ([c372c18](https://github.com/Torwent/WaspLib/commit/c372c1889f5244e31cb9d5bff5277c070647efff))
 
 
 

@@ -300,8 +300,13 @@ begin
 end;
 
 function TRSWalkerObject.GetCuboidArray(): TCuboidArray;
+var
+  me: TPoint;
+  coordinates: TPointArray;
 begin
-  Result := TRSWalkerObject.Walker^.GetCuboidArrayMS(TRSWalkerObject.Walker^.GetMyPos(), Self.Coordinates, Self.ShapeArray, [0, 0]);
+  me := TRSWalkerObject.Walker^.GetMyPos();
+  coordinates := Self.Coordinates.Sorted(me);
+  Result := TRSWalkerObject.Walker^.GetCuboidArrayMS(me, coordinates, Self.ShapeArray, [0, 0]);
 end;
 
 (*
@@ -1450,6 +1455,8 @@ begin
     if dots = [] then
       Exit;
 
+    dots := dots.SortFrom(Minimap.Center());
+
     Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [-2, -2], angle));
   end;
 
@@ -1461,9 +1468,11 @@ begin
 
   if Self.Filter.MinimapDot then
   begin
-    dots := Minimap.Getdots(Self.DotType);
+    dots := Minimap.GetDots(Self.DotType);
     if dots = [] then
       Exit;
+
+    dots := dots.SortFrom(Minimap.Center());
 
     if Self.ShapeArray = [] then
       Self.ShapeArray.SetShape([1, 1, 1]);
@@ -1563,6 +1572,18 @@ begin
 
   if Self.Filter.Finder then
     Result := MainScreen.FindObject(Self.Finder) <> [];
+end;
+
+(*
+TRSMMDot._GetBaseRecord
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMMDot._GetBaseRecord(): TRSMMDot;
+
+Internal method used for casting custom TRSMMDots back to the base record.
+*)
+function TRSMMDot._GetBaseRecord(): TRSMMDot;
+begin
+  Result := Self;
 end;
 
 (*
@@ -2387,28 +2408,18 @@ end;
 
 var
   DebugObjectArray: TRSObjectArray;
-  DebugNPCArray:    TRSNPCArray;
-  DebugGItemArray:  TRSGroundItemArray;
-  DebugPlayerArray: TRSPlayerArray;
+  DebugMMDotArray: array of TRSMMDot;
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
 var
   DebugObject: TRSObject;
-  DebugNPC:    TRSNPC;
-  DebugGItem:  TRSGroundItem;
-  DebugPlayer: TRSPlayer;
+  DebugDot: TRSMMDot;
 begin
   inherited;
 
   for DebugObject in DebugObjectArray do
     DebugObject.Draw(Bitmap);
 
-  for DebugNPC in DebugNPCArray do
-    DebugNPC.Draw(Bitmap);
-
-  for DebugGItem in DebugGItemArray do
-    DebugGItem.Draw(Bitmap);
-
-  for DebugPlayer in DebugPlayerArray do
-    DebugPlayer.Draw(Bitmap);
+  for DebugDot in DebugMMDotArray do
+    DebugDot.Draw(Bitmap);
 end;

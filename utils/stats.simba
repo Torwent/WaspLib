@@ -10,53 +10,58 @@ Methods related to wasp-stats.
 {$ENDIF}
 
 (*
-type TStatsPayload
-~~~~~~~~~~~~~~~~~~
+type StatsPayload
+~~~~~~~~~~~~~~~~~
 
 Type to help you handle stats submissions.
 *)
-type
-  TStatsPayload = record
+type StatsPayload = record(TSRLBaseRecord) class var
     ScriptID: String;
     Username: String;
     Password: String;
     Experience: Int32;
     Gold: Int32;
     RunTime: Int64;
-    Banned: Boolean;
   end;
 
 (*
 StatsPayload.Reset
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsPayload.Reset();
+.. pascal:: procedure StatsPayload.Reset();
 
-Resets StatsPayload. Automatically called by TStatsClient.SubmitStats() on a successful stats submission.
+Resets StatsPayload. Automatically called by StatsClient.SubmitStats() on a successful stats submission.
 *)
-procedure TStatsPayload.Reset();
+procedure StatsPayload.Reset(); static;
 begin
-  Self.Experience := 0;
-  Self.Gold := 0;
-  Self.RunTime := 0;
+  StatsPayload.Experience := 0;
+  StatsPayload.Gold := 0;
+  StatsPayload.RunTime := 0;
 end;
 
 (*
 StatsPayload.SetUsername
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsPayload.SetUsername(user: String = '');
+.. pascal:: procedure StatsPayload.SetUsername(user: String = '');
 
 Sets StatsPayload username if it hasn't been set yet.
 *)
-procedure TStatsPayload.SetUsername(user: String = '');
+procedure StatsPayload.SetUsername(user: String = ''); static;
 begin
-  if Self.Username = '' then
-    Self.Username := user;
+  if user = '' then
+    Exit;
+
+  StatsPayload.Username := user;
+  WriteConfigFile('stats_user', ['StatsPayload.SetUsername(''' + user + ''');']);
 end;
+
+{$IFHASFILE Data/WaspLib/configs/stats_user.simba}
+  {$I Data/WaspLib/configs/stats_user.simba}
+{$ENDIF}
 
 (*
 StatsPayload.Setup
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsPayload.Setup(id, pw: String; user: String = '');
+.. pascal:: procedure StatsPayload.Setup(id, pw: String; user: String = '');
 
 Sets StatsPayload up.
   - **id** should be your script id. If the script id is not in waspscripts.com database the submission will be rejected.
@@ -65,20 +70,18 @@ Sets StatsPayload up.
     if that password is included.
   - **user** sets a wasp-stats username.
 *)
-procedure TStatsPayload.Setup(id, pw: String; user: String = ''); overload;
+procedure StatsPayload.Setup(id: String; user: String = ''); static;
 begin
-  Self.ScriptID := id;
-  Self.SetUsername(user);
-  Self.Password := pw;
+  StatsPayload.ScriptID := id;
+  StatsPayload.SetUsername(user);
 end;
-
 
 
 (*
 StatsPayload.Update
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsPayload.Update(xp, gp, time: Int32);
-.. pascal:: procedure TStatsPayload.Update(ban: Boolean); overload;
+.. pascal:: procedure StatsPayload.Update(xp, gp, time: Int32);
+.. pascal:: procedure StatsPayload.Update(ban: Boolean); overload;
 
 Update StatsPayload data for the next submission.
 You can update it several times before submitting it, however, keep in mind if the runtime is over 15mins the data will be rejected to
@@ -88,203 +91,164 @@ Experience, Gold and Levels also have a limit of how much can be submitted on ea
 You can set the account as banned for tracking ban rates but it's not fully implemented yet.
 If you set an account as banned you won't be able to submit more data to it until you set it as unbanned.
 *)
-procedure TStatsPayload.Update(xp, gp, time: Int32);
+procedure StatsPayload.Update(xp, gp, time: Int32); static;
 begin
-  Self.Experience += xp;
-  Self.Gold += gp;
-  Self.RunTime += time;
-end;
-
-procedure TStatsPayload.Update(ban: Boolean); overload;
-begin
-  Self.Banned := ban;
+  StatsPayload.Experience += xp;
+  StatsPayload.Gold += gp;
+  StatsPayload.RunTime += time;
 end;
 
 (*
 StatsPayload.FormData
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsPayload.FormData(): TStringArray;
+.. pascal:: function StatsPayload.FormData(): TStringArray;
 
-Transforms the data in TStatsPayload into a TStringArray that can be used by a TStatsClient.
+Transforms the data in StatsPayload into a TStringArray that can be used by a StatsClient.
 *)
-function TStatsPayload.FormData(): TStringArray;
+function StatsPayload.FormData(): TStringArray; static;
 begin
-  Result += 'script_id='  + Self.ScriptID;
+  Result += 'scriptID='  + StatsPayload.ScriptID;
 
-  if Self.Username <> '' then
-    Result += 'username='   + Self.Username;
+  if StatsPayload.Username <> '' then
+    Result += 'username='   + StatsPayload.Username;
 
-  if Self.Password <> '' then
-    Result += 'password='   + Self.Password;
+  if StatsPayload.Password <> '' then
+    Result += 'password='   + StatsPayload.Password;
 
-  Result += 'experience=' + ToStr(Self.Experience);
-  Result += 'gold='       + ToStr(Self.Gold);
-  Result += 'runtime='    + ToStr(Self.RunTime);
-  Result += 'banned='     + ToStr(Self.Banned);
+  Result += 'experience=' + ToStr(StatsPayload.Experience);
+  Result += 'gold='       + ToStr(StatsPayload.Gold);
+  Result += 'runtime='    + ToStr(StatsPayload.RunTime);
 end;
 
 (*
-var StatsPayload
-~~~~~~~~~~~~~~~~
-
-Global StatsPayload variable.
-*)
-var
-  StatsPayload: TStatsPayload;
-
-(*
-type TStatsClient
+type StatsClient
 ~~~~~~~~~~~~~~~~~
 
 Type responsible for stats submissions.
 This is basically a simba wrapper for the waspscripts API.
 
 You can find the API docs in https://api.waspscripts.com/docs if you need to read them
-but the TStatsClient should be able to do everything for you.
+but the StatsClient should be able to do everything for you.
 *)
-type
-  TStatsClient = record(TSRLBaseRecord)
+type StatsClient = record(TSRLBaseRecord) class var
     Disabled: Boolean;
     HTTPClient: Int32;
     StatsServer: String;
+    UUID: String;
     Timer: TCountDown;
     TimeStamp: UInt64;
     IsSetup: Boolean;
     Benchmark: TIntegerArray;
+    Fails: Int32;
   end;
+
+{$IFHASFILE Data/WaspLib/configs/uuid.simba}
+  {$I Data/WaspLib/configs/uuid.simba}
+{$ENDIF}
+
+procedure StatsClient.DebugLn(text: String); constref; override;
+var
+  timeStamp: String;
+begin
+  timeStamp := SRL.TimeStamp();
+  text := timeStamp + ':[StatsClient]: ' + text;
+  WriteLn text;
+end;
 
 (*
 StatsClient.Terminate
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsClient.Terminate();
+.. pascal:: procedure StatsClient.Terminate();
 
 Internal method automatically called on script termination.
 *)
-procedure TStatsClient.Terminate();
+procedure StatsClient.Terminate(); static;
 begin
-  FreeHTTPClient(Self.HTTPClient);
+  FreeHTTPClient(StatsClient.HTTPClient);
 end;
 
 (*
 StatsClient.Setup
 ~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsClient.Setup();
+.. pascal:: procedure StatsClient.Setup();
 
-Internal method automatically called when attempting to use TStatsClient.GET() and TStatsClient.POST().
+Internal method automatically called when attempting to use StatsClient.GET() and StatsClient.POST().
 *)
-procedure TStatsClient.Setup();
-begin
-  Self.Name := 'StatsClient';
-  Self.HTTPClient := InitializeHTTPClient(False);
-  Self.StatsServer := 'https://api.waspscripts.com/';
-
-  AddOnTerminate(@Self.Terminate);
-
-  Self.Timer.Setup(5 * ONE_MINUTE);
-
-  Self.IsSetup := True;
-end;
-
-
-(*
-StatsClient.GenerateBioHash
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.GenerateBioHash(biohash: Double = 0): String;
-
-You can pass in an already generated biohash or let it generate it's own.
-If you pass in an already generated biohash it is just converted to a string.
-
-The BioHashes are used as the wasp-stats main identifier.
-*)
-function TStatsClient.GenerateBioHash(biohash: Double = 0): String;
+procedure StatsClient.Setup(); static;
 var
-  h, i: UInt32;
-  k: String;
+  strArr: TStringArray;
 begin
-  if biohash = 0 then
+  StatsClient.HTTPClient := InitializeHTTPClient(False);
+  StatsClient.StatsServer := 'https://api.waspscripts.com/';
+
+  AddOnTerminate(@StatsClient.Terminate);
+
+  if (StatsClient.UUID = '') or (StatsPayload.Password = '') then
   begin
-    if (Length(Login.Players) = 0) then
-    begin
-      Self.Disabled := True;
-      Exit;
-    end;
-
-    k := Login.GetPlayer().User;
-    h := $811C9DC5;
-    for i:=1 to Length(k) do
-      h := (h * $1000193) xor Ord(k[i]);
-
-    biohash := h / $FFFFFFFF;
+    StatsClient.UUID := GenerateUUIDV4();
+    StatsPayload.Password := GenerateUUIDV4();
+    strArr += 'StatsClient.UUID := ''' + StatsClient.UUID + ''';';
+    strArr += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
+    WriteConfigFile('uuid', strArr);
   end;
 
-  Result := ToStr(biohash);
-
-  Self.DebugLn('BioHash: ' + Result);
+  StatsClient.Timer.Setup(5 * ONE_MINUTE);
+  StatsClient.IsSetup := True;
 end;
+
 
 (*
-StatsClient.GeneratePassword
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.GeneratePassword(password: String = ''): String;
+StatsClient.GetUUID
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function StatsClient.GetUUID(): String;
 
-Generate a wasp-stats password from the password you pass in or the current user's password.
+Returns your UUID
 
-The generated password is a hash made with SHA1.
-This makes the generated password unique and privacy friendly since it can't be reversed.
+Example
+-------
 
-The generated password is also rehashed and salted by the server before being stored in the database.
-For more info on what this means visit the wikipedia! (Sorry, it's out of the scope of this)
-https://en.wikipedia.org/wiki/Salt_(cryptography)
-
-What this means is that noone but you is able to know your wasp-stats password and only you can update your stats.
-Even in the case of a data breach.
+  WriteLn StatsClient.GetUUID();
 *)
-function TStatsClient.GeneratePassword(password: String = ''): String;
+function StatsClient.GetUUID(): String; static;
 begin
-  if (Length(Login.Players) = 0) then
-    Exit;
+  Result := StatsClient.UUID;
 
-  if password = '' then
-    password := Login.GetPlayer().Password;
-
-  Result := SHA1String(password);
-
-  Self.DebugLn('Password: ' + Result);
+  if not StatsClient.IsSetup then
+    StatsClient.DebugLn('UUID: ' + Result);
 end;
-
 
 (*
 StatsClient.SetLocal
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TStatsClient.SetLocal();
+.. pascal:: procedure StatsClient.SetLocal(port: Int32 = 8080); static;
 
 Method only meant to be used if you are hosting a local stats server for debugging purposes.
 *)
-procedure TStatsClient.SetLocal();
+procedure StatsClient.SetLocal(port: Int32 = 8080); static;
 begin
-  Self.StatsServer := 'http://localhost:8080/';
+  StatsClient.StatsServer := 'http://localhost:' + ToStr(port) +'/';
 end;
 
 
 (*
 StatsClient.GET
 ~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.GET(route: String): String;
+.. pascal:: function StatsClient.GET(route: String): String;
 
 Makes a GET request to the WaspScripts API in the specified **route**.
 You probably don't need to use this method directly.
 *)
-function TStatsClient.GET(route: String): String;
+function StatsClient.GET(route: String): String; static;
 begin
-  Result := GetHTTPPage(Self.HTTPClient, Self.StatsServer + route);
+  Result := GetHTTPPage(StatsClient.HTTPClient, StatsClient.StatsServer + route);
 
-  Self.DebugLn(Result);
+  StatsClient.DebugLn(Result);
 end;
 
 (*
 StatsClient.POST
 ~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.POST(route: String; payload: TStringArray): String;
+.. pascal:: function StatsClient.POST(route: String; payload: TStringArray): String;
 
 Makes a POST request to the WaspScripts API in the specified **route**.
 **payload** is an array of string with the following format:
@@ -292,19 +256,19 @@ Makes a POST request to the WaspScripts API in the specified **route**.
 
 You probably don't need to use this method directly.
 *)
-function TStatsClient.POST(route: String; payload: TStringArray): String;
+function StatsClient.POST(route: String; payload: TStringArray): String; static;
 var
   i: Int32;
   finalPayload: String;
   responseTime: UInt64;
 begin
-  if Self.Disabled then
+  if StatsClient.Disabled then
     Exit;
 
   if StatsPayload.ScriptID = '' then
   begin
-    Self.DebugLn('SCRIPT_ID is empty. StatsClient will be disabled.');
-    Self.Disabled := True;
+    StatsClient.DebugLn('SCRIPT_ID is empty. StatsClient will be disabled.');
+    StatsClient.Disabled := True;
     Exit;
   end;
 
@@ -317,20 +281,20 @@ begin
   end;
 
   responseTime := GetTickCount();
-  Result := PostHTTPPage(Self.HTTPClient, Self.StatsServer + route, finalPayload);
+  Result := PostHTTPPage(StatsClient.HTTPClient, StatsClient.StatsServer + route, finalPayload);
   responseTime := GetTickCount() - responseTime;
 
-  Self.DebugLn(Result + ' Response took: ' + ToStr(responseTime) + 'ms.');
+  StatsClient.DebugLn(Result + ' Response took: ' + ToStr(responseTime) + 'ms.');
 
-  if Length(Self.Benchmark) > 5 then
-    Self.Benchmark.Del(0, 1);
+  if Length(StatsClient.Benchmark) > 5 then
+    StatsClient.Benchmark.Del(0, 1);
 
-  Self.Benchmark += responseTime;
+  StatsClient.Benchmark += responseTime;
 
-  if (Length(Self.Benchmark) > 5) and (Self.Benchmark.Mean() > 3000) then
+  if (Length(StatsClient.Benchmark) > 5) and (StatsClient.Benchmark.Mean() > 3000) then
   begin
-    Self.DebugLn('Connection to ' + Self.StatsServer + ' is slower than it should. StatsClient will be disabled.');
-    Self.Disabled := True;
+    StatsClient.DebugLn('Connection to ' + StatsClient.StatsServer + ' is slower than it should. StatsClient will be disabled.');
+    StatsClient.Disabled := True;
   end;
 end;
 
@@ -338,7 +302,7 @@ end;
 (*
 StatsClient.HashPassword
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.HashPassword(password: String): String;
+.. pascal:: function StatsClient.HashPassword(password: String): String;
 
 Returns a salted and hashed password.
 This serves no purpose other than giving you a glimpse of what is stored in waspscripts database when you submit your password.
@@ -350,9 +314,9 @@ Example
 -------
 
   WriteLn StatsClient.HashPassword('helloworld');
-  WriteLn StatsClient.HashPassword(StatsClient.GeneratePassword());
+  WriteLn StatsClient.HashPassword(StatsPayload.Password);
 *)
-function TStatsClient.HashPassword(password: String): String;
+function StatsClient.HashPassword(password: String): String; static;
 var
   route: String;
   payload: TStringArray;
@@ -360,39 +324,39 @@ begin
   route := 'stats/auth/hash/';
   payload += 'password=' + password;
 
-  Result := Self.POST(route, payload);
+  Result := StatsClient.POST(route, payload);
 end;
 
 (*
 StatsClient.CheckPassword
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.CheckPassword(bioHash: String; password: String): Boolean;
+.. pascal:: function StatsClient.CheckPassword(uuid: String; password: String): Boolean;
 
-Simply returns true/false if the **password** you submit matches what is stored in waspscripts stats database for the specified **biohash**.
+Simply returns true/false if the **password** you submit matches what is stored in waspscripts stats database for the specified **uuid**.
 
 Example
 -------
 
   WriteLn StatsClient.CheckPassword('0.999999999999999', 'helloworld');
-  WriteLn StatsClient.CheckPassword(StatsClient.GenerateBioHash(), StatsClient.GeneratePassword());
+  WriteLn StatsClient.CheckPassword(StatsClient.Generateuuid(), StatsClient.GeneratePassword());
 *)
-function TStatsClient.CheckPassword(bioHash: String; password: String): Boolean;
+function StatsClient.CheckPassword(uuid: String; password: String): Boolean; static;
 var
   route, msg: String;
   payload: TStringArray;
 begin
-  route := 'stats/auth/check/' + bioHash + '/';
+  route := 'stats/auth/check/' + uuid + '/';
   payload += 'password=' + password;
 
-  msg := Self.POST(route, payload);
+  msg := StatsClient.POST(route, payload);
 
-  Result := msg.Pos('message') = 0; //maybe a bad way to do this?
+  Result := msg.Pos('message') = 0;
 end;
 
 (*
 StatsClient.UpdatePassword
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.UpdatePassword(bioHash: String; password, newPassword: String): Boolean;
+.. pascal:: function StatsClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean;
 
 Because users passwords can be changed and that's what are used by default for
 stats password a way to update the stats password is required.
@@ -405,19 +369,19 @@ Example
 -------
 
   WriteLn StatsClient.UpdatePassword('0.999999999999999', 'helloworld', 'helloworld2');
-  WriteLn StatsClient.UpdatePassword(StatsClient.GenerateBioHash(), StatsClient.GeneratePassword('oldpassword'), StatsClient.GeneratePassword());
+  WriteLn StatsClient.UpdatePassword(StatsClient.Generateuuid(), StatsClient.GeneratePassword('oldpassword'), StatsClient.GeneratePassword());
 *)
-function TStatsClient.UpdatePassword(bioHash: String; password, newPassword: String): Boolean;
+function StatsClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean; static;
 var
   route, msg: String;
   payload: TStringArray;
 begin
-  route := 'stats/auth/update/' + bioHash + '/';
+  route := 'stats/auth/update/' + uuid + '/';
 
   payload += 'password=' + password;
   payload += 'new_password=' + newPassword;
 
-  msg := Self.POST(route, payload);
+  msg := StatsClient.POST(route, payload);
 
   Result := msg.Pos('message') = 0; //again, maybe a bad way to do this
 end;
@@ -426,29 +390,29 @@ end;
 (*
 StatsClient.CheckStats
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.CheckStats(bioHash: string): String;
+.. pascal:: function StatsClient.CheckStats(uuid: string): String;
 
-Returns the stats of the specified **biohash**.
+Returns the stats of the specified **uuid**.
 
 Example
 -------
 
   WriteLn StatsClient.CheckStats('0.999999999999999');
-  WriteLn StatsClient.CheckStats(StatsClient.GenerateBioHash());
+  WriteLn StatsClient.CheckStats(StatsClient.Generateuuid());
 *)
-function TStatsClient.CheckStats(bioHash: String): String;
+function StatsClient.CheckStats(uuid: String): String; static;
 var
   route: String;
 begin
-  route := 'stats/' + bioHash + '/';
+  route := 'stats/' + uuid + '/';
 
-  Result := Self.GET(route);
+  Result := StatsClient.GET(route);
 end;
 
 (*
 StatsClient.SubmitStats
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TStatsClient.SubmitStats(bioHash: String): Boolean;
+.. pascal:: function StatsClient.SubmitStats(uuid: String): Boolean;
 
 Method to submit stats to wasp-stats with the help of **StatsPayload**.
 
@@ -457,50 +421,38 @@ Example
 
   StatsPayload.Setup('SCRIPT_ID_HERE', StatsClient.GeneratePassword());
   StatsPayload.Update(100, 100, 5000);
-  WriteLn StatsClient.SubmitStats(StatsClient.GenerateBioHash());
+  WriteLn StatsClient.SubmitStats(StatsClient.Generateuuid());
 *)
-function TStatsClient.SubmitStats(bioHash: String): Boolean;
+function StatsClient.SubmitStats(uuid: String): Boolean; static;
 var
   route, msg: String;
   currentTime: UInt64;
 begin
-  if Self.IsSetup and not Self.Timer.IsFinished() then //No point removing this, the server will reject you.
+  if StatsClient.IsSetup and not StatsClient.Timer.IsFinished() then //No point removing this, the server will reject you.
     Exit;
 
-  route := 'stats/' + bioHash + '/';
+  route := 'stats/' + uuid + '/';
 
   currentTime := GetTickCount();
-  StatsPayload.Update(0, 0, currentTime - Self.TimeStamp);
-  Self.TimeStamp := currentTime;
+  StatsPayload.Update(0, 0, currentTime - StatsClient.TimeStamp);
+  StatsClient.TimeStamp := currentTime;
 
-  msg := Self.POST(route, StatsPayload.FormData());
+  msg := StatsClient.POST(route, StatsPayload.FormData());
 
-  Result := msg.Pos('limit') = 0;
+  Result := msg.Pos('success') > 0;
 
   if Result then
   begin
     StatsPayload.Reset();
-    Self.Timer.Restart();
-  end;
+    StatsClient.Timer.Restart();
+    StatsClient.Fails := 0;
+  end
+  else
+    StatsClient.Fails += 1;
+
+  if StatsClient.Fails > 3 then
+    StatsClient.Disabled := True;
 end;
-
-(*
-var StatsClient
-~~~~~~~~~~~~~~~
-
-Global StatsClient variable.
-
-Example
--------
-
-  begin
-    StatsPayload.Setup('SCRIPT_ID_HERE', StatsClient.GeneratePassword());
-    StatsPayload.Update(100, 100, 5000);
-    WriteLn StatsClient.SubmitStats(StatsClient.GenerateBioHash());
-  end.
-*)
-var
-  StatsClient: TStatsClient;
 
 begin
   StatsClient.Setup();

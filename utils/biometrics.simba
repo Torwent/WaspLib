@@ -8,20 +8,96 @@ Methods related to biometrics that make your account behave in a unique way.
 {$IFNDEF WL_UTILS}
   {$I WaspLib/utils.simba}
 {$ENDIF}
+(*
+GenerateUUIDV4
+~~~~~~~~~~~~~~
+.. pascal:: function GenerateUUIDV4(): String;
 
+Generate a UUID.
+
+Example
+-------
+
+  WriteLn GenerateUUIDV4();
+*)
+function GenerateUUIDV4(): String;
+var
+  uTime, loadTime: Int64;
+  rand, i: Int32;
+  str: String;
+begin
+  uTime := UnixTime();
+  loadTime := GetTickCount();
+
+  str := 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx';
+
+  for i := 1 to High(str) do
+  begin
+    if (str[i] <> 'x') and (str[i] <> 'y') then
+    begin
+      Result += str[i];
+      Continue;
+    end;
+
+    rand := Random(0, 16);
+
+    if uTime > 0 then
+    begin
+      rand := ((uTime + rand) mod 16) or 0;
+      uTime := Floor(uTime/16);
+    end
+    else
+    begin
+      rand := ((loadTime + rand) mod 16) or 0;
+      loadTime := Floor(loadTime/16);
+    end;
+
+    if str[i] = 'x' then
+      Result += IntToHex(rand)
+    else
+      Result += IntToHex(rand and $3 or $8);
+  end;
+end;
+
+var
 (*
 var BioHash
 ~~~~~~~~~~~
   Global BioHash variable.
-  BioHash is sort of a unique ID of each account and can be used to influence several things.
+  BioHash is a unique ID of each account and can be used to influence several things.
 *)
-
-var
-  BioHash: Extended;
-  BioHashOverride: Extended;
-
+  BioHash: Double;
+(*
+var BioHashOverride
+~~~~~~~~~~~~~~~~~~~
+  Global BioHashOverride variable.
+  If set, will override whatever would be generated for BioHash instead.
+*)
+  BioHashOverride: Double;
 
 type
+(*
+type EBioBehavior
+~~~~~~~~~~~~~~~~~
+.. pascal::
+  EBioBehavior = (
+    MOUSE_SPEED=1,
+    MOUSE_GRAVITY,
+    MOUSE_WIND,
+    MOUSE_MISS,
+    FKEY_CHANCE,
+    ESCAPE_CHANCE,
+    KEYBOARD_CHAT_CHANCE,
+    REACTION_SPEED,
+    SPAM_CLICK_CHANCE,
+    DROP_PATTERN,
+    CONSUME_IN_BANK,
+    USES_LIKE_BUTTONS,
+    TENDS_TO_LIKE
+  );
+
+EBioBehavior is a enum that represent biohaviors affected by the user BioHash.
+*)
   EBioBehavior = (
     MOUSE_SPEED=1,
     MOUSE_GRAVITY,
@@ -54,9 +130,6 @@ var
   k: String;
 begin
   BioHash := BioHashOverride;
-
-  if BioHash = 1 then
-    BioHash := 0.999999999999999;
 
   if BioHash = 0 then
   begin

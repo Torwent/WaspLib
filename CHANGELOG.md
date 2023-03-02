@@ -1,3 +1,12 @@
+## [11.10.13](https://github.com/Torwent/WaspLib/compare/v11.10.12...v11.10.13) (2023-03-02)
+
+
+### Bug Fixes
+
+* compatibility fix for stats ([df9b3ec](https://github.com/Torwent/WaspLib/commit/df9b3ecd0447c23663557956e61e123f3c019c14))
+
+
+
 ## [11.10.12](https://github.com/Torwent/WaspLib/compare/v11.10.11...v11.10.12) (2023-02-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * several tiny tweaks, read notes ([0ac1e13](https://github.com/Torwent/WaspLib/commit/0ac1e13c0d3d1cc28b50db6eba31152b1cb4e875))
-
-
-
-## [11.10.8](https://github.com/Torwent/WaspLib/compare/v11.10.7...v11.10.8) (2023-02-19)
-
-
-### Bug Fixes
-
-* TRSWalker.SetupNamedRegion() fixed ([b3ec43c](https://github.com/Torwent/WaspLib/commit/b3ec43c5b8a6772320b3dc68f5876abd2f427acb))
 
 
 

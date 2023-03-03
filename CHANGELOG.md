@@ -1,3 +1,12 @@
+## [11.10.14](https://github.com/Torwent/WaspLib/compare/v11.10.13...v11.10.14) (2023-03-03)
+
+
+### Bug Fixes
+
+* StatsClient was renamed to APIClient ([87761c6](https://github.com/Torwent/WaspLib/commit/87761c6cdff009843d496cc7f215e30b89996016))
+
+
+
 ## [11.10.13](https://github.com/Torwent/WaspLib/compare/v11.10.12...v11.10.13) (2023-03-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * forgot to reenable remoteinput ([2967de8](https://github.com/Torwent/WaspLib/commit/2967de80c81a1b1ee02747ae84b454d8f148862a))
-
-
-
-## [11.10.9](https://github.com/Torwent/WaspLib/compare/v11.10.8...v11.10.9) (2023-02-22)
-
-
-### Bug Fixes
-
-* several tiny tweaks, read notes ([0ac1e13](https://github.com/Torwent/WaspLib/commit/0ac1e13c0d3d1cc28b50db6eba31152b1cb4e875))
 
 
 

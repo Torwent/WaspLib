@@ -191,11 +191,11 @@ function TRSMinimap.PointWithinZoom(p: TPoint; out corner: TPoint): Boolean;
 var
   tpa: TPointArray;
 begin
-  if not Self.IsPointOn(P) then
+  if not Self.IsPointOn(p) then
     Exit;
 
-  tpa := Self.GetZoomRectangle().ToTPA().SortFrom(P);
-  corner := tpa.Last();
+  tpa := Self.GetZoomRectangle().ToTPA().SortFrom(Self.Center());
+  corner := tpa[High(tpa)];
 
   Result := Self.Center().DistanceTo(P) <= Self.Center().DistanceTo(corner);
 end;
@@ -276,9 +276,9 @@ begin
 end;
 
 (*
-Minimap.ZoomToVisiblePoint
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.ZoomToVisiblePoint(p: TPoint; randomness: Int32 = 0): Int32;
+Minimap.GetZoomToPoint
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.GetZoomToPoint(p: TPoint; randomness: Int32 = 0): Int32;
 
 TODO: THIS NEEDS TO BE REWORKED. IT'S NOT RELIABLE RIGHT NOW.
 
@@ -290,39 +290,39 @@ Example
   p := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
   Options.SetZoomLevel(Minimap.ZoomToVisiblePoint(p));
 *)
-function TRSMinimap.ZoomToVisiblePoint(p: TPoint; randomness: Int32 = 0): Int32;
+function TRSMinimap.GetZoomToPoint(p: TPoint; randomness: Int32 = 0): Int32;
 var
   distance: Double;
 begin
   distance := p.DistanceTo(Self.Center());
 
   Result := Round((73 - distance) / 0.8);
-  Result := EnsureRange(Result + randomness, 0, 100);
+  Result := Result + randomness;
 end;
 
 (*
-Minimap.AdjustZoomToPoint
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMinimap.AdjustZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
+Minimap.SetZoomToPoint
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMinimap.SetZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
 
 TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
 
 This function adjusts the zoom level so **P** TRSMinimap.PointWithinZoom() is true.
 *)
-function TRSMinimap.AdjustZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
+function TRSMinimap.SetZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
 var
-  zoomLevel: Int32;
+  level: Int32;
 begin
   if Self.PointWithinZoom(p) then
     Exit(True);
 
-  zoomLevel := Self.ZoomToVisiblePoint(p, randomness);
+  level := Self.GetZoomToPoint(p, randomness);
 
   if (Antiban.MaxZoom = 0) then
     Antiban.MaxZoom := 100;
 
-  if InRange(zoomLevel, Antiban.MinZoom, Antiban.MaxZoom) then
-    Result := RSMouseZoom.SetZoomLevel(zoomLevel);
+  if InRange(level, Antiban.MinZoom, Antiban.MaxZoom) then
+    Result := RSMouseZoom.SetZoomLevel(level);
 end;
 
 
@@ -338,7 +338,7 @@ Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible 
 *)
 function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
 begin
-  Result := Self.AdjustZoomToPoint(p, Random(-5, 5)) and Self.FacePoint(p, Random(-3, 3));
+  Result := Self.SetZoomToPoint(p, Random(-5, 5)) and Self.FacePoint(p, Random(-3, 3));
 end;
 
 function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;

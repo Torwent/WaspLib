@@ -1,3 +1,12 @@
+## [11.10.15](https://github.com/Torwent/WaspLib/compare/v11.10.14...v11.10.15) (2023-03-03)
+
+
+### Bug Fixes
+
+* minor tweak in the APIClient ([5ea35cb](https://github.com/Torwent/WaspLib/commit/5ea35cb746119ec947a347ab9a2807bb7f1bd56e))
+
+
+
 ## [11.10.14](https://github.com/Torwent/WaspLib/compare/v11.10.13...v11.10.14) (2023-03-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added varrock sewers to wasplib ([dd900ef](https://github.com/Torwent/WaspLib/commit/dd900ef57fa2bf83944ed8451adaba5ab0cf7b28))
-
-
-
-## [11.10.10](https://github.com/Torwent/WaspLib/compare/v11.10.9...v11.10.10) (2023-02-22)
-
-
-### Bug Fixes
-
-* forgot to reenable remoteinput ([2967de8](https://github.com/Torwent/WaspLib/commit/2967de80c81a1b1ee02747ae84b454d8f148862a))
 
 
 

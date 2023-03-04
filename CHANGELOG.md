@@ -1,3 +1,12 @@
+## [11.10.16](https://github.com/Torwent/WaspLib/compare/v11.10.15...v11.10.16) (2023-03-04)
+
+
+### Bug Fixes
+
+* **APIClient:** won't spam messages anymore when disabled ([63c3c05](https://github.com/Torwent/WaspLib/commit/63c3c05deed5fbd684cf80a70f625daaccbbaba6))
+
+
+
 ## [11.10.15](https://github.com/Torwent/WaspLib/compare/v11.10.14...v11.10.15) (2023-03-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSWalkerObject:** now always the closest objects are prioritized ([a9bfea3](https://github.com/Torwent/WaspLib/commit/a9bfea3a556d66654a30c83b09f5464c1f86356e))
-
-
-
-## [11.10.11](https://github.com/Torwent/WaspLib/compare/v11.10.10...v11.10.11) (2023-02-25)
-
-
-### Bug Fixes
-
-* added varrock sewers to wasplib ([dd900ef](https://github.com/Torwent/WaspLib/commit/dd900ef57fa2bf83944ed8451adaba5ab0cf7b28))
 
 
 

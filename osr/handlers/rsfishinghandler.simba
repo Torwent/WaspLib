@@ -14,21 +14,18 @@ type ERSFishingType = (
   );
 
 type RSFishingHandler = record(TSRLBaseRecord) class var
-    Tool: TRSItem;
-    Bait: TRSItem;
-    Option: String;
-    LeftClick: Boolean;
-
+    Tool, Bait: TRSItem;
     FishingType: ERSFishingType;
+
+    Option: String;
     CurrentSpot: TPoint;
     CompassAngle: Double;
+    TimerLength: Int32;
     Timer: TCountDown;
 
-    IsFishing: Boolean;
-    Debug: Boolean;
     Filters: T2DPointArray;
 
-    IsSetup: Boolean;
+    LeftClick, IsFishing, Debug, IsSetup: Boolean;
   class const COLORS: array of TCTS2Color = [
       [15123359, 7, 0.25, 1.45],
       [14596504, 7, 0.15, 1.4],
@@ -58,7 +55,7 @@ This will:
   - Reset RSFishingHandler.CurrentSpot;
   - Set RSFishingHandler.IsFishing to False;
 *)
-procedure RSFishingHandler.Setup(fishType: ERSFishingType); static;
+procedure RSFishingHandler.Setup(fishType: ERSFishingType; timerLength: Int32 = 30000); static;
 var
   found: Boolean;
   baits: TRSItemArray;
@@ -154,6 +151,9 @@ begin
     TerminateScript('Missing tool.');
 
   RSFishingHandler.IsSetup := True;
+
+  RSFishingHandler.TimerLength := timerLength;
+  RSFishingHandler.Timer := [timerLength, 1, 1];
 end;
 
 (*
@@ -315,8 +315,8 @@ begin
   atpa := [];
   if not WaitUntil(FindSpot(tpa, bounds), 50, waitTime) then
     Exit;
-  tpa := tpa.Unique();
 
+  tpa := tpa.Unique();
   tmp := tpa.Cluster(MainScreen.NormalizeDistance(22));
   tmp := tmp.ExcludeSize(MainScreen.NormalizeDistance(26), __LT__);
 
@@ -324,8 +324,8 @@ begin
     Exit;
 
   shore := RSFishingHandler.GetMSShoreLine();
-
   normalizedDistance := MainScreen.NormalizeDistance(12);
+
   for tpa in tmp do
     if shore.Contains(tpa.Mean()) then
       atpa += tpa.grow(normalizedDistance);
@@ -341,7 +341,6 @@ begin
   end;
 
   atpa := atpa.SortFrom(MainScreen.GetPlayerBox().Center());
-
   Result := atpa <> [];
 end;
 
@@ -399,7 +398,6 @@ var
   normalizeDistance: Int32;
 begin
   atpa := [];
-
   if not WaitSpot(tpa, bounds, waitTime) then
     Exit;
 
@@ -475,7 +473,6 @@ begin
   end;
 
   tpa := atpa.Merge().Connect().ShapeFill().Grow(MainScreen.NormalizeDistance(18));
-
   Result := not tpa.Contains(p);
 
   if RSFishingHandler.Debug then
@@ -494,6 +491,18 @@ var
   atpa: T2DPointArray;
 begin
   Result := RSFishingHandler.SpotMoved(atpa);
+end;
+
+(*
+RSFishingHandler._StoppedFishing
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function RSFishingHandler._StoppedFishing(): Boolean; static;
+
+Internal helper method to check for quick things that guarantee us we are not fishing anymore.
+*)
+function RSFishingHandler._StoppedFishing(): Boolean; static;
+begin
+  Result := RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp();
 end;
 
 (*
@@ -519,7 +528,7 @@ function RSFishingHandler.CheckFishing(out atpa: T2DPointArray): Boolean; static
 var
   xpEarned: Boolean;
 begin
-  if RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() then
+  if RSFishingHandler._StoppedFishing() then
   begin
     RSFishingHandler.Reset();
     Exit;
@@ -534,7 +543,7 @@ begin
   end;
 
   if xpEarned then
-    RSFishingHandler.Timer.Restart(-20000, 10000);
+    RSFishingHandler.Timer.Restart(-Round(RSFishingHandler.TimerLength * 0.6), Round(RSFishingHandler.TimerLength * 0.3));
   Result := RSFishingHandler.IsFishing;
 end;
 
@@ -542,7 +551,7 @@ function RSFishingHandler.CheckFishing(): Boolean; static; overload;
 var
   xpEarned: Boolean;
 begin
-  if RSFishingHandler.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp() then
+  if RSFishingHandler._StoppedFishing() then
   begin
     RSFishingHandler.Reset();
     Exit;
@@ -558,7 +567,7 @@ begin
 
   if xpEarned then
   begin
-    RSFishingHandler.Timer.Restart(-7777, 7777);
+    RSFishingHandler.Timer.Restart(-Round(RSFishingHandler.TimerLength * 0.25), Round(RSFishingHandler.TimerLength * 0.25));;
     RSFishingHandler.CurrentSpot := RSFishingHandler.FindWaterDirection().Mean();
   end;
 
@@ -591,7 +600,7 @@ end;
 
 (*
 RSFishingHandler.ClickSpot
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal::
   function RSFishingHandler.ClickSpot(out atpa: T2DPointArray): Boolean; static;
   function RSFishingHandler.ClickSpot(): Boolean; static; overload;
@@ -609,7 +618,8 @@ var
   wasFacingWater, redClicked: Boolean;
   circle: TCircle;
   upText: String;
-  i: Int32;
+  option: TRSChooseOption_Option;
+  i, tmp: Int32;
 begin
   if (atpa = []) or Inventory.IsFull() then
     Exit;
@@ -642,8 +652,18 @@ begin
       Break;
     end;
 
-    if not RSFishingHandler.LeftClick and ChooseOption.Select(RSFishingHandler.Option) then
-      Break;
+    if not RSFishingHandler.LeftClick then
+    begin
+      for option in ChooseOption.GetOptions() do
+        if 'Fish' in option.Text then
+          Inc(tmp);
+
+      if tmp = 2 then
+        RSFishingHandler.LeftClick := True;
+
+      if ChooseOption.Select(RSFishingHandler.Option) then
+        Break;
+    end;
 
     if i = High(atpa) then
       Exit;
@@ -678,7 +698,7 @@ begin
   RSFishingHandler.CurrentSpot := RSFishingHandler.FindWaterDirection().Mean();
   RSFishingHandler.CompassAngle := Minimap.GetCompassAngle(False);
   RSFishingHandler.IsFishing := True;
-  RSFishingHandler.Timer.Restart(-20000, 10000);
+  RSFishingHandler.Timer.Restart(-Round(RSFishingHandler.TimerLength * 0.6), Round(RSFishingHandler.TimerLength * 0.3));;
   Result := True;
   Wait(1200, 2400);
 
@@ -692,9 +712,4 @@ var
 begin
   if RSFishingHandler.FindSpot(atpa) then
     Result := RSFishingHandler.ClickSpot(atpa);
-end;
-
-
-begin
-   RSFishingHandler.Timer := [30000, 1, 1];
 end;

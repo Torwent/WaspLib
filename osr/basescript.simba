@@ -62,7 +62,6 @@ type
     ID,
     Revision,
 
-    BioHashStr,
     Welcome: String;
 
     TimeRunning: TStopwatch;
@@ -208,13 +207,8 @@ var
   tmpArr: TStringArray;
 {$ENDIF}
 begin
-  if not StatsClient.IsSetup or StatsClient.Timer.IsFinished() then
-  begin
-    if Self.BioHashStr = '' then
-      Self.BioHashStr := StatsClient.GenerateBioHash(BioHash);
-
-    StatsClient.SubmitStats(Self.BioHashStr);
-  end;
+  if not APIClient.IsSetup or APIClient.Timer.IsFinished() then
+    APIClient.SubmitStats(APIClient.GetUUID());
 
   ProgressReport.ProgressArray := Self.BuildTextReport();
 
@@ -336,10 +330,10 @@ begin
   Antiban.Setup();
 
   //wasp-stats
-  if not StatsClient.Disabled then
-    StatsClient.Disabled := not WLSettings.Stats;
-  StatsPayload.Setup(Self.ID, StatsClient.GeneratePassword());
-  StatsClient.TimeStamp := GetTickCount();
+  if not APIClient.Disabled then
+    APIClient.Disabled := not WLSettings.Stats;
+  StatsPayload.Setup(Self.ID);
+  APIClient.TimeStamp := GetTickCount();
   //override me to add more stuff.
 end;
 
@@ -370,7 +364,7 @@ begin
   Antiban.DismissRandom();
   Self.TimeRunning.Pause();
   WL.Activity.Pause();
-  StatsClient.Timer.Pause();
+  APIClient.Timer.Pause();
   timeCache := GetTickCount();
   Self.OnAntiban := True;
 
@@ -382,9 +376,9 @@ begin
 
   Self.TimeRunning.Resume();
   WL.Activity.Resume();
-  StatsClient.Timer.Resume();
+  APIClient.Timer.Resume();
   timeCache := GetTickCount() - timeCache;
-  StatsClient.TimeStamp += timeCache;
+  APIClient.TimeStamp += timeCache;
   Self.OnAntiban := False;
 
   if not RSClient.IsLoggedIn() then
@@ -443,7 +437,7 @@ procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
 begin
   inherited;
 
-  //Self.RSW.OnWalkingEvent := @WalkerTasks;
+  Self.RSW.OnWalkingEvent := @WalkerTasks;
 end;
 
 (*
@@ -642,6 +636,9 @@ begin
 
   if not Result then
     Self.BankEmpty := not WaitUntil(Bank.ContainsItem(Self.BankTab, item), 300, 3000);
+
+  if Self.BankEmpty then
+    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
 
   if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
     Self.CollectEmpty := False;

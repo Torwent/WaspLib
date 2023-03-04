@@ -1,13 +1,15 @@
 (*
 RSClient
 ========
-Extensions to TRSClient and TRemoteInput.
+Extensions to TRSClient.
 
 One thing to keep in mind is that WaspLib enforces the use of Remote Input by default.
 
 To disable it you have to use either of this snippets in your scripts:
+
 .. pascal::
   {$DEFINE SRL_DISABLE_REMOTEINPUT}
+  //or
   begin
     WLSettings.RemoteInput.Enabled := False;
   end;
@@ -17,43 +19,7 @@ To disable it you have to use either of this snippets in your scripts:
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-{$IFNDEF SRL_DISABLE_REMOTEINPUT}
-function EIOS_IsInputEnabled(eios: Pointer): Boolean;
-begin
-  Result := EIOS_IsMouseInputEnabled(eios) and EIOS_IsKeyboardInputEnabled(eios);
-end;
-
-procedure EIOS_SetInputEnabled(eios: Pointer; enabled: Boolean);
-begin
-  EIOS_SetMouseInputEnabled(eios, enabled);
-  EIOS_SetKeyboardInputEnabled(eios, enabled);
-end;
-
-procedure TRemoteInput.DisableRealInput;
-begin
-  if EIOS_IsInputEnabled(Self.EIOS) then
-    EIOS_SetInputEnabled(Self.EIOS, False);
-end;
-
-procedure TRemoteInput.EnableRealInput;
-begin
-  if not EIOS_IsInputEnabled(Self.EIOS) then
-    EIOS_SetInputEnabled(Self.EIOS, True);
-end;
-
-procedure TRemoteInput.Setup; override;
-begin
-  inherited;
-
-  if WLSettings.RemoteInput.BlockInput and EIOS_IsInputEnabled(Self.EIOS) then
-    EIOS_SetInputEnabled(Self.EIOS, False);
-
-  AddOnTerminate(@Self.EnableRealInput);
-end;
-
-{$ENDIF}
-
-procedure TRSClient.Setup; override;
+procedure TRSClient.Setup(); override;
 begin
   Self.Name := 'RSClient';
 
@@ -104,9 +70,11 @@ begin
   Result := inherited;
 
   if Result then
-  begin
-    StatsPayload.Update(False);
     Self.CheckClientSettings();
-  end;
 end;
 
+procedure TRSClient.UpdateState();
+begin
+  Self.DetectClientMode(True);
+  Self.ClientModeChanged();
+end;

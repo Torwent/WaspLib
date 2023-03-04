@@ -10,7 +10,6 @@ You can easily toggle the usage this on or off by switching the variables:
 
 .. note:: Keep in mind that ProgressReport requires remote input.
 *)
-
 {$DEFINE WL_PROGRESS_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
@@ -21,9 +20,7 @@ type ProgressReport
 ~~~~~~~~~~~~~~~~~~~~
 Type responsible for handling the HUDProgressReport, also commonly called as "Paint" or InGame/OnScreen Progress Report.
 *)
-type
-  ProgressReport = record(TSRLBaseRecord)
-  class var
+type ProgressReport = record(TSRLBaseRecord) class var
     BGImg: TMufasaBitmap;
     ClientImg: TMufasaBitmap;
 
@@ -41,6 +38,7 @@ type
     ProgressArray: TStringArray;
   end;
 
+{$IFNDEF SRL_DISABLE_REMOTEINPUT}
 (*
 ProgressReport.Terminate
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -50,7 +48,6 @@ Internal method called automatically on termination. This will do things such as
 *)
 procedure ProgressReport.Terminate(); static;
 begin
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if ProgressReport.Terminated then //avoids multiple terminations in case the script is chained.
     Exit;
 
@@ -59,7 +56,6 @@ begin
 
   ProgressReport.ClientImg.Clear();
   ProgressReport.ClientImg.Free(); //not sure if it needs to be freed?
-  {$ENDIF}
 end;
 
 (*
@@ -71,7 +67,6 @@ Internal method called when we need to setup ProgressReport.
 *)
 procedure ProgressReport.Setup(); static;
 begin
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   ProgressReport.BGImg.Init();
   ProgressReport.BGImg.SetName('Progress report background');
   ProgressReport.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
@@ -94,7 +89,6 @@ begin
   ProgressReport.UsernameBox := Chat.GetDisplayNameBox();
 
   AddOnTerminate(@ProgressReport.Terminate);
-  {$ENDIF}
 end;
 
 (*
@@ -107,7 +101,6 @@ Usually called internally by ProgressReport.Update().
 *)
 procedure ProgressReport.DrawBackground(strArray: TStringArray; fontColor: Int32); static;
 begin
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if not ProgressReport.IsSetup then
   begin
     if strArray = [] then
@@ -124,7 +117,6 @@ begin
   end;
 
   ProgressReport.ClientImg.DrawBitmap(ProgressReport.BGImg, [Chat.Bounds().X1, Chat.Bounds().Y1 - 12]);
-  {$ENDIF}
 end;
 
 (*
@@ -140,7 +132,6 @@ var
   p, q: TPoint;
   i: Int32;
 begin
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   p := [Chat.Bounds().X1 + 10, Chat.Bounds().Y1 + 40];
   q := [Round(Chat.Bounds().Width()/2) + 20, p.y];
 
@@ -161,7 +152,6 @@ begin
   end;
 
   ProgressReport.PreviousStrArray := strArray;
-  {$ENDIF}
 end;
 
 (*
@@ -174,11 +164,9 @@ Usually called internally by ProgressReport.Update().
 *)
 procedure ProgressReport.HideProgress(); static;
 begin
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   ProgressReport.IsSetup := False;
 
   ProgressReport.ClientImg.DrawBoxFilled(ProgressReport.UsernameBox, True, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
-  {$ENDIF}
 end;
 
 (*
@@ -193,7 +181,6 @@ uncomment `Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);`
 *)
 procedure ProgressReport.Update(strArray: TStringArray); static;
 begin
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   ProgressReport.ClientImg.Clear();
 
   if strArray = [] then
@@ -202,7 +189,6 @@ begin
   //ProgressReport.TextColor := ProgressReport.GetNextCycleColor(ProgressReport.TextColor, 10);
   ProgressReport.DrawBackground(strArray, ProgressReport.TextColor);
   ProgressReport.DrawProgress(strArray, ProgressReport.TextColor);
-  {$ENDIF}
 end;
 
 (*
@@ -221,3 +207,4 @@ begin
 
   //AddOnPause(@Self.HideProgress);
 end;
+{$ENDIF}

@@ -1,45 +1,45 @@
-# [11.9.0](https://github.com/Torwent/WaspLib/compare/v11.8.7...v11.9.0) (2023-02-09)
-
-
-### Features
-
-* polygon filters ([42105d9](https://github.com/Torwent/WaspLib/commit/42105d9766299301d1aeaa5a14f00af31823948d))
-
-
-
-## [11.8.7](https://github.com/Torwent/WaspLib/compare/v11.8.6...v11.8.7) (2023-02-09)
+## [11.10.15](https://github.com/Torwent/WaspLib/compare/v11.10.14...v11.10.15) (2023-03-03)
 
 
 ### Bug Fixes
 
-* memory leak in TPA.ShapeFill() fixed ([a0d1076](https://github.com/Torwent/WaspLib/commit/a0d10765c4318a225411ee43b23c597f03d3a9da))
+* minor tweak in the APIClient ([5ea35cb](https://github.com/Torwent/WaspLib/commit/5ea35cb746119ec947a347ab9a2807bb7f1bd56e))
 
 
 
-## [11.8.6](https://github.com/Torwent/WaspLib/compare/v11.8.5...v11.8.6) (2023-02-08)
-
-
-### Bug Fixes
-
-* **coordinates:** pest control ([d1ddd10](https://github.com/Torwent/WaspLib/commit/d1ddd10d403949fc92aca50b7fbc688a36c30f84))
-
-
-
-## [11.8.5](https://github.com/Torwent/WaspLib/compare/v11.8.4...v11.8.5) (2023-02-07)
+## [11.10.14](https://github.com/Torwent/WaspLib/compare/v11.10.13...v11.10.14) (2023-03-03)
 
 
 ### Bug Fixes
 
-* better failsafe when getting height from heightmap ([9a3f39f](https://github.com/Torwent/WaspLib/commit/9a3f39f4754b4a96011b15f46e7cae8d7fa1fae1))
+* StatsClient was renamed to APIClient ([87761c6](https://github.com/Torwent/WaspLib/commit/87761c6cdff009843d496cc7f215e30b89996016))
 
 
 
-## [11.8.4](https://github.com/Torwent/WaspLib/compare/v11.8.3...v11.8.4) (2023-02-07)
+## [11.10.13](https://github.com/Torwent/WaspLib/compare/v11.10.12...v11.10.13) (2023-03-02)
 
 
 ### Bug Fixes
 
-* more coordinates and some tweaks ([7be6798](https://github.com/Torwent/WaspLib/commit/7be6798da73db8fbfa9d889b6f224202d4169485))
+* compatibility fix for stats ([df9b3ec](https://github.com/Torwent/WaspLib/commit/df9b3ecd0447c23663557956e61e123f3c019c14))
+
+
+
+## [11.10.12](https://github.com/Torwent/WaspLib/compare/v11.10.11...v11.10.12) (2023-02-26)
+
+
+### Bug Fixes
+
+* **TRSWalkerObject:** now always the closest objects are prioritized ([a9bfea3](https://github.com/Torwent/WaspLib/commit/a9bfea3a556d66654a30c83b09f5464c1f86356e))
+
+
+
+## [11.10.11](https://github.com/Torwent/WaspLib/compare/v11.10.10...v11.10.11) (2023-02-25)
+
+
+### Bug Fixes
+
+* added varrock sewers to wasplib ([dd900ef](https://github.com/Torwent/WaspLib/commit/dd900ef57fa2bf83944ed8451adaba5ab0cf7b28))
 
 
 

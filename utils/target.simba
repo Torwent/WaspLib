@@ -47,32 +47,82 @@ begin
 end;
 
 
-procedure DeleteOldFiles(Path, Ext: String; KeepAmount: Int32);
+procedure DeleteOldFiles(path, ext: String; keepAmount: Int32);
 var
-  TotalAmount: Int32;
-  FileArray: TStringArray;
+  total: Int32;
+  fileArray: TStringArray;
   i: Int32;
 begin
-  Ext := Ext.After('.');
+  ext := ext.After('.');
 
-  TotalAmount := Length(GetFiles(Path, Ext));
-  if TotalAmount < KeepAmount then
+  total := Length(GetFiles(path, ext));
+  if total < keepAmount then
     Exit;
 
-  FileArray := GetAgeSortedFiles(Path, Ext);
+  fileArray := GetAgeSortedFiles(path, ext);
 
-  for i := 0 to (TotalAmount - KeepAmount - 1) do
-    DeleteFile(Path + FileArray[i]);
+  for i := 0 to (total - keepAmount - 1) do
+    DeleteFile(path + fileArray[i]);
 end;
 
 
+function GetConfigPath(fileName: String): String;
+var
+  path, fileExt: String;
+begin
+  path := WL_DATAPATH + 'configs' + DIRECTORYSEPARATOR;
+  if not fileName.Contains(path) then
+    fileName := path + fileName;
+
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
+    Exit;
+
+  fileName := ExtractFileName(fileName);
+  fileExt := ExtractFileExt(fileName);
+
+  if fileExt = '' then
+    fileExt := '.simba'
+  else
+    fileName := fileName.Before(fileExt);
+
+  Result += fileName + fileExt;
+end;
+
+function GetLogPath(fileName: String): String;
+var
+  path, fileExt, fileTime: String;
+begin
+  path := WL_DATAPATH + 'logs' + DIRECTORYSEPARATOR;
+  if not fileName.Contains(path) then
+    fileName := path + fileName;
+
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
+    Exit;
+
+  fileName := ExtractFileName(fileName);
+  fileExt := ExtractFileExt(fileName);
+
+  if fileExt = '' then
+    fileExt := '.txt'
+  else
+    fileName := fileName.Before(fileExt);
+
+  fileTime := '_' + FormatDateTime('yyyy-mm-dd_hh-mm-ss', Now());
+
+  DeleteOldFiles(Result, fileExt, 100);
+
+  Result += fileName + fileTime + fileExt;
+end;
+
 function GetScreenshotPath(fileName: String): String;
 var
-  fileExt: String;
-  fileTime: String;
+  path, fileExt, fileTime: String;
 begin
-  if not fileName.Contains(APPPATH + 'Screenshots' + DIRECTORYSEPARATOR) then
-    fileName := APPPATH + 'Screenshots'  + DIRECTORYSEPARATOR + fileName;
+  path := WL_DATAPATH + 'screenshots' + DIRECTORYSEPARATOR;
+  if not fileName.Contains(path) then
+    fileName := path + fileName;
 
   Result := ExtractFilePath(fileName);
   if not ForceDirectories(Result) then
@@ -94,80 +144,41 @@ begin
 end;
 
 
-procedure SaveScreenshot(FileName: String); override;
+procedure WriteConfigFile(fileName: String; strArray: TStringArray);
 var
-  Path: String;
-  FileExt: String;
-  FileTime: String;
+  fullPath, path, text, str: String;
 begin
-  Path := ExtractFilePath(FileName);
-  FileName := ExtractFileName(FileName);
+  fullPath := GetConfigPath(fileName);
+  path := ExtractFilePath(fullPath);
 
-  if FileName.Pos('.') = 0 then
-    FileExt := '.png'
-  else
-  begin
-    FileExt := '.' + FileName.After('.');
-    FileName := FileName.Before('.');
-  end;
+  ForceDirectories(path);
 
-  if Path.Pos('Screenshots/') = 0 then
-  begin
-    if Path.StartsWith('/') then
-      Path := Path.After('/');
+  if FileExists(fullPath) then
+    DeleteFile(fullPath);
 
-    Path := 'Screenshots/' + Path;
+  text := 'begin' + LineEnding;
+  for str in strArray do
+    text += '  ' + str + LineEnding;
+  text += 'end;';
 
-    if Path.EndsWith('/') then
-      Path += '/';
-  end;
-
-  if not DirectoryExists(Path) then
-    CreatePath(Path);
-
-  if FileName.Pos('-') = 0 then
-    FileTime := '-' + ToStr(UnixTime);
-
-  DeleteOldFiles(Path, FileExt, 300);
-
-  Path += FileName + FileTime + FileExt;
-
-  inherited(Path);
+  WriteFileContents(fullPath, text);
 end;
 
-procedure SaveScreenshot(FileName: String; MessageUser: Boolean); overload;
+procedure SaveScreenshot(fileName: String; notifyUser: Boolean); overload;
 var
-  Path: String;
+  path: String;
 begin
-  Path := ExtractFilePath(FileName);
-  FileName := ExtractFileName(FileName);
+  path := GetScreenshotPath(fileName);
+  if path = '' then
+    Exit;
 
-  if Path.Pos('Screenshots/') = 0 then
-  begin
-    if Path.StartsWith('/') then
-      Path := Path.After('/');
+  SaveScreenshot(path);
 
-    Path := 'Screenshots/' + Path;
-
-    if not Path.EndsWith('/') then
-      Path += '/';
-  end;
-
-  if not DirectoryExists(Path) then
-    CreatePath(Path);
-
-  if FileName.Pos('.') = 0 then
-    Path += FileName + '-' + ToStr(UnixTime) + '.png'
-  else
-    Path += FileName.Before('.') + '-' + ToStr(UnixTime) + '.' + FileName.After('.');
-
-  SaveScreenshot(Path);
-
-  if MessageUser then
+  if notifyUser then
     WriteLn 'Screenshot saved: ' + Path;
 end;
 
-procedure SaveScreenshot; overload;
+procedure SaveScreenshot(); overload;
 begin
   SaveScreenshot('screenshot');
 end;
@@ -195,7 +206,7 @@ begin
 end;
 
 
-procedure ForceSaveScreenshot(); overload;
+procedure ForceSaveScreenshot();
 var
   bmp: TMufasaBitmap;
   b: TBox;
@@ -205,30 +216,25 @@ begin
   b := Chat.GetDisplayNameBox();
   if b <> Chat.GetLineBoxes()[CHAT_INPUT_LINE] then
     bmp.DrawBoxFilled(b, False, $819DAC);
-  path := GetScreenshotPath('Terminated' + DIRECTORYSEPARATOR +'screenshot');
+  path := GetScreenshotPath('terminated' + DIRECTORYSEPARATOR +'screenshot');
 
   bmp.SaveToFile(path);
   bmp.Free();
 end;
-procedure GenerateLog(FileName: String);
+
+procedure GenerateLog(fileName: String);
 var
-  Path: String;
-  F: Int32;
+  f: Int32;
 begin
   if WL.LogFile <> '' then
     Exit;
 
-  Path := AppPath + 'Logs/';
-  CreatePath(Path);
+  WL.LogFile := GetLogPath(fileName);
 
-  DeleteOldFiles(Path, 'txt', 100);
+  if FileExists(WL.LogFile) then
+    Exit;
 
-  WL.LogFile := Path + FileName.Replace(' ', '_').Lower + '-' + ToStr(UnixTime) + '.txt';
-
-  if not FileExists(WL.LogFile) then
-  begin
-    F := CreateFile(WL.LogFile);
-    CloseFile(F);
-  end;
+  f := CreateFile(WL.LogFile);
+  CloseFile(f);
 end;
 

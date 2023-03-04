@@ -184,13 +184,13 @@ end;
 (*
 TRSWalkerMap.Load
 ~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
-.. pascal:: procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+.. pascal::
+  procedure TRSWalkerMap.Load(FileName: String; Scaling: Integer); override;
+  procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
 
 Overrides SRL's TRSWalkerMap.Load() so it loads the respective heightmap if it exists.
 This is an internal Walker method, you probably don't need to call it.
 *)
-
 procedure TRSWalkerMap.Load(fileName: String; scaling: Integer); override;
 var
   hFileName: String;
@@ -333,7 +333,7 @@ Example
 *)
 procedure TRSWalker.SetupNamedRegion(region: TRSNamedRegion = []); overload;
 begin
-  if Self <> [] then
+  if Self.Map.Map <> nil then
     Exit;
 
   if region = [] then
@@ -490,8 +490,9 @@ end;
 (*
 Walker.GetHeightDiff
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetHeightDiff(p: TPoint): Double;
-.. pascal:: function TRSWalker.GetHeightDiff(p, q: TPoint): Double; overload;
+.. pascal::
+  function TRSWalker.GetHeightDiff(p: TPoint): Double;
+  function TRSWalker.GetHeightDiff(p, q: TPoint): Double; overload;
 
 Returns the height difference between 2 points. If only one point is passed, the player position is used as one of them.
 
@@ -623,8 +624,9 @@ end;
 (*
 TRSWalker.AtTile
 ~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
-.. pascal:: function TRSWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+.. pascal::
+  function TRSWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
+  function TRSWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 
 method used to quickly check if we are within distance of a certain **worldPoint**. This distance is measure in pixels and in a radial way.
 You can optionally pass in a TPA to check if the closest point is within distance.
@@ -658,15 +660,55 @@ method used to get the closest Point to the Player out of a TPA.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
+function TRSWalker.GetClosestPoint(destinations: TPointArray): TPoint;
+var
+  paths, shortPaths: T2DPointArray;
+  path, shortPath: TPointArray;
+  shortest: Int32;
+  me, destination: TPoint;
 begin
-  Result := worldPointArray.NearestPoint(Self.GetMyPos());
+  me := Self.GetMyPos();
+  for destination in destinations do
+  begin
+    path := [];
+
+    try
+      path := Self.WebGraph.PathBetween(me, destination, 0);
+    except
+    end;
+
+    if path <> [] then
+      paths += path;
+  end;
+
+  if paths = [] then
+    Exit(destinations.NearestPoint(me));
+
+  shortest := Length(paths.Smallest());
+
+  for path in paths do
+    if Length(path) = shortest then
+      shortPaths += path;
+
+  for path in shortPaths do
+  begin
+    if shortPath = [] then
+    begin
+      shortPath := path;
+      Continue;
+    end;
+
+    if me.DistanceTo(path.Last()) < me.DistanceTo(shortPath.Last()) then
+      shortPath := path;;
+  end;
+
+  Result := shortPath.Last();
 end;
 
 (*
 TRSWalker.WebWalk
 ~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.WebWalk(Destination: TPointArray; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+.. pascal:: function TRSWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Extended = 0): Boolean; overload;
 
 method used to webwalk to the closest Point to the player.
 An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
@@ -674,9 +716,12 @@ You will likely want to use the closest bank booth to you, so you use this.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
-function TRSWalker.WebWalk(Destination: TPointArray; waitUntilDistance: Int32 = 0; PathRandomness: Extended = 0): Boolean; overload;
+function TRSWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Extended = 0): Boolean; overload;
+var
+  destination: TPoint;
 begin
-  Result := Self.WebWalk(Self.GetClosestPoint(Destination), waitUntilDistance, PathRandomness);
+  destination := Self.GetClosestPoint(destinations);
+  Result := Self.WebWalk(destination, waitUntilDistance, pathRandomness);
 end;
 
 
@@ -770,8 +815,9 @@ end;
 (*
 TRSWalker.MakePointVisible
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.MakePointVisible(p: TPoint): Boolean;
-.. pascal:: function TRSWalker.MakePointVisible(tpa: TPointArray): Boolean; overload;
+.. pascal::
+  function TRSWalker.MakePointVisible(p: TPoint): Boolean;
+  function TRSWalker.MakePointVisible(tpa: TPointArray): Boolean; overload;
 
 Wrapper function used to attempt to make a Point visible on the MainScreen.
 
@@ -790,8 +836,9 @@ end;
 (*
 TRSWalker.GetCuboidMS
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
-.. pascal:: function TRSWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
+.. pascal::
+  function TRSWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
+  function TRSWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
 
 This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.
 
@@ -846,8 +893,9 @@ end;
 (*
 TRSWalker.GetTileArrayMS
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
-.. pascal:: function TRSWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+.. pascal::
+  function TRSWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
+  function TRSWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
 
 This are wrapper functions to retrieve multiple tiles. Refer to SRL's TRSWalker.GetTileMSEx() and TRSWalker.GetTileMS() for more information.
 
@@ -928,8 +976,9 @@ end;
 (*
 TRSWalker.GetCuboidArrayMS
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
-.. pascal:: function TRSWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+.. pascal::
+  function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+  function TRSWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
 
 Gives you an array of mainscreen polygons. Read **Minimap.GetCuboidMS** for more information.
 

@@ -1,0 +1,462 @@
+(*
+API
+===
+Methods related to wasp-api.
+*)
+
+{$DEFINE WL_API_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+type StatsPayload
+~~~~~~~~~~~~~~~~~
+
+Type to help you handle stats submissions.
+*)
+type StatsPayload = record(TSRLBaseRecord) class var
+    ScriptID: String;
+    Username: String;
+    Password: String;
+    Experience: Int32;
+    Gold: Int32;
+    RunTime: Int64;
+  end;
+
+(*
+StatsPayload.Reset
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure StatsPayload.Reset();
+
+Resets StatsPayload. Automatically called by APIClient.SubmitStats() on a successful stats submission.
+*)
+procedure StatsPayload.Reset(); static;
+begin
+  StatsPayload.Experience := 0;
+  StatsPayload.Gold := 0;
+  StatsPayload.RunTime := 0;
+end;
+
+(*
+StatsPayload.SetUsername
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure StatsPayload.SetUsername(user: String = '');
+
+Sets StatsPayload username if it hasn't been set yet.
+*)
+procedure StatsPayload.SetUsername(user: String = ''); static;
+begin
+  if user = '' then
+    Exit;
+
+  StatsPayload.Username := user;
+  WriteConfigFile('stats_user', ['StatsPayload.SetUsername(''' + user + ''');']);
+end;
+
+{$IFHASFILE Data/WaspLib/configs/stats_user.simba}
+  {$I Data/WaspLib/configs/stats_user.simba}
+{$ENDIF}
+
+(*
+StatsPayload.Setup
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure StatsPayload.Setup(id, pw: String; user: String = '');
+
+Sets StatsPayload up.
+  - **id** should be your script id. If the script id is not in waspscripts.com database the submission will be rejected.
+  - **pw** should be your account password. Passwordless accounts can exist but then anyone can submit data to them.
+    A passwordless account will take in the first ever password submission it gets as it's password and will only accept future data
+    if that password is included.
+  - **user** sets a wasp-stats username.
+*)
+procedure StatsPayload.Setup(id: String; user: String = ''); static;
+begin
+  StatsPayload.ScriptID := id;
+  StatsPayload.SetUsername(user);
+end;
+
+
+(*
+StatsPayload.Update
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure StatsPayload.Update(xp, gp, time: Int32);
+.. pascal:: procedure StatsPayload.Update(ban: Boolean); overload;
+
+Update StatsPayload data for the next submission.
+You can update it several times before submitting it, however, keep in mind if the runtime is over 15mins the data will be rejected to
+avoid exploitation.
+Experience, Gold and Levels also have a limit of how much can be submitted on each request. This limit set by the scripter in waspscripts.com (not implemented yet... currently has some generous limits)
+
+You can set the account as banned for tracking ban rates but it's not fully implemented yet.
+If you set an account as banned you won't be able to submit more data to it until you set it as unbanned.
+*)
+procedure StatsPayload.Update(xp, gp, time: Int32); static;
+begin
+  StatsPayload.Experience += xp;
+  StatsPayload.Gold += gp;
+  StatsPayload.RunTime += time;
+end;
+
+(*
+StatsPayload.FormData
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function StatsPayload.FormData(): TStringArray;
+
+Transforms the data in StatsPayload into a TStringArray that can be used by a APIClient.
+*)
+function StatsPayload.FormData(): TStringArray; static;
+begin
+  Result += 'script_id='  + StatsPayload.ScriptID;
+
+  if StatsPayload.Username <> '' then
+    Result += 'username='   + StatsPayload.Username;
+
+  if StatsPayload.Password <> '' then
+    Result += 'password='   + StatsPayload.Password;
+
+  Result += 'experience=' + ToStr(StatsPayload.Experience);
+  Result += 'gold='       + ToStr(StatsPayload.Gold);
+  Result += 'runtime='    + ToStr(StatsPayload.RunTime);
+end;
+
+(*
+type APIClient
+~~~~~~~~~~~~~~~~~
+
+Type responsible for stats submissions.
+This is basically a simba wrapper for the waspscripts API.
+
+You can find the API docs in https://api.waspscripts.com/docs if you need to read them
+but the APIClient should be able to do everything for you.
+*)
+type APIClient = record(TSRLBaseRecord) class var
+    Disabled: Boolean;
+    HTTPClient: Int32;
+    StatsServer: String;
+    UUID: String;
+    Timer: TCountDown;
+    TimeStamp: UInt64;
+    IsSetup: Boolean;
+    Benchmark: TIntegerArray;
+    Fails: Int32;
+  end;
+
+{$IFHASFILE Data/WaspLib/configs/uuid.simba}
+  {$I Data/WaspLib/configs/uuid.simba}
+{$ENDIF}
+
+procedure APIClient.DebugLn(text: String); constref; override;
+var
+  timeStamp: String;
+begin
+  timeStamp := SRL.TimeStamp();
+  text := timeStamp + ':[APIClient]: ' + text;
+  WriteLn text;
+end;
+
+(*
+APIClient.Terminate
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure APIClient.Terminate();
+
+Internal method automatically called on script termination.
+*)
+procedure APIClient.Terminate(); static;
+begin
+  FreeHTTPClient(APIClient.HTTPClient);
+end;
+
+(*
+APIClient.Setup
+~~~~~~~~~~~~~~~~~
+.. pascal:: procedure APIClient.Setup();
+
+Internal method automatically called when attempting to use APIClient.GET() and APIClient.POST().
+*)
+procedure APIClient.Setup(); static;
+var
+  strArr: TStringArray;
+begin
+  APIClient.HTTPClient := InitializeHTTPClient(False);
+  APIClient.StatsServer := 'https://api.waspscripts.com/';
+
+  AddOnTerminate(@APIClient.Terminate);
+
+  if (APIClient.UUID = '') or (StatsPayload.Password = '') then
+  begin
+    APIClient.UUID := GenerateUUIDV4();
+    StatsPayload.Password := GenerateUUIDV4();
+    strArr += 'APIClient.UUID := ''' + APIClient.UUID + ''';';
+    strArr += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
+    WriteConfigFile('uuid', strArr);
+  end;
+
+  APIClient.Timer.Setup(5 * ONE_MINUTE);
+  APIClient.IsSetup := True;
+end;
+
+
+(*
+APIClient.GetUUID
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.GetUUID(): String;
+
+Returns your UUID
+
+Example
+-------
+
+  WriteLn APIClient.GetUUID();
+*)
+function APIClient.GetUUID(): String; static;
+begin
+  Result := APIClient.UUID;
+
+  if not APIClient.IsSetup then
+    APIClient.DebugLn('UUID: ' + Result);
+end;
+
+(*
+APIClient.SetLocal
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure APIClient.SetLocal(port: Int32 = 8080); static;
+
+Method only meant to be used if you are hosting a local stats server for debugging purposes.
+*)
+procedure APIClient.SetLocal(port: Int32 = 8080); static;
+begin
+  APIClient.StatsServer := 'http://localhost:' + ToStr(port) +'/';
+end;
+
+
+(*
+APIClient.GET
+~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.GET(route: String): String;
+
+Makes a GET request to the WaspScripts API in the specified **route**.
+You probably don't need to use this method directly.
+*)
+function APIClient.GET(route: String): String; static;
+begin
+  Result := GetHTTPPage(APIClient.HTTPClient, APIClient.StatsServer + route);
+
+  APIClient.DebugLn(Result);
+end;
+
+(*
+APIClient.POST
+~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.POST(route: String; payload: TStringArray): String;
+
+Makes a POST request to the WaspScripts API in the specified **route**.
+**payload** is an array of string with the following format:
+  ['var1=value1', 'var2=value2', ...]
+
+You probably don't need to use this method directly.
+*)
+function APIClient.POST(route: String; payload: TStringArray): String; static;
+var
+  i: Int32;
+  finalPayload: String;
+  responseTime: UInt64;
+begin
+  if APIClient.Disabled then
+    Exit;
+
+  if StatsPayload.ScriptID = '' then
+  begin
+    APIClient.DebugLn('SCRIPT_ID is empty. APIClient will be disabled.');
+    APIClient.Disabled := True;
+    Exit;
+  end;
+
+  for i := 0 to High(payload) do
+  begin
+    finalPayload += payload[i];
+
+    if i < High(payload) then
+      finalPayload += '&';
+  end;
+
+  responseTime := GetTickCount();
+  Result := PostHTTPPage(APIClient.HTTPClient, APIClient.StatsServer + route, finalPayload);
+  responseTime := GetTickCount() - responseTime;
+
+  APIClient.DebugLn(Result + ' Response took: ' + ToStr(responseTime) + 'ms.');
+
+  if Length(APIClient.Benchmark) > 5 then
+    APIClient.Benchmark.Del(0, 1);
+
+  APIClient.Benchmark += responseTime;
+
+  if (Length(APIClient.Benchmark) > 5) and (APIClient.Benchmark.Mean() > 3000) then
+  begin
+    APIClient.DebugLn('Connection to ' + APIClient.StatsServer + ' is slower than it should. APIClient will be disabled.');
+    APIClient.Disabled := True;
+  end;
+end;
+
+
+(*
+APIClient.HashPassword
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.HashPassword(password: String): String;
+
+Returns a salted and hashed password.
+This serves no purpose other than giving you a glimpse of what is stored in waspscripts database when you submit your password.
+
+Try the example below, notice how everytime you run it you will have slightly different results.
+That's the magic of "salting" passwords. You can read more about it on the wikipedia https://en.wikipedia.org/wiki/Salt_(cryptography).
+
+Example
+-------
+
+  WriteLn APIClient.HashPassword('helloworld');
+  WriteLn APIClient.HashPassword(StatsPayload.Password);
+*)
+function APIClient.HashPassword(password: String): String; static;
+var
+  route: String;
+  payload: TStringArray;
+begin
+  route := 'stats/auth/hash/';
+  payload += 'password=' + password;
+
+  Result := APIClient.POST(route, payload);
+end;
+
+(*
+APIClient.CheckPassword
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.CheckPassword(uuid: String; password: String): Boolean;
+
+Simply returns true/false if the **password** you submit matches what is stored in waspscripts stats database for the specified **uuid**.
+
+Example
+-------
+
+  WriteLn APIClient.CheckPassword('0.999999999999999', 'helloworld');
+  WriteLn APIClient.CheckPassword(APIClient.Generateuuid(), APIClient.GeneratePassword());
+*)
+function APIClient.CheckPassword(uuid: String; password: String): Boolean; static;
+var
+  route, msg: String;
+  payload: TStringArray;
+begin
+  route := 'stats/auth/check/' + uuid + '/';
+  payload += 'password=' + password;
+
+  msg := APIClient.POST(route, payload);
+
+  Result := msg.Pos('message') = 0;
+end;
+
+(*
+APIClient.UpdatePassword
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean;
+
+Because users passwords can be changed and that's what are used by default for
+stats password a way to update the stats password is required.
+That's what this method is for.
+
+This will probably be complicated for regular users but an easier way can be
+figured out in the future.
+
+Example
+-------
+
+  WriteLn APIClient.UpdatePassword('0.999999999999999', 'helloworld', 'helloworld2');
+  WriteLn APIClient.UpdatePassword(APIClient.Generateuuid(), APIClient.GeneratePassword('oldpassword'), APIClient.GeneratePassword());
+*)
+function APIClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean; static;
+var
+  route, msg: String;
+  payload: TStringArray;
+begin
+  route := 'stats/auth/update/' + uuid + '/';
+
+  payload += 'password=' + password;
+  payload += 'new_password=' + newPassword;
+
+  msg := APIClient.POST(route, payload);
+
+  Result := msg.Pos('message') = 0; //again, maybe a bad way to do this
+end;
+
+
+(*
+APIClient.CheckStats
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.CheckStats(uuid: string): String;
+
+Returns the stats of the specified **uuid**.
+
+Example
+-------
+
+  WriteLn APIClient.CheckStats('0.999999999999999');
+  WriteLn APIClient.CheckStats(APIClient.Generateuuid());
+*)
+function APIClient.CheckStats(uuid: String): String; static;
+var
+  route: String;
+begin
+  route := 'stats/' + uuid + '/';
+
+  Result := APIClient.GET(route);
+end;
+
+(*
+APIClient.SubmitStats
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.SubmitStats(uuid: String): Boolean;
+
+Method to submit stats to wasp-stats with the help of **StatsPayload**.
+
+Example
+-------
+
+  StatsPayload.Setup('SCRIPT_ID_HERE', APIClient.GeneratePassword());
+  StatsPayload.Update(100, 100, 5000);
+  WriteLn APIClient.SubmitStats(APIClient.Generateuuid());
+*)
+function APIClient.SubmitStats(uuid: String): Boolean; static;
+var
+  route, msg: String;
+  currentTime: UInt64;
+begin
+  if APIClient.IsSetup and not APIClient.Timer.IsFinished() then //No point removing this, the server will reject you.
+    Exit;
+
+  route := 'stats/' + uuid + '/';
+
+  currentTime := GetTickCount();
+  StatsPayload.Update(0, 0, currentTime - APIClient.TimeStamp);
+  APIClient.TimeStamp := currentTime;
+
+  msg := APIClient.POST(route, StatsPayload.FormData());
+
+  Result := msg.ContainsAny(['Response code: 201', 'Response code: 202']);
+
+  if Result then
+  begin
+    StatsPayload.Reset();
+    APIClient.Timer.Restart();
+    APIClient.Fails := 0;
+    Exit;
+  end;
+
+  APIClient.Fails += 1;
+  if APIClient.Fails > 3 then
+  begin
+    APIClient.DebugLn('Failed 3 times in a row, APIClient will be disabled.');
+    APIClient.Disabled := True;
+  end;
+end;
+
+begin
+  APIClient.Setup();
+end;

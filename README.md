@@ -32,7 +32,7 @@
  - Slayer tower
  - Much much more
 
- ![Image of WaspLib Map](https://github.com/Torwent/WaspLib/raw/master/docs/images/runescape.png)
+ ![Image of WaspLib Map](https://github.com/Torwent/WaspLib/raw/master/osr/walker/map.png)
  
  ## WalkActions
  WaspLib also has a way of doing actions while walking.

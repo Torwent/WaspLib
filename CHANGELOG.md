@@ -1,3 +1,12 @@
+## [11.10.17](https://github.com/Torwent/WaspLib/compare/v11.10.16...v11.10.17) (2023-03-05)
+
+
+### Bug Fixes
+
+* **APIClient:** added methods to get script info ([2ba9ee3](https://github.com/Torwent/WaspLib/commit/2ba9ee3b6d5392c23061bc1760b596a7576eecfa))
+
+
+
 ## [11.10.16](https://github.com/Torwent/WaspLib/compare/v11.10.15...v11.10.16) (2023-03-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility fix for stats ([df9b3ec](https://github.com/Torwent/WaspLib/commit/df9b3ecd0447c23663557956e61e123f3c019c14))
-
-
-
-## [11.10.12](https://github.com/Torwent/WaspLib/compare/v11.10.11...v11.10.12) (2023-02-26)
-
-
-### Bug Fixes
-
-* **TRSWalkerObject:** now always the closest objects are prioritized ([a9bfea3](https://github.com/Torwent/WaspLib/commit/a9bfea3a556d66654a30c83b09f5464c1f86356e))
 
 
 

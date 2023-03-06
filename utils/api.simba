@@ -61,7 +61,7 @@ end;
 (*
 StatsPayload.Setup
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure StatsPayload.Setup(id, pw: String; user: String = '');
+.. pascal:: procedure StatsPayload.Setup(id, pw: String; user: String = '');  static;
 
 Sets StatsPayload up.
   - **id** should be your script id. If the script id is not in waspscripts.com database the submission will be rejected.
@@ -80,8 +80,7 @@ end;
 (*
 StatsPayload.Update
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure StatsPayload.Update(xp, gp, time: Int32);
-.. pascal:: procedure StatsPayload.Update(ban: Boolean); overload;
+.. pascal:: procedure StatsPayload.Update(xp, gp, time: Int32);  static;
 
 Update StatsPayload data for the next submission.
 You can update it several times before submitting it, however, keep in mind if the runtime is over 15mins the data will be rejected to
@@ -101,7 +100,7 @@ end;
 (*
 StatsPayload.FormData
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function StatsPayload.FormData(): TStringArray;
+.. pascal:: function StatsPayload.FormData(): TStringArray; static;
 
 Transforms the data in StatsPayload into a TStringArray that can be used by a APIClient.
 *)
@@ -122,7 +121,19 @@ end;
 
 (*
 type APIClient
-~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~
+.. pascal::
+  type APIClient = record(TSRLBaseRecord) class var
+    Disabled: Boolean;
+    HTTPClient: Int32;
+    StatsServer: String;
+    UUID: String;
+    Timer: TCountDown;
+    TimeStamp: UInt64;
+    IsSetup: Boolean;
+    Benchmark: TIntegerArray;
+    Fails: Int32;
+  end;
 
 Type responsible for stats submissions.
 This is basically a simba wrapper for the waspscripts API.
@@ -157,8 +168,8 @@ end;
 
 (*
 APIClient.Terminate
-~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure APIClient.Terminate();
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure APIClient.Terminate();  static;
 
 Internal method automatically called on script termination.
 *)
@@ -169,14 +180,14 @@ end;
 
 (*
 APIClient.Setup
-~~~~~~~~~~~~~~~~~
-.. pascal:: procedure APIClient.Setup();
+~~~~~~~~~~~~~~~
+.. pascal:: procedure APIClient.Setup(); static;
 
 Internal method automatically called when attempting to use APIClient.GET() and APIClient.POST().
 *)
 procedure APIClient.Setup(); static;
 var
-  strArr: TStringArray;
+  settings: TStringArray;
 begin
   APIClient.HTTPClient := InitializeHTTPClient(False);
   APIClient.StatsServer := 'https://api.waspscripts.com/';
@@ -187,9 +198,9 @@ begin
   begin
     APIClient.UUID := GenerateUUIDV4();
     StatsPayload.Password := GenerateUUIDV4();
-    strArr += 'APIClient.UUID := ''' + APIClient.UUID + ''';';
-    strArr += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
-    WriteConfigFile('uuid', strArr);
+    settings += 'APIClient.UUID := ''' + APIClient.UUID + ''';';
+    settings += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
+    WriteConfigFile('uuid', settings);
   end;
 
   APIClient.Timer.Setup(5 * ONE_MINUTE);
@@ -199,8 +210,8 @@ end;
 
 (*
 APIClient.GetUUID
-~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.GetUUID(): String;
+~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.GetUUID(): String; static;
 
 Returns your UUID
 
@@ -219,7 +230,7 @@ end;
 
 (*
 APIClient.SetLocal
-~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure APIClient.SetLocal(port: Int32 = 8080); static;
 
 Method only meant to be used if you are hosting a local stats server for debugging purposes.
@@ -232,8 +243,8 @@ end;
 
 (*
 APIClient.GET
-~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.GET(route: String): String;
+~~~~~~~~~~~~~
+.. pascal:: function APIClient.GET(route: String): String; static;
 
 Makes a GET request to the WaspScripts API in the specified **route**.
 You probably don't need to use this method directly.
@@ -247,8 +258,8 @@ end;
 
 (*
 APIClient.POST
-~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.POST(route: String; payload: TStringArray): String;
+~~~~~~~~~~~~~~
+.. pascal:: function APIClient.POST(route: String; payload: TStringArray): String; static;
 
 Makes a POST request to the WaspScripts API in the specified **route**.
 **payload** is an array of string with the following format:
@@ -301,8 +312,8 @@ end;
 
 (*
 APIClient.HashPassword
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.HashPassword(password: String): String;
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.HashPassword(password: String): String; static;
 
 Returns a salted and hashed password.
 This serves no purpose other than giving you a glimpse of what is stored in waspscripts database when you submit your password.
@@ -329,8 +340,8 @@ end;
 
 (*
 APIClient.CheckPassword
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.CheckPassword(uuid: String; password: String): Boolean;
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.CheckPassword(uuid: String; password: String): Boolean; static;
 
 Simply returns true/false if the **password** you submit matches what is stored in waspscripts stats database for the specified **uuid**.
 
@@ -355,8 +366,8 @@ end;
 
 (*
 APIClient.UpdatePassword
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean;
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean; static;
 
 Because users passwords can be changed and that's what are used by default for
 stats password a way to update the stats password is required.
@@ -368,13 +379,17 @@ figured out in the future.
 Example
 -------
 
-  WriteLn APIClient.UpdatePassword('0.999999999999999', 'helloworld', 'helloworld2');
-  WriteLn APIClient.UpdatePassword(APIClient.Generateuuid(), APIClient.GeneratePassword('oldpassword'), APIClient.GeneratePassword());
-*)
+  const
+    PASSWORD:     String = 'old_password';
+    NEW_PASSWORD: String = 'new_password';
+  begin
+    APIClient.UpdatePassword(APIClient.UUID, PASSWORD, NEW_PASSWORD);
+  end.
+ *)
 function APIClient.UpdatePassword(uuid: String; password, newPassword: String): Boolean; static;
 var
   route, msg: String;
-  payload: TStringArray;
+  payload, settings: TStringArray;
 begin
   route := 'stats/auth/update/' + uuid + '/';
 
@@ -384,13 +399,20 @@ begin
   msg := APIClient.POST(route, payload);
 
   Result := msg.Pos('message') = 0; //again, maybe a bad way to do this
+
+  if Result then
+  begin
+    settings += 'APIClient.UUID := ''' + APIClient.UUID + ''';';
+    settings += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
+    WriteConfigFile('uuid', settings);
+  end;
 end;
 
 
 (*
 APIClient.CheckStats
-~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.CheckStats(uuid: string): String;
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.CheckStats(uuid: string): String; static;
 
 Returns the stats of the specified **uuid**.
 
@@ -411,8 +433,8 @@ end;
 
 (*
 APIClient.SubmitStats
-~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.SubmitStats(uuid: String): Boolean;
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.SubmitStats(uuid: String): Boolean; static;
 
 Method to submit stats to wasp-stats with the help of **StatsPayload**.
 
@@ -428,6 +450,9 @@ var
   route, msg: String;
   currentTime: UInt64;
 begin
+  if APIClient.Disabled then
+    Exit;
+
   if APIClient.IsSetup and not APIClient.Timer.IsFinished() then //No point removing this, the server will reject you.
     Exit;
 
@@ -456,6 +481,61 @@ begin
     APIClient.Disabled := True;
   end;
 end;
+
+(*
+APIClient.GetScript
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: APIClient.GetScript(script_id: String): String; static;
+
+Retrieves info of the script with the specified **script_id** from https://api.waspscripts.com
+
+Example
+-------
+
+  APIClient.GetScript('cf0a01e4-8d20-41c2-a78e-3d83081b388d');
+*)
+function APIClient.GetScript(script_id: String): String; static;
+var
+  route, msg: String;
+begin
+  route := 'script/' + script_id;
+
+  msg := APIClient.GET(route);
+
+  if not msg.Contains('Response code: 200') then
+    Exit;
+
+  Result := msg.After(' - ');
+end;
+
+(*
+APIClient.GetScriptRevision
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.GetScriptRevision(script_id: String): Int32; static;
+
+Retrieves the latest revision number of the script with the specified **script_id** from https://api.waspscripts.com
+
+Example
+-------
+
+  WriteLn APIClient.GetScriptRevision('cf0a01e4-8d20-41c2-a78e-3d83081b388d');
+*)
+function APIClient.GetScriptRevision(script_id: String): Int32; static;
+var
+  route, msg: String;
+begin
+  route := 'script/revision/' + script_id;
+
+  msg := APIClient.GET(route);
+
+  if not msg.contains('Response code: 200') then
+    Exit(-1);
+
+  msg := msg.After('"revision":').Before('}');
+
+  Result := StrToInt(msg);
+end;
+
 
 begin
   APIClient.Setup();

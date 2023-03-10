@@ -1,3 +1,12 @@
+## [11.10.18](https://github.com/Torwent/WaspLib/compare/v11.10.17...v11.10.18) (2023-03-10)
+
+
+### Bug Fixes
+
+* nothing, just force bumping the version  ([c16b551](https://github.com/Torwent/WaspLib/commit/c16b5514d657c63ebce148cd21a8a3013e35a87f))
+
+
+
 ## [11.10.17](https://github.com/Torwent/WaspLib/compare/v11.10.16...v11.10.17) (2023-03-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * StatsClient was renamed to APIClient ([87761c6](https://github.com/Torwent/WaspLib/commit/87761c6cdff009843d496cc7f215e30b89996016))
-
-
-
-## [11.10.13](https://github.com/Torwent/WaspLib/compare/v11.10.12...v11.10.13) (2023-03-02)
-
-
-### Bug Fixes
-
-* compatibility fix for stats ([df9b3ec](https://github.com/Torwent/WaspLib/commit/df9b3ecd0447c23663557956e61e123f3c019c14))
 
 
 

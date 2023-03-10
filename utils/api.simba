@@ -244,16 +244,22 @@ end;
 (*
 APIClient.GET
 ~~~~~~~~~~~~~
-.. pascal:: function APIClient.GET(route: String): String; static;
+.. pascal:: function APIClient.GET(route: String; verbose: Boolean = True): String; static;
 
 Makes a GET request to the WaspScripts API in the specified **route**.
 You probably don't need to use this method directly.
-*)
-function APIClient.GET(route: String): String; static;
-begin
-  Result := GetHTTPPage(APIClient.HTTPClient, APIClient.StatsServer + route);
 
-  APIClient.DebugLn(Result);
+*)
+function APIClient.GET(route: String; verbose: Boolean = True): String; static;
+var
+  responseTime: UInt64;
+begin
+  responseTime := GetTickCount();
+  Result := GetHTTPPage(APIClient.HTTPClient, APIClient.StatsServer + route);
+  responseTime := GetTickCount() - responseTime;
+
+  if verbose then
+    APIClient.DebugLn(Result + ' - Response took: ' + ToStr(responseTime) + 'ms.');
 end;
 
 (*
@@ -267,7 +273,7 @@ Makes a POST request to the WaspScripts API in the specified **route**.
 
 You probably don't need to use this method directly.
 *)
-function APIClient.POST(route: String; payload: TStringArray): String; static;
+function APIClient.POST(route: String; payload: TStringArray; verbose: Boolean = True): String; static;
 var
   i: Int32;
   finalPayload: String;
@@ -295,7 +301,8 @@ begin
   Result := PostHTTPPage(APIClient.HTTPClient, APIClient.StatsServer + route, finalPayload);
   responseTime := GetTickCount() - responseTime;
 
-  APIClient.DebugLn(Result + ' Response took: ' + ToStr(responseTime) + 'ms.');
+  if verbose then
+    APIClient.DebugLn(Result + ' - Response took: ' + ToStr(responseTime) + 'ms.');
 
   if Length(APIClient.Benchmark) > 5 then
     APIClient.Benchmark.Del(0, 1);
@@ -485,7 +492,7 @@ end;
 (*
 APIClient.GetScript
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: APIClient.GetScript(script_id: String): String; static;
+.. pascal:: APIClient.GetScript(script_id: String; verbose: Boolean = False): String; static;
 
 Retrieves info of the script with the specified **script_id** from https://api.waspscripts.com
 
@@ -494,24 +501,26 @@ Example
 
   APIClient.GetScript('cf0a01e4-8d20-41c2-a78e-3d83081b388d');
 *)
-function APIClient.GetScript(script_id: String): String; static;
+function APIClient.GetScript(script_id: String; verbose: Boolean = False): String; static;
 var
   route, msg: String;
 begin
-  route := 'script/' + script_id;
-
-  msg := APIClient.GET(route);
+  route := 'simba/' + script_id;
+  msg := APIClient.GET(route, verbose);
 
   if not msg.Contains('Response code: 200') then
     Exit;
 
-  Result := msg.After(' - ');
+  msg := msg.After('Response code: 200 - ');
+  msg := msg.Before(' - Response took');
+
+  Result := msg;
 end;
 
 (*
 APIClient.GetScriptRevision
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function APIClient.GetScriptRevision(script_id: String): Int32; static;
+.. pascal:: function APIClient.GetScriptRevision(script_id: String; verbose: Boolean = False): Int32; static;
 
 Retrieves the latest revision number of the script with the specified **script_id** from https://api.waspscripts.com
 
@@ -520,13 +529,12 @@ Example
 
   WriteLn APIClient.GetScriptRevision('cf0a01e4-8d20-41c2-a78e-3d83081b388d');
 *)
-function APIClient.GetScriptRevision(script_id: String): Int32; static;
+function APIClient.GetScriptRevision(script_id: String; verbose: Boolean = False): Int32; static;
 var
   route, msg: String;
 begin
-  route := 'script/revision/' + script_id;
-
-  msg := APIClient.GET(route);
+  route := 'simba/revision/' + script_id;
+  msg := APIClient.GET(route, verbose);
 
   if not msg.contains('Response code: 200') then
     Exit(-1);
@@ -534,6 +542,34 @@ begin
   msg := msg.After('"revision":').Before('}');
 
   Result := StrToInt(msg);
+end;
+
+(*
+APIClient.GetVersion
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function APIClient.GetVersion(pkg: String; verbose: Boolean = False): String; static;
+
+Retrieves the latest version of the package specified from https://api.waspscripts.com.
+
+Example
+-------
+
+  WriteLn APIClient.GetVersion('srl-t');
+  WriteLn APIClient.GetVersion('wasplib');
+*)
+function APIClient.GetVersion(pkg: String; verbose: Boolean = False): String; static;
+var
+  route, msg: String;
+begin
+  route := 'simba/revision/' + pkg;
+  msg := APIClient.GET(route, verbose);
+
+  if not msg.contains('Response code: 200') then
+    Exit;
+
+  msg := msg.After('"version":').Before('}');
+
+  Result := msg;
 end;
 
 

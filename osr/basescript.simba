@@ -271,7 +271,9 @@ Example
     Script.Init(-1, 2 * ONE_DAY);
   end;
 *)
-procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
+procedure TBaseScript.Init(maxActions: Int32; maxTime: Int64);
+var
+  latestRev: Int32;
 begin
   {$IFNDEF SCRIPT_CHAINER}
   ClearDebug();
@@ -290,20 +292,27 @@ begin
   {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
   Self.Revision := {$macro SCRIPT_REVISION};
 
+  latestRev := APIClient.GetScriptRevision(Self.ID, False);
+  if StrToInt(Self.Revision) < latestRev then
+    MessageDlg(Self.Name,
+      'A newer revision of this script is available!', mtWarning,[mbClose]);
+
+
+
   GenerateLog(Self.Name);
   WriteFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding, True);
 
   Self.Welcome := WELCOME_SENTENCES.RandomValue();
 
   Self.ActionLimit := -1;
-  if MaxActions > -1 then
-    Self.ActionLimit := Self.TotalActions + MaxActions;
+  if maxActions > -1 then
+    Self.ActionLimit := Self.TotalActions + maxActions;
 
   Self.TimeRunning.Start();
   ProgressReport.PTimeRunning := @Self.TimeRunning;
 
-  if MaxTime > -1 then
-    Self.TimeLimit := Self.TimeRunning.ElapsedTime + MaxTime
+  if maxTime > -1 then
+    Self.TimeLimit := Self.TimeRunning.ElapsedTime + maxTime
   else
     Self.TimeLimit := -1;
 
@@ -636,6 +645,8 @@ begin
 
   if not Result then
     Self.BankEmpty := not WaitUntil(Bank.ContainsItem(Self.BankTab, item), 300, 3000);
+
+  Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
 
   if Self.BankEmpty then
     SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());

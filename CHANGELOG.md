@@ -1,3 +1,12 @@
+# [11.11.0](https://github.com/Torwent/WaspLib/compare/v11.10.18...v11.11.0) (2023-03-10)
+
+
+### Features
+
+* read notes ([b2ebedc](https://github.com/Torwent/WaspLib/commit/b2ebedc2db503a58a4690c7645dab93df239c157))
+
+
+
 ## [11.10.18](https://github.com/Torwent/WaspLib/compare/v11.10.17...v11.10.18) (2023-03-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * minor tweak in the APIClient ([5ea35cb](https://github.com/Torwent/WaspLib/commit/5ea35cb746119ec947a347ab9a2807bb7f1bd56e))
-
-
-
-## [11.10.14](https://github.com/Torwent/WaspLib/compare/v11.10.13...v11.10.14) (2023-03-03)
-
-
-### Bug Fixes
-
-* StatsClient was renamed to APIClient ([87761c6](https://github.com/Torwent/WaspLib/commit/87761c6cdff009843d496cc7f215e30b89996016))
 
 
 

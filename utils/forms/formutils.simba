@@ -134,27 +134,28 @@ begin
 end;
 
 (*
-Component.IntField
-~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TComponent.IntField(sender: TObject; var key: char);
+Component.NumberField
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TComponent.NumberField(sender: TObject; var key: char);
 
 Callback method to limit user input to numbers only and backspace.
+This numbers can be Ints or Doubles.
 *)
 {$H-}
-procedure TComponent.IntField(sender: TObject; var key: char);
+procedure TComponent.NumberField(sender: TObject; var key: char);
 begin
-  if not (key in ['0'..'9', #8]) then
+  if not (key in ['0'..'9', #8, '.']) then
     key := #0;
 end;
 
 (*
-Component.IntField
-~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TComponent.IntArrayField(sender: TObject; var key: char);
+Component.NumberArrayField
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TComponent.NumberArrayField(sender: TObject; var key: char);
 
-Callback method to limit user input to a TInteger array.
+Callback method to limit user input to a TIntegerArray.
 *)
-procedure TComponent.IntArrayField(sender: TObject; var key: char);
+procedure TComponent.NumberArrayField(sender: TObject; var key: char);
 begin
   if not (key in ['0'..'9', ',', ' ' , #8]) then
     key := #0;
@@ -219,6 +220,7 @@ Create
   procedure TComboBox.Create(const owner: TControl);
   procedure TListBox.Create(const owner: TControl);
   procedure TMemo.Create(const owner: TControl);
+  procedure TTrackBar.Create(const owner: TControl);
 
 **.Init()** and **.SetParent()** in a single method.
 *)
@@ -289,6 +291,12 @@ begin
 end;
 
 procedure TMemo.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TTrackBar.Create(const owner: TControl);
 begin
   Self.Init(owner);
   Self.SetParent(owner);
@@ -425,14 +433,24 @@ LabeledControl
     Caption: TLabel;
   end;
 
-TLabeledControl is the base type for custom TLabeledControls. It's not really meant to be used directly.
+TLabeledControl is the base type for custom TLabeledControls.
+It's not really meant to be used directly.
 If for some reason you need to see the control bounds, it's recommended to set the panel bevel width to 1.
+
+.. pascal:: Changing TLabeledControl subcomponents align value can mess the position of everything.
 *)
   TLabeledControl = record
     Panel: TPanel;
     Caption: TLabel;
   end;
 
+(*
+LabeledEdit
+~~~~~~~~~~~
+.. pascal:: TLabeledPanel = type TLabeledControl;
+
+Same exact thing as a TLabeledControl but with the purpose of being a panel for other components.
+*)
   TLabeledPanel = type TLabeledControl;
 
 (*
@@ -443,7 +461,8 @@ LabeledEdit
     Edit: TEdit;
   end;
 
-TLabeledEdit is, as the name implies a TEdit with a TLabel on top. Both components are contained in the TPanel inherited from TLabeledControl.
+TLabeledEdit is, as the name implies a TEdit with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
 *)
   TLabeledEdit = record(TLabeledControl)
     Edit: TEdit;
@@ -457,8 +476,9 @@ LabeledCheckBox
     CheckBox: TEdit;
   end;
 
-TLabeledCheckBox is, as the name implies a TCheckBox with a TLabel to it's right. Both components are contained in the TPanel inherited from TLabeledControl.
-The standard TCheckBox already has a label by it but it's hard to customize it.
+TLabeledCheckBox is, as the name implies a TCheckBox with a TLabel to it's right.
+Both components are contained in the TPanel inherited from TLabeledControl.
+.. note:: The standard TCheckBox already has a label by it but it's hard to customize it.
 *)
   TLabeledCheckBox = record(TLabeledControl)
     CheckBox: TCheckBox;
@@ -472,7 +492,8 @@ LabeledComboBox
     ComboBox: TComboBox;
   end;
 
-TLabeledComboBox is, as the name implies a TComboBox with a TLabel on top. Both components are contained in the TPanel inherited from TLabeledControl.
+TLabeledComboBox is, as the name implies a TComboBox with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
 *)
   TLabeledComboBox = record(TLabeledControl)
     ComboBox: TComboBox;
@@ -486,7 +507,8 @@ LabeledListBox
     ListBox: TListBox;
   end;
 
-TLabeledListBox is, as the name implies a TListBox with a TLabel on top. Both components are contained in the TPanel inherited from TLabeledControl.
+TLabeledListBox is, as the name implies a TListBox with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
 *)
   TLabeledListBox = record(TLabeledControl)
     ListBox: TListBox;
@@ -500,10 +522,26 @@ LabeledMemo
     Memo: TMemo;
   end;
 
-TLabeledMemo is, as the name implies a TMemo with a TLabel on top. Both components are contained in the TPanel inherited from TLabeledControl.
+TLabeledMemo is, as the name implies a TMemo with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
 *)
   TLabeledMemo = record(TLabeledControl)
     Memo: TMemo;
+  end;
+
+(*
+LabeledTrackBar
+~~~~~~~~~~~~~~~
+.. pascal::
+  type TLabeledTrackBar = record(TLabeledControl)
+    TrackBar: TTrackBar;
+  end;
+
+TLabeledTrackBar is, as the name implies a TTrackBar with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
+*)
+  TLabeledTrackBar = record(TLabeledControl)
+    TrackBar: TTrackBar;
   end;
 
 
@@ -530,6 +568,7 @@ Create
   procedure TLabeledComboBox.Create(const owner: TControl); override;
   procedure TLabeledListBox.Create(const owner: TControl); override;
   procedure TLabeledMemo.Create(const owner: TControl); override;
+  procedure TLabeledTrackBar.Create(const owner: TControl); override;
 
 Custom components **.Init()** and **.SetParent()** in a single method.
 *)
@@ -617,6 +656,17 @@ begin
   Self.Panel.setHeight(Self.Caption.getHeight() + Self.Memo.getHeight());
 end;
 
+procedure TLabeledTrackBar.Create(const owner: TControl); override;
+begin
+  inherited;
+
+  Self.TrackBar.Create(Self.Panel);
+  Self.TrackBar.setAlign(alClient);
+  Self.TrackBar.setBorderWidth(0);
+
+  Self.Panel.setHeight(Self.Caption.getHeight() + Self.TrackBar.getHeight());
+end;
+
 
 (*
 LabeledControl.SetCaption
@@ -695,6 +745,7 @@ LabeledControl.SetName
   procedure TLabeledComboBox.SetName(value: String)
   procedure TLabeledListBox.SetName(value: String);
   procedure TLabeledMemo.SetName(value: String);
+  procedure TLabeledTrackBar.SetName(value: String);
 
 Sets names to the subcomponents of the TLabeledControl.
 Caption is named with **value** + '_caption' while the other component is appended with it's name.
@@ -792,6 +843,25 @@ begin
   old := Self.Memo.getCaption();
   Self.Memo.setName(value + '_memo');
   Self.Memo.setCaption(old);
+end;
+
+procedure TLabeledTrackBar.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.TrackBar.getCaption();
+  Self.TrackBar.setName(value + '_trackbar');
+  Self.TrackBar.setCaption(old);
 end;
 
 

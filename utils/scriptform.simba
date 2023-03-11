@@ -175,17 +175,17 @@ begin
 
   with Self.AccountSelector do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Current account:');
-    SetLeft(Title.getLeft + 10);
-    SetTop(Title.GetTop + Title.getHeight + 5);
+    SetLeft(Caption.getLeft + 10);
+    SetTop(Caption.GetTop + Caption.getHeight + 5);
     Combobox.setStyle(csDropDownList);
     SetWidth(250);
   end;
 
   with Self.AccountUser do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Username:');
     SetLeft(Self.AccountSelector.GetLeft);
     SetTop(Self.AccountSelector.GetTop + Self.AccountSelector.GetHeight - 2);
@@ -194,7 +194,7 @@ begin
 
   with Self.AccountPass do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Password:');
     SetLeft(Self.AccountUser.GetLeft);
     SetTop(Self.AccountUser.GetTop + Self.AccountUser.GetHeight);
@@ -204,7 +204,7 @@ begin
 
   with Self.AccountPin do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Bank pin:');
     SetLeft(Self.AccountPass.GetLeft() + Self.AccountPass.GetWidth() + 10);
     SetTop(Self.AccountPass.GetTop());
@@ -216,7 +216,7 @@ begin
 
   with Self.AccountWorlds do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Worlds (separated by commas):');
     SetLeft(Self.AccountSelector.GetLeft + Self.AccountSelector.GetWidth + 25);
     SetTop(Self.AccountSelector.GetTop);
@@ -480,7 +480,7 @@ begin
 
   with Self.SleepHourEdit do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Aprox sleep time' + LineEnding + '(HH:MM:SS):');
     SetTop(Self.BankState.getTop + Self.BankState.getHeight);
     Edit.SetTop(Edit.GetTop + 15);
@@ -492,7 +492,7 @@ begin
 
   with Self.SleepLengthEdit do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Aprox sleep length:');
     SetLeft(Self.AntibanState.GetLeft());
     SetTop(Self.SleepHourEdit.getTop + Self.SleepHourEdit.getHeight + 20);
@@ -514,13 +514,13 @@ begin
 end;
 
 
+type
 (*
 type TRemoteInputPanel
 ~~~~~~~~~~~~~~~~~~~~~~
 
 Helper type to handle the RemoteInput panel.
 *)
-type
   TRemoteInputPanel = record(TLabeledPanel)
     State:     TCheckbox;
     RealInput: TCheckbox;
@@ -537,13 +537,12 @@ Callback method used internally to react to **RemoteInputPanel.State** change.
 *)
 procedure TRemoteInputPanel.StateOnChange(Sender: TObject);
 var
-  Checked: Boolean;
+  checked: Boolean;
 begin
-  Checked := Self.State.IsChecked();
-
-  Self.RealInput.SetEnabled(Checked);
-  Self.HUD.SetEnabled(Checked);
-  Self.Debug.SetEnabled(Checked);
+  checked := Self.State.IsChecked();
+  Self.RealInput.SetEnabled(checked);
+  Self.HUD.SetEnabled(checked);
+  Self.Debug.SetEnabled(checked);
 end;
 
 (*
@@ -585,8 +584,7 @@ begin
 
   with Self.State do
   begin
-    Init(Self.Panel);
-    SetParent(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Remote Input');
     SetChecked(WLSettings.RemoteInput.Enabled);
     setOnChange(@Self.StateOnChange);
@@ -604,8 +602,7 @@ begin
 
   with Self.RealInput do
   begin
-    Init(Self.Panel);
-    SetParent(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Disable Input');
     SetChecked(WLSettings.RemoteInput.BlockInput);
     SetTop(Self.Panel.GetTop() + 25);
@@ -620,8 +617,7 @@ begin
 
   with Self.HUD do
   begin
-    Init(Self.Panel);
-    SetParent(Self.Panel);
+    Create(Self.Panel);
     SetCaption('HUD report');
     SetChecked(WLSettings.RemoteInput.HUDReport);
     SetOnChange(@Self.HUDOnChange);
@@ -637,8 +633,7 @@ begin
 
   with Self.Debug do
   begin
-    Init(Self.Panel);
-    SetParent(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Debug script');
     SetChecked(WLSettings.RemoteInput.ScriptDebug);
     SetOnChange(@Self.DebugOnChange);
@@ -652,6 +647,96 @@ begin
     ShowHint();
   end;
 end;
+
+
+type
+(*
+type TAPIPanel
+~~~~~~~~~~~~~~~~
+.. pascal::
+  TAPIPanel = record(TLabeledPanel)
+    UUID:         TLabeledEdit;
+    Password:     TLabeledEdit;
+    NewPassword:  TLabeledEdit;
+    Username:     TLabeledEdit;
+  end;
+
+Helper type to handle the Stats panel.
+*)
+  TAPIPanel = record(TLabeledPanel)
+    Info:         TLabel;
+    UUID:         TLabeledEdit;
+    Username:     TLabeledEdit;
+    Password:     TLabeledEdit;
+    NewPassword:  TLabeledEdit;
+  end;
+
+(*
+APIPanel.Setup
+~~~~~~~~~~~~~~
+.. pascal:: procedure TAPIPanel.Setup(AOwner: TComponent); overload;
+
+Internal function used to setup the remote input panel.
+*)
+procedure TAPIPanel.Setup(AOwner: TComponent); overload;
+begin
+  Self.Setup(AOwner, 'WaspAPI Settings');
+  Self.SetHeight(500);
+
+  with Self.UUID do
+  begin
+    Create(Self.Panel);
+    SetCaption('UUID:');
+    SetLeft(5);
+    SetTop(30);
+    SetWidth(250);
+    SetText(APIClient.UUID);
+  end;
+
+  with Self.Username do
+  begin
+    Create(Self.Panel);
+    SetCaption('Username:');
+    SetLeft(Self.UUID.getLeft() + 270);
+    SetTop(Self.UUID.GetTop());
+    SetWidth(250);
+    SetText(StatsPayload.Username);
+  end;
+
+  with Self.Password do
+  begin
+    Create(Self.Panel);
+    SetCaption('Current password:');
+    SetLeft(Self.UUID.getLeft());
+    SetTop(Self.UUID.GetTop() + Self.UUID.getHeight());
+    SetWidth(250);
+    SetText(StatsPayload.Password);
+    Edit.setEnabled(False);
+  end;
+
+  with Self.NewPassword do
+  begin
+    Create(Self.Panel);
+    SetCaption('New password:');
+    SetLeft(Self.Username.getLeft());
+    SetTop(Self.Password.GetTop());
+    SetWidth(250);
+  end;
+
+  with Self.Info do
+  begin
+    Create(Self.Panel);
+    SetCaption('Check live stats at https://waspscripts.com/stats');
+    SetLeft(Self.UUID.GetLeft());
+    SetTop(Self.Password.GetTop() + Self.Password.GetHeight() + 20);
+    SetWidth(200);
+  end;
+end;
+
+
+
+
+
 
 
 (*
@@ -721,8 +806,7 @@ begin
 
   with Self.Panel do
   begin
-    Init(AOwner);
-    SetParent(AOwner);
+    Create(AOwner);
     SetAlign(alTop);
     SetHeight(60);
     SetBevelWidth(0);
@@ -730,7 +814,7 @@ begin
 
   with Self.MinPoints do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption('Minimum ' + Str1 + ':');
     SetLeft(20);
     SetTop(5);
@@ -741,7 +825,7 @@ begin
 
   with Self.ConsumableAmount do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption(Str2 + ' amount:');
     SetLeft(150);
     SetTop(5);
@@ -753,7 +837,7 @@ begin
 
   with Self.ConsumableSelector do
   begin
-    Init(Self.Panel);
+    Create(Self.Panel);
     SetCaption(Str2 + ' type: (empty=auto)');
     SetLeft(275);
     SetTop(5);
@@ -812,7 +896,7 @@ Optionally you can pass boolean values to UseFood, UsePrayer, UseBank to make ex
 *)
 procedure TWaspLibPanel.Setup(AOwner: TComponent; UseFood, UsePrayer, UseBank: Boolean = False); overload;
 var
-  PanelCount: Int32 = 1;
+  panelCount: Int32 = 1;
   Str: String;
   size: TSizeConstraints;
 begin
@@ -820,24 +904,22 @@ begin
 
   with Self.MainPanel do
   begin
-    Init(Self.Panel);
-    SetParent(Self.Panel);
+    Create(Self.Panel);
     SetAlign(alClient);
     SetBevelWidth(0);
   end;
 
   with Self.LimitPanel do
   begin
-    Init(Self.MainPanel);
-    SetParent(Self.MainPanel);
+    Create(Self.MainPanel);
     SetAlign(alTop);
     SetHeight(60);
     SetBevelWidth(0);
-    PanelCount += 1;
+    panelCount += 1;
 
     with Self.ActionLimit do
     begin
-      Init(Self.LimitPanel);
+      Create(Self.LimitPanel);
       SetCaption('Stop after (number of actions):');
       SetLeft(Self.LimitPanel.getLeft + 35);
       SetTop(Self.LimitPanel.GetTop() + 10);
@@ -848,7 +930,7 @@ begin
 
     with Self.TimeLimit do
     begin
-      Init(Self.LimitPanel);
+      Create(Self.LimitPanel);
       SetCaption('Stop after (time in minutes):');
       SetTop(Self.ActionLimit.GetTop());
       SetLeft(Self.ActionLimit.getLeft() + Self.ActionLimit.GetWidth() + 55);
@@ -860,19 +942,18 @@ begin
 
   with Self.BankPanel do
   begin
-    Init(Self.MainPanel);
-    SetParent(Self.MainPanel);
+    Create(Self.MainPanel);
     SetAlign(alTop);
     SetHeight(60);
     SetBevelWidth(0);
     if UseBank then
-      PanelCount += 1
+      panelCount += 1
     else
       SetVisible(False);
 
     with Self.BankSelector do
     begin
-      Init(Self.BankPanel);
+      Create(Self.BankPanel);
       SetCaption('Bank location:');
       SetLeft(Round(Self.BankPanel.GetWidth()/2) + 50);
       SetTop(10);
@@ -890,7 +971,7 @@ begin
     Setup(Self.MainPanel, FOOD_CONSUMABLE, UseBank);
 
     if UseFood then
-      PanelCount += 1
+      panelCount += 1
     else
       Self.FoodPanel.Panel.SetVisible(False);
   end;
@@ -900,20 +981,19 @@ begin
     Setup(Self.MainPanel, PRAYER_CONSUMABLE, UseBank);
 
     if UsePrayer then
-      PanelCount += 1
+      panelCount += 1
     else
       Self.PrayerPanel.Panel.SetVisible(False);
   end;
 
   with Self.StartButton do
   begin
-    Init(Self.MainPanel);
-    SetParent(Self.MainPanel);
+    Create(Self.MainPanel);
     SetCaption('Start Script!');
     SetAlign(alBottom);
   end;
 
-  Self.SetHeight(60 * PanelCount);
+  Self.SetHeight(60 * panelCount);
 end;
 
 
@@ -929,7 +1009,7 @@ type
     Form: TForm;
 
     AMPanel: TAccountManagerPanel;
-
+    APIPanel: TAPIPanel;
     ABPanel: TAntibanPanel;
 
     MainPanel: TPanel;
@@ -1143,23 +1223,29 @@ Methods used to setup the a TScriptForm. Can be optionally be passed in booleans
 *)
 procedure TScriptForm.Setup(UseFood, UsePrayer, UseBank: Boolean); //override me to add stuff!
 var
-  PanelCount: Int32 = 1;
+  panelCount: Int32 = 1;
 begin
   if UseFood then
-    PanelCount += 1;
+    panelCount += 1;
   if UsePrayer then
-    PanelCount += 1;
+    panelCount += 1;
   if UseBank then
-    PanelCount += 1;
+    panelCount += 1;
 
   with Self.Form do
   begin
     Init(nil);
     SetCaption('Script Configuration');
     SetWidth(650);
-    SetHeight(390 + 60 * PanelCount);
+    SetHeight(450 + 60 * panelCount);
     SetPosition(poScreenCenter);
   end;
+
+
+  //Setup API panel
+  Self.APIPanel.Setup(Self.Form);
+  Self.APIPanel.SetAlign(alTop);
+  Self.APIPanel.SetHeight(100);
 
   //Setup account manager
   Self.AMPanel.Setup(Self.Form);
@@ -1177,8 +1263,7 @@ begin
   Self.ABPanel.Setup(Self.Form);
   Self.ABPanel.SetAlign(alLeft);
 
-  Self.MainPanel.Init(Self.Form);
-  Self.MainPanel.SetParent(Self.Form);
+  Self.MainPanel.Create(Self.Form);
   Self.MainPanel.SetAlign(alClient);
 
   //Setup Remote Input settings

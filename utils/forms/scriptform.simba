@@ -184,13 +184,10 @@ begin
 end;
 
 
-
-
-
-
 procedure TScriptForm.CreateAccountManager();
   type TScriptForm = TScriptForm;
-
+   //Self contained methods only related to the account manager.
+   //This doesn't have to clutter things outside.
   {$H-}
   procedure TScriptForm._ClearInputs(sender: TObject);
   var
@@ -267,8 +264,12 @@ procedure TScriptForm.CreateAccountManager();
   var
     i: Int32;
     selector: TComboBox;
+    edit: TEdit;
+    trackbar: TTrackBar;
   begin
     selector := Self.Form.GetChild('am_selector_combobox');
+    edit := Self.Form.GetChild('ab_biohash_edit');
+    trackbar := Self.Form.GetChild('ab_biohash_trackbar');
 
     i := selector.GetItemIndex();
     if i = -1 then
@@ -289,6 +290,9 @@ procedure TScriptForm.CreateAccountManager();
 
     BioHash := 0;
     Antiban.SetupBiometrics();
+
+    trackbar.setPosition(Round(9*BioHash));
+    edit.setText(FormatFloat('0.0000000000', BioHash));
 
     Antiban.SetSleepHour();
     Antiban.SetSleepLength();
@@ -453,7 +457,7 @@ begin
     SetWidth(pinW);
     SetPasswordChar('*');
     SetMaxLength(4);
-    Edit.SetOnKeyPress(@Edit.IntField);
+    Edit.SetOnKeyPress(@Edit.NumberField);
   end;
 
   with worlds do
@@ -465,7 +469,7 @@ begin
     SetTop(selector.GetTop());
     SetHeight(pass.GetBottom());
     SetWidth(w);
-    Memo.setOnKeyPress(@Memo.IntArrayField);
+    Memo.setOnKeyPress(@Memo.NumberArrayField);
   end;
 
   fullWidth := Floor(Self.Size.X/5);
@@ -510,11 +514,10 @@ begin
   Self._SelectorOnChange(selector.ComboBox);
 end;
 
-
 procedure TScriptForm.CreateRemoteInput();
   type TScriptForm = TScriptForm;
-
-  //Self container OnChange methods. This doesn't have to clutter things outside.
+  //Self contained methods only related to the remote input settings.
+  //This doesn't have to clutter things outside.
   procedure TScriptForm._EnabledOnChange(sender: TObject);
   var
     checked: Boolean;
@@ -675,6 +678,84 @@ begin
   Self._EnabledOnChange(enabled.CheckBox);
 end;
 
+
+
+procedure TScriptForm.BarOnChange(sender: TObject);
+var
+  bar: TTrackBar;
+  edit: TEdit;
+  value: Double;
+  str: String;
+begin
+  bar := sender;
+  edit := Self.Form.GetChild('ab_biohash_edit');
+
+  value := bar.getPosition() * 0.1111111111;
+  if value = 0 then
+    value += 0.0000000001;
+
+  if value = 1 then
+    value -= 0.0000000001;
+
+  str := FormatFloat('0.0000000000', value);
+  edit.SetText(str);
+end;
+
+procedure TScriptForm.CreateAntibanManager();
+  type TScriptForm = TScriptForm;
+  //Self contained methods only related to the antiban manager.
+  //This doesn't have to clutter things outside.
+
+var
+  tab: TTabSheet;
+  bioPanel: TPanel;
+  fullWidth, w, space, y: Int32;
+  bioEdit: TLabeledEdit;
+  bar: TTrackBar;
+begin
+  Self.AddTab('Antiban Manager');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  fullWidth := Self.Size.X;
+  space := Floor(fullWidth * 0.1);
+  w := fullWidth - (space * 2);
+  y := Floor(Self.Size.Y/6);
+
+  with bioPanel do
+  begin
+    Create(tab);
+    SetName('ab_biohash_panel');
+    SetTop(10);
+    SetLeft(space);
+    SetHeight(y);
+    SetWidth(w);
+    setCaption('');
+    setBevelWidth(0);
+  end;
+
+  with bioEdit do
+  begin
+    Create(bioPanel);
+    SetLeft(Round(w/3));
+    SetWidth(Round(w/4));
+    SetCaption('BioHash:');
+    SetName('ab_biohash');
+    Edit.setOnKeyPress(@Edit.NumberField);
+  end;
+
+  with bar do
+  begin
+    Create(bioPanel);
+    SetName('ab_biohash_trackbar');
+    SetMin(0);
+    SetMax(9);
+    setAlign(alBottom);
+    SetTooltip('You can adjust your biohash with this trackbar, however, the default is recommended.');
+    setOnChange(@Self.BarOnChange);
+  end;
+end;
+
+
 procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [650, 400]);
 begin
   Self.DPI := TControl.GetScreenDPI();
@@ -706,6 +787,7 @@ begin
     SetCaption('Start!');
   end;
 
+  Self.CreateAntibanManager();
   Self.CreateAccountManager();
   Self.CreateRemoteInput();
 end;

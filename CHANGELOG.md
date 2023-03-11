@@ -1,3 +1,12 @@
+# [11.12.0](https://github.com/Torwent/WaspLib/compare/v11.11.0...v11.12.0) (2023-03-11)
+
+
+### Features
+
+* read notes ([8aa31c4](https://github.com/Torwent/WaspLib/commit/8aa31c4717b9bdb94225538cdd49771ee46f3011))
+
+
+
 # [11.11.0](https://github.com/Torwent/WaspLib/compare/v11.10.18...v11.11.0) (2023-03-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **APIClient:** won't spam messages anymore when disabled ([63c3c05](https://github.com/Torwent/WaspLib/commit/63c3c05deed5fbd684cf80a70f625daaccbbaba6))
-
-
-
-## [11.10.15](https://github.com/Torwent/WaspLib/compare/v11.10.14...v11.10.15) (2023-03-03)
-
-
-### Bug Fixes
-
-* minor tweak in the APIClient ([5ea35cb](https://github.com/Torwent/WaspLib/commit/5ea35cb746119ec947a347ab9a2807bb7f1bd56e))
 
 
 

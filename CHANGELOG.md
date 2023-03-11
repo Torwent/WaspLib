@@ -1,3 +1,12 @@
+## [11.12.1](https://github.com/Torwent/WaspLib/compare/v11.12.0...v11.12.1) (2023-03-11)
+
+
+### Bug Fixes
+
+* fix GUI compile error introduced in the latest release by accident. ([2286c30](https://github.com/Torwent/WaspLib/commit/2286c300b3ee3149aa7566ea6ba3680127270aa9))
+
+
+
 # [11.12.0](https://github.com/Torwent/WaspLib/compare/v11.11.0...v11.12.0) (2023-03-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **APIClient:** added methods to get script info ([2ba9ee3](https://github.com/Torwent/WaspLib/commit/2ba9ee3b6d5392c23061bc1760b596a7576eecfa))
-
-
-
-## [11.10.16](https://github.com/Torwent/WaspLib/compare/v11.10.15...v11.10.16) (2023-03-04)
-
-
-### Bug Fixes
-
-* **APIClient:** won't spam messages anymore when disabled ([63c3c05](https://github.com/Torwent/WaspLib/commit/63c3c05deed5fbd684cf80a70f625daaccbbaba6))
 
 
 

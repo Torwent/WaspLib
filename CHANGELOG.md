@@ -1,3 +1,12 @@
+## [11.12.2](https://github.com/Torwent/WaspLib/compare/v11.12.1...v11.12.2) (2023-03-11)
+
+
+### Bug Fixes
+
+* remove the WIP API Panel ([688612c](https://github.com/Torwent/WaspLib/commit/688612cd7df53846f0c67a8e60819dd606768263))
+
+
+
 ## [11.12.1](https://github.com/Torwent/WaspLib/compare/v11.12.0...v11.12.1) (2023-03-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * nothing, just force bumping the version  ([c16b551](https://github.com/Torwent/WaspLib/commit/c16b5514d657c63ebce148cd21a8a3013e35a87f))
-
-
-
-## [11.10.17](https://github.com/Torwent/WaspLib/compare/v11.10.16...v11.10.17) (2023-03-05)
-
-
-### Bug Fixes
-
-* **APIClient:** added methods to get script info ([2ba9ee3](https://github.com/Torwent/WaspLib/commit/2ba9ee3b6d5392c23061bc1760b596a7576eecfa))
 
 
 

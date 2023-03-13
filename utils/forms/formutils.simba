@@ -1,0 +1,1334 @@
+(*
+Form Utilities
+==============
+Forms and components extensions.
+
+This files contains custom components and methods to be used in forms.
+*)
+{$DEFINE WL_FORMUTILS_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+
+function TControl.GetScreenDPI(): Int32; static;
+var
+  tmp: TFont;
+begin
+  tmp.Init();
+  Result := tmp.getPixelsPerInch();
+  tmp.Free();
+end;
+
+(*
+TControl.IsInitiated
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TControl.IsInitiated(): Boolean;
+
+Checks if the control has already been initiated.
+*)
+function TControl.IsInitiated(): Boolean;
+begin
+  Result := Self <> nil;
+end;
+
+(*
+TControl.Set
+~~~~~~~~~~~~
+.. pascal::
+  procedure TControl.SetTooltip(const value: String);
+  procedure TControl.SetFontColor(const value: Int32);
+  procedure TControl.SetChildsFontColor(const value: Int32);
+
+TControl.Set methods. Their names are self explanatory.
+
+For some reason TControl.SetHint cannot be overriden, so a custom method for this was made.
+*)
+procedure TControl.SetTooltip(const value: String);
+begin
+  Self.SetHint(value);
+  Self.SetShowHint(value <> '');
+end;
+
+procedure TControl.SetFontColor(const value: Int32);
+var
+  name: String;
+  font: TFont;
+begin
+  font := Self.getFont();
+
+  name := Self.getName();
+  if name.ContainsAny(['_edit', '_memo']) then
+    font.setColor(0)
+  else
+    font.setColor(value);
+end;
+
+procedure TControl.SetChildsFontColor(const value: Int32);
+var
+  i, hi: Int32;
+  child: TControl;
+begin
+  hi := Self.getComponentCount();
+
+  if hi > 0 then
+    for i := 0 to hi - 1 do
+    begin
+      child := Self.GetComponent(i);
+      child.SetChildsFontColor(value);
+    end;
+
+  Self.SetFontColor(value);
+end;
+
+
+(*
+TControl.Get
+~~~~~~~~~~~~
+.. pascal::
+  function TControl.GetRight(): Int32;
+  function TControl.GetBottom(): Int32;
+
+TControl.Get methods. Their names are self explanatory.
+*)
+function TControl.GetRight(): Int32;
+begin
+  Result := Self.getBoundsRect().Right;
+end;
+
+function TControl.GetBottom(): Int32;
+begin
+  Result := Self.getBoundsRect().Bottom;
+end;
+
+
+function TComponent.NameMatch(const name: TComponentName): Boolean;
+begin
+  Result := Self.getName() = name;
+end;
+
+function TComponent.GetChild(const name: TComponentName): TComponent;
+var
+  i, hi: Int32;
+  child: TComponent;
+begin
+  if Self.NameMatch(name) then
+    Exit(Self);
+
+  hi := Self.getComponentCount();
+
+  if hi >= 0 then
+    for i := 0 to hi - 1 do
+    begin
+      child := Self.GetComponent(i);
+
+      if child.NameMatch(name) then
+        Exit(child);
+
+      Result := child.GetChild(name);
+      if Result <> nil then
+        Exit;
+    end;
+
+  Result := nil;
+end;
+
+(*
+Component.NumberField
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TComponent.NumberField(sender: TObject; var key: char);
+
+Callback method to limit user input to numbers only and backspace.
+This numbers can be Ints or Doubles.
+*)
+{$H-}
+procedure TComponent.NumberField(sender: TObject; var key: char);
+begin
+  if not (key in ['0'..'9', #8, '.']) then
+    key := #0;
+end;
+
+(*
+Component.NumberArrayField
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TComponent.NumberArrayField(sender: TObject; var key: char);
+
+Callback method to limit user input to a TIntegerArray.
+*)
+procedure TComponent.NumberArrayField(sender: TObject; var key: char);
+begin
+  if not (key in ['0'..'9', ',', ' ' , #8]) then
+    key := #0;
+end;
+{$H+}
+
+(*
+CustomEdit.IsEmpty
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TCustomEdit.IsEmpty(): Boolean;
+
+Returns true or false if the TCustomEdit (TEdit and TMemo) are empty.
+*)
+function TCustomEdit.IsEmpty(): Boolean;
+begin
+  Result := Trim(Self.getText()) = '';
+end;
+
+(*
+CustomEdit.GetIntegerArray
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TCustomEdit.GetIntegerArray(): TIntegerArray;
+
+Returns the TIntegerArray in the TCustomEdit (TEdit and TMemo).
+It's probably a good idea to limit the TCustomEdit input with **TComponent.IntArrayField()**.
+*)
+function TCustomEdit.GetIntegerArray(min, max: Int32 = 0): TIntegerArray;
+var
+  str, s: String;
+  w: Int32;
+begin
+  str := Self.GetText();
+
+  for s in str.Split(',') do
+  begin
+    w := s.trim().ExtractInteger();
+
+    if min = max then
+      Result += w
+    else if InRange(w, min, max) then
+      Result += w;
+  end;
+
+  Result := Result.Unique();
+  Result := Result.Sorted();
+end;
+
+
+(*
+Create
+~~~~~~
+.. pascal::
+  procedure TPanel.Create(const owner: TControl);
+  procedure TPageControl.Create(const owner: TControl);
+  procedure TTabSheet.Create(const owner: TControl);
+  procedure TImage.Create(const owner: TControl);
+  procedure TLabel.Create(const owner: TControl);
+  procedure TEdit.Create(const owner: TControl);
+  procedure TButton.Create(const owner: TControl);
+  procedure TCheckBox.Create(const owner: TControl);
+  procedure TRadioButton.Create(const owner: TControl);
+  procedure TComboBox.Create(const owner: TControl);
+  procedure TListBox.Create(const owner: TControl);
+  procedure TMemo.Create(const owner: TControl);
+  procedure TTrackBar.Create(const owner: TControl);
+
+**.Init()** and **.SetParent()** in a single method.
+*)
+procedure TPanel.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TPageControl.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TTabSheet.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TImage.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TLabel.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TEdit.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TButton.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TCheckBox.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TRadioButton.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TComboBox.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TListBox.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TMemo.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+procedure TTrackBar.Create(const owner: TControl);
+begin
+  Self.Init(owner);
+  Self.SetParent(owner);
+end;
+
+
+
+(*
+TImage.LoadFromFile
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TImage.LoadFromFile(path: String);
+
+Load a image file to a TImage directly.
+*)
+procedure TImage.LoadFromFile(path: String);
+var
+  name, extension: String;
+begin
+  if Pos(APPPATH, path) = 0 then
+    path := APPPATH + path;
+
+  Self.getPicture().LoadFromFile(path);
+
+  name := ExtractFileName(path);
+  extension := ExtractFileExt(name);
+
+  name := StringReplace(LowerCase(name), extension, '', TReplaceFlags(0));
+  Self.SetName(name);
+end;
+
+(*
+TControl.LoadFromFile
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TControl.LoadFromFile(path: String);
+
+Load a image file and set it as the background for a TControl.
+This can be used to set images for TPanels, TPageControls, TTabSheet, TButtons, etc.
+*)
+procedure TControl.LoadFromFile(path: String);
+var
+  img: TImage;
+begin
+  img.Create(Self);
+  img.LoadFromFile(path);
+
+  img.SetBounds(0, 0, Self.getWidth(), Self.getHeight());
+  img.SetStretch(True);
+  img.SetProportional(True);
+
+  img.setAlign(alClient);
+
+  Self.SetName(Self.getName() + '_' + img.getName());
+end;
+
+(*
+TControl.GetTrueWidth
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TControl.GetTrueWidth(): Int32;
+
+Get the true width of the TControl caption.
+*)
+function TControl.GetTrueWidth(): Int32;
+var
+  bmp: TBitmap;
+  canvas: TCanvas;
+begin
+  bmp.Init();
+  try
+    canvas := bmp.getCanvas();
+    canvas.setFont(Self.GetFont());
+    Result := canvas.TextWidth(Self.getCaption());
+  finally
+    bmp.Free();
+  end;
+end;
+
+(*
+TControl.GetTrueHeight
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TControl.GetTrueHeight(): Int32;
+
+Get the true height of the TControl caption.
+*)
+function TControl.GetTrueHeight(): Int32;
+var
+  bmp: TBitmap;
+  canvas: TCanvas;
+begin
+  bmp.Init();
+  try
+    canvas := bmp.getCanvas();
+    canvas.setFont(Self.GetFont());
+    Result := canvas.TextHeight(Self.getCaption());
+  finally
+    bmp.Free();
+  end;
+end;
+
+(*
+CheckBox.SetChecked
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TCheckBox.SetChecked(const value: Boolean);
+
+Sets the checkbox checked or unchecked with a boolean.
+*)
+procedure TCheckBox.SetChecked(const value: Boolean);
+begin
+  if value then
+    Self.setState(cbChecked)
+  else
+    Self.setState(cbUnchecked);
+end;
+
+(*
+CheckBox.IsChecked
+~~~~~~~~~~~~~~~~~~
+.. pascal:: function TCheckBox.IsChecked(): Boolean;
+
+Gets the checkbox state, checked or unchecked with a boolean.
+*)
+function TCheckBox.IsChecked(): Boolean;
+begin
+  Result := Self.getState() = cbChecked;
+end;
+
+
+type
+(*
+LabeledControl
+~~~~~~~~~~~~~~
+.. pascal::
+  type TLabeledControl = record
+    Panel: TPanel;
+    Caption: TLabel;
+  end;
+
+TLabeledControl is the base type for custom TLabeledControls.
+It's not really meant to be used directly.
+If for some reason you need to see the control bounds, it's recommended to set the panel bevel width to 1.
+
+.. pascal:: Changing TLabeledControl subcomponents align value can mess the position of everything.
+*)
+  TLabeledControl = record
+    Panel: TPanel;
+    Caption: TLabel;
+  end;
+
+(*
+LabeledEdit
+~~~~~~~~~~~
+.. pascal:: TLabeledPanel = type TLabeledControl;
+
+Same exact thing as a TLabeledControl but with the purpose of being a panel for other components.
+*)
+  TLabeledPanel = type TLabeledControl;
+
+(*
+LabeledEdit
+~~~~~~~~~~~
+.. pascal::
+  type TLabeledEdit = record(TLabeledControl)
+    Edit: TEdit;
+  end;
+
+TLabeledEdit is, as the name implies a TEdit with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
+*)
+  TLabeledEdit = record(TLabeledControl)
+    Edit: TEdit;
+  end;
+
+(*
+LabeledCheckBox
+~~~~~~~~~~~
+.. pascal::
+  type TLabeledCheckBox = record(TLabeledControl)
+    CheckBox: TEdit;
+  end;
+
+TLabeledCheckBox is, as the name implies a TCheckBox with a TLabel to it's right.
+Both components are contained in the TPanel inherited from TLabeledControl.
+.. note:: The standard TCheckBox already has a label by it but it's hard to customize it.
+*)
+  TLabeledCheckBox = record(TLabeledControl)
+    CheckBox: TCheckBox;
+  end;
+
+(*
+LabeledComboBox
+~~~~~~~~~~~~~~~
+.. pascal::
+  type TLabeledComboBox = record(TLabeledControl)
+    ComboBox: TComboBox;
+  end;
+
+TLabeledComboBox is, as the name implies a TComboBox with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
+*)
+  TLabeledComboBox = record(TLabeledControl)
+    ComboBox: TComboBox;
+  end;
+
+(*
+LabeledListBox
+~~~~~~~~~~~~~~
+.. pascal::
+  type TLabeledListBox = record(TLabeledControl)
+    ListBox: TListBox;
+  end;
+
+TLabeledListBox is, as the name implies a TListBox with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
+*)
+  TLabeledListBox = record(TLabeledControl)
+    ListBox: TListBox;
+  end;
+
+(*
+LabeledMemo
+~~~~~~~~~~~
+.. pascal::
+  type TLabeledMemo = record(TLabeledControl)
+    Memo: TMemo;
+  end;
+
+TLabeledMemo is, as the name implies a TMemo with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
+*)
+  TLabeledMemo = record(TLabeledControl)
+    Memo: TMemo;
+  end;
+
+(*
+LabeledTrackBar
+~~~~~~~~~~~~~~~
+.. pascal::
+  type TLabeledTrackBar = record(TLabeledControl)
+    TrackBar: TTrackBar;
+  end;
+
+TLabeledTrackBar is, as the name implies a TTrackBar with a TLabel on top.
+Both components are contained in the TPanel inherited from TLabeledControl.
+*)
+  TLabeledTrackBar = record(TLabeledControl)
+    TrackBar: TTrackBar;
+  end;
+
+
+(*
+LabeledControl.IsInitiated
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TLabeledControl.IsInitiated(): Boolean;
+
+Checks if the custom labeled control has already been initiated.
+*)
+function TLabeledControl.IsInitiated(): Boolean;
+begin
+  Result := Self.Panel <> nil;
+end;
+
+(*
+Create
+~~~~~~
+.. pascal::
+  procedure TLabeledControl.Create(const owner: TControl);
+  procedure TLabeledPanel.Create(const owner: TControl); override;
+  procedure TLabeledEdit.Create(const owner: TControl); override;
+  procedure TLabeledCheckBox.Create(const owner: TControl); override;
+  procedure TLabeledComboBox.Create(const owner: TControl); override;
+  procedure TLabeledListBox.Create(const owner: TControl); override;
+  procedure TLabeledMemo.Create(const owner: TControl); override;
+  procedure TLabeledTrackBar.Create(const owner: TControl); override;
+
+Custom components **.Init()** and **.SetParent()** in a single method.
+*)
+procedure TLabeledControl.Create(const owner: TControl);
+begin
+  Self.Panel.Create(owner);
+  Self.Panel.setBevelWidth(0);
+
+  Self.Caption.Create(Self.Panel);
+  Self.Caption.setAlign(alTop);
+end;
+
+procedure TLabeledPanel.Create(const owner: TControl); override;
+begin
+  Self.Panel.Create(owner);
+
+  Self.Caption.Create(Self.Panel);
+  Self.Caption.setAlign(alTop);
+end;
+
+procedure TLabeledEdit.Create(const owner: TControl); override;
+var
+  dpi, h: Int32;
+begin
+  inherited;
+
+  Self.Edit.Create(Self.Panel);
+  Self.Edit.setAlign(alClient);
+
+  dpi := TControl.GetScreenDPI();
+  h += Round(Self.Caption.getHeight() * dpi / 96);
+  h += Round(Self.Edit.getHeight() * dpi / 96);
+
+  Self.Panel.setHeight(h);
+end;
+
+procedure TLabeledCheckBox.Create(const owner: TControl); override;
+begin
+  Self.Panel.Create(owner);
+  Self.Panel.setBevelWidth(0);
+
+  Self.Caption.Create(Self.Panel);
+  Self.Caption.setAlign(alLeft);
+
+  Self.CheckBox.Create(Self.Panel);
+  Self.CheckBox.setAlign(alLeft);
+
+  Self.Panel.setHeight(Self.Caption.GetTrueHeight());
+  Self.Panel.setWidth(22 + Self.Caption.GetTrueWidth());
+end;
+
+procedure TLabeledComboBox.Create(const owner: TControl); override;
+var
+  dpi, h: Int32;
+begin
+  inherited;
+
+  Self.ComboBox.Create(Self.Panel);
+  Self.ComboBox.setAlign(alClient);
+
+  dpi := TControl.GetScreenDPI();
+  h += Round(Self.Caption.getHeight() * dpi / 96);
+  h += Round(Self.ComboBox.getHeight() * dpi / 96);
+
+  Self.Panel.setHeight(h);
+end;
+
+procedure TLabeledListBox.Create(const owner: TControl); override;
+begin
+  inherited;
+
+  Self.ListBox.Create(Self.Panel);
+  Self.ListBox.setAlign(alClient);
+
+  Self.Panel.setHeight(Self.Caption.getHeight() + Self.ListBox.getHeight());
+end;
+
+procedure TLabeledMemo.Create(const owner: TControl); override;
+begin
+  inherited;
+
+  Self.Memo.Create(Self.Panel);
+  Self.Memo.setAlign(alClient);
+
+  Self.Panel.setHeight(Self.Caption.getHeight() + Self.Memo.getHeight());
+end;
+
+procedure TLabeledTrackBar.Create(const owner: TControl); override;
+begin
+  inherited;
+
+  Self.TrackBar.Create(Self.Panel);
+  Self.TrackBar.setAlign(alClient);
+  Self.TrackBar.setBorderWidth(0);
+
+  Self.Panel.setHeight(Self.Caption.getHeight() + Self.TrackBar.getHeight());
+end;
+
+
+(*
+LabeledControl.SetCaption
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledControl.SetCaption(const value: String);
+
+Set the labeled control caption.
+*)
+procedure TLabeledControl.SetCaption(const value: String);
+begin
+  Self.Caption.setCaption(value);
+end;
+
+procedure TLabeledCheckBox.SetCaption(const value: String); override;
+begin
+  Self.Caption.setCaption(value);
+  Self.Panel.setHeight(Self.Caption.GetTrueHeight());
+  Self.Panel.setWidth(22 + Self.Caption.GetTrueWidth());
+end;
+
+(*
+LabeledControl.SetHint
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledControl.SetHint(const value: String);
+
+Set the labeled control hint (tooltip).
+*)
+procedure TLabeledControl.SetHint(const value: String);
+begin
+  Self.Panel.setHint(value);
+end;
+
+(*
+LabeledControl.ShowHint
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledControl.ShowHint();
+
+Sets show hint (tooltip) to true.
+*)
+procedure TLabeledControl.ShowHint();
+begin
+  Self.Panel.ShowHint();
+end;
+
+(*
+LabeledControl.SetShowHint
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledControl.SetShowHint(const value: Boolean);
+
+Sets show hint (tooltip) to true or false.
+*)
+procedure TLabeledControl.SetShowHint(const value: Boolean);
+begin
+  Self.Panel.SetShowHint(value);
+end;
+
+(*
+LabeledControl.SetTooltip
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledControl.SetTooltip(const value: String);
+
+Same as the previous one but makes sure that .ShowHint() is enabled if **value** was not empty.
+For more info read about TControl.SetTooltip().
+*)
+procedure TLabeledControl.SetTooltip(const value: String);
+begin
+  Self.Panel.SetTooltip(value);
+end;
+
+(*
+LabeledControl.SetName
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledEdit.SetName(value: String);
+  procedure TLabeledCheckBox.SetName(value: String);
+  procedure TLabeledComboBox.SetName(value: String)
+  procedure TLabeledListBox.SetName(value: String);
+  procedure TLabeledMemo.SetName(value: String);
+  procedure TLabeledTrackBar.SetName(value: String);
+
+Sets names to the subcomponents of the TLabeledControl.
+Caption is named with **value** + '_caption' while the other component is appended with it's name.
+*)
+procedure TLabeledEdit.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.Edit.getCaption();
+  Self.Edit.setName(value + '_edit');
+  Self.Edit.setCaption(old);
+end;
+
+procedure TLabeledCheckBox.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.CheckBox.getCaption();
+  Self.CheckBox.setName(value + '_checkbox');
+  Self.CheckBox.setCaption(old);
+end;
+
+procedure TLabeledComboBox.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.ComboBox.getCaption();
+  Self.ComboBox.setName(value + '_combobox');
+  Self.ComboBox.setCaption(old);
+end;
+
+procedure TLabeledListBox.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.ListBox.getCaption();
+  Self.ListBox.setName(value + '_listbox');
+  Self.ListBox.setCaption(old);
+end;
+
+procedure TLabeledMemo.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.Memo.getCaption();
+  Self.Memo.setName(value + '_memo');
+  Self.Memo.setCaption(old);
+end;
+
+procedure TLabeledTrackBar.SetName(value: String);
+var
+  old: String;
+begin
+  value := StringReplace(LowerCase(value), ' ', '_', TReplaceFlags(0));
+
+  old := Self.Panel.getCaption();
+  Self.Panel.setName(value + '_panel');
+  Self.Panel.setCaption(old);
+
+  old := Self.Caption.getCaption();
+  Self.Caption.setName(value + '_caption');
+  Self.Caption.setCaption(old);
+
+  old := Self.TrackBar.getCaption();
+  Self.TrackBar.setName(value + '_trackbar');
+  Self.TrackBar.setCaption(old);
+end;
+
+
+(*
+LabeledControl.Set
+~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledControl.SetLeft(const value: Int32);
+  procedure TLabeledControl.SetTop(const value: Int32);
+  procedure TLabeledControl.SetWidth(const value: Int32);
+  procedure TLabeledControl.SetHeight(const value: Int32);
+  procedure TLabeledControl.SetAlign(const value: TAlign);
+  procedure TLabeledControl.SetColor(const value: Int32);
+  procedure TLabeledControl.SetFontColor(const value: Int32);
+  procedure TLabeledControl.SetVisible(const value: Boolean);
+
+TLabeledControl Set methods.
+The methods are self explanatory.
+The only thing that should be kept in mind is that they only interactwith the TLabeledControl.Panel.
+*)
+procedure TLabeledControl.SetLeft(const value: Int32);
+begin
+  Self.Panel.setLeft(value);
+end;
+
+procedure TLabeledControl.SetTop(const value: Int32);
+begin
+  Self.Panel.SetTop(value);
+end;
+
+procedure TLabeledControl.SetWidth(const value: Int32);
+begin
+  Self.Panel.setWidth(value);
+end;
+
+procedure TLabeledControl.SetHeight(const value: Int32);
+begin
+  Self.Panel.setHeight(value);
+end;
+
+procedure TLabeledControl.SetAlign(const value: TAlign);
+begin
+  Self.Panel.setAlign(value);
+end;
+
+procedure TLabeledCheckBox.SetAlign(const value: TAlign); override;
+begin
+  Self.Panel.setAlign(value);
+end;
+
+procedure TLabeledControl.SetColor(const value: Int32);
+begin
+  Self.Panel.setColor(value);
+end;
+
+procedure TLabeledControl.SetFontColor(const value: Int32);
+var
+  font: TFont;
+begin
+  font := Self.Caption.getFont();
+  font.setColor(value);
+end;
+
+procedure TLabeledControl.SetVisible(const value: Boolean);
+begin
+  Self.Panel.setVisible(value);
+end;
+
+(*
+LabeledControl.BringToFront
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledControl.BringToFront();
+
+Brings the control to front.
+*)
+procedure TLabeledControl.BringToFront();
+begin
+  Self.Panel.BringToFront();
+end;
+
+
+(*
+LabeledControl.Get
+~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TLabeledControl.GetLeft(): Int32;
+  function TLabeledControl.GetTop(): Int32;
+  function TLabeledControl.GetRight(): Int32;
+  function TLabeledControl.GetBottom(): Int32;
+  function TLabeledControl.GetHeight(): Int32;
+  function TLabeledControl.GetVisible(): Boolean;
+
+TLabeledControl Get methods.
+The methods are self explanatory.
+*)
+function TLabeledControl.GetLeft(): Int32;
+begin
+  Result := Self.Panel.getLeft();
+end;
+
+function TLabeledControl.GetTop(): Int32;
+begin
+  Result := Self.Panel.getTop();
+end;
+
+function TLabeledControl.GetRight(): Int32;
+begin
+  Result := Self.Panel.getBoundsRect().Right;
+end;
+
+function TLabeledControl.GetBottom(): Int32;
+begin
+  Result := Self.Panel.getBoundsRect().Bottom;
+end;
+
+function TLabeledControl.GetWidth(): Int32;
+begin
+  Result := Self.Panel.getWidth();
+end;
+
+function TLabeledControl.GetHeight(): Int32;
+begin
+  Result := Self.Panel.getHeight();
+end;
+
+function TLabeledControl.GetVisible(): Boolean;
+begin
+  Result := Self.Panel.GetVisible();
+end;
+
+
+(*
+LabeledControl.SetText
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledEdit.SetText(const value: String);
+  procedure TLabeledComboBox.SetText(const value: String);
+  procedure TLabeledMemo.SetText(const value: String);
+
+Sets the visible text in the TLabeledControl to **value**.
+*)
+procedure TLabeledEdit.SetText(const value: String);
+begin
+  Self.Edit.setText(value);
+end;
+
+procedure TLabeledComboBox.SetText(const value: String);
+begin
+  Self.ComboBox.setText(value);
+end;
+
+procedure TLabeledMemo.SetText(const value: String);
+begin
+  Self.Memo.setText(value);
+end;
+
+
+(*
+LabeledControl.GetText
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TLabeledEdit.GetText(): String;
+  function TLabeledComboBox.GetText(): String;
+  function TLabeledListBox.GetText(): String;
+  function TLabeledMemo.GetText(): String;
+
+Gets the visible or selected text in the TLabeledControl.
+*)
+function TLabeledEdit.GetText(): String;
+begin
+  Result := Self.Edit.GetText();
+end;
+
+function TLabeledComboBox.GetText(): String;
+begin
+  Result := Self.ComboBox.GetText();
+end;
+
+function TLabeledListBox.GetText(): String;
+begin
+  Result := Self.ListBox.GetSelectedText();
+end;
+
+function TLabeledMemo.GetText(): String;
+begin
+  Result := Self.Memo.GetText();
+end;
+
+
+(*
+LabeledControl.Clear
+~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledEdit.Clear();
+  procedure TLabeledComboBox.Clear();
+  procedure TLabeledListBox.Clear();
+  procedure TLabeledMemo.Clear();
+
+Clears the TLabeledControl.
+*)
+procedure TLabeledEdit.Clear();
+begin
+  Self.Edit.Clear();
+end;
+
+procedure TLabeledComboBox.Clear();
+begin
+  Self.ComboBox.Clear();
+end;
+
+procedure TLabeledListBox.Clear();
+begin
+  Self.ListBox.Clear();
+end;
+
+procedure TLabeledMemo.Clear();
+begin
+  Self.Memo.Clear();
+end;
+
+
+(*
+LabeledCheckBox.SetChecked
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TLabeledCheckBox.SetChecked(const value: Boolean);
+
+Sets the checkbox or not depending on **value**.
+*)
+procedure TLabeledCheckBox.SetChecked(const value: Boolean);
+begin
+  Self.CheckBox.SetChecked(value);
+end;
+
+(*
+LabeledCheckBox.IsChecked
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TLabeledCheckBox.IsChecked(): Boolean;
+
+Gets the checkbox state true or false.
+*)
+function TLabeledCheckBox.IsChecked(): Boolean;
+begin
+  Result := Self.CheckBox.IsChecked();
+end;
+
+(*
+LabeledCheckBox.GetState
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TLabeledCheckBox.GetState(): TCheckBoxState;
+
+Gets the checkbox state.
+*)
+function TLabeledCheckBox.GetState(): TCheckBoxState;
+begin
+  Result := Self.CheckBox.getState();
+end;
+
+(*
+LabeledControl.SetEnabled
+~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledEdit.SetEnabled(const value: Boolean);
+  procedure TLabeledCheckBox.SetChecked(const value: Boolean);
+  procedure TLabeledComboBox.SetEnabled(const value: Boolean);
+  procedure TLabeledListBox.SetEnabled(const value: Boolean);
+  procedure TLabeledMemo.SetEnabled(const value: Boolean);
+
+Sets the checkbox or not depending on **value**.
+*)
+procedure TLabeledEdit.SetEnabled(const value: Boolean);
+begin
+  Self.Edit.setEnabled(value);
+end;
+
+procedure TLabeledCheckBox.SetEnabled(const value: Boolean);
+begin
+  Self.CheckBox.setEnabled(value);
+end;
+
+procedure TLabeledComboBox.SetEnabled(const value: Boolean);
+begin
+  Self.ComboBox.setEnabled(value);
+end;
+
+procedure TLabeledListBox.SetEnabled(const value: Boolean);
+begin
+  Self.ListBox.setEnabled(value);
+end;
+
+procedure TLabeledMemo.SetEnabled(const value: Boolean);
+begin
+  Self.Memo.setEnabled(value);
+end;
+
+
+(*
+LabeledControl.SetPasswordChar
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledEdit.SetPasswordChar(const value: Char = '*');
+  procedure TLabeledMemo.SetPasswordChar(const value: Char = '*');
+
+Sets the TLabeledControl to hide the displayed text with **value** characters.
+Mostly used to hide passwords.
+*)
+procedure TLabeledEdit.SetPasswordChar(const value: Char = '*');
+begin
+  Self.Edit.setPasswordChar(value);
+end;
+
+procedure TLabeledMemo.SetPasswordChar(const value: Char = '*');
+begin
+  Self.Memo.setPasswordChar(value);
+end;
+
+
+(*
+LabeledControl.SetMaxLength
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledEdit.SetMaxLength(const value: Int32);
+  procedure TLabeledMemo.SetMaxLength(const value: Int32);
+
+Sets the maximum length of characters accepted by the TLabeledControl.
+*)
+procedure TLabeledEdit.SetMaxLength(const value: Int32);
+begin
+  Self.Edit.setMaxLength(value);
+end;
+
+procedure TLabeledMemo.SetMaxLength(const value: Int32);
+begin
+  Self.Memo.setMaxLength(value);
+end;
+
+(*
+LabeledControl.GetMaxLength
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TLabeledEdit.GetMaxLength(): Int32;
+  function TLabeledMemo.GetMaxLength(): Int32;
+
+Returns the maximum length of characters accepted by the TLabeledControl.
+*)
+function TLabeledEdit.GetMaxLength(): Int32;
+begin
+  Result := Self.Edit.GetMaxLength();
+end;
+
+function TLabeledMemo.GetMaxLength(): Int32;
+begin
+  Result := Self.Memo.GetMaxLength();
+end;
+
+
+(*
+LabeledControl.SetStyle
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledComboBox.SetStyle(const value: TComboBoxStyle);
+  procedure TLabeledListBox.SetStyle(const value: TListBoxStyle);
+
+Sets the TLabeledControl style.
+*)
+procedure TLabeledComboBox.SetStyle(const value: TComboBoxStyle);
+begin
+  Self.ComboBox.setStyle(value);
+end;
+
+procedure TLabeledListBox.SetStyle(const value: TListBoxStyle);
+begin
+  Self.ListBox.setStyle(value);
+end;
+
+
+
+(*
+LabeledControl.AddItem
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledCombobox.AddItem(const value: String);
+  procedure TLabeledListBox.AddItem(const value: String);
+
+Adds an item to the TLabeledControl.
+*)
+procedure TLabeledCombobox.AddItem(const value: String);
+begin
+  Self.ComboBox.getItems().Add(value);
+end;
+
+procedure TLabeledListBox.AddItem(const value: String);
+begin
+  Self.ListBox.getItems().Add(value);
+end;
+
+
+(*
+LabeledControl.AddItemArray
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledCombobox.AddItemArray(const valueArray: TStringArray);
+  procedure TLabeledListBox.AddItemArray(const valueArray: TStringArray);
+
+Adds an array of items to the TLabeledControl.
+*)
+procedure TLabeledCombobox.AddItemArray(const valueArray: TStringArray);
+var
+  value: String;
+begin
+  for value in valueArray do
+    Self.AddItem(value);
+end;
+
+procedure TLabeledListBox.AddItemArray(const valueArray: TStringArray);
+var
+  value: String;
+begin
+  for value in valueArray do
+    Self.AddItem(value);
+end;
+
+
+
+(*
+LabeledControl.SetItemIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TLabeledCombobox.SetItemIndex(const value: Int32);
+  procedure TLabeledListBox.SetItemIndex(const value: Int32);
+
+Sets the selected index for the TLabeledControl.
+*)
+procedure TLabeledCombobox.SetItemIndex(const value: Int32);
+begin
+  Self.ComboBox.setItemIndex(value);
+end;
+
+procedure TLabeledListBox.SetItemIndex(const value: Int32);
+begin
+  Self.ListBox.setItemIndex(value);
+end;
+
+
+(*
+LabeledControl.GetItemIndex
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TLabeledCombobox.GetItemIndex(): Int32;
+  function TLabeledListBox.GetItemIndex(): Int32;
+
+Gets the selected index of the TLabeledControl.
+*)
+function TLabeledCombobox.GetItemIndex(): Int32;
+begin
+  Result := Self.ComboBox.getItemIndex();
+end;
+
+function TLabeledListBox.GetItemIndex(): Int32;
+begin
+  Result := Self.ListBox.getItemIndex();
+end;
+
+
+//TODO: DELETE!!
+procedure TLabeledPanel.Setup(const owner: TComponent; const caption: String);
+begin
+  Self.Create(owner);
+
+  Self.SetCaption(caption);
+end;

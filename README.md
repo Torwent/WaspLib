@@ -13,7 +13,6 @@
  
  Some things in WaspLib could be coming to SRL in the future but others are just too custom to ever be accepted there and will remain here.
 
-
  # What can I expect to get with WaspLib?
 
  ## Better walker maps

@@ -11,6 +11,9 @@ They also contain template functions and procedures that can be used as is or ov
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+{$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+{$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
+
 (*
 const WELCOME_SENTENCES
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -251,6 +254,56 @@ begin
 end;
 
 (*
+CheckUpdates
+~~~~~~~~~~~~
+.. pascal:: procedure CheckUpdates(caption: String = 'Updates Available');
+
+Checks for updates for SRL-T, WaspLib and the current script.
+*)
+procedure CheckUpdates(caption: String = 'Updates Available');
+var
+  isLatestSRLT, isLatestWL, isLatestRev: Boolean;
+  i: Int32;
+  msg: String;
+begin
+  isLatestSRLT := GetPackageVersion('srl-t') = APIClient.GetVersion('srl-t');
+  isLatestWL := GetPackageVersion('wasplib') = APIClient.GetVersion('wasplib');
+  isLatestRev := StrToInt({$macro SCRIPT_REVISION}) = APIClient.GetScriptRevision({$macro SCRIPT_ID});
+
+  if not isLatestSRLT then
+    Inc(i);
+  if not isLatestWL then
+    Inc(i);
+  if not isLatestRev then
+    Inc(i);
+
+  if i = 0 then
+    Exit;
+
+  msg := 'A new version of ';
+  if not isLatestSRLT then
+    msg += 'SRL-T';
+
+  if i = 3 then
+    msg += ', ';
+  if i = 2 then
+    msg += ' and ';
+
+  if not isLatestWL then
+    msg += 'WaspLib';
+
+  if i = 3 then
+    msg += ' and ';
+
+  if not isLatestRev then
+    msg += 'the Script';
+
+  msg += ' is available!';
+
+  MessageDlg(caption, msg, mtWarning,[mbClose]);
+end;
+
+(*
 BaseScript.Init
 ~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
@@ -271,7 +324,7 @@ Example
     Script.Init(-1, 2 * ONE_DAY);
   end;
 *)
-procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
+procedure TBaseScript.Init(maxActions: Int32; maxTime: Int64);
 begin
   {$IFNDEF SCRIPT_CHAINER}
   ClearDebug();
@@ -285,10 +338,10 @@ begin
 
   //TotalConsumableCost := 0;
   Self.DisableDebugging := True;
-  {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
   Self.ID := {$macro SCRIPT_ID};
-  {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
   Self.Revision := {$macro SCRIPT_REVISION};
+
+  CheckUpdates(Self.Name);
 
   GenerateLog(Self.Name);
   WriteFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding, True);
@@ -296,14 +349,14 @@ begin
   Self.Welcome := WELCOME_SENTENCES.RandomValue();
 
   Self.ActionLimit := -1;
-  if MaxActions > -1 then
-    Self.ActionLimit := Self.TotalActions + MaxActions;
+  if maxActions > -1 then
+    Self.ActionLimit := Self.TotalActions + maxActions;
 
   Self.TimeRunning.Start();
   ProgressReport.PTimeRunning := @Self.TimeRunning;
 
-  if MaxTime > -1 then
-    Self.TimeLimit := Self.TimeRunning.ElapsedTime + MaxTime
+  if maxTime > -1 then
+    Self.TimeLimit := Self.TimeRunning.ElapsedTime + maxTime
   else
     Self.TimeLimit := -1;
 
@@ -636,6 +689,8 @@ begin
 
   if not Result then
     Self.BankEmpty := not WaitUntil(Bank.ContainsItem(Self.BankTab, item), 300, 3000);
+
+  Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
 
   if Self.BankEmpty then
     SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());

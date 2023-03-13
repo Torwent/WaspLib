@@ -1,45 +1,45 @@
-## [11.10.17](https://github.com/Torwent/WaspLib/compare/v11.10.16...v11.10.17) (2023-03-05)
+## [11.12.2](https://github.com/Torwent/WaspLib/compare/v11.12.1...v11.12.2) (2023-03-11)
 
 
 ### Bug Fixes
 
-* **APIClient:** added methods to get script info ([2ba9ee3](https://github.com/Torwent/WaspLib/commit/2ba9ee3b6d5392c23061bc1760b596a7576eecfa))
+* remove the WIP API Panel ([688612c](https://github.com/Torwent/WaspLib/commit/688612cd7df53846f0c67a8e60819dd606768263))
 
 
 
-## [11.10.16](https://github.com/Torwent/WaspLib/compare/v11.10.15...v11.10.16) (2023-03-04)
-
-
-### Bug Fixes
-
-* **APIClient:** won't spam messages anymore when disabled ([63c3c05](https://github.com/Torwent/WaspLib/commit/63c3c05deed5fbd684cf80a70f625daaccbbaba6))
-
-
-
-## [11.10.15](https://github.com/Torwent/WaspLib/compare/v11.10.14...v11.10.15) (2023-03-03)
+## [11.12.1](https://github.com/Torwent/WaspLib/compare/v11.12.0...v11.12.1) (2023-03-11)
 
 
 ### Bug Fixes
 
-* minor tweak in the APIClient ([5ea35cb](https://github.com/Torwent/WaspLib/commit/5ea35cb746119ec947a347ab9a2807bb7f1bd56e))
+* fix GUI compile error introduced in the latest release by accident. ([2286c30](https://github.com/Torwent/WaspLib/commit/2286c300b3ee3149aa7566ea6ba3680127270aa9))
 
 
 
-## [11.10.14](https://github.com/Torwent/WaspLib/compare/v11.10.13...v11.10.14) (2023-03-03)
+# [11.12.0](https://github.com/Torwent/WaspLib/compare/v11.11.0...v11.12.0) (2023-03-11)
+
+
+### Features
+
+* read notes ([8aa31c4](https://github.com/Torwent/WaspLib/commit/8aa31c4717b9bdb94225538cdd49771ee46f3011))
+
+
+
+# [11.11.0](https://github.com/Torwent/WaspLib/compare/v11.10.18...v11.11.0) (2023-03-10)
+
+
+### Features
+
+* read notes ([b2ebedc](https://github.com/Torwent/WaspLib/commit/b2ebedc2db503a58a4690c7645dab93df239c157))
+
+
+
+## [11.10.18](https://github.com/Torwent/WaspLib/compare/v11.10.17...v11.10.18) (2023-03-10)
 
 
 ### Bug Fixes
 
-* StatsClient was renamed to APIClient ([87761c6](https://github.com/Torwent/WaspLib/commit/87761c6cdff009843d496cc7f215e30b89996016))
-
-
-
-## [11.10.13](https://github.com/Torwent/WaspLib/compare/v11.10.12...v11.10.13) (2023-03-02)
-
-
-### Bug Fixes
-
-* compatibility fix for stats ([df9b3ec](https://github.com/Torwent/WaspLib/commit/df9b3ecd0447c23663557956e61e123f3c019c14))
+* nothing, just force bumping the version  ([c16b551](https://github.com/Torwent/WaspLib/commit/c16b5514d657c63ebce148cd21a8a3013e35a87f))
 
 
 

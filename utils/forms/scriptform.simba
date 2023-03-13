@@ -1,0 +1,805 @@
+(*
+ScriptForm
+==========
+This file is responsible for creating and managing WaspLib's forms.
+*)
+{$DEFINE WL_SCRIPTFORM_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+{$IFHASFILE credentials.simba}{$I credentials.simba}{$ENDIF}
+
+const
+  CREDENTIALS_FILE = AppPath + 'credentials.simba';
+
+(*
+RewriteCredentials
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure RewriteCredentials();
+
+Internal method used to rewrite the credentials.simba file.
+This will use whatever is stored at the moment in **Login.Players**
+*)
+procedure RewriteCredentials();
+  function _FilterDuplicatePlayers(players: array of TRSLoginPlayer): array of TRSLoginPlayer;
+  var
+    i, j: Int32;
+    match: Boolean;
+  begin
+    for i := 0 to High(players) do
+    begin
+      for j := 0 to High(Result) do
+      begin
+        match := LowerCase(players[i].User) = LowerCase(Result[j].User);
+        if match then
+          Break;
+      end;
+
+      if not match then
+        Result += players[i];
+    end;
+
+    if match then
+      Login.PlayerIndex := j;
+  end;
+
+  function _BuildCredentials(): String;
+  var
+    player: TRSLoginPlayer;
+    world: Int32;
+  begin
+    Result := 'begin'#13#10'';
+    for player in Login.Players do
+    begin
+      Result += '  Login.AddPlayer(''' +
+                  player.User + ''', ''' + player.Password + ''', ''' + player.Pin + ''', [';
+
+      for world in player.Worlds do
+      begin
+        Result += ToStr(world);
+        if world <> player.Worlds[High(player.Worlds)] then
+          Result += ', ';
+      end;
+
+      Result += ']);'#13#10'';
+    end;
+    Result += 'end;';
+  end;
+
+begin
+  Login.Players := _FilterDuplicatePlayers(Login.Players);
+
+  try
+    WriteFileContents(CREDENTIALS_FILE, _BuildCredentials());
+  except
+    WriteLn GetExceptionMessage();
+    WriteLn 'It''s possible you lost your saved accounts!';
+    WriteLn 'If you have issues with the Account Manager delete the following file:';
+  end;
+end;
+
+
+
+type
+  TScriptForm = record
+    DPI: Int32;
+    Size: TPoint;
+    Form: TForm;
+    PageControl: TPageControl;
+    Tabs: array of TTabSheet;
+    Start: TButton;
+  end;
+
+procedure TScriptForm.AddTab(caption: String);
+var
+  tab: TTabSheet;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.Create(Self.PageControl);
+
+  tab.setCaption(caption);
+  tab.SetTooltip(caption + ' settings.');
+
+  caption := StringReplace(caption, ' ', '_', TReplaceFlags(0));
+  tab.setName(caption);
+
+  Self.Tabs += tab;
+end;
+
+procedure TScriptForm.AddTab(tab: TTabSheet); overload;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.setParent(Self.PageControl);
+  Self.PageControl.InsertComponent(tab);
+
+  Self.Tabs += tab;
+end;
+
+
+procedure TScriptForm.AddTabArray(captions: TStringArray);
+var
+  caption: String;
+begin
+  for caption in captions do
+    Self.AddTab(caption);
+end;
+
+
+procedure TScriptForm.InsertTab(caption: String; index: Int32 = 0);
+var
+  tab: TTabSheet;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.Create(Self.PageControl);
+  tab.setName(caption);
+  tab.setCaption(caption);
+
+  tab.SetTooltip(caption + ' settings.');
+
+  Insert(tab, Self.Tabs, index);
+end;
+
+procedure TScriptForm.InsertTab(tab: TTabSheet; index: Int32 = 0); overload;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.setParent(Self.PageControl);
+  Self.PageControl.InsertComponent(tab);
+
+  Insert(tab, Self.Tabs, index);
+end;
+
+
+function TScriptForm.GetTab(index: Int32): TTabSheet;
+begin
+  Result := Self.Tabs[index];
+end;
+
+function TScriptForm.GetTab(caption: String; ignoreCase: Boolean = False): TTabSheet; overload;
+var
+  i: Int32;
+begin
+  if ignoreCase then
+  begin
+    caption := LowerCase(caption);
+
+    for i := 0 to High(Self.Tabs) do
+      if LowerCase(Self.Tabs[i].getCaption()) = caption then
+        Exit(Self.Tabs[i]);
+
+    Exit;
+  end;
+
+  for i := 0 to High(Self.Tabs) do
+    if Self.Tabs[i].getCaption() = caption then
+      Exit(Self.Tabs[i]);
+end;
+
+
+procedure TScriptForm.CreateAccountManager();
+  type TScriptForm = TScriptForm;
+   //Self contained methods only related to the account manager.
+   //This doesn't have to clutter things outside.
+  {$H-}
+  procedure TScriptForm._ClearInputs(sender: TObject);
+  var
+    edit: TCustomEdit;
+  begin
+    edit := Self.Form.GetChild('am_user_edit');
+    edit.Clear();
+
+    edit := Self.Form.GetChild('am_pass_edit');
+    edit.Clear();
+
+    edit := Self.Form.GetChild('am_pin_edit');
+    edit.Clear();
+
+    edit := Self.Form.GetChild('am_worlds_memo');
+    edit.Clear();
+  end;
+
+  procedure TScriptForm._FillInputs(sender: TObject);
+  var
+    idx, i: Int32;
+    worldsStr: String;
+    user, pass, pin: TEdit;
+    worlds: TMemo;
+  begin
+    idx := Login.PlayerIndex;
+
+    user := Self.Form.GetChild('am_user_edit');
+    pass := Self.Form.GetChild('am_pass_edit');
+    pin := Self.Form.GetChild('am_pin_edit');
+    worlds := Self.Form.GetChild('am_worlds_memo');
+
+    user.SetText(Login.Players[idx].User);
+    pass.setText(Login.Players[idx].Password);
+    pin.setText(Login.Players[idx].Pin);
+
+    for i := 0 to High(Login.Players[idx].Worlds) do
+    begin
+      worldsStr += ToStr(Login.Players[idx].Worlds[i]);
+      if i < High(Login.Players[idx].Worlds) then
+        worldsStr += ', ';
+    end;
+
+    worlds.SetText(worldsStr);
+  end;
+
+  procedure TScriptForm._ReloadSelector(sender: TObject);
+  var
+    selector: TComboBox;
+    hasPlayers: Boolean;
+    save, delete: TButton;
+    player: TRSLoginPlayer;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    selector.Clear();
+
+    hasPlayers := Login.Players <> [];
+    selector.SetEnabled(hasPlayers);
+    save := Self.Form.GetChild('am_save_button');
+    delete := Self.Form.GetChild('am_delete_button');
+
+    save.SetEnabled(hasPlayers);
+    delete.SetEnabled(hasPlayers);
+
+    for player in Login.Players do
+      selector.getItems().Add(player.User);
+
+    if hasPlayers then
+      selector.SetItemIndex(Login.PlayerIndex);
+  end;
+  {$H+}
+
+  procedure TScriptForm._SelectorOnChange(sender: TObject);
+  var
+    i: Int32;
+    selector: TComboBox;
+    edit: TEdit;
+    trackbar: TTrackBar;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    edit := Self.Form.GetChild('ab_biohash_edit');
+    trackbar := Self.Form.GetChild('ab_biohash_trackbar');
+
+    i := selector.GetItemIndex();
+    if i = -1 then
+    begin
+      Login.PlayerIndex := 0;
+      Self._ClearInputs(sender);
+    end
+    else if (i > High(Login.Players)) then
+    begin
+      Login.PlayerIndex := i;
+      Self._ClearInputs(sender);
+    end
+    else
+    begin
+      Login.PlayerIndex := i;
+      Self._FillInputs(sender);
+    end;
+
+    BioHash := 0;
+    Antiban.SetupBiometrics();
+
+    trackbar.setPosition(Round(9*BioHash));
+    edit.setText(FormatFloat('0.0000000000', BioHash));
+
+    Antiban.SetSleepHour();
+    Antiban.SetSleepLength();
+
+    (*
+    if Self.ABPanel.SleepHourEdit.IsInitiated() then
+      Self.ABPanel.SleepHourEdit.SetText(WLSettings.Sleep.Hour);
+    if Self.ABPanel.SleepLengthEdit.IsInitiated() then
+      Self.ABPanel.SleepLengthEdit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
+    *)
+  end;
+
+  procedure TScriptForm._OnAddClick(sender: TObject);
+  var
+    user, pass, pin: TEdit;
+    worlds: TMemo;
+    worldsArray: TIntegerArray;
+  begin
+    user := Self.Form.GetChild('am_user_edit');
+    pass := Self.Form.GetChild('am_pass_edit');
+    pin  := Self.Form.GetChild('am_pin_edit');
+    worlds := Self.Form.GetChild('am_worlds_memo');
+
+    if user.IsEmpty() then
+    begin
+      Self._ClearInputs(sender);
+      Exit;
+    end;
+
+    worldsArray := worlds.GetIntegerArray(301, 600);
+
+    Login.Players += [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
+    Login.PlayerIndex := High(Login.Players);
+
+    RewriteCredentials();
+    Self._ReloadSelector(sender);
+    Self._SelectorOnChange(sender);
+  end;
+
+  procedure TScriptForm._OnSaveClick(sender: TObject);
+  var
+    selector: TComboBox;
+    user, pass, pin: TEdit;
+    worlds: TMemo;
+    worldsArray: TIntegerArray;
+    i: Int32;
+    player: TRSLoginPlayer;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    user := Self.Form.GetChild('am_user_edit');
+    pass := Self.Form.GetChild('am_pass_edit');
+    pin  := Self.Form.GetChild('am_pin_edit');
+    worlds := Self.Form.GetChild('am_worlds_memo');
+
+    if user.IsEmpty() then
+    begin
+      Self._ClearInputs(sender);
+      Exit;
+    end;
+
+    i := selector.getItemIndex();
+    if i > High(Login.Players) then
+    begin
+      Self._OnAddClick(sender);
+      Exit;
+    end;
+
+    worldsArray := worlds.GetIntegerArray(301, 600);
+
+    player := [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
+
+    if i = -1 then
+      Login.Players += player
+    else
+      Login.Players[i] := player;
+
+    RewriteCredentials();
+    Self._ReloadSelector(sender);
+  end;
+
+  procedure TScriptForm._OnDeleteClick(sender: TObject);
+  var
+    selector: TComboBox;
+    i: Int32;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    i := selector.getItemIndex();
+
+    if i > High(Login.Players) then
+      Exit;
+
+    Delete(Login.Players, i, 1);
+    Login.PlayerIndex -= 1;
+
+    Self._ClearInputs(sender);
+
+    RewriteCredentials();
+    Self._ReloadSelector(sender);
+    Self._SelectorOnChange(sender);
+  end;
+
+var
+  tab: TTabSheet;
+  selector: TLabeledCombobox;
+  addButton, saveButton, deleteButton:  TButton;
+  user, pass, pin: TLabeledEdit;
+  worlds: TLabeledMemo;
+  fullWidth, w, space, passW, pinW, y: Int32;
+begin
+  Self.AddTab('Account Manager');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  fullWidth := Floor(Self.Size.X/2);
+  space := Floor(fullWidth * 0.1);
+  w := fullWidth - (space * 2);
+
+  passW := Floor(w * 0.6);
+  pinW := Floor(w * 0.3);
+
+  y := Round(5 * Self.DPI / 96);
+
+  with selector do
+  begin
+    Create(tab);
+    SetCaption('Current account:');
+    SetName('am_selector');
+    SetLeft(space);
+    SetTop(y);
+    SetStyle(csDropDownList);
+    SetWidth(w);
+    ComboBox.setOnChange(@Self._SelectorOnChange);
+  end;
+
+  with user do
+  begin
+    Create(tab);
+    SetCaption('Username:');
+    SetName('am_user');
+    SetLeft(space);
+    SetTop(selector.GetBottom() + Round(2 * Self.DPI / 96));
+    SetWidth(w);
+  end;
+
+  with pass do
+  begin
+    Create(tab);
+    SetCaption('Password:');
+    SetName('am_pass');
+    SetLeft(space);
+    SetTop(user.GetBottom() + Round(2 * Self.DPI / 96));
+    SetWidth(passW);
+    SetPasswordChar('*');
+  end;
+
+  with pin do
+  begin
+    Create(tab);
+    SetCaption('Bank pin:');
+    SetName('am_pin');
+    SetLeft(selector.GetRight() - pinW);
+    SetTop(pass.GetTop());
+    SetWidth(pinW);
+    SetPasswordChar('*');
+    SetMaxLength(4);
+    Edit.SetOnKeyPress(@Edit.NumberField);
+  end;
+
+  with worlds do
+  begin
+    Create(tab);
+    SetCaption('Worlds (separated by commas):');
+    SetName('am_worlds');
+    SetLeft(fullWidth + space);
+    SetTop(selector.GetTop());
+    SetHeight(pass.GetBottom());
+    SetWidth(w);
+    Memo.setOnKeyPress(@Memo.NumberArrayField);
+  end;
+
+  fullWidth := Floor(Self.Size.X/5);
+  space := Floor(fullWidth * 0.1);
+  w := fullWidth - (space * 2);
+  y := Size.Y - Floor(Self.Size.Y/2);
+
+  with addButton do
+  begin
+    Create(tab);
+    SetCaption('Add');
+    SetName('am_add_button');
+    SetLeft(fullWidth + space);
+    SetTop(y);
+    SetWidth(w);
+    setOnClick(@Self._OnAddClick);
+  end;
+
+  with saveButton do
+  begin
+    Create(tab);
+    SetCaption('Save');
+    SetName('am_save_button');
+    SetLeft(fullWidth * 2 + space);
+    SetTop(y);
+    SetWidth(w);
+    setOnClick(@Self._OnSaveClick);
+  end;
+
+  with deleteButton do
+  begin
+    Create(tab);
+    SetCaption('Delete');
+    SetName('am_delete_button');
+    SetLeft(fullWidth * 3 + space);
+    SetTop(y);
+    SetWidth(w);
+    setOnClick(@Self._OnDeleteClick);
+  end;
+
+  Self._ReloadSelector(selector.ComboBox);
+  Self._SelectorOnChange(selector.ComboBox);
+end;
+
+procedure TScriptForm.CreateRemoteInput();
+  type TScriptForm = TScriptForm;
+  //Self contained methods only related to the remote input settings.
+  //This doesn't have to clutter things outside.
+  procedure TScriptForm._EnabledOnChange(sender: TObject);
+  var
+    checked: Boolean;
+    enabled, realInput, hud, riDebug: TCheckBox;
+  begin
+    enabled := sender;
+    checked := enabled.IsChecked();
+
+    realInput := Self.Form.GetChild('real_input_checkbox');
+    hud       := Self.Form.GetChild('hud_checkbox');
+    riDebug   := Self.Form.GetChild('ri_debug_checkbox');
+
+    checked := enabled.IsChecked();
+    realInput.SetEnabled(checked);
+    hud.SetEnabled(checked);
+    riDebug.SetEnabled(checked);
+
+    WLSettings.RemoteInput.Enabled := checked;
+    WLSettings.RemoteInput.BlockInput := not realInput.IsChecked();
+    WLSettings.RemoteInput.HUDReport := hud.IsChecked();
+    WLSettings.RemoteInput.ScriptDebug := riDebug.IsChecked();
+  end;
+
+  procedure TScriptForm._RealInputOnChange(sender: TObject);
+  var
+    realInput: TCheckBox;
+  begin
+    realInput := sender;
+    WLSettings.RemoteInput.BlockInput := not realInput.IsChecked();
+  end;
+
+  procedure TScriptForm._HUDOnChange(sender: TObject);
+  var
+    checked: Boolean;
+    hud, riDebug: TCheckBox;
+  begin
+    hud := sender;
+    riDebug := Self.Form.GetChild('ri_debug_checkbox');
+
+    checked := hud.IsChecked();
+    if checked then
+      riDebug.SetChecked(False);
+
+    WLSettings.RemoteInput.HUDReport := checked;
+    WLSettings.RemoteInput.ScriptDebug := not checked;
+  end;
+
+  procedure TScriptForm._DebugOnChange(sender: TObject);
+  var
+    checked: Boolean;
+    hud, riDebug: TCheckBox;
+  begin
+    riDebug := sender;
+    hud := Self.Form.GetChild('hud_checkbox');
+
+    checked := riDebug.IsChecked();
+
+    if checked then
+      hud.SetChecked(False);
+
+    WLSettings.RemoteInput.HUDReport := not checked;
+    WLSettings.RemoteInput.ScriptDebug := checked;
+  end;
+
+var
+  tab: TTabSheet;
+  info: TLabel;
+  ripanel: TPanel;
+  fullWidth, width, space, y: Int32;
+  enabled, realInput, hud, riDebug: TLabeledCheckbox;
+begin
+  Self.AddTab('Remote Input');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  with info do
+  begin
+    Create(tab);
+    SetAlign(alTop);
+    SetCaption('Remote input is the tool used to allow simba to do virtual input on osrs. This uses reflection to achieve input.');
+    SetName('ri_info');
+  end;
+
+  with ripanel do
+  begin
+    Create(tab);
+    SetName('ri_panel');
+    setAlign(alClient);
+    setCaption('');
+    setBevelWidth(0);
+  end;
+
+  fullWidth := Floor(Self.Size.X/4);
+  space := Floor(fullWidth * 0.1);
+  width := fullWidth - (space * 2);
+  y := Floor(Self.Size.Y/3);
+
+  with enabled do
+  begin
+    Create(ripanel);
+    SetCaption('Remote Input');
+    SetName('ri_state');
+    SetLeft(space);
+    SetTop(y);
+    SetWidth(width);
+    CheckBox.SetOnChange(@Self._EnabledOnChange);
+    SetChecked(WLSettings.RemoteInput.Enabled);
+    SetTooltip('Enable/Disable Remote Input.' + LineEnding +
+            'Remote Input is a virtual mouse that allows you to bot while you use your real mouse.' +
+            LineEnding + 'As far as we know this is not detected, but could be in the future.'+
+            LineEnding + 'Use are your OWN RISK!');
+    end;
+
+  with realInput do
+  begin
+    Create(ripanel);
+    SetCaption('Disable Input');
+    SetName('real_input');
+    SetLeft(fullWidth + space);
+    SetTop(y);
+    SetWidth(width);
+    SetChecked(WLSettings.RemoteInput.BlockInput);
+    CheckBox.setOnChange(@Self._RealInputOnChange);
+    SetTooltip('Enable/Disable User Input.' + LineEnding +
+               'This disables your input in the game until you' + LineEnding +
+               'pause or terminate the script.');
+  end;
+
+  with hud do
+  begin
+    Create(ripanel);
+    SetCaption('HUD report');
+    SetName('hud');
+    SetLeft(fullWidth * 2 + space);
+    SetTop(y);
+    SetWidth(width);
+    SetChecked(WLSettings.RemoteInput.HUDReport);
+    CheckBox.SetOnChange(@Self._HUDOnChange);
+    SetTooltip('Enable/Disable the HUD report.' + LineEnding +
+               'HUD report is the in-game progress report, also' + LineEnding +
+               'called paint sometimes.');
+  end;
+
+  with riDebug do
+  begin
+    Create(ripanel);
+    SetCaption('Debug script');
+    SetName('ri_debug');
+    SetLeft(fullWidth * 3 + space);
+    SetTop(y);
+    SetWidth(width);
+    SetChecked(WLSettings.RemoteInput.ScriptDebug);
+    CheckBox.SetOnChange(@Self._DebugOnChange);
+    SetTooltip('Enable/Disable the Script Debugging.' + LineEnding +
+               'This will paint/draw on screen critical things' + LineEnding +
+               'that Simba is looking for.');
+  end;
+
+  Self._EnabledOnChange(enabled.CheckBox);
+end;
+
+
+
+procedure TScriptForm.BarOnChange(sender: TObject);
+var
+  bar: TTrackBar;
+  edit: TEdit;
+  value: Double;
+  str: String;
+begin
+  bar := sender;
+  edit := Self.Form.GetChild('ab_biohash_edit');
+
+  value := bar.getPosition() * 0.1111111111;
+  if value = 0 then
+    value += 0.0000000001;
+
+  if value = 1 then
+    value -= 0.0000000001;
+
+  str := FormatFloat('0.0000000000', value);
+  edit.SetText(str);
+end;
+
+procedure TScriptForm.CreateAntibanManager();
+  type TScriptForm = TScriptForm;
+  //Self contained methods only related to the antiban manager.
+  //This doesn't have to clutter things outside.
+
+var
+  tab: TTabSheet;
+  bioPanel: TPanel;
+  fullWidth, w, space, y: Int32;
+  bioEdit: TLabeledEdit;
+  bar: TTrackBar;
+begin
+  Self.AddTab('Antiban Manager');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  fullWidth := Self.Size.X;
+  space := Floor(fullWidth * 0.1);
+  w := fullWidth - (space * 2);
+  y := Floor(Self.Size.Y/6);
+
+  with bioPanel do
+  begin
+    Create(tab);
+    SetName('ab_biohash_panel');
+    SetTop(10);
+    SetLeft(space);
+    SetHeight(y);
+    SetWidth(w);
+    setCaption('');
+    setBevelWidth(0);
+  end;
+
+  with bioEdit do
+  begin
+    Create(bioPanel);
+    SetLeft(Round(w/3));
+    SetWidth(Round(w/4));
+    SetCaption('BioHash:');
+    SetName('ab_biohash');
+    Edit.setOnKeyPress(@Edit.NumberField);
+  end;
+
+  with bar do
+  begin
+    Create(bioPanel);
+    SetName('ab_biohash_trackbar');
+    SetMin(0);
+    SetMax(9);
+    setAlign(alBottom);
+    SetTooltip('You can adjust your biohash with this trackbar, however, the default is recommended.');
+    setOnChange(@Self.BarOnChange);
+  end;
+end;
+
+
+procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [650, 400]);
+begin
+  Self.DPI := TControl.GetScreenDPI();
+
+  Self.Size.X := Round(size.X * Self.DPI / 96);
+  Self.Size.Y := Round(size.Y * Self.DPI / 96);
+
+  with Self.Form do
+  begin
+    Init(nil);
+    setName(StringReplace(caption, ' ', '_', TReplaceFlags(0)));
+    setCaption(caption);
+    setWidth(Self.Size.X);
+    setHeight(Self.Size.Y);
+    setPosition(poScreenCenter);
+  end;
+
+  with Self.PageControl do
+  begin
+    Create(Self.Form);
+    setName('PageControl');
+    setAlign(alClient);
+  end;
+
+  with Self.Start do
+  begin
+    Create(Self.PageControl);
+    setAlign(alBottom);
+    SetCaption('Start!');
+  end;
+
+  Self.CreateAntibanManager();
+  Self.CreateAccountManager();
+  Self.CreateRemoteInput();
+end;
+
+
+procedure TScriptForm.Run();
+begin
+  try
+    Self.Form.ShowModal();
+    Self.Form.Free();
+  except
+    Writeln(GetExceptionMessage());
+  end;
+end;
+

@@ -1,3 +1,12 @@
+## [11.12.3](https://github.com/Torwent/WaspLib/compare/v11.12.2...v11.12.3) (2023-03-16)
+
+
+### Bug Fixes
+
+* several fixes, read notes ([3e05dc4](https://github.com/Torwent/WaspLib/commit/3e05dc441e930caafec693d0e29819260ffe13d6))
+
+
+
 ## [11.12.2](https://github.com/Torwent/WaspLib/compare/v11.12.1...v11.12.2) (2023-03-11)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([b2ebedc](https://github.com/Torwent/WaspLib/commit/b2ebedc2db503a58a4690c7645dab93df239c157))
-
-
-
-## [11.10.18](https://github.com/Torwent/WaspLib/compare/v11.10.17...v11.10.18) (2023-03-10)
-
-
-### Bug Fixes
-
-* nothing, just force bumping the version  ([c16b551](https://github.com/Torwent/WaspLib/commit/c16b5514d657c63ebce148cd21a8a3013e35a87f))
 
 
 

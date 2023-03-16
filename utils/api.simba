@@ -189,7 +189,7 @@ procedure APIClient.Setup(); static;
 var
   settings: TStringArray;
 begin
-  APIClient.HTTPClient := InitializeHTTPClient(False);
+  APIClient.HTTPClient := InitializeHTTPClient(True);
   APIClient.StatsServer := 'https://api.waspscripts.com/';
 
   AddOnTerminate(@APIClient.Terminate);
@@ -202,6 +202,9 @@ begin
     settings += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
     WriteConfigFile('uuid', settings);
   end;
+
+  SetHTTPUserAgent(APIClient.HTTPClient, 'Simba - ' + APIClient.UUID);
+  SetHTTPHeader(APIClient.HTTPClient, 'Connection', 'close');
 
   APIClient.Timer.Setup(5 * ONE_MINUTE);
   APIClient.IsSetup := True;
@@ -405,10 +408,11 @@ begin
 
   msg := APIClient.POST(route, payload);
 
-  Result := msg.Pos('message') = 0; //again, maybe a bad way to do this
+  Result := msg.Contains('Response code: 200');
 
   if Result then
   begin
+    StatsPayload.Password := newPassword;
     settings += 'APIClient.UUID := ''' + APIClient.UUID + ''';';
     settings += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
     WriteConfigFile('uuid', settings);

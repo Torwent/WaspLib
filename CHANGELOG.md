@@ -1,3 +1,12 @@
+## [11.12.5](https://github.com/Torwent/WaspLib/compare/v11.12.4...v11.12.5) (2023-03-16)
+
+
+### Bug Fixes
+
+* versions are now done all in a single API request instead of 3 ([ccabc8e](https://github.com/Torwent/WaspLib/commit/ccabc8e7e238fdc67fb155e3a9ab5c9b984baeb8))
+
+
+
 ## [11.12.4](https://github.com/Torwent/WaspLib/compare/v11.12.3...v11.12.4) (2023-03-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fix GUI compile error introduced in the latest release by accident. ([2286c30](https://github.com/Torwent/WaspLib/commit/2286c300b3ee3149aa7566ea6ba3680127270aa9))
-
-
-
-# [11.12.0](https://github.com/Torwent/WaspLib/compare/v11.11.0...v11.12.0) (2023-03-11)
-
-
-### Features
-
-* read notes ([8aa31c4](https://github.com/Torwent/WaspLib/commit/8aa31c4717b9bdb94225538cdd49771ee46f3011))
 
 
 

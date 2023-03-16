@@ -1,3 +1,12 @@
+## [11.12.7](https://github.com/Torwent/WaspLib/compare/v11.12.6...v11.12.7) (2023-03-16)
+
+
+### Bug Fixes
+
+* **RSObjects:** Increase EdgevilleFurnace height for visibility when standing east ([801a936](https://github.com/Torwent/WaspLib/commit/801a9361f8a6dca2ed3dda1be98587bbf7f154f1))
+
+
+
 ## [11.12.6](https://github.com/Torwent/WaspLib/compare/v11.12.5...v11.12.6) (2023-03-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * several fixes, read notes ([3e05dc4](https://github.com/Torwent/WaspLib/commit/3e05dc441e930caafec693d0e29819260ffe13d6))
-
-
-
-## [11.12.2](https://github.com/Torwent/WaspLib/compare/v11.12.1...v11.12.2) (2023-03-11)
-
-
-### Bug Fixes
-
-* remove the WIP API Panel ([688612c](https://github.com/Torwent/WaspLib/commit/688612cd7df53846f0c67a8e60819dd606768263))
 
 
 

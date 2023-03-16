@@ -262,44 +262,48 @@ Checks for updates for SRL-T, WaspLib and the current script.
 *)
 procedure CheckUpdates(caption: String = 'Updates Available');
 var
+  latestSRLT, latestWL, latestRev, currentSRLT, currentWL, currentRev: String;
   isLatestSRLT, isLatestWL, isLatestRev: Boolean;
-  i: Int32;
   msg: String;
 begin
-  isLatestSRLT := GetPackageVersion('srl-t') = APIClient.GetVersion('srl-t');
-  isLatestWL := GetPackageVersion('wasplib') = APIClient.GetVersion('wasplib');
-  isLatestRev := StrToInt({$macro SCRIPT_REVISION}) = APIClient.GetScriptRevision({$macro SCRIPT_ID});
+  latestSRLT := APIClient.GetVersion('srl-t');
+  latestWL := APIClient.GetVersion('wasplib');
+  latestRev := IntToStr(APIClient.GetScriptRevision({$macro SCRIPT_ID}));
 
-  if not isLatestSRLT then
-    Inc(i);
-  if not isLatestWL then
-    Inc(i);
-  if not isLatestRev then
-    Inc(i);
+  if latestSRLT = '' then
+    latestSRLT := 'Failed to check...';
 
-  if i = 0 then
+  if latestWL = '' then
+    latestWL := 'Failed to check...';
+
+  if latestRev = '' then
+    latestRev := 'Failed to check...';
+
+  currentSRLT := GetPackageVersion('srl-t');
+  currentWL := GetPackageVersion('wasplib');
+  currentRev := {$macro SCRIPT_REVISION};
+
+  isLatestSRLT := currentSRLT = latestSRLT;
+  isLatestWL   := currentWL   = latestWL;
+  isLatestRev  := currentRev  = latestRev;
+
+  if isLatestSRLT and isLatestWL and isLatestRev then
     Exit;
 
-  msg := 'A new version of ';
-  if not isLatestSRLT then
-    msg += 'SRL-T';
+  msg := LINEENDING + 'The following seems to be outdated:' + LINEENDING + LINEENDING;
 
-  if i = 3 then
-    msg += ', ';
-  if i = 2 then
-    msg += ' and ';
+  if not isLatestSRLT then
+    msg += '- SRL-T (Current version: ' + currentSRLT + ' Latest version: ' + latestSRLT + ').' + LINEENDING;
 
   if not isLatestWL then
-    msg += 'WaspLib';
-
-  if i = 3 then
-    msg += ' and ';
+    msg += '- WaspLib (Current version: ' + currentWL + ' Latest version: ' + latestWL + ').' + LINEENDING;
 
   if not isLatestRev then
-    msg += 'the Script';
+    msg += '- Script (Current revision: ' + currentRev + ' Latest revision: ' + latestRev + ').' + LINEENDING;
 
-  msg += ' is available!';
+  msg += LINEENDING;
 
+  WriteLn msg;
   MessageDlg(caption, msg, mtWarning,[mbClose]);
 end;
 

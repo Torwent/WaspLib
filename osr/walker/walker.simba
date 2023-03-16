@@ -15,7 +15,7 @@ const
   WL_WALKER_DIR = {$MACRO CURRENT_DIRECTORY};
   WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
-  WL_WALKER_MAP_VERSION = '5'; //Increment when maps are updated to force recaching.
+  WL_WALKER_MAP_VERSION = '6'; //Increment when maps are updated to force recaching.
 
 (*
 type RSHeightMap
@@ -115,40 +115,40 @@ Overrides SRL's TRSWalkerMap.InternalLoadMap() so maps cached files can be versi
 Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
 This is an internal TRSWalkerMap method and you should probably not use it directly.
 *)
-function TRSWalkerMap.InternalLoadMap(FileName: String; Region: TBox = []): TMufasaBitmap; static; override;
+function TRSWalkerMap.InternalLoadMap(fileName: String; Region: TBox = []): TMufasaBitmap; static; override;
 var
-  CacheFileName: String;
+  cacheFileName: String;
 begin
-  if ExtractFileExt(FileName) <> '.bmp' then
+  if ExtractFileExt(fileName) <> '.bmp' then
   begin
-    CacheFileName := DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1String(FileName) + '.bmp';
-    if not FileExists(CacheFileName) then
+    cacheFileName := DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1String(FileName) + '.bmp';
+    if not FileExists(cacheFileName) then
     begin
       if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
         TerminateScript('Failed to create TRSWalker cache directories.');
 
-      WriteLn('Caching ' + ExtractFileName(FileName) + ' this can take ~10 seconds.');
+      WriteLn('Caching ' + ExtractFileName(fileName) + ' this can take ~10 seconds.');
 
       Result.Init();
-      Result.LoadFromFile(TRSWalkerMap.FindMap(FileName));
-      Result.SaveToFile(CacheFileName);
+      Result.LoadFromFile(TRSWalkerMap.FindMap(fileName));
+      Result.SaveToFile(cacheFileName);
       if (Region <> []) then
         Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
 
       Exit;
     end;
 
-    FileName := CacheFileName;
+    fileName := cacheFileName;
   end;
 
   Result.Init();
 
   if (Region <> []) then
   begin
-    Result.LoadFromFile(FileName);
+    Result.LoadFromFile(fileName);
     Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
   end else
-    Result.LoadFromFile(FileName);
+    Result.LoadFromFile(fileName);
 end;
 
 (*
@@ -219,30 +219,30 @@ begin
   Self.Map.Downsample(scaling, Self.ScaledMap);
 end;
 
-procedure TRSWalkerMap.Load(FileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+procedure TRSWalkerMap.Load(fileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
 var
-  Bitmaps, HBitmaps: TMufasaBitmapArray;
+  bitmaps, hBitmaps: TMufasaBitmapArray;
   I: Integer;
   hFileName: String;
 begin
   fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
 
-  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(FileName);
+  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(fileName);
   RSHeightMap.Disabled := RSHeightMap.Disabled or
                          (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
 
   SetLength(Self.Regions, Length(ARegions));
   SetLength(Self.RegionOffsets, Length(ARegions));
 
-  SetLength(Bitmaps, Length(Self.Regions));
-  SetLength(HBitmaps, Length(Self.Regions));
-  for I := 0 to High(Bitmaps) do
+  SetLength(bitmaps, Length(Self.Regions));
+  SetLength(hBitmaps, Length(Self.Regions));
+  for I := 0 to High(bitmaps) do
   begin
     Self.RegionOffsets[I] := TPoint.Create(ARegions[I].X1, ARegions[I].Y1);
 
-    Bitmaps[I] := Self.InternalLoadMap(FileName, ARegions[I]);
+    bitmaps[I] := Self.InternalLoadMap(FileName, ARegions[I]);
     if not RSHeightMap.Disabled then
-      HBitmaps[I] := Self.InternalLoadMap(hFileName, ARegions[I]);
+      hBitmaps[I] := Self.InternalLoadMap(hFileName, ARegions[I]);
 
     if (ARegions[I] <> RSWalkerRegions.WORLD) then
     begin
@@ -251,10 +251,10 @@ begin
 
       Bitmaps[I].Pad(Padding);
       if not RSHeightMap.Disabled then
-        HBitmaps[I].Pad(Padding);
+        hBitmaps[I].Pad(Padding);
     end;
 
-    Self.Regions[I] := TBox.Create(0, 0, Bitmaps[I].GetWidth(), Bitmaps[I].GetHeight());
+    Self.Regions[I] := TBox.Create(0, 0, bitmaps[I].GetWidth(), bitmaps[I].GetHeight());
   end;
 
   Self.Regions := Self.Regions.Pack();
@@ -273,9 +273,9 @@ begin
 
   for I := 0 to High(Self.Regions) do
   begin
-    Self.Map.DrawBitmap(Bitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+    Self.Map.DrawBitmap(bitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
     if not RSHeightMap.Disabled then
-      RSHeightMap.Map.DrawBitmap(HBitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+      RSHeightMap.Map.DrawBitmap(hBitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
   end;
 
   Self.ScaledMap.Init();
@@ -283,12 +283,12 @@ begin
   Self.ScaledMap.SetName('Walker.ScaledMap');
   Self.Map.Downsample(Scaling, Self.ScaledMap);
 
-  for I := 0 to High(Bitmaps) do
-    Bitmaps[I].Free();
+  for I := 0 to High(bitmaps) do
+    bitmaps[I].Free();
 
   if not RSHeightMap.Disabled then
-    for I := 0 to High(HBitmaps) do
-      HBitmaps[I].Free();
+    for I := 0 to High(hBitmaps) do
+      hBitmaps[I].Free();
 end;
 
 (*

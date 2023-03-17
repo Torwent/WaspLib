@@ -1,0 +1,129 @@
+{$DEFINE WL_RSREGIONS_UTILS_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type
+  TRSNamedRegion = record
+    Name: String;
+    Bounds: TBox;
+  end;
+
+  TRSBankRegionArray = array [EWLBankLocation(0)..EWLBankLocation(Ord(High(EWLBankLocation)))] of TRSNamedRegion;
+  TRSCombatRegionArray = array [EWLCombatLocation(0)..EWLCombatLocation(Ord(High(EWLCombatLocation)))] of TRSNamedRegion;
+
+function TRSBankRegionArray.IndexOf(name: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Name = name then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TRSBankRegionArray.IndexOf(bounds: TBox): Int32; overload;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Bounds = bounds then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TRSBankRegionArray.Find(name: String): TRSNamedRegion;
+begin
+  Result := Self[Self.IndexOf(name)];
+end;
+
+function TRSBankRegionArray.Find(bounds: TBox): TRSNamedRegion; overload;
+begin
+  Result := Self[Self.IndexOf(bounds)];
+end;
+
+function TRSBankRegionArray.GetStrings(): TStringArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].Name;
+end;
+
+
+function TRSCombatRegionArray.IndexOf(name: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Name = name then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TRSCombatRegionArray.IndexOf(bounds: TBox): Int32; overload;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Bounds = bounds then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TRSCombatRegionArray.Find(name: String): TRSNamedRegion;
+begin
+  Result := Self[Self.IndexOf(name)];
+end;
+
+function TRSCombatRegionArray.Find(bounds: TBox): TRSNamedRegion; overload;
+begin
+  Result := Self[Self.IndexOf(bounds)];
+end;
+
+function TRSCombatRegionArray.GetStrings(): TStringArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].Name;
+end;
+
+var
+  RSBankRegions: TRSBankRegionArray;
+  RSCombatRegions: TRSCombatRegionArray;
+  RSNamedRegionsArray: array of TRSNamedRegion; //This is different from the above!
+
+procedure TRSBankRegionArray.Setup();
+var
+  i, j: Int32;
+begin
+  for i := 0 to Ord(High(EWLBankLocation)) do
+  begin
+    for j := 0 to High(RSNamedRegionsArray) do
+    begin
+      if RSNamedRegionsArray[j].Name.ToLower().Replace('''','') = ToString(EWLBankLocation(i)).ToLower().Replace('_bank', '').Replace('_', ' ') then
+      begin
+        Self[i] := RSNamedRegionsArray[j];
+        Break;
+      end
+      else if j = High(RSNamedRegionsArray) then
+        WriteLn('DEBUG WARNING: EWLBankLocation: ', ToString(EWLBankLocation(i)).ToLower().Replace('_bank', '').Replace('_', ' '), ' doesn''t match any RSRegion!');
+    end;
+  end;
+end;
+
+procedure TRSCombatRegionArray.Setup();
+var
+  i, j: Int32;
+begin
+  for i := 0 to Ord(High(EWLCombatLocation)) do
+  begin
+    for j := 0 to High(RSNamedRegionsArray) do
+    begin
+      if RSNamedRegionsArray[j].Name.ToLower().Replace('''','') = ToString(EWLCombatLocation(i)).ToLower().Replace('_', ' ') then
+      begin
+        Self[i] := RSNamedRegionsArray[j];
+        Break;
+      end
+      else if j = High(RSNamedRegionsArray) then
+        WriteLn('DEBUG WARNING: EWLCombatLocation: ', ToString(EWLCombatLocation(i)).ToLower().Replace('_', ' '), ' doesn''t match any RSRegion!');
+    end;
+  end;
+end;

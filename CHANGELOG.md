@@ -1,3 +1,12 @@
+## [11.12.8](https://github.com/Torwent/WaspLib/compare/v11.12.7...v11.12.8) (2023-03-17)
+
+
+### Bug Fixes
+
+* read notes ([0174d24](https://github.com/Torwent/WaspLib/commit/0174d245ee7bd5cf232b36af00a4831eac7ef7d2))
+
+
+
 ## [11.12.7](https://github.com/Torwent/WaspLib/compare/v11.12.6...v11.12.7) (2023-03-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Bank.DepositAll:** Now checks if the button is visible before clicking ([ad672e5](https://github.com/Torwent/WaspLib/commit/ad672e5ad7a256a469fc908c7103d1285eb45e89))
-
-
-
-## [11.12.3](https://github.com/Torwent/WaspLib/compare/v11.12.2...v11.12.3) (2023-03-16)
-
-
-### Bug Fixes
-
-* several fixes, read notes ([3e05dc4](https://github.com/Torwent/WaspLib/commit/3e05dc441e930caafec693d0e29819260ffe13d6))
 
 
 

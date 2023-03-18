@@ -1,3 +1,12 @@
+## [11.12.9](https://github.com/Torwent/WaspLib/compare/v11.12.8...v11.12.9) (2023-03-17)
+
+
+### Bug Fixes
+
+* **RSRegions:** Added some extra regions I think people will like ([#56](https://github.com/Torwent/WaspLib/issues/56)) ([3ff6860](https://github.com/Torwent/WaspLib/commit/3ff68602bb14448e82e957b98a1f2fbf492f1284))
+
+
+
 ## [11.12.8](https://github.com/Torwent/WaspLib/compare/v11.12.7...v11.12.8) (2023-03-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * versions are now done all in a single API request instead of 3 ([ccabc8e](https://github.com/Torwent/WaspLib/commit/ccabc8e7e238fdc67fb155e3a9ab5c9b984baeb8))
-
-
-
-## [11.12.4](https://github.com/Torwent/WaspLib/compare/v11.12.3...v11.12.4) (2023-03-16)
-
-
-### Bug Fixes
-
-* **Bank.DepositAll:** Now checks if the button is visible before clicking ([ad672e5](https://github.com/Torwent/WaspLib/commit/ad672e5ad7a256a469fc908c7103d1285eb45e89))
 
 
 

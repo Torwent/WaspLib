@@ -1,3 +1,12 @@
+## [11.12.10](https://github.com/Torwent/WaspLib/compare/v11.12.9...v11.12.10) (2023-03-18)
+
+
+### Bug Fixes
+
+* **formutils:** fixed linux bitching ([c37038c](https://github.com/Torwent/WaspLib/commit/c37038c4c6193b0022b6424d4a8769b8b2fddc37))
+
+
+
 ## [11.12.9](https://github.com/Torwent/WaspLib/compare/v11.12.8...v11.12.9) (2023-03-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **maps:** fixed the standalone mlm map ([07fc254](https://github.com/Torwent/WaspLib/commit/07fc2543d160f1c0f2a814ab1517cbdffbb624f1))
-
-
-
-## [11.12.5](https://github.com/Torwent/WaspLib/compare/v11.12.4...v11.12.5) (2023-03-16)
-
-
-### Bug Fixes
-
-* versions are now done all in a single API request instead of 3 ([ccabc8e](https://github.com/Torwent/WaspLib/commit/ccabc8e7e238fdc67fb155e3a9ab5c9b984baeb8))
 
 
 

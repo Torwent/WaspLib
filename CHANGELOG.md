@@ -1,3 +1,12 @@
+## [11.12.13](https://github.com/Torwent/WaspLib/compare/v11.12.12...v11.12.13) (2023-03-19)
+
+
+### Bug Fixes
+
+* **bank withdraw:** improvements to out of supplies issues ([cdc260e](https://github.com/Torwent/WaspLib/commit/cdc260e8f5ed6109e9c7be4449e9ce172ed30882))
+
+
+
 ## [11.12.12](https://github.com/Torwent/WaspLib/compare/v11.12.11...v11.12.12) (2023-03-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSRegions:** Added some extra regions I think people will like ([#56](https://github.com/Torwent/WaspLib/issues/56)) ([3ff6860](https://github.com/Torwent/WaspLib/commit/3ff68602bb14448e82e957b98a1f2fbf492f1284))
-
-
-
-## [11.12.8](https://github.com/Torwent/WaspLib/compare/v11.12.7...v11.12.8) (2023-03-17)
-
-
-### Bug Fixes
-
-* read notes ([0174d24](https://github.com/Torwent/WaspLib/commit/0174d245ee7bd5cf232b36af00a4831eac7ef7d2))
 
 
 

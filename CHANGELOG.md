@@ -1,3 +1,12 @@
+## [11.12.11](https://github.com/Torwent/WaspLib/compare/v11.12.10...v11.12.11) (2023-03-19)
+
+
+### Bug Fixes
+
+* **APIClient:** make api client version fetching never crash a script ([7b7b388](https://github.com/Torwent/WaspLib/commit/7b7b38805063a59f771590fa52241ade3d9a2bf7))
+
+
+
 ## [11.12.10](https://github.com/Torwent/WaspLib/compare/v11.12.9...v11.12.10) (2023-03-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSObjects:** Increase EdgevilleFurnace height for visibility when standing east ([801a936](https://github.com/Torwent/WaspLib/commit/801a9361f8a6dca2ed3dda1be98587bbf7f154f1))
-
-
-
-## [11.12.6](https://github.com/Torwent/WaspLib/compare/v11.12.5...v11.12.6) (2023-03-16)
-
-
-### Bug Fixes
-
-* **maps:** fixed the standalone mlm map ([07fc254](https://github.com/Torwent/WaspLib/commit/07fc2543d160f1c0f2a814ab1517cbdffbb624f1))
 
 
 

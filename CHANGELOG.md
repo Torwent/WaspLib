@@ -1,3 +1,12 @@
+## [11.12.12](https://github.com/Torwent/WaspLib/compare/v11.12.11...v11.12.12) (2023-03-19)
+
+
+### Bug Fixes
+
+* typo ([f32404b](https://github.com/Torwent/WaspLib/commit/f32404b45ed6ba84272aa6da71d80e463dd6fab6))
+
+
+
 ## [11.12.11](https://github.com/Torwent/WaspLib/compare/v11.12.10...v11.12.11) (2023-03-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([0174d24](https://github.com/Torwent/WaspLib/commit/0174d245ee7bd5cf232b36af00a4831eac7ef7d2))
-
-
-
-## [11.12.7](https://github.com/Torwent/WaspLib/compare/v11.12.6...v11.12.7) (2023-03-16)
-
-
-### Bug Fixes
-
-* **RSObjects:** Increase EdgevilleFurnace height for visibility when standing east ([801a936](https://github.com/Torwent/WaspLib/commit/801a9361f8a6dca2ed3dda1be98587bbf7f154f1))
 
 
 

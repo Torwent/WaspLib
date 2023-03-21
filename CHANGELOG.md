@@ -1,3 +1,12 @@
+## [11.12.14](https://github.com/Torwent/WaspLib/compare/v11.12.13...v11.12.14) (2023-03-21)
+
+
+### Bug Fixes
+
+* bankpin failsafe added ([71bace0](https://github.com/Torwent/WaspLib/commit/71bace09fce7ecdb2b836cb4001cb2a86dd42361))
+
+
+
 ## [11.12.13](https://github.com/Torwent/WaspLib/compare/v11.12.12...v11.12.13) (2023-03-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **formutils:** fixed linux bitching ([c37038c](https://github.com/Torwent/WaspLib/commit/c37038c4c6193b0022b6424d4a8769b8b2fddc37))
-
-
-
-## [11.12.9](https://github.com/Torwent/WaspLib/compare/v11.12.8...v11.12.9) (2023-03-17)
-
-
-### Bug Fixes
-
-* **RSRegions:** Added some extra regions I think people will like ([#56](https://github.com/Torwent/WaspLib/issues/56)) ([3ff6860](https://github.com/Torwent/WaspLib/commit/3ff68602bb14448e82e957b98a1f2fbf492f1284))
 
 
 

@@ -1,3 +1,12 @@
+## [11.12.15](https://github.com/Torwent/WaspLib/compare/v11.12.14...v11.12.15) (2023-03-21)
+
+
+### Bug Fixes
+
+* fixed some issues with my custom TRSBank.WithdrawHelper ([184d0f6](https://github.com/Torwent/WaspLib/commit/184d0f67bb5897a1b6062fcc171a873eaf1717de))
+
+
+
 ## [11.12.14](https://github.com/Torwent/WaspLib/compare/v11.12.13...v11.12.14) (2023-03-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **APIClient:** make api client version fetching never crash a script ([7b7b388](https://github.com/Torwent/WaspLib/commit/7b7b38805063a59f771590fa52241ade3d9a2bf7))
-
-
-
-## [11.12.10](https://github.com/Torwent/WaspLib/compare/v11.12.9...v11.12.10) (2023-03-18)
-
-
-### Bug Fixes
-
-* **formutils:** fixed linux bitching ([c37038c](https://github.com/Torwent/WaspLib/commit/c37038c4c6193b0022b6424d4a8769b8b2fddc37))
 
 
 

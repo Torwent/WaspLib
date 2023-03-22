@@ -86,10 +86,11 @@ end;
 type
   TScriptForm = record
     Size: TPoint;
-    Form: TForm;
     PageControl: TPageControl;
     Tabs: array of TTabSheet;
     Start: TButton;
+  class var
+    Form: TForm;
   end;
 
 procedure TScriptForm.AddTab(caption: String);
@@ -523,16 +524,8 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
   var
     i: Int32;
     selector: TComboBox;
-    edit, sleepHour, sleepLength: TEdit;
-    trackbar: TTrackBar;
   begin
     selector := Self.Form.GetChild('am_selector_combobox');
-    edit := Self.Form.GetChild('ab_biohash_edit');
-    if edit = nil then
-      Exit;
-    trackbar := Self.Form.GetChild('ab_biohash_trackbar');
-    sleepHour   := Self.Form.GetChild('ab_sleep_hour_edit');
-    sleepLength := Self.Form.GetChild('ab_sleep_length_edit');
 
     i := selector.GetItemIndex();
     if i = -1 then
@@ -554,13 +547,11 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     BioHash := 0;
     Antiban.SetupBiometrics();
 
-    edit.setText(FormatFloat('0.000000000000000', BioHash));
+    WLSettings.Sleep.HourOverride := '';
+    WLSettings.Sleep.LengthOverride := 0;
 
     Antiban.SetSleepHour();
     Antiban.SetSleepLength();
-
-    sleepHour.SetText(WLSettings.Sleep.Hour);
-    sleepLength.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
   end;
 
   procedure TScriptForm._OnAddClick(sender: TObject);
@@ -948,6 +939,41 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     WLSettings.Sleep.LengthOverride := len;
   end;
 
+  type TAntiban = TAntiban;
+
+  procedure TAntiban.SetupBiometrics(); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+    edit := TScriptForm.Form.GetChild('ab_biohash_edit');
+    if edit = nil then
+      Exit;
+    edit.setText(FormatFloat('0.000000000000000', BioHash));
+  end;
+
+  procedure TAntiban.SetSleepHour(); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+    edit := TScriptForm.Form.GetChild('ab_sleep_hour_edit');
+    if edit = nil then
+      Exit;
+    edit.SetText(WLSettings.Sleep.Hour);
+  end;
+
+  procedure TAntiban.SetSleepLength(); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+    edit := TScriptForm.Form.GetChild('ab_sleep_length_edit');
+    if edit = nil then
+      Exit;
+    edit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
+  end;
+
 var
   bioPanel: TPanel;
   fullWidth, w, space, y: Int32;
@@ -1085,6 +1111,10 @@ begin
     Edit.setOnChange(@Self._SleepLengthOnChange);
     SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
   end;
+
+  Antiban.SetupBiometrics();
+  Antiban.SetSleepHour();
+  Antiban.SetSleepLength();
 end;
 
 function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet;
@@ -1575,6 +1605,7 @@ function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray =
   var
     tmp: String;
     captionLabel, currentLabel, latestLabel: TLabel;
+    i: Int32;
   begin
     with Result do
     begin
@@ -1590,7 +1621,7 @@ function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray =
       SetLeft(0);
       SetFontColor(color);
       getFont().setStyle([fsBold]);
-      for 0 to pad1 do
+      for i := 0 to pad1 do
         tmp += '_';
       setCaption(tmp);
       setWidth(GetTrueWidth());
@@ -1604,7 +1635,7 @@ function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray =
       SetLeft(captionLabel.GetRight());
       SetFontColor(color);
       getFont().setStyle([fsBold]);
-      for 0 to pad2 do
+      for i := 0 to pad2 do
         tmp += '_';
       setCaption(tmp);
       setWidth(GetTrueWidth());
@@ -1689,7 +1720,14 @@ begin
   revPanel.SetLeft(TControl.AdjustToDPI(5));
 end;
 
-procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]);
+procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._OnClose({$H-}sender: TObject; var closeAction: TCloseAction);{$H+}
+  begin
+    TerminateScript();
+  end;
+
 var
   font: TFont;
 begin
@@ -1702,14 +1740,17 @@ begin
   font.SetDefault();
   font.Free();
 
-  with Self.Form do
+  with TScriptForm.Form do
   begin
     Init(nil);
-    setName(StringReplace(caption, ' ', '_', TReplaceFlags(0)));
+    setName(StringReplace(caption, ' ', '_', [rfReplaceAll]));
     setCaption(caption);
     setWidth(Self.Size.X);
     setHeight(Self.Size.Y);
+    if not allowResize then
+      getConstraints().SetInterfaceConstraints(Self.Size.X, Self.Size.Y, Self.Size.X, Self.Size.Y);
     setPosition(poScreenCenter);
+    setOnClose(@Self._OnClose);
   end;
 
   with Self.PageControl do
@@ -1727,13 +1768,20 @@ begin
   end;
 end;
 
-procedure TScriptForm.Run();
+
+procedure TScriptForm.Show();
 begin
   try
     Self.Form.ShowModal();
-    Self.Form.Free();
   except
     Writeln(GetExceptionMessage());
+  finally
+    Self.Form.Free();
   end;
+end;
+
+procedure TScriptForm.Run();
+begin
+  Sync(@Self.Show);
 end;
 

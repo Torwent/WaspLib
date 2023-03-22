@@ -1,3 +1,12 @@
+## [11.13.1](https://github.com/Torwent/WaspLib/compare/v11.13.0...v11.13.1) (2023-03-22)
+
+
+### Bug Fixes
+
+* more tweaks to TScriptForm ([2881e23](https://github.com/Torwent/WaspLib/commit/2881e23afee81abf15557a7be5bbe86fe00c05fe))
+
+
+
 # [11.13.0](https://github.com/Torwent/WaspLib/compare/v11.12.16...v11.13.0) (2023-03-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * bankpin failsafe added ([71bace0](https://github.com/Torwent/WaspLib/commit/71bace09fce7ecdb2b836cb4001cb2a86dd42361))
-
-
-
-## [11.12.13](https://github.com/Torwent/WaspLib/compare/v11.12.12...v11.12.13) (2023-03-19)
-
-
-### Bug Fixes
-
-* **bank withdraw:** improvements to out of supplies issues ([cdc260e](https://github.com/Torwent/WaspLib/commit/cdc260e8f5ed6109e9c7be4449e9ce172ed30882))
 
 
 

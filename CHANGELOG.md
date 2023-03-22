@@ -1,3 +1,12 @@
+# [11.13.0](https://github.com/Torwent/WaspLib/compare/v11.12.16...v11.13.0) (2023-03-22)
+
+
+### Features
+
+* new TScriptForm is now available to use with `{$DEFINE FORMS_V2}` ([4749b22](https://github.com/Torwent/WaspLib/commit/4749b2221dc1395abe5eb817bad5c2a2d60dc0e4))
+
+
+
 ## [11.12.16](https://github.com/Torwent/WaspLib/compare/v11.12.15...v11.12.16) (2023-03-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **bank withdraw:** improvements to out of supplies issues ([cdc260e](https://github.com/Torwent/WaspLib/commit/cdc260e8f5ed6109e9c7be4449e9ce172ed30882))
-
-
-
-## [11.12.12](https://github.com/Torwent/WaspLib/compare/v11.12.11...v11.12.12) (2023-03-19)
-
-
-### Bug Fixes
-
-* typo ([f32404b](https://github.com/Torwent/WaspLib/commit/f32404b45ed6ba84272aa6da71d80e463dd6fab6))
 
 
 

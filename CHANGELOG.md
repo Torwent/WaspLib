@@ -1,3 +1,12 @@
+## [11.12.16](https://github.com/Torwent/WaspLib/compare/v11.12.15...v11.12.16) (2023-03-22)
+
+
+### Bug Fixes
+
+* final tweaks to the new TScriptForm ([49c787d](https://github.com/Torwent/WaspLib/commit/49c787d471bd974a7b1233113dc23a95db8f3910))
+
+
+
 ## [11.12.15](https://github.com/Torwent/WaspLib/compare/v11.12.14...v11.12.15) (2023-03-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * typo ([f32404b](https://github.com/Torwent/WaspLib/commit/f32404b45ed6ba84272aa6da71d80e463dd6fab6))
-
-
-
-## [11.12.11](https://github.com/Torwent/WaspLib/compare/v11.12.10...v11.12.11) (2023-03-19)
-
-
-### Bug Fixes
-
-* **APIClient:** make api client version fetching never crash a script ([7b7b388](https://github.com/Torwent/WaspLib/commit/7b7b38805063a59f771590fa52241ade3d9a2bf7))
 
 
 

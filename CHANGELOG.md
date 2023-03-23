@@ -1,3 +1,12 @@
+## [11.13.2](https://github.com/Torwent/WaspLib/compare/v11.13.1...v11.13.2) (2023-03-23)
+
+
+### Bug Fixes
+
+* **TScriptForm:** fixed the consumables panel not doing anything ([61a91b8](https://github.com/Torwent/WaspLib/commit/61a91b83f07786a27238e5144b9dc02e182c4f85))
+
+
+
 ## [11.13.1](https://github.com/Torwent/WaspLib/compare/v11.13.0...v11.13.1) (2023-03-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fixed some issues with my custom TRSBank.WithdrawHelper ([184d0f6](https://github.com/Torwent/WaspLib/commit/184d0f67bb5897a1b6062fcc171a873eaf1717de))
-
-
-
-## [11.12.14](https://github.com/Torwent/WaspLib/compare/v11.12.13...v11.12.14) (2023-03-21)
-
-
-### Bug Fixes
-
-* bankpin failsafe added ([71bace0](https://github.com/Torwent/WaspLib/commit/71bace09fce7ecdb2b836cb4001cb2a86dd42361))
 
 
 

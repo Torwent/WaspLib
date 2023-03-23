@@ -1,3 +1,8 @@
+(*
+BankPin
+=======
+Methods to extend and/or modify SRL's bank interface.
+*)
 {$DEFINE WL_BANK_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
@@ -101,79 +106,71 @@ begin
   Result := buttons[i].Click();
 end;
 
-
+function TRSBank.WithdrawHelper(b: TBox; amount: Int32; noted: Boolean; useQuantityButtons: Boolean): Boolean; override;
 var
-  WithdrawXCache: Int32;
-
-function TRSBank.WithdrawHelper(B: TBox; Amount: Int32; Noted: Boolean; UseQuantityButtons: Boolean): Boolean; override;
-var
-  Button: TRSButton;
+  button: TRSButton;
 begin
-  if Noted then
-    Button := Self.GetButton(ERSBankButton.NOTE)
+  if noted then
+    button := Self.GetButton(ERSBankButton.NOTE)
   else
-    Button := Self.GetButton(ERSBankButton.ITEM);
+    button := Self.GetButton(ERSBankButton.ITEM);
 
-  if not Button.Enable() then
+  if not button.Enable() then
     Exit;
 
-  if UseQuantityButtons then
-  begin
-    if Self.IsCustomQuantity(Amount) then
-    begin
-      Button := Self.GetButton(ERSBankButton.QUANTITY_CUSTOM);
+  WriteLn('Cache: ', WL.GameSettings.BankWithdrawX, ' Amount: ', amount);
 
-      if Button.Enable then
-      begin
-        Mouse.Move(B);
-
-        if (WithdrawXCache = Amount) or MainScreen.IsUpText('Withdraw-' + ToString(Amount)) then
-        begin
-          Mouse.Click(MOUSE_LEFT);
-
-          Result := True;
-        end else
-        begin
-          Result := ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 4000));
-          if Result then
-            WithdrawXCache := Amount;
-        end;
-      end;
-    end else
-    begin
-      case Amount of
-        1:  Button := Self.GetButton(ERSBankButton.QUANTITY_1);
-        5:  Button := Self.GetButton(ERSBankButton.QUANTITY_5);
-        10: Button := Self.GetButton(ERSBankButton.QUANTITY_10);
-        else
-            Button := Self.GetButton(ERSBankButton.QUANTITY_ALL)
-      end;
-
-      if Button.Enable() then
-      begin
-        Result := True;
-
-        Mouse.Click(B, MOUSE_LEFT);
-      end;
-    end;
-  end else
+  if not useQuantityButtons then
   begin
     Mouse.Move(B);
 
-    case Amount of
-      BANK_WITHDRAW_ALL:
-        Result := ChooseOption.Select('Withdraw-All');
-      BANK_WITHDRAW_ALL_BUT_ONE:
-        Result := ChooseOption.Select('Withdraw-All-but-1');
-      else
-        Result := ChooseOption.Select('Withdraw-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False) or
-                  ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 2500));
+    case amount of
+      BANK_WITHDRAW_ALL:         Exit(ChooseOption.Select('Withdraw-All'));
+      BANK_WITHDRAW_ALL_BUT_ONE: Exit(ChooseOption.Select('Withdraw-All-but-1'));
     end;
+
+    Exit(ChooseOption.Select('Withdraw-' + ToString(amount) + ' ', MOUSE_LEFT, True, False) or
+         ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(amount), Random(2000, 2500)));
   end;
+
+  if not Self.IsCustomQuantity(amount) then
+  begin
+    case amount of
+      1:   button := Self.GetButton(ERSBankButton.QUANTITY_1);
+      5:   button := Self.GetButton(ERSBankButton.QUANTITY_5);
+      10:  button := Self.GetButton(ERSBankButton.QUANTITY_10);
+      else button := Self.GetButton(ERSBankButton.QUANTITY_ALL)
+    end;
+
+    if button.Enable() then
+    begin
+      Result := True;
+      Mouse.Click(b, MOUSE_LEFT);
+    end;
+
+    Exit;
+  end;
+
+  if not button.Enable() then
+    Exit;
+
+  button := Self.GetButton(ERSBankButton.QUANTITY_CUSTOM);
+  Mouse.Move(b);
+
+  if (WL.GameSettings.BankWithdrawX = amount) or MainScreen.IsUpText('Withdraw-' + ToString(amount)) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Exit(True);
+  end;
+
+  WL.GameSettings.BankWithdrawX := 0; //in case we falsely return the next statement true we reset this.
+  Result := ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(amount), Random(2000, 4000));
+  if Result then
+    WL.GameSettings.BankWithdrawX := amount;
 end;
 
 
-function TRSBank.WithdrawSlot(Tab: Int32; Item: TRSBankWithdrawSlot; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.WithdrawSlot(Tab: Int32; Item: TRSBankWithdrawSlot; useQuantityButtons: Boolean): Boolean; overload;
 var
   ItemCount: Int32;
 begin
@@ -188,10 +185,10 @@ begin
 end;
 
 
-function TRSBank.WithdrawItem(out Tab: Int32; Item: TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; overload;
+function TRSBank.WithdrawItem(out tab: Int32; item: TRSBankWithdrawItem; useQuantityButtons: Boolean): Boolean; overload;
 var
-  B: TBox;
-  ItemCount: Int32;
+  b: TBox;
+  count: Int32;
 begin
   if not Self.IsOpen() then
     Exit;
@@ -199,20 +196,20 @@ begin
   if Inventory.IsFull() and (Length(Item.Item.GetArray()) =1 ) and not Inventory.ItemIsStackable(Item.Item) then
     Exit;
 
-  if not Self.FindItem(Item.Item, B) then
+  if not Self.FindItem(item.Item, b) then
   begin
-    if Tab = -1 then
-      Tab := Self.FindItemTab(Item.Item)
+    if tab = -1 then
+      tab := Self.FindItemTab(item.Item)
     else
-      Self.OpenTab(Tab);
+      Self.OpenTab(tab);
 
-    if not Self.FindItem(Item.Item, B) then
+    if not Self.FindItem(item.Item, b) then
       Exit(False);
   end;
 
-  ItemCount := SRL.GetItemAmount(B);
-  if Self.WithdrawHelper(B, Item.Quantity, Item.Noted, UseQuantityButtons) then
-    Result := WaitUntil(SRL.GetItemAmount(B) < ItemCount, 100, 2000);
+  count := SRL.GetItemAmount(b);
+  if Self.WithdrawHelper(b, item.Quantity, item.Noted, useQuantityButtons) then
+    Result := WaitUntil(SRL.GetItemAmount(b) < count, 100, 2000);
 end;
 
 function TRSBank.WithdrawItems(Tab: Int32; Items: array of TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean;
@@ -358,36 +355,3 @@ begin
   Result := MainScreen.CloseInterface(PressEscape);
 end;
 
-function TRSBankPin.ClickDigit(Digit: Char): Boolean; override;
-var
-  buttons: TRSButtonArray;
-  hovering: Boolean;
-  i: Int32;
-begin
-  if not Self.IsOpen() then
-    Exit;
-
-  buttons := Self.GetButtons();
-
-  if Length(buttons) <> 10 then
-    Exit;
-
-  for i := 0 to High(buttons) do
-  begin
-    if OCR.LocateText(buttons[i].Bounds.Expand(5), Digit, RS_FONT_BOLD_12, TOCRColorRule.Create([$007FFF]), 1) then
-    begin
-      Mouse.Click(buttons[i].Bounds, MOUSE_LEFT);
-      Exit(True);
-    end;
-
-    if buttons[i].Bounds.Expand(5).Contains(Mouse.Position()) then
-      hovering := True;
-  end;
-
-
-  if hovering then
-  begin
-    Mouse.Click(MOUSE_LEFT);
-    Exit(True);
-  end;
-end;

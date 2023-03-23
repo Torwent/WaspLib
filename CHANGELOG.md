@@ -1,45 +1,45 @@
-## [11.12.13](https://github.com/Torwent/WaspLib/compare/v11.12.12...v11.12.13) (2023-03-19)
+## [11.13.1](https://github.com/Torwent/WaspLib/compare/v11.13.0...v11.13.1) (2023-03-22)
 
 
 ### Bug Fixes
 
-* **bank withdraw:** improvements to out of supplies issues ([cdc260e](https://github.com/Torwent/WaspLib/commit/cdc260e8f5ed6109e9c7be4449e9ce172ed30882))
+* more tweaks to TScriptForm ([2881e23](https://github.com/Torwent/WaspLib/commit/2881e23afee81abf15557a7be5bbe86fe00c05fe))
 
 
 
-## [11.12.12](https://github.com/Torwent/WaspLib/compare/v11.12.11...v11.12.12) (2023-03-19)
+# [11.13.0](https://github.com/Torwent/WaspLib/compare/v11.12.16...v11.13.0) (2023-03-22)
 
 
-### Bug Fixes
+### Features
 
-* typo ([f32404b](https://github.com/Torwent/WaspLib/commit/f32404b45ed6ba84272aa6da71d80e463dd6fab6))
-
-
-
-## [11.12.11](https://github.com/Torwent/WaspLib/compare/v11.12.10...v11.12.11) (2023-03-19)
-
-
-### Bug Fixes
-
-* **APIClient:** make api client version fetching never crash a script ([7b7b388](https://github.com/Torwent/WaspLib/commit/7b7b38805063a59f771590fa52241ade3d9a2bf7))
+* new TScriptForm is now available to use with `{$DEFINE FORMS_V2}` ([4749b22](https://github.com/Torwent/WaspLib/commit/4749b2221dc1395abe5eb817bad5c2a2d60dc0e4))
 
 
 
-## [11.12.10](https://github.com/Torwent/WaspLib/compare/v11.12.9...v11.12.10) (2023-03-18)
+## [11.12.16](https://github.com/Torwent/WaspLib/compare/v11.12.15...v11.12.16) (2023-03-22)
 
 
 ### Bug Fixes
 
-* **formutils:** fixed linux bitching ([c37038c](https://github.com/Torwent/WaspLib/commit/c37038c4c6193b0022b6424d4a8769b8b2fddc37))
+* final tweaks to the new TScriptForm ([49c787d](https://github.com/Torwent/WaspLib/commit/49c787d471bd974a7b1233113dc23a95db8f3910))
 
 
 
-## [11.12.9](https://github.com/Torwent/WaspLib/compare/v11.12.8...v11.12.9) (2023-03-17)
+## [11.12.15](https://github.com/Torwent/WaspLib/compare/v11.12.14...v11.12.15) (2023-03-21)
 
 
 ### Bug Fixes
 
-* **RSRegions:** Added some extra regions I think people will like ([#56](https://github.com/Torwent/WaspLib/issues/56)) ([3ff6860](https://github.com/Torwent/WaspLib/commit/3ff68602bb14448e82e957b98a1f2fbf492f1284))
+* fixed some issues with my custom TRSBank.WithdrawHelper ([184d0f6](https://github.com/Torwent/WaspLib/commit/184d0f67bb5897a1b6062fcc171a873eaf1717de))
+
+
+
+## [11.12.14](https://github.com/Torwent/WaspLib/compare/v11.12.13...v11.12.14) (2023-03-21)
+
+
+### Bug Fixes
+
+* bankpin failsafe added ([71bace0](https://github.com/Torwent/WaspLib/commit/71bace09fce7ecdb2b836cb4001cb2a86dd42361))
 
 
 

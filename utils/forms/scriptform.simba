@@ -9,6 +9,8 @@ This file is responsible for creating and managing WaspLib's forms.
 {$ENDIF}
 
 {$IFHASFILE credentials.simba}{$I credentials.simba}{$ENDIF}
+{$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+{$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := ''}{$ENDIF}
 
 const
   CREDENTIALS_FILE = AppPath + 'credentials.simba';
@@ -83,12 +85,12 @@ end;
 
 type
   TScriptForm = record
-    DPI: Int32;
     Size: TPoint;
-    Form: TForm;
     PageControl: TPageControl;
     Tabs: array of TTabSheet;
     Start: TButton;
+  class var
+    Form: TForm;
   end;
 
 procedure TScriptForm.AddTab(caption: String);
@@ -120,7 +122,6 @@ begin
 
   Self.Tabs += tab;
 end;
-
 
 procedure TScriptForm.AddTabArray(captions: TStringArray);
 var
@@ -182,6 +183,18 @@ begin
   for i := 0 to High(Self.Tabs) do
     if Self.Tabs[i].getCaption() = caption then
       Exit(Self.Tabs[i]);
+end;
+
+
+procedure TScriptForm.SetTabOrder(captions: TStringArray; ignoreCase: Boolean = False); overload;
+var
+  tmp: array of TTabSheet;
+  i: Int32;
+begin
+  for i := 0 to High(captions) do
+    tmp += Self.GetTab(captions[i], ignoreCase);
+
+  Self.Tabs := tmp;
 end;
 
 
@@ -433,7 +446,7 @@ begin
   end;
 end;
 
-function TScriptForm.CreateAccountManager(const owner: TControl): TPanel;
+function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
   type TScriptForm = TScriptForm;
    //This doesn't have to clutter things outside.
 
@@ -511,16 +524,8 @@ function TScriptForm.CreateAccountManager(const owner: TControl): TPanel;
   var
     i: Int32;
     selector: TComboBox;
-    edit, sleepHour, sleepLength: TEdit;
-    trackbar: TTrackBar;
   begin
     selector := Self.Form.GetChild('am_selector_combobox');
-    edit := Self.Form.GetChild('ab_biohash_edit');
-    if edit = nil then
-      Exit;
-    trackbar := Self.Form.GetChild('ab_biohash_trackbar');
-    sleepHour   := Self.Form.GetChild('ab_sleep_hour_edit');
-    sleepLength := Self.Form.GetChild('ab_sleep_length_edit');
 
     i := selector.GetItemIndex();
     if i = -1 then
@@ -542,13 +547,11 @@ function TScriptForm.CreateAccountManager(const owner: TControl): TPanel;
     BioHash := 0;
     Antiban.SetupBiometrics();
 
-    edit.setText(FormatFloat('0.000000000000000', BioHash));
+    WLSettings.Sleep.HourOverride := '';
+    WLSettings.Sleep.LengthOverride := 0;
 
     Antiban.SetSleepHour();
     Antiban.SetSleepLength();
-
-    sleepHour.SetText(WLSettings.Sleep.Hour);
-    sleepLength.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
   end;
 
   procedure TScriptForm._OnAddClick(sender: TObject);
@@ -685,7 +688,7 @@ begin
     SetCaption('Username:');
     SetName('am_user');
     SetLeft(space);
-    SetTop(selector.GetBottom() + Round(2 * Self.DPI / 96));
+    SetTop(selector.GetBottom() + TControl.AdjustToDPI(2));
     SetWidth(w);
   end;
 
@@ -695,7 +698,7 @@ begin
     SetCaption('Password:');
     SetName('am_pass');
     SetLeft(space);
-    SetTop(user.GetBottom() + Round(2 * Self.DPI / 96));
+    SetTop(user.GetBottom() + TControl.AdjustToDPI(2));
     SetWidth(passW);
     SetPasswordChar('*');
   end;
@@ -936,8 +939,42 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     WLSettings.Sleep.LengthOverride := len;
   end;
 
+  type TAntiban = TAntiban;
+
+  procedure TAntiban.SetupBiometrics(); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+    edit := TScriptForm.Form.GetChild('ab_biohash_edit');
+    if edit = nil then
+      Exit;
+    edit.setText(FormatFloat('0.000000000000000', BioHash));
+  end;
+
+  procedure TAntiban.SetSleepHour(); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+    edit := TScriptForm.Form.GetChild('ab_sleep_hour_edit');
+    if edit = nil then
+      Exit;
+    edit.SetText(WLSettings.Sleep.Hour);
+  end;
+
+  procedure TAntiban.SetSleepLength(); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+    edit := TScriptForm.Form.GetChild('ab_sleep_length_edit');
+    if edit = nil then
+      Exit;
+    edit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
+  end;
+
 var
-  tab: TTabSheet;
   bioPanel: TPanel;
   fullWidth, w, space, y: Int32;
   bioEdit, sleepHour, sleepLength: TLabeledEdit;
@@ -1074,6 +1111,10 @@ begin
     Edit.setOnChange(@Self._SleepLengthOnChange);
     SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
   end;
+
+  Antiban.SetupBiometrics();
+  Antiban.SetSleepHour();
+  Antiban.SetSleepLength();
 end;
 
 function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet;
@@ -1289,7 +1330,7 @@ end;
 
 
 
-function TScriptForm.CreateLimitSettings(const owner: TControl): TPanel;
+function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
   type TScriptForm = TScriptForm;
 
   procedure TScriptForm._ActionLimitOnDone(sender: TObject);
@@ -1380,7 +1421,7 @@ begin
   end;
 end;
 
-function TScriptForm.CreateRemoteInputSettings(const owner: TControl): TPanel;
+function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
   type TScriptForm = TScriptForm;
   //Self contained methods only related to the remote input settings.
   //This doesn't have to clutter things outside.
@@ -1559,29 +1600,170 @@ begin
   end;
 end;
 
+function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray = [$27BA70, $00D8FF, $0000FF]; align: TAlign = alBottom): TPanel;
+  function _MakeVersionLabel(owner: TControl; caption, current, latest: String; color, pad1, pad2: Int32): TPanel;
+  var
+    tmp: String;
+    captionLabel, currentLabel, latestLabel: TLabel;
+    i: Int32;
+  begin
+    with Result do
+    begin
+      Create(owner);
+      setCaption('');
+      setBevelWidth(0);
+    end;
 
+    with captionlabel do
+    begin
+      Create(Result);
+      SetTop(0);
+      SetLeft(0);
+      SetFontColor(color);
+      getFont().setStyle([fsBold]);
+      for i := 0 to pad1 do
+        tmp += '_';
+      setCaption(tmp);
+      setWidth(GetTrueWidth());
+      setCaption(caption);
+    end;
 
-procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]);
+    with currentLabel do
+    begin
+      Create(Result);
+      SetTop(0);
+      SetLeft(captionLabel.GetRight());
+      SetFontColor(color);
+      getFont().setStyle([fsBold]);
+      for i := 0 to pad2 do
+        tmp += '_';
+      setCaption(tmp);
+      setWidth(GetTrueWidth());
+      setCaption(current);
+    end;
+
+    with latestLabel do
+    begin
+      Create(Result);
+      setCaption(latest);
+      SetTop(0);
+      SetLeft(currentLabel.GetRight());
+      SetFontColor(color);
+      getFont().setStyle([fsBold]);
+      setWidth(GetTrueWidth());
+    end;
+
+    Result.setHeight(captionlabel.GetTrueHeight());
+    Result.setWidth(captionlabel.getWidth() + currentLabel.getWidth() + latestLabel.getWidth());
+  end;
+
+  procedure _CheckFailed(out str: String; out color: Int32);
+  begin
+    if str <> '' then
+      Exit;
+    str   := 'Check Failed';
+    color := colors[1];
+  end;
+
+  procedure _CheckMatch(current, latest: String; out color: Int32);
+  begin
+    if current <> latest then
+      color := colors[2];
+  end;
+var
+  srltPanel, wlPanel, revPanel: TPanel;
+  latestSRLT, latestWL, latestRev, currentSRLT, currentWL, currentRev: String;
+  srltColor, wlColor, revColor, pad1, pad2: Int32;
 begin
-  Self.DPI := TControl.GetScreenDPI();
+  APIClient.GetAllVersions({$macro SCRIPT_ID}, latestRev, latestSRLT, latestWL);
 
+  srltColor := colors[0];
+  wlColor   := colors[0];
+  revColor  := colors[0];
+
+  _CheckFailed(latestSRLT, srltColor);
+  _CheckFailed(latestWL  , wlColor);
+  _CheckFailed(latestRev, revColor);
+
+  currentSRLT := GetPackageVersion('srl-t');
+  currentWL   := GetPackageVersion('wasplib');
+  currentRev  := {$macro SCRIPT_REVISION};
+
+  _CheckMatch(currentSRLT, latestSRLT, srltColor);
+  _CheckMatch(currentWL, latestWL, wlColor);
+  _CheckMatch(currentRev, latestRev, revColor);
+
+  with Result do
+  begin
+    Create(owner);
+    setName('version_panel');
+    setCaption('');
+    setBevelWidth(0);
+    SetTooltip('Version checker.');
+    setWidth(Self.Size.X);
+    setAlign(align);
+  end;
+
+  pad1 := Max(Max(Length('SRL-T'), Length('WaspLib')), Length('WaspLib')) + 8;
+  pad2 := Max(Max(Length(currentSRLT), Length(currentWL)), Length(currentRev));
+
+  srltPanel := _MakeVersionLabel(Result, 'SRL-T'  , 'Current: ' + currentSRLT, 'Latest: ' + latestSRLT, srltColor, pad1, pad2);
+  wlPanel   := _MakeVersionLabel(Result, 'WaspLib', 'Current: ' + currentWL  , 'Latest: ' + latestWL  , wlColor  , pad1, pad2);
+  revPanel  := _MakeVersionLabel(Result, 'Script' , 'Current: ' + currentRev , 'Latest: ' + latestRev , revColor , pad1, pad2);
+
+  srltPanel.SetTop(0);
+  wlPanel.SetTop(srltPanel.GetBottom());
+  revPanel.SetTop(wlPanel.GetBottom());
+
+  srltPanel.SetLeft(TControl.AdjustToDPI(5));
+  wlPanel.SetLeft(TControl.AdjustToDPI(5));
+  revPanel.SetLeft(TControl.AdjustToDPI(5));
+end;
+
+procedure TScriptForm.StartScript({$H-}sender: TObject);{$H+}
+begin
+  Self.Form.SetOnClose(nil);
+  Self.Form.Close();
+end;
+
+procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._OnClose({$H-}sender: TObject; var closeAction: TCloseAction);{$H+}
+  begin
+    WriteLn closeAction;
+    TerminateScript();
+  end;
+
+var
+  font: TFont;
+begin
   Self.Size.X := TControl.AdjustToDPI(size.X);
   Self.Size.Y := TControl.AdjustToDPI(size.Y);
 
-  with Self.Form do
+  font.Init();
+  font.setQuality(TFontQuality.fqAntialiased);
+  font.SetPitch(fpFixed);;
+  font.SetDefault();
+  font.Free();
+
+  with TScriptForm.Form do
   begin
     Init(nil);
-    setName(StringReplace(caption, ' ', '_', TReplaceFlags(0)));
+    setName(StringReplace(caption, ' ', '_', [rfReplaceAll]));
     setCaption(caption);
     setWidth(Self.Size.X);
     setHeight(Self.Size.Y);
+    if not allowResize then
+      getConstraints().SetInterfaceConstraints(Self.Size.X, Self.Size.Y, Self.Size.X, Self.Size.Y);
     setPosition(poScreenCenter);
+    setOnClose(@Self._OnClose);
   end;
 
   with Self.PageControl do
   begin
     Create(Self.Form);
-    setName('PageControl');
+    setName('pagecontrol');
     setAlign(alClient);
   end;
 
@@ -1590,24 +1772,24 @@ begin
     Create(Self.PageControl);
     setAlign(alBottom);
     SetCaption('Start!');
+    setOnClick(@Self.StartScript);
   end;
-
-  Self.CreateWaspLibSettings();
-  Self.CreateBankSettings();
-  Self.CreateConsumableSettings(ERSConsumable.PRAYER_CONSUMABLE);
-  Self.CreateAPISettings();
-  Self.CreateAntibanManager();
-  Self.CreateAccountManager();
 end;
 
 
-procedure TScriptForm.Run();
+procedure TScriptForm.Show();
 begin
   try
     Self.Form.ShowModal();
-    Self.Form.Free();
   except
     Writeln(GetExceptionMessage());
+  finally
+    Self.Form.Free();
   end;
+end;
+
+procedure TScriptForm.Run();
+begin
+  Sync(@Self.Show);
 end;
 

@@ -1,67 +1,72 @@
 {$UNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := '0fb23f9b-3bc2-41cd-8670-3fec0eb256f1'}
 {$UNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '27'}
 {$DEFINE FORMS_V2}
+{$DEFINE SCRIPT_GUI}
 {$I SRL-T/osr.simba}
 {$I WaspLib/osr.simba}
 
+{$IFDEF SCRIPT_GUI}
+type
+  TMyScriptForm = record(TScriptForm)
+    Selector: TLabeledCombobox;
+    Info: TLabel;
+  end;
 
-function TScriptForm.SetupCustomTab(): TTabSheet;
-var
-  btn: TButton;
-  combo: TLabeledComboBox;
-  lb: TLabeledListBox;
+procedure TMyScriptForm.StartScript(sender: TObject); override;
 begin
+  inherited; //This is important if you use TScript.Setup().
+
+  //Read your script options.
+end;
+
+procedure TMyScriptForm.Run(); override;
+var
+  tab: TTabSheet;
+begin
+  Self.Setup('HELLO WORLD SCRIPT');
+
   Self.AddTab('Script Settings');
-  Result := Self.Tabs[High(Self.Tabs)];
+  tab := Self.Tabs[High(Self.Tabs)];
 
-  Self.CreateAccountManager(Result);
+  Self.CreateAccountManager(tab);
 
-  with lb do
+  with Self.Selector do
   begin
-    Create(Result);
-    SetName('listbox');
-    AddItem('Button A');
-    AddItem('Button B');
-    AddItem('Button C');
-    SetLeft(TControl.AdjustToDPI(20));
-    SetTop(TControl.AdjustToDPI(200));
+    Create(tab);
+    SetCaption('Item type:');
+    SetLeft(TControl.AdjustToDPI(40));
+    SetTop(TControl.AdjustToDPI(170));
+    SetStyle(csDropDownList);
+    AddItemArray(['Item1', 'Item2', 'Item3', 'Item4']);
+    SetItemIndex(2);
   end;
 
-  with btn do
+  with Self.Info do
   begin
-    Create(Result);
-    SetCaption('Button X');
-    SetLeft(TControl.AdjustToDPI(200));
-    SetTop(TControl.AdjustToDPI(230));
+    Create(tab);
+    SetCaption('Get 99 Hello world today!');
+    SetLeft(Self.Selector.GetRight() + TControl.AdjustToDPI(40));
+    SetTop(TControl.AdjustToDPI(190));
   end;
 
-  with combo do
-  begin
-    Create(Result);
-    SetLeft(TControl.AdjustToDPI(350));
-    SetTop(TControl.AdjustToDPI(250));
-    SetCaption('Labeled combobox');
-    SetFontColor($FFFFFF);
-    AddItem('item 1');
-    AddItem('item 2');
-  end;
+  Self.CreateVersionPanel(tab);
 
-  Self.CreateVersionPanel(Result);
+  Self.CreateAntibanManager();
+  Self.CreateBankSettings();
+  Self.CreateWaspLibSettings();
+  Self.CreateAPISettings();
+
+  inherited;
 end;
 
 var
-  Form: TScriptForm;
+  MyScriptForm: TMyScriptForm;
+{$ENDIF}
 
 begin
-  Form.Setup('HELLO WORLD SCRIPT Get 99 Hello world today');
+  {$IFDEF SCRIPT_GUI}
+  MyScriptForm.Run();
+  {$ENDIF}
 
-  Form.SetupCustomTab();
-  Form.CreateAntibanManager();
-  Form.CreateWaspLibSettings();
-  Form.CreateAPISettings();
-
-  //Form.PageControl.LoadFromFile('Resources\AGGUIBG.png'); //add img bg
-  Form.PageControl.SetChildsFontColor($0000FF);
-
-  Form.Run();
+  //RUN SCRIPT HERE!
 end.

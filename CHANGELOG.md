@@ -1,3 +1,12 @@
+## [11.13.3](https://github.com/Torwent/WaspLib/compare/v11.13.2...v11.13.3) (2023-03-24)
+
+
+### Bug Fixes
+
+* **TScriptFormV2:** Read notes. ([f44f077](https://github.com/Torwent/WaspLib/commit/f44f0775a5c1f7206afdbc84360c233ecb91aa1e))
+
+
+
 ## [11.13.2](https://github.com/Torwent/WaspLib/compare/v11.13.1...v11.13.2) (2023-03-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * final tweaks to the new TScriptForm ([49c787d](https://github.com/Torwent/WaspLib/commit/49c787d471bd974a7b1233113dc23a95db8f3910))
-
-
-
-## [11.12.15](https://github.com/Torwent/WaspLib/compare/v11.12.14...v11.12.15) (2023-03-21)
-
-
-### Bug Fixes
-
-* fixed some issues with my custom TRSBank.WithdrawHelper ([184d0f6](https://github.com/Torwent/WaspLib/commit/184d0f67bb5897a1b6062fcc171a873eaf1717de))
 
 
 

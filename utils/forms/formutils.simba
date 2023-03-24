@@ -111,7 +111,7 @@ end;
 
 function TComponent.NameMatch(name: TComponentName): Boolean;
 begin
-  Result := Self.getName() = name;
+  Result := (Self <> nil) and (Self.GetName() = name);
 end;
 
 function TComponent.GetChild(name: TComponentName): TComponent;
@@ -472,6 +472,18 @@ begin
   Result := Self.getState() = cbChecked;
 end;
 
+(*
+CheckBox.Toggle
+~~~~~~~~~~~~~~~
+.. pascal:: procedure TCheckBox.Toggle();
+
+Inverts the checkbox.
+*)
+procedure TCheckBox.Toggle();
+begin
+  Self.SetChecked(not Self.IsChecked());
+end;
+
 
 type
 (*
@@ -671,13 +683,36 @@ begin
   Self.Panel.setHeight(h);
 end;
 
+
+
 procedure TLabeledCheckBox.Create(owner: TControl); override;
+  type TLabeledCheckBox = TLabeledCheckBox;
+
+  procedure TLabeledCheckBox.ToggleCheckBox(sender: TObject);
+  var
+    control: TControl;
+    panel: TPanel;
+    check: TCheckBox;
+  begin
+    control := sender;
+    if control.getComponentCount() = 2 then
+      panel := sender
+    else
+      panel := control.getParent();
+
+    check := panel.GetComponent(1);
+
+    check.Toggle();
+  end;
+
 begin
   Self.Panel.Create(owner);
   Self.Panel.setBevelWidth(0);
+  Self.Panel.setOnClick(@Self.ToggleCheckBox);
 
   Self.Caption.Create(Self.Panel);
   Self.Caption.setAlign(alLeft);
+  Self.Caption.setOnClick(@Self.ToggleCheckBox);
 
   Self.CheckBox.Create(Self.Panel);
   Self.CheckBox.setAlign(alLeft);
@@ -733,6 +768,25 @@ begin
 end;
 
 procedure TCheckCheckGroup.Create(owner: TControl); override;
+  type TCheckCheckGroup = TCheckCheckGroup;
+
+  procedure TCheckCheckGroup.ToggleCheckBox(sender: TObject); override;
+  var
+    control: TControl;
+    panel: TPanel;
+    check: TCheckBox;
+  begin
+    control := sender;
+    if control.getComponentCount() = 2 then
+      panel := sender
+    else
+      panel := control.getParent();
+
+    check := panel.GetComponent(1);
+
+    check.Toggle();
+  end;
+
 begin
   Self.Panel.Create(owner);
   Self.Panel.SetBevelWidth(0);
@@ -740,18 +794,21 @@ begin
   Self.CaptionPanel.Create(Panel);
   Self.CaptionPanel.SetBevelWidth(0);
   Self.CaptionPanel.setHeight(TControl.AdjustToDPI(25));
+  Self.CaptionPanel.setOnClick(@Self.ToggleCheckBox);
 
-  Self.CheckBox.Create(Self.CaptionPanel);
+
   Self.Caption.Create(Self.CaptionPanel);
   Self.Caption.setLeft(TControl.AdjustToDPI(20));
   Self.Caption.SetTop(TControl.AdjustToDPI(2));
+  Self.Caption.setOnClick(@Self.ToggleCheckBox);
+  Self.CheckBox.Create(Self.CaptionPanel);
+
 
   Self.GroupPanel.Create(Panel);
   Self.GroupPanel.SetBevelWidth(0);
   Self.GroupPanel.SetTop(Self.CaptionPanel.GetBottom());
   Self.GroupPanel.SetLeft(TControl.AdjustToDPI(10))
 end;
-
 
 
 procedure TCheckCheckGroup.AdjustSize();
@@ -774,8 +831,6 @@ begin
   Self.Panel.setHeight(TControl.AdjustToDPI(22) + h);
   Self.Panel.setWidth(TControl.AdjustToDPI(22) + w);
 end;
-
-
 
 
 (*
@@ -1448,6 +1503,7 @@ LabeledControl.AddItemArray
 .. pascal::
   procedure TLabeledCombobox.AddItemArray(valueArray: TStringArray);
   procedure TLabeledListBox.AddItemArray(valueArray: TStringArray);
+  procedure TCheckCheckGroup.AddItemArray(valueArray: TStringArray);
 
 Adds an array of items to the TLabeledControl.
 *)
@@ -1468,6 +1524,14 @@ begin
 end;
 
 procedure TLabeledListBox.AddItemArray(valueArray: TStringArray);
+var
+  value: String;
+begin
+  for value in valueArray do
+    Self.AddItem(value);
+end;
+
+procedure TCheckCheckGroup.AddItemArray(valueArray: TStringArray);
 var
   value: String;
 begin

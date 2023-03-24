@@ -2,6 +2,8 @@
 ScriptForm
 ==========
 This file is responsible for creating and managing WaspLib's forms.
+
+This might be complicated to understand if you are not familiar with pointers and type casting because it heavily relies on both.
 *)
 {$DEFINE WL_SCRIPTFORM_INCLUDED}
 {$IFNDEF WL_UTILS}
@@ -525,31 +527,30 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     i: Int32;
     selector: TComboBox;
   begin
-    selector := Self.Form.GetChild('am_selector_combobox');
+    selector := sender;
 
     i := selector.GetItemIndex();
     if i = -1 then
     begin
       Login.PlayerIndex := 0;
-      Self._ClearInputs(sender);
+      Self._ClearInputs(selector);
     end
     else if (i > High(Login.Players)) then
     begin
       Login.PlayerIndex := i;
-      Self._ClearInputs(sender);
+      Self._ClearInputs(selector);
     end
     else
     begin
       Login.PlayerIndex := i;
-      Self._FillInputs(sender);
+      Self._FillInputs(selector);
     end;
 
     BioHash := 0;
-    Antiban.SetupBiometrics();
-
     WLSettings.Sleep.HourOverride := '';
     WLSettings.Sleep.LengthOverride := 0;
 
+    Antiban.SetupBiometrics();
     Antiban.SetSleepHour();
     Antiban.SetSleepLength();
   end;
@@ -939,39 +940,23 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     WLSettings.Sleep.LengthOverride := len;
   end;
 
-  type TAntiban = TAntiban;
-
-  procedure TAntiban.SetupBiometrics(); override;
+  procedure TScriptForm._SelectorOnChange(sender: TObject); override;
   var
     edit: TEdit;
   begin
     inherited;
+
     edit := TScriptForm.Form.GetChild('ab_biohash_edit');
-    if edit = nil then
-      Exit;
-    edit.setText(FormatFloat('0.000000000000000', BioHash));
-  end;
+    if edit <> nil then
+      edit.setText(FormatFloat('0.000000000000000', BioHash));
 
-  procedure TAntiban.SetSleepHour(); override;
-  var
-    edit: TEdit;
-  begin
-    inherited;
     edit := TScriptForm.Form.GetChild('ab_sleep_hour_edit');
-    if edit = nil then
-      Exit;
-    edit.SetText(WLSettings.Sleep.Hour);
-  end;
+    if edit <> nil then
+      edit.SetText(WLSettings.Sleep.Hour);
 
-  procedure TAntiban.SetSleepLength(); override;
-  var
-    edit: TEdit;
-  begin
-    inherited;
     edit := TScriptForm.Form.GetChild('ab_sleep_length_edit');
-    if edit = nil then
-      Exit;
-    edit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
+    if edit <> nil then
+      edit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
   end;
 
 var
@@ -982,9 +967,18 @@ var
   antibanGroup: TCheckCheckGroup;
   breaks, sleeps: TLabeledCheckBox;
   tmp: TCheckBox;
+  combobox: TComboBox;
 begin
   Self.AddTab('Antiban Manager');
   Result := Self.Tabs[High(Self.Tabs)];
+
+  combobox := Self.Form.GetChild('am_selector_combobox');
+  if combobox = nil then
+  begin
+    Antiban.SetupBiometrics();
+    Antiban.SetSleepHour();
+    Antiban.SetSleepLength();
+  end;
 
   fullWidth := Self.Size.X;
   space := Floor(fullWidth * 0.1);
@@ -1003,6 +997,17 @@ begin
     setBevelWidth(0);
   end;
 
+  with bar do
+  begin
+    Create(bioPanel);
+    SetName('ab_biohash_trackbar');
+    SetMin(0);
+    SetMax(9);
+    setAlign(alBottom);
+    SetTooltip('You can adjust your biohash with this trackbar, however, the default is recommended.');
+    setOnChange(@Self._BarOnChange);
+  end;
+
   with bioEdit do
   begin
     Create(bioPanel);
@@ -1013,17 +1018,7 @@ begin
     SetMaxLength(17);
     Edit.setOnKeyPress(@Edit.NumberField);
     Edit.setOnChange(@Self._BioHashOnChange);
-  end;
-
-  with bar do
-  begin
-    Create(bioPanel);
-    SetName('ab_biohash_trackbar');
-    SetMin(0);
-    SetMax(9);
-    setAlign(alBottom);
-    SetTooltip('You can adjust your biohash with this trackbar, however, the default is recommended.');
-    setOnChange(@Self._BarOnChange);
+    SetText(FormatFloat('0.000000000000000', BioHash));
   end;
 
   fullWidth := Floor(Self.Size.X / 3);
@@ -1038,11 +1033,7 @@ begin
     SetTooltip('Antiban settings.');
     SetTop(TControl.AdjustToDPI(100));
     SetLeft(space);
-    AddItem('Camera');
-    AddItem('Mouse');
-    AddItem('Chat');
-    AddItem('GameTabs');
-    AddItem('Bank');
+    AddItemArray(['Camera', 'Mouse', 'Chat', 'GameTabs', 'Bank']);
 
     SetCheckedChild(WLSettings.Antiban.Camera, 'camera_group');
     SetCheckedChild(WLSettings.Antiban.Mouse, 'mouse_group');
@@ -1112,12 +1103,11 @@ begin
     SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
   end;
 
-  Antiban.SetupBiometrics();
-  Antiban.SetSleepHour();
-  Antiban.SetSleepLength();
+  if combobox <> nil then
+    Self._SelectorOnChange(combobox);
 end;
 
-function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet;
+function TScriptForm.CreateConsumableSettings(owner: TControl; consumableType: ERSConsumable; addInfo: Boolean = True): TPanel;
 var
   typeStr: String;
   itemArray: TRSItemArray;
@@ -1129,7 +1119,10 @@ begin
   fullWidth := Floor(Self.Size.X/3);
   space := Floor(fullWidth * 0.1);
   w := Floor(fullWidth - space * 2);
-  y := Floor(Self.Size.Y/2.5);
+  if addInfo then
+    y := Floor(Self.Size.Y/2.5)
+  else
+    y := TControl.AdjustToDPI(15);
 
   case consumableType of
     FOOD_CONSUMABLE:
@@ -1157,33 +1150,42 @@ begin
       end;
   end;
 
-  Self.AddTab(typeStr + ' Manager');
-  Result := Self.Tabs[High(Self.Tabs)];
-
-  with info do
+  with Result do
   begin
-    Create(Result);
-    SetTop(TControl.AdjustToDPI(20));
-    SetLeft(space);
-    setCaption('Things to keep in mind about WaspLib''s ' + typeStr +
-               ' Handler:' + LINEENDING + LINEENDING +
-               '- Auto mode will use anythig it recognizes available. It only recognizes items in the list.' +
-               LINEENDING +
-               '- Auto mode has it''s own order of preference, which might not match yours. It''s the same order as the list.' +
-               LINEENDING +
-               '- Auto mode preference order can be overriden by starting with an item from the list in your inventory.' +
-               LINEENDING +
-               '- "Drink/Eat at" and "Withdraw ' + typeStr + ' amount" are dynamic and have some variance to it.' +
-               LINEENDING +
-               '    - This variance is not a flat rate, it varies both depending on input and your BioHash.' +
-               LINEENDING +
-               '    - For "Eat/Drink" you can expect it to:' +
-               LINEENDING +
-               '        - Vary aproximately between 20% and 40% on lower values, e.g. 10.' +
-               LINEENDING +
-               '        - Vary aproximately between 5% and 20% at higher values e.g. 80.'
-    );
+    Create(owner);
+    setName('cm_' + LowerCase(typeStr) + '_panel');
+    setCaption('');
+    setBevelWidth(0);
+    setHeight(y + TControl.AdjustToDPI(40));
+    setWidth(Self.Size.X);
+    SetTooltip('WaspLib''s ' + typeStr + ' Settings.');
   end;
+
+  if addInfo then
+    with info do
+    begin
+      Create(Result);
+      SetTop(TControl.AdjustToDPI(20));
+      SetLeft(space);
+      setCaption('Things to keep in mind about WaspLib''s ' + typeStr +
+                 ' Handler:' + LINEENDING + LINEENDING +
+                 '- Auto mode will use anythig it recognizes available. It only recognizes items in the list.' +
+                 LINEENDING +
+                 '- Auto mode has it''s own order of preference, which might not match yours. It''s the same order as the list.' +
+                 LINEENDING +
+                 '- Auto mode preference order can be overriden by starting with an item from the list in your inventory.' +
+                 LINEENDING +
+                 '- "Drink/Eat at" and "Withdraw ' + typeStr + ' amount" are dynamic and have some variance to it.' +
+                 LINEENDING +
+                 '    - This variance is not a flat rate, it varies both depending on input and your BioHash.' +
+                 LINEENDING +
+                 '    - For "Eat/Drink" you can expect it to:' +
+                 LINEENDING +
+                 '        - Vary aproximately between 20% and 40% on lower values, e.g. 10.' +
+                 LINEENDING +
+                 '        - Vary aproximately between 5% and 20% at higher values e.g. 80.'
+      );
+    end;
 
   with consumableSelector do
   begin
@@ -1227,6 +1229,22 @@ begin
       SetText('8');
       Edit.setOnKeyPress(@Edit.NumberField);
     end;
+end;
+
+function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet; overload;
+var
+  typeStr: String;
+begin
+  case consumableType of
+    FOOD_CONSUMABLE:   typeStr := 'Food';
+    PRAYER_CONSUMABLE: typeStr := 'Prayer';
+    ENERGY_CONSUMABLE: typeStr := 'Energy';
+    BOOST_CONSUMABLE:  typeStr := 'Boost';
+  end;
+
+  Self.AddTab(typeStr + ' Settings');
+  Result := Self.Tabs[High(Self.Tabs)];
+  Self.CreateConsumableSettings(Result, consumableType);
 end;
 
 function TScriptForm.CreateBankSettings(): TTabSheet;
@@ -1428,32 +1446,32 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
   procedure TScriptForm._EnabledOnChange(sender: TObject);
   var
     checked: Boolean;
-    enabled, realInput, hud, riDebug: TCheckBox;
+    enabled, blockInput, hud, riDebug: TCheckBox;
   begin
     enabled := sender;
     checked := enabled.IsChecked();
 
-    realInput := Self.Form.GetChild('real_input_checkbox');
-    hud       := Self.Form.GetChild('hud_checkbox');
-    riDebug   := Self.Form.GetChild('ri_debug_checkbox');
+    blockInput := Self.Form.GetChild('block_input_checkbox');
+    hud        := Self.Form.GetChild('hud_checkbox');
+    riDebug    := Self.Form.GetChild('ri_debug_checkbox');
 
     checked := enabled.IsChecked();
-    realInput.SetEnabled(checked);
+    blockInput.SetEnabled(checked);
     hud.SetEnabled(checked);
     riDebug.SetEnabled(checked);
 
-    WLSettings.RemoteInput.Enabled := checked;
-    WLSettings.RemoteInput.BlockInput := not realInput.IsChecked();
-    WLSettings.RemoteInput.HUDReport := hud.IsChecked();
-    WLSettings.RemoteInput.ScriptDebug := riDebug.IsChecked();
+    WLSettings.RemoteInput.Enabled     := checked;
+    WLSettings.RemoteInput.BlockInput  := checked and blockInput.IsChecked();
+    WLSettings.RemoteInput.HUDReport   := checked and hud.IsChecked();
+    WLSettings.RemoteInput.ScriptDebug := checked and riDebug.IsChecked();
   end;
 
-  procedure TScriptForm._RealInputOnChange(sender: TObject);
+  procedure TScriptForm._BlockInputOnChange(sender: TObject);
   var
-    realInput: TCheckBox;
+    blockInput: TCheckBox;
   begin
-    realInput := sender;
-    WLSettings.RemoteInput.BlockInput := not realInput.IsChecked();
+    blockInput := sender;
+    WLSettings.RemoteInput.BlockInput := blockInput.IsChecked();
   end;
 
   procedure TScriptForm._HUDOnChange(sender: TObject);
@@ -1492,7 +1510,7 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
 var
   info: TLabel;
   fullWidth, width, space: Int32;
-  enabled, realInput, hud, riDebug: TLabeledCheckbox;
+  enabled, blockInput, hud, riDebug: TLabeledCheckbox;
 begin
   with Result do
   begin
@@ -1524,16 +1542,16 @@ begin
             LineEnding + 'Use are your OWN RISK!');
     end;
 
-  with realInput do
+  with blockInput do
   begin
     Create(Result);
-    SetCaption('Disable Input');
-    SetName('real_input');
+    SetCaption('Block Real Input');
+    SetName('block_input');
     SetLeft(space + TControl.AdjustToDPI(10));
     SetTop(enabled.GetBottom()+ TControl.AdjustToDPI(5));
     SetWidth(width);
     SetChecked(WLSettings.RemoteInput.BlockInput);
-    CheckBox.setOnChange(@Self._RealInputOnChange);
+    CheckBox.setOnChange(@Self._BlockInputOnChange);
     SetTooltip('Enable/Disable User Input.' + LineEnding +
                'This disables your input in the game until you' + LineEnding +
                'pause or terminate the script.');
@@ -1545,7 +1563,7 @@ begin
     SetCaption('HUD report');
     SetName('hud');
     SetLeft(space + TControl.AdjustToDPI(10));
-    SetTop(realInput.GetBottom()+ TControl.AdjustToDPI(5));
+    SetTop(blockInput.GetBottom()+ TControl.AdjustToDPI(5));
     SetWidth(width);
     SetChecked(WLSettings.RemoteInput.HUDReport);
     CheckBox.SetOnChange(@Self._HUDOnChange);
@@ -1653,7 +1671,7 @@ function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray =
       setWidth(GetTrueWidth());
     end;
 
-    Result.setHeight(captionlabel.GetTrueHeight());
+    Result.setHeight(TControl.AdjustToDPI(15));
     Result.setWidth(captionlabel.getWidth() + currentLabel.getWidth() + latestLabel.getWidth());
   end;
 
@@ -1731,7 +1749,6 @@ procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750
 
   procedure TScriptForm._OnClose({$H-}sender: TObject; var closeAction: TCloseAction);{$H+}
   begin
-    WriteLn closeAction;
     TerminateScript();
   end;
 

@@ -9,8 +9,6 @@ Simple tool to make TBoxes for SRL's RSWalkerRegions or WaspLib's RSRegions.
 {$I WaspLib/osr.simba}
 {$H-}
 
-//RSNamedRegionsArray   <=  CTRL + Click to get to the file quickly.
-
 const
   MAP_NAME: String = WL_WALKER_MAP;
 
@@ -18,7 +16,7 @@ type
   TRSMapMaker = record
     Form: TForm;
     Panel: TPanel;
-    ButtonNewRegion, ButtonDeleteRegion, ButtonReset, ButtonPrintSelected, ButtonPrintEnums, ButtonPrintAll: TButton;
+    ButtonNewRegion, ButtonDeleteRegion, ButtonReset, ButtonPrintSelected, ButtonPrintType, ButtonPrintBoxes,  ButtonPrintNamed, ButtonRewriteFile: TButton;
     RenameLabel: TLabel;
     RenameEdit: TEdit;
     ListBoxRegions: TListBox;
@@ -350,6 +348,106 @@ begin
 end;
 
 
+function TRSMapMaker.GetDirectivesString(): String;
+begin
+  Result := '{$DEFINE WL_RSREGIONS_INCLUDED}' + LINEENDING;
+  Result += '{$IFNDEF WL_UTILS}' + LINEENDING;
+  Result += '  {$I WaspLib/utils.simba}' + LINEENDING;
+  Result += '{$ENDIF}' + LINEENDING;
+end;
+
+function TRSMapMaker.GetTypeString(): String;
+var
+  i, padLen: Int32;
+  str: String;
+  arr: TStringArray;
+begin
+  Result += LINEENDING;
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    str := Self.RegionArray[i].Name.Replace("'", "''");
+    str := '    ' + UpperCase(str).Replace(' ', '_').Replace('''', '').Replace('-', '') + ':';
+    arr += str;
+
+    if Length(str) > padLen then
+      padLen := Length(str);
+  end;
+
+  for i := 0 to High(arr) do
+    arr[i] := PadR(arr[i], padLen, ' ') + ' TBox;';
+
+  Result +=  'type RSRegions = record(TSRLBaseRecord) class var' + LINEENDING;
+
+  for i := 0 to High(arr) do
+    Result += arr[i] + LINEENDING;
+
+  Result += '  end;' + LINEENDING + LINEENDING;
+end;
+
+function TRSMapMaker.GetBoxesString(): String;
+var
+  i, padLen: Int32;
+  str: String;
+  arr: TStringArray;
+  b: TBox;
+begin
+  Result += LINEENDING;
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    str := Self.RegionArray[i].Name.Replace("'", "''");
+    str := 'RSRegions.' + UpperCase(str).Replace(' ', '_').Replace('''', '').Replace('-', '');
+    str := '  ' + str;
+    arr += str;
+
+    if Length(str) > padLen then
+      padLen := Length(str);
+  end;
+
+  for i := 0 to High(arr) do
+    arr[i] := PadR(arr[i], padLen, ' ');
+
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    b := Self.RegionArray[i].Bounds;
+    arr[i] += ' := [' + ToString(b.X1) + ', ' + ToString(b.Y1) + ', ' + ToString(b.X2) + ', ' + ToString(b.Y2) + '];';
+  end;
+
+  for i := 0 to High(arr) do
+    Result += arr[i] + LINEENDING;
+end;
+
+function TRSMapMaker.GetNamedRegionsString(): String;
+var
+  i: Int32;
+  strLower, strUpper: String;
+  arr: TStringArray;
+begin
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    strLower := Self.RegionArray[i].Name.Replace("'", "''");
+    strUpper := 'RSRegions.' + UpperCase(strLower).Replace(' ', '_').Replace('''', '').Replace('-', '');
+
+    strLower := "    ['" + strLower + "', " + strUpper + ']';
+    if i < High(Self.RegionArray) then
+      strLower += ',';
+    arr += strLower;
+  end;
+
+  Result := '  RSNamedRegionsArray := [' + LINEENDING;
+
+  for i := 0 to High(arr) do
+    Result +=  arr[i] + LINEENDING;
+
+  Result += '  ];' + LINEENDING;
+end;
+
+function TRSMapMaker.GetSetupString(): String;
+begin
+  Result := LINEENDING + '  RSBankRegions.Setup();' + LINEENDING;
+  Result += '  RSCombatRegions.Setup();' + LINEENDING;
+end;
+
+
 procedure TRSMapMaker.OnPrintSelected(sender: TObject);
 var
   i, padLen: Int32;
@@ -375,7 +473,7 @@ begin
   WriteLn(LineEnding, LineEnding);
 end;
 
-procedure TRSMapMaker.OnPrint(sender: TObject);
+procedure TRSMapMaker.OnPrintBoxes(sender: TObject);
 var
   i, padLen: Int32;
   strLower, strUpper: String;
@@ -383,77 +481,47 @@ var
   b: TBox;
 begin
   ClearDebug();
-
-  for i := 0 to High(Self.RegionArray) do
-  begin
-    strLower := Self.RegionArray[i].Name.Replace("'", "''");
-    strUpper := 'RSRegions.' + UpperCase(strLower).Replace(' ', '_').Replace('''', '').Replace('-', '');
-
-    strLower := "    ['" + strLower + "', " + strUpper + ']';
-    if i < High(Self.RegionArray) then
-      strLower += ',';
-    arrLower += strLower;
-
-    strUpper := '  ' + strUpper;
-    arrUpper += strUpper;
-
-    if Length(strUpper) > padLen then
-      padLen := Length(strUpper);
-  end;
-
-  for i := 0 to High(arrUpper) do
-    arrUpper[i] := PadR(arrUpper[i], padLen, ' ');
-
-  for i := 0 to High(Self.RegionArray) do
-  begin
-    b := Self.RegionArray[i].Bounds;
-    arrUpper[i] += ' := [' + ToString(b.X1) + ', ' + ToString(b.Y1) + ', ' + ToString(b.X2) + ', ' + ToString(b.Y2) + '];';
-  end;
-
-  WriteLn 'begin';
-
-  for i := 0 to High(arrUpper) do
-    WriteLn arrUpper[i];
-
-  WriteLn(LineEnding, '  RSNamedRegionsArray := [');
-
-  for i := 0 to High(arrLower) do
-    WriteLn arrLower[i];
-
-  WriteLn('  ];');
-  WriteLn(LineEnding, '  RSBankRegions.Setup();');
-  WriteLn('  RSCombatRegions.Setup();', LineEnding, 'end;');
+  WriteLn Self.GetBoxesString();
 end;
 
-procedure TRSMapMaker.OnPrintEnum(sender: TObject);
+procedure TRSMapMaker.OnPrintNamedRegions(sender: TObject);
 var
   i, padLen: Int32;
-  str: String;
-  arr: TStringArray;
+  strLower, strUpper: String;
+  arrUpper, arrLower: TStringArray;
+  b: TBox;
 begin
   ClearDebug();
-
-  for i := 0 to High(Self.RegionArray) do
-  begin
-    str := Self.RegionArray[i].Name.Replace("'", "''");
-    str := '    ' + UpperCase(str).Replace(' ', '_').Replace('''', '').Replace('-', '') + ':';
-    arr += str;
-
-    if Length(str) > padLen then
-      padLen := Length(str);
-  end;
-
-  for i := 0 to High(arr) do
-    arr[i] := PadR(arr[i], padLen, ' ') + ' TBox;';
+  WriteLn Self.GetNamedRegionsString();
+end;
 
 
-  WriteLn 'type';
-  WriteLn '  TRSRegions = record';
+procedure TRSMapMaker.OnRewrite(sender: TObject);
+var
+  str, path: String;
+begin
+  if MessageDlg('RSRegions', 'Are you sure you want to overwrite the rsregions file?', mtWarning,[mbYes, mbAbort]) = 4 then
+    Exit;
 
-  for i := 0 to High(arr) do
-    WriteLn arr[i];
+  str := Self.GetDirectivesString();
+  str += Self.GetTypeString();
+  str += 'begin';
+  str += Self.GetBoxesString();
+  str += LINEENDING;
+  str += Self.GetNamedRegionsString();
+  str += GetSetupString();
+  str += 'end;';
 
-  WriteLn'  end;';
+  path := INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'utils' + DIRECTORYSEPARATOR +
+          'rsregions' + DIRECTORYSEPARATOR + 'rsregions.simba';
+
+  WriteFileContents(path, str, False);
+end;
+
+procedure TRSMapMaker.OnPrintType(sender: TObject);
+begin
+  ClearDebug();
+  WriteLn Self.GetTypeString();
 end;
 
 
@@ -472,7 +540,7 @@ end;
 
 procedure TRSMapMaker.OnFormClose(sender: TObject; var CloseAction: TCloseAction);
 begin
-  Self.OnPrint(nil);
+  TerminateScript();
 end;
 
 
@@ -584,23 +652,43 @@ begin
       setAlign(alBottom);
     end;
 
-    with Self.ButtonPrintEnums do
+    with Self.ButtonPrintType do
     begin
       Init(Self.Panel);
       SetParent(Self.Panel);
       SetAutoSize(True);
-      SetCaption('Print All RSRegion Enum');
-      SetOnClick(@Self.OnPrintEnum);
+      SetCaption('Print RSRegion Type');
+      SetOnClick(@Self.OnPrintType);
       setAlign(alBottom);
     end;
 
-    with Self.ButtonPrintAll do
+    with Self.ButtonPrintBoxes do
     begin
       Init(Self.Panel);
       SetParent(Self.Panel);
       SetAutoSize(True);
-      SetCaption('Print All Regions');
-      SetOnClick(@Self.OnPrint);
+      SetCaption('Print Boxes');
+      SetOnClick(@Self.OnPrintBoxes);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintNamed do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Names');
+      SetOnClick(@Self.OnPrintNamedRegions);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonRewriteFile do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Rewrite file');
+      SetOnClick(@Self.OnRewrite);
       setAlign(alBottom);
     end;
 

@@ -48,6 +48,32 @@ const
   USE_ASYNC_HOVER: Boolean = False;
 
 type
+(*
+type TRSWalkerObject
+~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  TRSWalkerObject = record
+    Filter: record
+      Walker:     Boolean;
+      MinimapDot: Boolean;
+      Finder:     Boolean;
+      UpText:     Boolean;
+      Skip:       Boolean;
+    end;
+    ShapeArray: TRSMainScreenShapeArray;
+    Coordinates: TPointArray;
+    Finder: TRSObjectFinder;
+    UpText: TStringArray;
+    ActionUpText: TStringArray;
+  class var
+    CurrentUpText: TStringArray;
+    RedClicked: Boolean;
+    Walker: PRSWalker;
+    Regions: TBoxArray;
+  end;
+
+Parent record of all TRSWalkerObjects.
+*)
   TRSWalkerObject = record
     Filter: record
       Walker:     Boolean;
@@ -611,7 +637,7 @@ end;
 TRSObject.Setup
 ~~~~~~~~~~~~~~~
 .. pascal::
-  procedure TRSObject.Setup(shape: Vector3; coordinates: TPointArray); overload;
+  procedure TRSObject.SetupEx(shape: Vector3; coordinates: TPointArray); overload;
   procedure TRSObject.Setup(size, height: Double; coordinates: TPointArray); overload;
   procedure TRSObject.Setup(height: Double; coordinates: TPointArray); overload;
 
@@ -631,7 +657,7 @@ In this case, **shape.X** and **shape.Y** would be both equal to **size**.
 Lastly, TRSObject.Setup(height: Double; coordinates: TPointArray) also calls TRSObject.Setup(shape: Vector3; coordinates: TPointArray)
 and sets the **shape.X** and **shape.Y** to 1.
 *)
-procedure TRSObject.Setup(shape: Vector3; coordinates: TPointArray); overload;
+procedure TRSObject.SetupEx(shape: Vector3; coordinates: TPointArray); overload;
 begin
   Self.Setup(coordinates);
 
@@ -643,7 +669,7 @@ end;
 
 procedure TRSObject.Setup(size, height: Double; coordinates: TPointArray); overload;
 begin
-  Self.Setup([size, size, height], coordinates);
+  Self.SetupEx([size, size, height], coordinates);
 end;
 
 procedure TRSObject.Setup(height: Double; coordinates: TPointArray); overload;
@@ -721,7 +747,7 @@ begin
   Result := atpa <> [];
 end;
 
-function TRSObject.Find(): Boolean; overload;
+function TRSObject.IsVisible(): Boolean; overload;
 var
   cuboidArray: TCuboidArray;
 begin
@@ -1303,7 +1329,7 @@ filter mmdots in/out of circles and/or polygons so we only focus on the TRSMMDot
 TRSMMDot.Setup
 ~~~~~~~~~~~~~~
 .. pascal::
-  procedure TRSMMDot.Setup(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
+  procedure TRSMMDot.SetupEx(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
   procedure TRSMMDot.Setup(radius: Int32; size, height: Double; coordinates: TPointArray); overload;
   procedure TRSMMDot.Setup(radius: Int32; height: Double; coordinates: TPointArray); overload;
 
@@ -1331,7 +1357,7 @@ The other methods all call this first one with certain default values:
 
 - If size is omited, shape.X and shape.Y are set to 1.
 *)
-procedure TRSMMDot.Setup(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
+procedure TRSMMDot.SetupEx(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
 var
   p: TPoint;
 begin
@@ -1348,7 +1374,7 @@ end;
 
 procedure TRSMMDot.Setup(radius: Int32; size, height: Double; coordinates: TPointArray); overload;
 begin
-  Self.Setup(radius, [size, size, height], coordinates);
+  Self.SetupEx(radius, [size, size, height], coordinates);
 end;
 
 procedure TRSMMDot.Setup(radius: Int32; height: Double; coordinates: TPointArray); overload;
@@ -1554,7 +1580,7 @@ begin
       Self.ClosestDot := TRSWalkerObject.Walker^.MSToWorld(ATPA[0].Mean());
 end;
 
-function TRSMMDot.Find(): Boolean; overload;
+function TRSMMDot.IsVisible(): Boolean; overload;
 var
   cuboidArray: TCuboidArray;
 begin

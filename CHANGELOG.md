@@ -1,3 +1,17 @@
+# [12.0.0](https://github.com/Torwent/WaspLib/compare/v11.13.3...v12.0.0) (2023-03-25)
+
+
+### Bug Fixes
+
+* several changes, read notes. ([1f66958](https://github.com/Torwent/WaspLib/commit/1f66958f190446737de9fc941206f9612755a501))
+
+
+### BREAKING CHANGES
+
+* The refactors break compatibility, some scripts will require to be updated.
+
+
+
 ## [11.13.3](https://github.com/Torwent/WaspLib/compare/v11.13.2...v11.13.3) (2023-03-24)
 
 
@@ -31,15 +45,6 @@
 ### Features
 
 * new TScriptForm is now available to use with `{$DEFINE FORMS_V2}` ([4749b22](https://github.com/Torwent/WaspLib/commit/4749b2221dc1395abe5eb817bad5c2a2d60dc0e4))
-
-
-
-## [11.12.16](https://github.com/Torwent/WaspLib/compare/v11.12.15...v11.12.16) (2023-03-22)
-
-
-### Bug Fixes
-
-* final tweaks to the new TScriptForm ([49c787d](https://github.com/Torwent/WaspLib/commit/49c787d471bd974a7b1233113dc23a95db8f3910))
 
 
 

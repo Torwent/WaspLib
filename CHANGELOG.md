@@ -1,3 +1,12 @@
+## [13.0.2](https://github.com/Torwent/WaspLib/compare/v13.0.1...v13.0.2) (2023-03-27)
+
+
+### Bug Fixes
+
+* **data:** monsters data loads faster now ([27e2a89](https://github.com/Torwent/WaspLib/commit/27e2a89271b9879152ff1bb2b0950345314bf7fe))
+
+
+
 ## [13.0.1](https://github.com/Torwent/WaspLib/compare/v13.0.0...v13.0.1) (2023-03-27)
 
 
@@ -41,15 +50,6 @@
 ### BREAKING CHANGES
 
 * The refactors break compatibility, some scripts will require to be updated.
-
-
-
-## [11.13.3](https://github.com/Torwent/WaspLib/compare/v11.13.2...v11.13.3) (2023-03-24)
-
-
-### Bug Fixes
-
-* **TScriptFormV2:** Read notes. ([f44f077](https://github.com/Torwent/WaspLib/commit/f44f0775a5c1f7206afdbc84360c233ecb91aa1e))
 
 
 

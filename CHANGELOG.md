@@ -1,3 +1,12 @@
+## [13.0.1](https://github.com/Torwent/WaspLib/compare/v13.0.0...v13.0.1) (2023-03-27)
+
+
+### Bug Fixes
+
+* remove leftover debugging ([ac4c2f4](https://github.com/Torwent/WaspLib/commit/ac4c2f41f0f0da053accba5a45bd12089bc67de5))
+
+
+
 # [13.0.0](https://github.com/Torwent/WaspLib/compare/v12.0.1...v13.0.0) (2023-03-27)
 
 
@@ -41,15 +50,6 @@
 ### Bug Fixes
 
 * **TScriptFormV2:** Read notes. ([f44f077](https://github.com/Torwent/WaspLib/commit/f44f0775a5c1f7206afdbc84360c233ecb91aa1e))
-
-
-
-## [11.13.2](https://github.com/Torwent/WaspLib/compare/v11.13.1...v11.13.2) (2023-03-23)
-
-
-### Bug Fixes
-
-* **TScriptForm:** fixed the consumables panel not doing anything ([61a91b8](https://github.com/Torwent/WaspLib/commit/61a91b83f07786a27238e5144b9dc02e182c4f85))
 
 
 

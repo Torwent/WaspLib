@@ -1,3 +1,17 @@
+# [13.0.0](https://github.com/Torwent/WaspLib/compare/v12.0.1...v13.0.0) (2023-03-27)
+
+
+### Bug Fixes
+
+* Read notes ([cd7fede](https://github.com/Torwent/WaspLib/commit/cd7fedee975707cf5f3b657f0373265f64e57fcd))
+
+
+### BREAKING CHANGES
+
+* Scripts that used `WLSettings.RemoteInput.ScriptDebug` directly will require to be updated (70% of my scripts).
+
+
+
 ## [12.0.1](https://github.com/Torwent/WaspLib/compare/v12.0.0...v12.0.1) (2023-03-25)
 
 
@@ -36,15 +50,6 @@
 ### Bug Fixes
 
 * **TScriptForm:** fixed the consumables panel not doing anything ([61a91b8](https://github.com/Torwent/WaspLib/commit/61a91b83f07786a27238e5144b9dc02e182c4f85))
-
-
-
-## [11.13.1](https://github.com/Torwent/WaspLib/compare/v11.13.0...v11.13.1) (2023-03-22)
-
-
-### Bug Fixes
-
-* more tweaks to TScriptForm ([2881e23](https://github.com/Torwent/WaspLib/commit/2881e23afee81abf15557a7be5bbe86fe00c05fe))
 
 
 

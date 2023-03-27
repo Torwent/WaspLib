@@ -11,22 +11,28 @@ This file has methods to fetch information about items, monsters and weapons.
 {$ENDIF}
 
 const
+  OBJECTS_JSON  = {$macro CURRENT_DIRECTORY} + '/objects.json';
+
+  MONSTER_NAMES_FILE = {$macro CURRENT_DIRECTORY} + '/monster-names';
+  MONSTERS_ZIP  = {$macro CURRENT_DIRECTORY} + '/monsters.zip';
+  MONSTER_DATA_VERSION = '1';
+
+  WEAPONS_JSON  = {$macro CURRENT_DIRECTORY} + '/weapons.json';
 (*
 const PRICES_URL
 ~~~~~~~~~~~~~~~~~
-Global PRICES_URL constant. Can be changed to use a different prices data json as long as it has follows the wiki prices structure.
+Global PRICES_URL constant.
+Can be changed to use a different prices data json as long as it has follows the wiki prices structure.
 *)
+  PRICES_URL = 'https://prices.runescape.wiki/api/v1/osrs/latest';
 (*
 const OSRSBOX_URL
 ~~~~~~~~~~~~~~~~~
-Global OSRSBOX_URL constant. Can be changed to use a different items data json as long as it has follows OSRSBox's structure.
+Global OSRSBOX_URL constant.
+Can be changed to use a different items data json as long as it has follows OSRSBox's structure.
 *)
-  OBJECTS_JSON  = {$macro CURRENT_DIRECTORY} + '/objects.json';
-  MONSTER_NAMES_FILE = {$macro CURRENT_DIRECTORY} + '/monster-names';
-  MONSTERS_JSON  = {$macro CURRENT_DIRECTORY} + '/monsters.json';
-  WEAPONS_JSON  = {$macro CURRENT_DIRECTORY} + '/weapons.json';
-  PRICES_URL = 'https://prices.runescape.wiki/api/v1/osrs/latest';
   OSRSBOX_URL = 'https://raw.githubusercontent.com/Flipping-Utilities/osrsbox-db/main/docs/items-json/';
+
 
 type
 (*
@@ -450,47 +456,43 @@ type
     Quantity: Int32;
   end;
 
-  TRSMonsterData = record
-    MonsterNames: TStringList;
-    CurrentMonster: String;
+type MonsterData = record(TSRLBaseRecord) class var
+    Names: TStringList;
     Data: TJSONObject;
-    Size: Int32;
-    Hitpoints: Int32;
-    MaxHit: Int32;
-    AttackTypes: array of ERSAttackType;
-    Drops: array of TRSMonsterDrop;
     IsSetup: Boolean;
+  class const
+    DATA_PATH: String = WL_DATAPATH + 'cache' + DIRECTORYSEPARATOR + 'monsters' + DIRECTORYSEPARATOR + MONSTER_DATA_VERSION + DIRECTORYSEPARATOR;
   end;
 
 (*
 MonsterData.Setup()
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSMonsterData.Setup();
+.. pascal:: procedure MonsterData.Setup();
 
-Internal method to setup the TRSMonsterData record.
+Internal method to setup the MonsterData record.
 *)
-procedure TRSMonsterData.Setup();
+procedure MonsterData.Setup(); static;
 begin
-  if Self.IsSetup then
+  if MonsterData.IsSetup then
     Exit;
 
-  Self.MonsterNames.Init;
-  Self.MonsterNames.LoadFromFile(MONSTER_NAMES_FILE);
-  Self.MonsterNames.SetSorted(True);
+  ForceDirectories(MonsterData.DATA_PATH);
 
-  WriteLn('Loading monsters.json.');
+  MonsterData.Names.Init();
+  AddOnTerminate(@MonsterData.Names.Free);
+  MonsterData.Data.Init();
+  AddOnTerminate(@MonsterData.Data.Free);
 
-  Self.Data.Init(ReadFileContents(MONSTERS_JSON));
+  MonsterData.Names.LoadFromFile(MONSTER_NAMES_FILE);
+  MonsterData.Names.SetSorted(True);
 
-  AddOnTerminate(@Self.Data.Free);
-
-  Self.IsSetup := True;
+  MonsterData.IsSetup := True;
 end;
 
 
-function TRSMonsterData.GetIDs(Monster: String): TStringArray;
-type
-  TStringList = TStringList;
+
+function MonsterData.GetIDs(monster: String): TStringArray; static;
+  type TStringList = TStringList;
 
   function TStringList.NameFromIndex(Index: Int32): String; override;
   begin
@@ -505,36 +507,56 @@ type
   end;
 
 var
-  MonsterID: Int32;
+  monsterID: Int32;
+  value, path: String;
+  jsonObject: TJSONObject;
+  objLoaded: Boolean;
 begin
-  if Monster.IsDigit then
-    Result := Result + Monster
-  else
+  if not MonsterData.IsSetup then
+    MonsterData.Setup();
+
+  if monster.IsDigit() then
+    Exit([monster]);
+
+  monsterID := MonsterData.Names.IndexOfName(monster);
+  while SameText(monster, MonsterData.Names.NameFromIndex(monsterID)) do
   begin
-    MonsterID := Self.MonsterNames.IndexOfName(Monster);
-    while SameText(Monster, Self.MonsterNames.NameFromIndex(MonsterID)) do
+    value := MonsterData.Names.ValueFromIndex(monsterID);
+
+    if not MonsterData.Data.has(value) then
     begin
-      Result := Result + Self.MonsterNames.ValueFromIndex(MonsterID);
+      path := MonsterData.DATA_PATH + value + '.json';
+      if not FileExists(path) and
+         not UnZipOneFile(MONSTERS_ZIP, value + '.json', MonsterData.DATA_PATH) then
+        Continue;
 
-      Inc(MonsterID);
+      jsonObject.Init(ReadFileContents(path));
+      MonsterData.Data.Put(value, jsonObject);
+      objLoaded := True;
     end;
+
+    Result += value;
+    Inc(monsterID);
   end;
+
+  if objLoaded then
+    AddOnTerminate(@jsonObject.Free);
 end;
 
-function TRSMonsterData.GetID(Monster: String): String;
+function MonsterData.GetID(monster: String): String; static;
 var
-  IDs: TStringArray := Self.GetIDs(Monster);
+  ids: TStringArray;
 begin
-  if IDs <> [] then
-    Result := IDs[0];
+  ids := MonsterData.GetIDs(monster);
+  if ids <> [] then
+    Result := ids[0];
 end;
-
 
 
 (*
 MonsterData.GetInt()
 ~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetInt(Monster, Key: String): Int32;
+.. pascal:: function MonsterData.GetInt(Monster, Key: String): Int32;
 
 Wrapper method to get integer data from from monsters.json.
 
@@ -545,21 +567,18 @@ Example
 
   WriteLn MonsterData.GetInt('Cow', 'hitpoints'); //This will print 8.
 *)
-function TRSMonsterData.GetInt(monster, Key: String): Int32;
+function MonsterData.GetInt(monster, Key: String): Int32; static;
 var
   id: String;
 begin
-  if not Self.IsSetup then
-    Self.Setup();
-
-  id := Self.GetID(monster);
-  Result := Self.Data.getJSONObject(id).getInt(Key);
+  id := MonsterData.GetID(monster);
+  Result := MonsterData.Data.getJSONObject(id).getInt(Key);
 end;
 
 (*
 MonsterData.GetString()
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetString(Monster, Key: String): String;
+.. pascal:: function MonsterData.GetString(Monster, Key: String): String;
 
 Wrapper method to get string data from monsters.json.
 
@@ -570,21 +589,18 @@ Example
 
   WriteLn MonsterData.GetString('Cow', 'drops');
 *)
-function TRSMonsterData.GetString(monster, Key: String): String;
+function MonsterData.GetString(monster, Key: String): String; static;
 var
   id: String;
 begin
-  if not Self.IsSetup then
-    Self.Setup();
-
-  id := Self.GetID(monster);
-  Result := Self.Data.getJSONObject(id).getString(Key);
+  id := MonsterData.GetID(monster);
+  Result := MonsterData.Data.getJSONObject(id).getString(Key);
 end;
 
 (*
 MonsterData.IsAgressive()
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.IsAgressive(Monster): String;
+.. pascal:: function MonsterData.IsAgressive(Monster): String;
 
 Method to get information on wether a monster is aggressive or not.
 
@@ -593,69 +609,57 @@ Example
 
   WriteLn MonsterData.IsAgressive('Cow'); //Will print False.
 *)
-function TRSMonsterData.IsAgressive(monster: String): Boolean;
+function MonsterData.IsAgressive(monster: String): Boolean; static;
 var
   id: String;
 begin
-  if not Self.IsSetup then
-    Self.Setup();
-
-  id := Self.GetID(monster);
-  Result := Self.Data.getJSONObject(id).getBoolean('aggressive');
+  id := MonsterData.GetID(monster);
+  Result := MonsterData.Data.getJSONObject(id).getBoolean('aggressive');
 end;
 
 (*
 MonsterData.GetJSONArray()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
+.. pascal:: function MonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
 
 Internal method to get a TJSONArray value from monsters.json.
 *)
-function TRSMonsterData.GetJSONArray(monster, Key: String): TJSONArray;
+function MonsterData.GetJSONArray(monster, Key: String): TJSONArray; static;
 var
   id: String;
 begin
-  if not Self.IsSetup then
-    Self.Setup();
-
-  id := Self.GetID(monster);
-  Result := Self.Data.getJSONObject(id).getJSONArray(Key);
+  id := MonsterData.GetID(monster);
+  Result := MonsterData.Data.getJSONObject(id).getJSONArray(Key);
 end;
 
 (*
 MonsterData.GetJSONObject()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
+.. pascal:: function MonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
 
 Internal method to get a TJSONObject value from monsters.json.
 *)
-function TRSMonsterData.GetJSONObject(monster, Key: String): TJSONObject;
+function MonsterData.GetJSONObject(monster, Key: String): TJSONObject; static;
 var
   id: String;
 begin
-  if not Self.IsSetup then
-    Self.Setup();
-
-  id := Self.GetID(monster);
-  Result := Self.Data.getJSONObject(id).getJSONObject(Key);
+  id := MonsterData.GetID(monster);
+  Result := MonsterData.Data.getJSONObject(id).getJSONObject(Key);
 end;
 
 (*
 MonsterData.GetAttackTypes()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetAttackTypes(Monster: String): array of ERSAttackType;
+.. pascal:: function MonsterData.GetAttackTypes(Monster: String): array of ERSAttackType;
 
 Method used to get an array of ERSAttackType used by the specified monster.
 *)
-function TRSMonsterData.GetAttackTypes(monster: String): array of ERSAttackType;
+function MonsterData.GetAttackTypes(monster: String): array of ERSAttackType; static;
 var
   JSONArray: TJSONArray;
   i: Int32;
 begin
-  if not Self.IsSetup then
-    Self.Setup;
-
-  JSONArray := Self.GetJSONArray(Monster, 'attack_type');
+  JSONArray := MonsterData.GetJSONArray(Monster, 'attack_type');
 
   for i := 0 to JSONArray.length - 1 do
     case JSONArray.getString(i) of
@@ -673,31 +677,31 @@ end;
 (*
 MonsterData.GetDrop()
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
+.. pascal:: function MonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
 
 Method to convert a monster json object to a TRSMonsterDrop.
 *)
-function TRSMonsterData.GetDrop(DropJSON: TJSONObject): TRSMonsterDrop;
+function MonsterData.GetDrop(dropJSON: TJSONObject): TRSMonsterDrop; static;
 var
   Str: String;
 begin
-  Result.ID := DropJSON.getString('id');
-  Result.Item := DropJSON.getString('name');
-  Str := DropJSON.getString('quantity');
+  Result.ID := dropJSON.getString('id');
+  Result.Item := dropJSON.getString('name');
+  Str := dropJSON.getString('quantity');
   if Str.Contains('-') then
   begin
     Result.Quantity := Round(StrToInt(Str.Before('-')) + StrToInt(Str.After('-')) / 2);
   end
   else
     Result.Quantity := StrToInt(Str);
-  Result.Noted := DropJSON.getBoolean('noted');
+  Result.Noted := dropJSON.getBoolean('noted');
   Result.Stackable := Result.Noted;
 end;
 
 (*
 MonsterData.GetDrops()
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
+.. pascal:: function MonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
 
 Method to return all monster drops as an array of TRSMonsterDrop.
 
@@ -706,46 +710,30 @@ Example
 
   WriteLn MonsterData.GetDrops('Abyssal demon'); //prints all monster drops.
 *)
-function TRSMonsterData.GetDrops(monster: String): array of TRSMonsterDrop;
+function MonsterData.GetDrops(monster: String): array of TRSMonsterDrop; static;
 var
   JSONArray: TJSONArray;
   i: Int32;
-  Drop: TRSMonsterDrop;
+  drop: TRSMonsterDrop;
 begin
-  if not Self.IsSetup then
-    Self.Setup;
-
   WriteLn('Loading ' + Monster + ' drops, this might take up to a 1 minute.');
 
-  JSONArray := Self.GetJSONArray(Monster, 'drops');
+  JSONArray := MonsterData.GetJSONArray(Monster, 'drops');
 
-  for i := 0 to JSONArray.length - 1 do
+  for i := 0 to JSONArray.length() - 1 do
   begin
-    Drop := [];
-    Drop := Self.GetDrop(JSONArray.getJSONObject(i));
+    drop := [];
+    drop := MonsterData.GetDrop(JSONArray.getJSONObject(i));
 
-    if not Drop.Stackable then
+    if not drop.Stackable then
     begin
-      if Drop.ID.ContainsAny(['995', '996', '997', '998', '999', '1000', '1001',
-                           '1002', '1003', '1004']) then
-        Drop.Stackable := True
-      else
-        Drop.Stackable := ItemData.GetOSRSBoxBoolean(Drop.ID, 'stackable');
+      drop.Stackable := drop.ID.ContainsAny(['995', '996', '997', '998', '999', '1000', '1001', '1002', '1003', '1004']) or
+                        ItemData.GetOSRSBoxBoolean(drop.ID, 'stackable');
     end;
 
     Result += Drop;
   end;
 end;
-
-(*
-var MonsterData
-~~~~~~~~~~~~
-  Global MonsterData variable.
-*)
-{$H-}
-var
-  MonsterData: TRSMonsterData;
-{$H+}
 
 (*
 type TRSWeaponData

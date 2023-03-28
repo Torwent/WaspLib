@@ -1,3 +1,12 @@
+# [13.1.0](https://github.com/Torwent/WaspLib/compare/v13.0.2...v13.1.0) (2023-03-28)
+
+
+### Features
+
+* **ItemData:** ItemData caching implemented ([b15b240](https://github.com/Torwent/WaspLib/commit/b15b24072e5d66a3ecbbb0e2578813050d6f767a))
+
+
+
 ## [13.0.2](https://github.com/Torwent/WaspLib/compare/v13.0.1...v13.0.2) (2023-03-27)
 
 
@@ -36,20 +45,6 @@
 ### Bug Fixes
 
 * read notes ([b3995f2](https://github.com/Torwent/WaspLib/commit/b3995f2dfb3877ba976bc45b68d9295c994bf06e))
-
-
-
-# [12.0.0](https://github.com/Torwent/WaspLib/compare/v11.13.3...v12.0.0) (2023-03-25)
-
-
-### Bug Fixes
-
-* several changes, read notes. ([1f66958](https://github.com/Torwent/WaspLib/commit/1f66958f190446737de9fc941206f9612755a501))
-
-
-### BREAKING CHANGES
-
-* The refactors break compatibility, some scripts will require to be updated.
 
 
 

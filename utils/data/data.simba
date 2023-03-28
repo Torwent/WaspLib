@@ -11,12 +11,9 @@ This file has methods to fetch information about items, monsters and weapons.
 {$ENDIF}
 
 const
-  OBJECTS_JSON  = {$macro CURRENT_DIRECTORY} + '/objects.json';
-
-  MONSTER_NAMES_FILE = {$macro CURRENT_DIRECTORY} + '/monster-names';
-  MONSTERS_ZIP  = {$macro CURRENT_DIRECTORY} + '/monsters.zip';
+  ITEM_DATA_VERSION = '1';
   MONSTER_DATA_VERSION = '1';
-
+  OBJECTS_JSON  = {$macro CURRENT_DIRECTORY} + '/objects.json';
   WEAPONS_JSON  = {$macro CURRENT_DIRECTORY} + '/weapons.json';
 (*
 const PRICES_URL
@@ -34,13 +31,7 @@ Can be changed to use a different items data json as long as it has follows OSRS
   OSRSBOX_URL = 'https://raw.githubusercontent.com/Flipping-Utilities/osrsbox-db/main/docs/items-json/';
 
 
-type
-(*
-type TRSItemData
-~~~~~~~~~~~~~~~~
-**TRSItemData** is the record used to handle fetching item data.
-*)
-  TRSItemData = record
+type ItemData = record(TSRLBaseRecord) class var
     ItemNames: TStringList;
     PriceData: TJSONObject;
     OSRSBoxData: TJSONObject;
@@ -49,44 +40,46 @@ type TRSItemData
     OSRSBoxIsSetup: Boolean;
     PricesDisconnected: Boolean;
     OSRSBoxDisconnected: Boolean;
+  class const
+    DATA_PATH: String = WL_DATAPATH + 'cache' + DIRECTORYSEPARATOR + 'items' + DIRECTORYSEPARATOR + ITEM_DATA_VERSION + DIRECTORYSEPARATOR;
   end;
 
 (*
 ItemData.Free()
 ~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSItemData.Free();
+.. pascal:: procedure ItemData.Free();
 
 Internal method called automatically on script termination.
 Shouldn't be called by users other wise another termination will be attempted when the script stops running.
 *)
-procedure TRSItemData.Terminate();
+procedure ItemData.Terminate(); static;
 begin
-  Self.ItemNames.Free();
-  Self.PriceData.Free();
+  ItemData.ItemNames.Free();
+  ItemData.PriceData.Free();
 end;
 
 (*
 ItemData.SetupWikiPrices()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSItemData.SetupWikiPrices();
+.. pascal:: procedure ItemData.SetupWikiPrices();
 
 Internal method called automatically when we require price data.
-Doesn't need to be called since it will be called automatically if **TRSItemData.WikiPriceIsSetup** is false.
+Doesn't need to be called since it will be called automatically if **ItemData.WikiPriceIsSetup** is false.
 It's also recalled when we try to fetch item data and 20 minutes have passed to update prices.
 *)
-procedure TRSItemData.SetupPrices();
+procedure ItemData.SetupPrices();  static;
 var
   JSON: String;
 begin
-  if not Self.PriceIsSetup then
+  if not ItemData.PriceIsSetup then
   begin
-    Self.ItemNames.Init();
-    Self.ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
-    Self.ItemNames.SetSorted(True);
+    ItemData.ItemNames.Init();
+    ItemData.ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
+    ItemData.ItemNames.SetSorted(True);
 
-    AddOnTerminate(@Self.Terminate);
-    Self.PriceIsSetup := True;
-    Self.ReloadTimer.Setup(20 * ONE_MINUTE);
+    AddOnTerminate(@ItemData.Terminate);
+    ItemData.PriceIsSetup := True;
+    ItemData.ReloadTimer.Setup(20 * ONE_MINUTE);
   end;
 
   WriteLn 'Loading item prices from the wiki API.';
@@ -95,23 +88,23 @@ begin
   if JSON = '' then
   begin
     WriteLn 'We don''t seem to be able to connect to https://prices.runescape.wiki';
-    Self.PricesDisconnected := True;
+    ItemData.PricesDisconnected := True;
     Exit;
   end;
 
-  Self.PriceData.Init(JSON);
-  Self.ReloadTimer.Restart;
+  ItemData.PriceData.Init(JSON);
+  ItemData.ReloadTimer.Restart;
 end;
 
 (*
 ItemData.GetIDs
 ~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetIDs(Item: String): TStringArray;
+.. pascal:: function ItemData.GetIDs(Item: String): TStringArray;
 
 Internal method called automatically when we require item data.
 This is based of ItemFinder.GetItemIDs() and it's used to retrieve item ids.
 *)
-function TRSItemData.GetIDs(item: String): TIntegerArray;
+function ItemData.GetIDs(item: String): TIntegerArray; static;
 var
   itemID: Int32;
 begin
@@ -119,13 +112,13 @@ begin
     Result := Result + Item.ExtractInteger()
   else
   begin
-    itemID := Self.ItemNames.IndexOfName(item);
+    itemID := ItemData.ItemNames.IndexOfName(item);
     if itemID = -1 then
       Exit;
 
-    while SameText(item, Self.ItemNames.NameFromIndex(itemID)) do
+    while SameText(item, ItemData.ItemNames.NameFromIndex(itemID)) do
     begin
-      Result := Result + StrToInt(Self.ItemNames.ValueFromIndex(itemID));
+      Result := Result + StrToInt(ItemData.ItemNames.ValueFromIndex(itemID));
 
       Inc(itemID);
     end;
@@ -136,52 +129,70 @@ end;
 (*
 ItemData.GetData()
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetData(Item: String): TJSONObject;
+.. pascal:: function ItemData.GetData(Item: String): TJSONObject;
 
 Internal method used to retrieve a TJSONObject of the Item we want information on.
 **Item** should be an item ID.
 *)
-function TRSItemData.GetData(Item: Integer): TJSONObject;
+function ItemData.GetData(item: Integer): TJSONObject; static;
 var
-  JSON: String;
+  key, path, json: String;
+  tmp: TJSONObject;
 begin
-  if Self.PricesDisconnected or Self.OSRSBoxDisconnected then
+  if item = -1 then
     Exit;
 
-  if not Self.PriceIsSetup then
-    Self.SetupPrices();
-
-  if Item = -1 then
+  if ItemData.PricesDisconnected or ItemData.OSRSBoxDisconnected then
     Exit;
 
-  JSON := TryGetPage(OSRSBOX_URL + ToStr(Item) + '.json');
-  if JSON = '' then
+  if not ItemData.PriceIsSetup then
+    ItemData.SetupPrices();
+
+  key := ToString(item);
+
+  if not ItemData.OSRSBoxIsSetup then
   begin
-    WriteLn 'We don''t seem to be able to connect to the osrsbox data provider';
-    Self.OSRSBoxDisconnected := True;
-    Exit;
+    ItemData.OSRSBoxData.Init();
+    AddOnTerminate(@ItemData.OSRSBoxData.Free);
+    ItemData.OSRSBoxIsSetup := True;
   end;
 
-  Self.OSRSBoxData.Init(Json);
-  Result := Self.OSRSBoxData;
-
-  if not Self.OSRSBoxIsSetup then
+  if not ItemData.OSRSBoxData.has(key) then
   begin
-    AddOnTerminate(@Self.OSRSBoxData.Free);
-    Self.OSRSBoxIsSetup := True;
+    path := ItemData.DATA_PATH + ToStr(item) + '.json';
+    if not FileExists(path) then
+    begin
+      json := TryGetPage(OSRSBOX_URL + ToStr(item) + '.json');
+      if json = '' then
+      begin
+        WriteLn 'We don''t seem to be able to connect to the osrsbox data provider';
+        ItemData.OSRSBoxDisconnected := True;
+        Exit;
+      end;
+
+      ForceDirectories(ItemData.DATA_PATH);
+      if not WriteFileContents(path, json) then
+        Exit;
+    end;
+
+    json := ReadFileContents(path);
+    tmp.Init(json);
+    ItemData.OSRSBoxData.put(key, tmp);
   end;
+
+  Result := ItemData.OSRSBoxData.Get(key);
 end;
 
 (*
 ItemData.GetTradeableID()
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetTradeableID(Item: TRSItem): String;
+.. pascal:: function ItemData.GetTradeableID(Item: TRSItem): String;
 
 Internal method used to retrieve only the tradeable version of an item if it exists.
 Some items have versions of themselves that are not tradeable and can't be used to fetch item prices,
 such as degraded items, ornamented items, etc.
 *)
-function TRSItemData.GetTradeableID(Item: TRSItem): Integer;
+function ItemData.GetTradeableID(item: TRSItem): Integer; static;
 var
   IDs: TIntegerArray;
   ID: Integer;
@@ -189,17 +200,17 @@ var
 begin
   Result := -1;
 
-  if not Self.PriceIsSetup then
-    Self.SetupPrices();
+  if not ItemData.PriceIsSetup then
+    ItemData.SetupPrices();
 
-  if ToStr(Item) = '' then
+  if ToStr(item) = '' then
     Exit;
 
-  IDs := Self.GetIDs(Item);
+  IDs := ItemData.GetIDs(item);
   for ID in IDs do
   begin
-    OSRSBoxJSON := Self.GetData(ID);
-    if (OSRSBoxJSON <> nil) and Self.GetData(ID).getBoolean('tradeable_on_ge') then
+    OSRSBoxJSON := ItemData.GetData(ID);
+    if (OSRSBoxJSON <> nil) and ItemData.GetData(ID).getBoolean('tradeable_on_ge') then
       Exit(ID);
   end;
 end;
@@ -207,35 +218,35 @@ end;
 (*
 ItemData.GetPrice()
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
+.. pascal:: function ItemData.GetPrice(Item: TRSItem): TJSONObject;
 
 Internal method used to fetch a price data TJSONObject of a certain item.
 *)
-function TRSItemData.GetPrice(Item: TRSItem): TJSONObject;
+function ItemData.GetPrice(item: TRSItem): TJSONObject; static;
 var
   id: Integer;
   WikiJSON: TJSONObject;
 begin
-  if Self.ReloadTimer.IsPaused or Self.ReloadTimer.IsFinished() then
-    Self.SetupPrices();
+  if ItemData.ReloadTimer.IsPaused or ItemData.ReloadTimer.IsFinished() then
+    ItemData.SetupPrices();
 
-  id := Self.GetTradeableID(Item);
+  id := ItemData.GetTradeableID(Item);
 
   if id > -1 then
   begin
-    WikiJSON := Self.PriceData.getJSONObject('data');
+    WikiJSON := ItemData.PriceData.getJSONObject('data');
     if WikiJSON <> nil then
       Result := WikiJSON.getJSONObject(ToStr(id));
   end;
 end;
 
 (*
-ItemData.GetPriceInt()
-~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetPriceInt(Item: TRSItem; Key: String): Int32;
+ItemData.GetPriceInt
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function ItemData.GetPriceInt(Item: TRSItem; Key: String): Int32;
 
-Wrapper method used to fetch ints from TRSItemData.GetPrice().
-To use this you should be familar with the structure of the JSONObject TRSItemData.GetPrice() returns.
+Wrapper method used to fetch ints from ItemData.GetPrice().
+To use this you should be familar with the structure of the JSONObject ItemData.GetPrice() returns.
 
 Example
 -------
@@ -243,18 +254,18 @@ Example
   WriteLn ItemData.GetPriceInt('Abyssal whip', 'low'); // will print the low price of abyssal whip.
   WriteLn ItemData.GetPriceInt('Abyssal whip', 'high'); // will print the high price of abyssal whip.
 *)
-function TRSItemData.GetPriceInt(Item: TRSItem; Key: String): Int32;
+function ItemData.GetPriceInt(item: TRSItem; Key: String): Int32; static;
 var
-  JSONObject: TJSONObject := Self.GetPrice(Item);
+  JSONObject: TJSONObject := ItemData.GetPrice(Item);
 begin
   if JSONObject <> nil then
     Result := JSONObject.getInt(Key);
 end;
 
 (*
-ItemData.GetAverage()
-~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetAverage(Item: TRSItem): Int32;
+ItemData.GetAverage
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: function ItemData.GetAverage(Item: TRSItem): Int32;
 
 Method used to get the average price of **Item**.
 
@@ -262,37 +273,34 @@ Example
 -------
   WriteLn ItemData.GetAverage('Abyssal whip');
 *)
-function TRSItemData.GetAverage(Item: TRSItem): Int32;
+function ItemData.GetAverage(item: TRSItem): Int32; static;
 var
-  ItemStr: String := ToStr(Item).ToLower();
-  Low, High: Int32;
+  itemStr: String := ToStr(Item).ToLower();
+  low, high: Int32;
 begin
-  if ItemStr.ContainsAny(
-    ['coins', '995', '996', '997',
-     '998', '999', '1000', '1001',
-     '1002', '1003', '1004']
-  ) then
+  if itemStr.ContainsAny(['coins', '995', '996', '997', '998', '999', '1000', '1001', '1002', '1003', '1004']) then
     Exit(1);
 
-  Low := Self.GetPriceInt(Item, 'low');
-  High := Self.GetPriceInt(Item, 'high');
+  low := ItemData.GetPriceInt(Item, 'low');
+  high := ItemData.GetPriceInt(Item, 'high');
 
-  if (Low = 0) and (High = 0) then
+  if (low = 0) and (high = 0) then
     Exit;
 
-  if High = 0 then
-    Result := Low
-  else if Low = 0 then
-    Result := High
-  else
-    Result := Round((High + Low) / 2);
+  if high = 0 then
+    Exit(low);
+
+  if low = 0 then
+    Exit(high);
+
+  Result := Round((high + low) / 2);
 end;
 
 
 (*
 ItemData.GetOSRSBoxInt()
 ~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
+.. pascal:: function ItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
 
 Wrapper method used to get the integer values of the OSRSBox item json.
 To use it, knowledge about the file structure is required.
@@ -301,17 +309,17 @@ Example
 -------
   WriteLn ItemData.GetOSRSBoxInt('Abyssal whip', 'highalch'); //will print high alch value for the abyssal whip.
 *)
-function TRSItemData.GetOSRSBoxInt(Item: TRSItem; Key: String): Int32;
+function ItemData.GetOSRSBoxInt(item: TRSItem; Key: String): Int32; static;
 var
   id: Integer;
   str: String;
   OSRSBoxJSON: TJSONObject;
 begin
-  id := Self.GetTradeableID(Item);
+  id := ItemData.GetTradeableID(Item);
   if id = -1 then
     Exit;
 
-  OSRSBoxJSON := Self.GetData(id);
+  OSRSBoxJSON := ItemData.GetData(id);
   if OSRSBoxJSON = nil then
     Exit;
 
@@ -326,7 +334,7 @@ end;
 (*
 ItemData.GetOSRSBoxBoolean()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
+.. pascal:: function ItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
 
 Wrapper method used to get the boolean values of the OSRSBox item json.
 To use it, knowledge about the file structure is required.
@@ -335,16 +343,16 @@ Example
 -------
   WriteLn ItemData.GetOSRSBoxBoolean('Abyssal whip', 'tradeable_on_ge');
 *)
-function TRSItemData.GetOSRSBoxBoolean(Item: TRSItem; Key: String): Boolean;
+function ItemData.GetOSRSBoxBoolean(item: TRSItem; Key: String): Boolean; static;
 var
   id: Integer;
   OSRSBoxJSON: TJSONObject;
 begin
-  id := Self.GetTradeableID(Item);
+  id := ItemData.GetTradeableID(item);
   if id = -1 then
     Exit;
 
-  OSRSBoxJSON := Self.GetData(id);
+  OSRSBoxJSON := ItemData.GetData(id);
   if OSRSBoxJSON = nil then
     Exit;
 
@@ -354,7 +362,7 @@ end;
 (*
 ItemData.GetHighAlch()
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetHighAlch(Item: TRSItem): Int32;
+.. pascal:: function ItemData.GetHighAlch(Item: TRSItem): Int32;
 
 Method used to get the the high alchemy value of an item.
 
@@ -362,18 +370,18 @@ Example
 -------
   WriteLn ItemData.GetHighAlch('Magic longbow');
 *)
-function TRSItemData.GetHighAlch(item: TRSItem): Int32;
+function ItemData.GetHighAlch(item: TRSItem): Int32; static;
 var
-  id: Integer := Self.GetTradeableID(item);
+  id: Integer := ItemData.GetTradeableID(item);
 begin
   if id > -1 then
-    Result := Self.GetOSRSBoxInt(id, 'highalch') - Self.GetAverage('561');
+    Result := ItemData.GetOSRSBoxInt(id, 'highalch') - ItemData.GetAverage('561');
 end;
 
 (*
 ItemData.GetHighAlchProfit()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetHighAlchProfit(Item: TRSItem): Int32;
+.. pascal:: function ItemData.GetHighAlchProfit(Item: TRSItem): Int32;
 
 Method used to get the the high alchemy profit of an item.
 
@@ -383,19 +391,19 @@ Example
 -------
   WriteLn ItemData.GetHighAlchProfit('Magic longbow');
 *)
-function TRSItemData.GetHighAlchProfit(item: TRSItem): Int32;
+function ItemData.GetHighAlchProfit(item: TRSItem): Int32; static;
 var
-  id: Integer := Self.GetTradeableID(item);
+  id: Integer := ItemData.GetTradeableID(item);
 begin
   if id > -1 then
-    Result := Self.GetOSRSBoxInt(id, 'highalch') -
-              Self.GetAverage(id) - Self.GetAverage('561');
+    Result := ItemData.GetOSRSBoxInt(id, 'highalch') -
+              ItemData.GetAverage(id) - ItemData.GetAverage('561');
 end;
 
 (*
 ItemData.GetLowAlchProfit()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemData.GetLowAlchProfit(Item: TRSItem): Int32;
+.. pascal:: function ItemData.GetLowAlchProfit(Item: TRSItem): Int32;
 
 Method used to get the the low alchemy profit of an item.
 
@@ -405,24 +413,15 @@ Example
 -------
   WriteLn ItemData.GetLowAlchProfit('Magic longbow');
 *)
-function TRSItemData.GetLowAlchProfit(item: TRSItem): Int32;
+function ItemData.GetLowAlchProfit(item: TRSItem): Int32; static;
 var
-  id: Integer := Self.GetTradeableID(item);
+  id: Integer := ItemData.GetTradeableID(item);
 begin
   if id > -1 then
-    Result := Self.GetOSRSBoxInt(id, 'lowalch') -
-              Self.GetAverage(id) - Self.GetAverage('561');
+    Result := ItemData.GetOSRSBoxInt(id, 'lowalch') -
+              ItemData.GetAverage(id) - ItemData.GetAverage('561');
 end;
 
-(*
-var ItemData
-~~~~~~~~~~~~
-  Global ItemData variable.
-*)
-{$H-}
-var
-  ItemData: TRSItemData;
-{$H+}
 
 
 (*
@@ -461,6 +460,8 @@ type MonsterData = record(TSRLBaseRecord) class var
     Data: TJSONObject;
     IsSetup: Boolean;
   class const
+    MONSTER_NAMES: String = {$macro CURRENT_DIRECTORY} + '/monster-names';
+    MONSTERS_ZIP: String  = {$macro CURRENT_DIRECTORY} + '/monsters.zip';
     DATA_PATH: String = WL_DATAPATH + 'cache' + DIRECTORYSEPARATOR + 'monsters' + DIRECTORYSEPARATOR + MONSTER_DATA_VERSION + DIRECTORYSEPARATOR;
   end;
 
@@ -483,7 +484,7 @@ begin
   MonsterData.Data.Init();
   AddOnTerminate(@MonsterData.Data.Free);
 
-  MonsterData.Names.LoadFromFile(MONSTER_NAMES_FILE);
+  MonsterData.Names.LoadFromFile(MonsterData.MONSTER_NAMES);
   MonsterData.Names.SetSorted(True);
 
   MonsterData.IsSetup := True;
@@ -510,7 +511,6 @@ var
   monsterID: Int32;
   value, path: String;
   jsonObject: TJSONObject;
-  objLoaded: Boolean;
 begin
   if not MonsterData.IsSetup then
     MonsterData.Setup();
@@ -527,20 +527,16 @@ begin
     begin
       path := MonsterData.DATA_PATH + value + '.json';
       if not FileExists(path) and
-         not UnZipOneFile(MONSTERS_ZIP, value + '.json', MonsterData.DATA_PATH) then
+         not UnZipOneFile(MonsterData.MONSTERS_ZIP, value + '.json', MonsterData.DATA_PATH) then
         Continue;
 
       jsonObject.Init(ReadFileContents(path));
       MonsterData.Data.Put(value, jsonObject);
-      objLoaded := True;
     end;
 
     Result += value;
     Inc(monsterID);
   end;
-
-  if objLoaded then
-    AddOnTerminate(@jsonObject.Free);
 end;
 
 function MonsterData.GetID(monster: String): String; static;

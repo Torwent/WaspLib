@@ -830,55 +830,76 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
 
   procedure TScriptForm._ABOnChange(sender: TObject);
   var
-    ab, camera, mouse, chat, gametabs, bank: TCheckBox;
+    arr: TStringArray;
+    i: Int32;
+    child: TCheckBox;
+    panel: TPanel;
     checked: Boolean;
   begin
-    ab := sender;
-    checked := ab.IsChecked();
+    checked := TCheckBox(sender).IsChecked();
+    arr := ['camera', 'mouse', 'chat', 'gametabs', 'bank'];
 
-    camera   := Self.Form.GetChild('camera_group_checkbox');
-    mouse    := Self.Form.GetChild('mouse_group_checkbox');
-    chat     := Self.Form.GetChild('chat_group_checkbox');
-    gametabs := Self.Form.GetChild('gametabs_group_checkbox');
-    bank     := Self.Form.GetChild('bank_group_checkbox');
-
-    camera.setEnabled(checked);
-    mouse.setEnabled(checked);
-    chat.setEnabled(checked);
-    gametabs.setEnabled(checked);
-    bank.setEnabled(checked);
-
-    if checked then
+    for i := 0 to High(arr) do
     begin
-      WLSettings.Antiban.Camera   :=  camera.IsChecked();
-      WLSettings.Antiban.Mouse    :=  mouse.IsChecked();
-      WLSettings.Antiban.Chat     :=  chat.IsChecked();
-      WLSettings.Antiban.GameTabs :=  gametabs.IsChecked();
-      WLSettings.Antiban.Bank     :=  bank.IsChecked();
-    end
-    else
-    begin
-      WLSettings.Antiban.Camera   :=  False;
-      WLSettings.Antiban.Mouse    :=  False;
-      WLSettings.Antiban.Chat     :=  False;
-      WLSettings.Antiban.GameTabs :=  False;
-      WLSettings.Antiban.Bank     :=  False;
+      child := Self.Form.GetChild(arr[i] + '_group_checkbox');
+      child.setEnabled(checked);
+      panel := Self.Form.GetChild(arr[i] + '_group_panel');
+      panel.setEnabled(checked);
+      WLSettings.Antiban.Enabled := checked;
+
+      case i of
+        0: WLSettings.Antiban.Camera   := checked and child.IsChecked();
+        1: WLSettings.Antiban.Mouse    := checked and child.IsChecked();
+        2: WLSettings.Antiban.Chat     := checked and child.IsChecked();
+        3: WLSettings.Antiban.GameTabs := checked and child.IsChecked();
+        4: WLSettings.Antiban.Bank     := checked and child.IsChecked();
+      end;
     end;
   end;
 
-  procedure TScriptForm._GroupOnChange(sender: TObject);
+  procedure TScriptForm._ABPanelToggle(sender: TObject);
+  var
+    check: TCheckBox;
+  begin
+    check := TPanel(sender).GetComponent(1);
+    check.Toggle();
+    Self._ABOnChange(check);
+  end;
+
+  procedure TScriptForm._ABLabelToggle(sender: TObject);
+  begin
+    Self._ABPanelToggle(TControl(sender).getParent());
+  end;
+
+
+  procedure TScriptForm._ABGroupOnChange(sender: TObject);
   var
     checkbox: TCheckBox;
   begin
     checkbox := sender;
     case checkbox.getName() of
-      'camera_group_checkbox': WLSettings.Antiban.Camera := checkbox.IsChecked();
-      'mouse_group_checkbox': WLSettings.Antiban.Mouse := checkbox.IsChecked();
-      'chat_group_checkbox': WLSettings.Antiban.Chat := checkbox.IsChecked();
+      'camera_group_checkbox':   WLSettings.Antiban.Camera   := checkbox.IsChecked();
+      'mouse_group_checkbox':    WLSettings.Antiban.Mouse    := checkbox.IsChecked();
+      'chat_group_checkbox':     WLSettings.Antiban.Chat     := checkbox.IsChecked();
       'gametabs_group_checkbox': WLSettings.Antiban.GameTabs := checkbox.IsChecked();
-      'bank_group_checkbox': WLSettings.Antiban.Bank := checkbox.IsChecked();
+      'bank_group_checkbox':     WLSettings.Antiban.Bank     := checkbox.IsChecked();
     end;
   end;
+
+  procedure TScriptForm._ABGroupPanelToggle(sender: TObject);
+  var
+    check: TCheckBox;
+  begin
+    check := TPanel(sender).GetComponent(1);
+    check.Toggle();
+    Self._ABGroupOnChange(check);
+  end;
+
+  procedure TScriptForm._ABGroupLabelToggle(sender: TObject);
+  begin
+    Self._ABGroupPanelToggle(TControl(sender).getParent());
+  end;
+
 
   procedure TScriptForm._BreaksOnChange(sender: TObject);
   var
@@ -961,12 +982,15 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
 
 var
   bioPanel: TPanel;
-  fullWidth, w, space, y: Int32;
+  fullWidth, w, space, y, i: Int32;
   bioEdit, sleepHour, sleepLength: TLabeledEdit;
   bar: TTrackBar;
   antibanGroup: TCheckCheckGroup;
   breaks, sleeps: TLabeledCheckBox;
   tmp: TCheckBox;
+  tmpControl: TWinControl;
+  arr: TStringArray;
+  str: String;
   combobox: TComboBox;
 begin
   Self.AddTab('Antiban Manager');
@@ -1026,34 +1050,42 @@ begin
   w := fullWidth - (space * 2);
   y := Floor(Self.Size.Y/6);
 
+  arr := ['Camera', 'Mouse', 'Chat', 'GameTabs', 'Bank'];
   with antibanGroup do
   begin
     Create(Result);
     SetCaption('Antiban');
     SetTooltip('Antiban settings.');
+    CaptionPanel.SetOnClick(@Self._ABPanelToggle);
+    Caption.SetOnClick(@Self._ABLabelToggle);
     SetTop(TControl.AdjustToDPI(100));
     SetLeft(space);
-    AddItemArray(['Camera', 'Mouse', 'Chat', 'GameTabs', 'Bank']);
+    AddItemArray(arr);
 
-    SetCheckedChild(WLSettings.Antiban.Camera, 'camera_group');
-    SetCheckedChild(WLSettings.Antiban.Mouse, 'mouse_group');
-    SetCheckedChild(WLSettings.Antiban.Chat, 'chat_group');
-    SetCheckedChild(WLSettings.Antiban.GameTabs, 'gametabs_group');
-    SetCheckedChild(WLSettings.Antiban.Bank, 'bank_group');
+    for i := 0 to High(arr) do
+    begin
+      str := LowerCase(arr[i]) + '_group';
+      case i of
+        0: SetCheckedChild(WLSettings.Antiban.Camera, str);
+        1: SetCheckedChild(WLSettings.Antiban.Mouse, str);
+        2: SetCheckedChild(WLSettings.Antiban.Chat, str);
+        3: SetCheckedChild(WLSettings.Antiban.GameTabs, str);
+        4: SetCheckedChild(WLSettings.Antiban.Bank, str);
+      end;
 
-    tmp := GetChildCheckBox('camera_group');
-    tmp.setOnChange(@Self._GroupOnChange);
-    tmp := GetChildCheckBox('mouse_group');
-    tmp.setOnChange(@Self._GroupOnChange);
-    tmp := GetChildCheckBox('chat_group');
-    tmp.setOnChange(@Self._GroupOnChange);
-    tmp := GetChildCheckBox('gametabs_group');
-    tmp.setOnChange(@Self._GroupOnChange);
-    tmp := GetChildCheckBox('bank_group');
-    tmp.setOnChange(@Self._GroupOnChange);
+      tmp := GetChildCheckBox(str);
+      tmp.setOnChange(@Self._ABGroupOnChange);
+
+      tmpControl := GetChildPanel(str);
+      tmpControl.setOnClick(@Self._ABGroupPanelToggle);
+
+      tmpControl := GetChildLabel(str);
+      tmpControl.setOnClick(@Self._ABGroupLabelToggle);
+    end;
 
     CheckBox.setOnChange(@Self._ABOnChange);
     SetChecked(WLSettings.Antiban.Enabled);
+    Self._ABOnChange(CheckBox);
   end;
 
   with breaks do
@@ -1441,76 +1473,107 @@ end;
 
 function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
   type TScriptForm = TScriptForm;
-  //Self contained methods only related to the remote input settings.
-  //This doesn't have to clutter things outside.
-  procedure TScriptForm._EnabledOnChange(sender: TObject);
+
+  procedure TScriptForm._RIOnChange(sender: TObject);
   var
+    arr: TStringArray;
+    i: Int32;
+    child: TCheckBox;
+    panel: TPanel;
     checked: Boolean;
-    enabled, blockInput, hud, riDebug: TCheckBox;
   begin
-    enabled := sender;
-    checked := enabled.IsChecked();
+    checked := TCheckBox(sender).IsChecked();
+    arr := ['block_real_input', 'hud_report', 'hud_debug'];
 
-    blockInput := Self.Form.GetChild('block_input_checkbox');
-    hud        := Self.Form.GetChild('hud_checkbox');
-    riDebug    := Self.Form.GetChild('ri_debug_checkbox');
+    for i := 0 to High(arr) do
+    begin
+      child := Self.Form.GetChild(arr[i] + '_group_checkbox');
+      child.setEnabled(checked);
+      panel := Self.Form.GetChild(arr[i] + '_group_panel');
+      panel.setEnabled(checked);
+      WLSettings.RemoteInput.Enabled := checked;
 
-    checked := enabled.IsChecked();
-    blockInput.SetEnabled(checked);
-    hud.SetEnabled(checked);
-    riDebug.SetEnabled(checked);
-
-    WLSettings.RemoteInput.Enabled     := checked;
-    WLSettings.RemoteInput.BlockInput  := checked and blockInput.IsChecked();
-    WLSettings.RemoteInput.HUDReport   := checked and hud.IsChecked();
-    WLSettings.RemoteInput.ScriptDebug := checked and riDebug.IsChecked();
+      case i of
+        0: WLSettings.RemoteInput.BlockInput  := checked and child.IsChecked();
+        1: WLSettings.RemoteInput.HUDReport   := checked and child.IsChecked();
+        2: WLSettings.RemoteInput.HUDDebug := checked and child.IsChecked();
+      end;
+    end;
   end;
 
-  procedure TScriptForm._BlockInputOnChange(sender: TObject);
+  procedure TScriptForm._RIPanelToggle(sender: TObject);
   var
-    blockInput: TCheckBox;
+    check: TCheckBox;
   begin
-    blockInput := sender;
-    WLSettings.RemoteInput.BlockInput := blockInput.IsChecked();
+    check := TPanel(sender).GetComponent(1);
+    check.Toggle();
+    Self._RIOnChange(check);
   end;
 
-  procedure TScriptForm._HUDOnChange(sender: TObject);
-  var
-    checked: Boolean;
-    hud, riDebug: TCheckBox;
+  procedure TScriptForm._RILabelToggle(sender: TObject);
   begin
-    hud := sender;
-    riDebug := Self.Form.GetChild('ri_debug_checkbox');
-
-    checked := hud.IsChecked();
-    if checked then
-      riDebug.SetChecked(False);
-
-    WLSettings.RemoteInput.HUDReport := checked;
-    WLSettings.RemoteInput.ScriptDebug := not checked;
+    Self._RIPanelToggle(TControl(sender).getParent());
   end;
 
-  procedure TScriptForm._DebugOnChange(sender: TObject);
+  procedure TScriptForm._RIGroupOnChange(sender: TObject);
   var
-    checked: Boolean;
-    hud, riDebug: TCheckBox;
+    checkbox, sibling: TCheckBox;
+    panel: TPanel;
   begin
-    riDebug := sender;
-    hud := Self.Form.GetChild('hud_checkbox');
+    checkbox := sender;
+    case checkbox.getName() of
+      'block_real_input_group_checkbox': WLSettings.RemoteInput.BlockInput := checkbox.IsChecked();
 
-    checked := riDebug.IsChecked();
+      'hud_report_group_checkbox':
+        begin
+          WLSettings.RemoteInput.HUDReport := checkbox.IsChecked();
+          if not checkbox.IsChecked() then
+            Exit;
 
-    if checked then
-      hud.SetChecked(False);
+          WLSettings.RemoteInput.HUDDebug := False;
+          panel := checkbox.getParent().getParent();
+          sibling := panel.GetChild('hud_debug_group_checkbox');
+          sibling.SetChecked(False);
+        end;
 
-    WLSettings.RemoteInput.HUDReport := not checked;
-    WLSettings.RemoteInput.ScriptDebug := checked;
+      'hud_debug_group_checkbox':
+        begin
+          WLSettings.RemoteInput.HUDDebug := checkbox.IsChecked();
+          if not checkbox.IsChecked() then
+            Exit;
+
+          WLSettings.RemoteInput.HUDReport := False;
+          panel := checkbox.getParent().getParent();
+          sibling := panel.GetChild('hud_report_group_checkbox');
+          sibling.SetChecked(False)
+        end;
+    end;
+
+
+  end;
+
+  procedure TScriptForm._RIGroupPanelToggle(sender: TObject);
+  var
+    check: TCheckBox;
+  begin
+    check := TPanel(sender).GetComponent(1);
+    check.Toggle();
+    Self._RIGroupOnChange(check);
+  end;
+
+  procedure TScriptForm._RIGroupLabelToggle(sender: TObject);
+  begin
+    Self._RIGroupPanelToggle(TControl(sender).getParent());
   end;
 
 var
   info: TLabel;
-  fullWidth, width, space: Int32;
-  enabled, blockInput, hud, riDebug: TLabeledCheckbox;
+  fullWidth, space, i: Int32;
+  riGroup: TCheckCheckGroup;
+  arr: TStringArray;
+  str: String;
+  tmp: TCheckBox;
+  tmpControl: TWinControl;
 begin
   with Result do
   begin
@@ -1524,68 +1587,6 @@ begin
 
   fullWidth := Floor(Self.Size.X/4);
   space := Floor(fullWidth * 0.1);
-  width := fullWidth - (space * 2);
-
-  with enabled do
-  begin
-    Create(Result);
-    SetCaption('Remote Input');
-    SetName('ri_state');
-    SetLeft(space);
-    SetTop(TControl.AdjustToDPI(20));
-    SetWidth(width);
-    CheckBox.SetOnChange(@Self._EnabledOnChange);
-    SetChecked(WLSettings.RemoteInput.Enabled);
-    SetTooltip('Enable/Disable Remote Input.' + LineEnding +
-            'Remote Input is a virtual mouse that allows you to bot while you use your real mouse.' +
-            LineEnding + 'As far as we know this is not detected, but could be in the future.'+
-            LineEnding + 'Use are your OWN RISK!');
-    end;
-
-  with blockInput do
-  begin
-    Create(Result);
-    SetCaption('Block Real Input');
-    SetName('block_input');
-    SetLeft(space + TControl.AdjustToDPI(10));
-    SetTop(enabled.GetBottom()+ TControl.AdjustToDPI(5));
-    SetWidth(width);
-    SetChecked(WLSettings.RemoteInput.BlockInput);
-    CheckBox.setOnChange(@Self._BlockInputOnChange);
-    SetTooltip('Enable/Disable User Input.' + LineEnding +
-               'This disables your input in the game until you' + LineEnding +
-               'pause or terminate the script.');
-  end;
-
-  with hud do
-  begin
-    Create(Result);
-    SetCaption('HUD report');
-    SetName('hud');
-    SetLeft(space + TControl.AdjustToDPI(10));
-    SetTop(blockInput.GetBottom()+ TControl.AdjustToDPI(5));
-    SetWidth(width);
-    SetChecked(WLSettings.RemoteInput.HUDReport);
-    CheckBox.SetOnChange(@Self._HUDOnChange);
-    SetTooltip('Enable/Disable the HUD report.' + LineEnding +
-               'HUD report is the in-game progress report, also' + LineEnding +
-               'called paint sometimes.');
-  end;
-
-  with riDebug do
-  begin
-    Create(Result);
-    SetCaption('Debug script');
-    SetName('ri_debug');
-    SetLeft(space + TControl.AdjustToDPI(10));
-    SetTop(hud.GetBottom()+ TControl.AdjustToDPI(5));
-    SetWidth(width);
-    SetChecked(WLSettings.RemoteInput.ScriptDebug);
-    CheckBox.SetOnChange(@Self._DebugOnChange);
-    SetTooltip('Enable/Disable the Script Debugging.' + LineEnding +
-               'This will paint/draw on screen critical things' + LineEnding +
-               'that Simba is looking for.');
-  end;
 
   with info do
   begin
@@ -1597,7 +1598,41 @@ begin
     SetName('ri_info');
   end;
 
-  Self._EnabledOnChange(enabled.CheckBox);
+  arr := ['Block Real Input', 'HUD Report', 'HUD Debug'];
+  with riGroup do
+  begin
+    Create(Result);
+    SetCaption('Remote Input');
+    SetTooltip('Remote Input settings.');
+    CaptionPanel.SetOnClick(@Self._RIPanelToggle);
+    Caption.SetOnClick(@Self._RILabelToggle);
+    SetTop(TControl.AdjustToDPI(20));
+    SetLeft(space);
+    AddItemArray(arr);
+
+    for i := 0 to High(arr) do
+    begin
+      str := Replace(LowerCase(arr[i]), ' ', '_', [rfReplaceAll]) + '_group';
+      case i of
+        0: SetCheckedChild(WLSettings.RemoteInput.BlockInput, str);
+        1: SetCheckedChild(WLSettings.RemoteInput.HUDReport, str);
+        2: SetCheckedChild(WLSettings.RemoteInput.HUDDebug, str);
+      end;
+
+      tmp := GetChildCheckBox(str);
+      tmp.setOnChange(@Self._RIGroupOnChange);
+
+      tmpControl := GetChildPanel(str);
+      tmpControl.setOnClick(@Self._RIGroupPanelToggle);
+
+      tmpControl := GetChildLabel(str);
+      tmpControl.setOnClick(@Self._RIGroupLabelToggle);
+    end;
+
+    CheckBox.setOnChange(@Self._RIOnChange);
+    SetChecked(WLSettings.RemoteInput.Enabled);
+    Self._RIOnChange(CheckBox);
+  end;
 end;
 
 

@@ -1,3 +1,12 @@
+## [13.2.2](https://github.com/Torwent/WaspLib/compare/v13.2.1...v13.2.2) (2023-04-01)
+
+
+### Bug Fixes
+
+* **rsmonsters:** add giantfrogs, credits to UlyssesTheHillGiant ([4489027](https://github.com/Torwent/WaspLib/commit/4489027907cbd1ce1933f6bc0dff8e4f92b885fd))
+
+
+
 ## [13.2.1](https://github.com/Torwent/WaspLib/compare/v13.2.0...v13.2.1) (2023-04-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **data:** monsters data loads faster now ([27e2a89](https://github.com/Torwent/WaspLib/commit/27e2a89271b9879152ff1bb2b0950345314bf7fe))
-
-
-
-## [13.0.1](https://github.com/Torwent/WaspLib/compare/v13.0.0...v13.0.1) (2023-03-27)
-
-
-### Bug Fixes
-
-* remove leftover debugging ([ac4c2f4](https://github.com/Torwent/WaspLib/commit/ac4c2f41f0f0da053accba5a45bd12089bc67de5))
 
 
 

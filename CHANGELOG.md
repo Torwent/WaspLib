@@ -1,3 +1,12 @@
+## [13.2.3](https://github.com/Torwent/WaspLib/compare/v13.2.2...v13.2.3) (2023-04-01)
+
+
+### Bug Fixes
+
+* **loothandler:** now loots again. ([bb62bde](https://github.com/Torwent/WaspLib/commit/bb62bded874246dd7f8228e9140ad3005c38c279))
+
+
+
 ## [13.2.2](https://github.com/Torwent/WaspLib/compare/v13.2.1...v13.2.2) (2023-04-01)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **ItemData:** ItemData caching implemented ([b15b240](https://github.com/Torwent/WaspLib/commit/b15b24072e5d66a3ecbbb0e2578813050d6f767a))
-
-
-
-## [13.0.2](https://github.com/Torwent/WaspLib/compare/v13.0.1...v13.0.2) (2023-03-27)
-
-
-### Bug Fixes
-
-* **data:** monsters data loads faster now ([27e2a89](https://github.com/Torwent/WaspLib/commit/27e2a89271b9879152ff1bb2b0950345314bf7fe))
 
 
 

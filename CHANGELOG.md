@@ -1,3 +1,12 @@
+# [13.2.0](https://github.com/Torwent/WaspLib/compare/v13.1.0...v13.2.0) (2023-04-01)
+
+
+### Features
+
+* added anti-bot farm and other changes (read notes) ([f271668](https://github.com/Torwent/WaspLib/commit/f271668967afa5b9871c0359ae685ced29dfffcc))
+
+
+
 # [13.1.0](https://github.com/Torwent/WaspLib/compare/v13.0.2...v13.1.0) (2023-03-28)
 
 
@@ -36,15 +45,6 @@
 ### BREAKING CHANGES
 
 * Scripts that used `WLSettings.RemoteInput.ScriptDebug` directly will require to be updated (70% of my scripts).
-
-
-
-## [12.0.1](https://github.com/Torwent/WaspLib/compare/v12.0.0...v12.0.1) (2023-03-25)
-
-
-### Bug Fixes
-
-* read notes ([b3995f2](https://github.com/Torwent/WaspLib/commit/b3995f2dfb3877ba976bc45b68d9295c994bf06e))
 
 
 

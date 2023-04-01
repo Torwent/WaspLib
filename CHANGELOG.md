@@ -1,3 +1,12 @@
+## [13.2.1](https://github.com/Torwent/WaspLib/compare/v13.2.0...v13.2.1) (2023-04-01)
+
+
+### Bug Fixes
+
+* **rsregions:** fixed deathplateu ([9428b5e](https://github.com/Torwent/WaspLib/commit/9428b5e5366e80652ab7e35b917af002166c4dc6))
+
+
+
 # [13.2.0](https://github.com/Torwent/WaspLib/compare/v13.1.0...v13.2.0) (2023-04-01)
 
 
@@ -31,20 +40,6 @@
 ### Bug Fixes
 
 * remove leftover debugging ([ac4c2f4](https://github.com/Torwent/WaspLib/commit/ac4c2f41f0f0da053accba5a45bd12089bc67de5))
-
-
-
-# [13.0.0](https://github.com/Torwent/WaspLib/compare/v12.0.1...v13.0.0) (2023-03-27)
-
-
-### Bug Fixes
-
-* Read notes ([cd7fede](https://github.com/Torwent/WaspLib/commit/cd7fedee975707cf5f3b657f0373265f64e57fcd))
-
-
-### BREAKING CHANGES
-
-* Scripts that used `WLSettings.RemoteInput.ScriptDebug` directly will require to be updated (70% of my scripts).
 
 
 

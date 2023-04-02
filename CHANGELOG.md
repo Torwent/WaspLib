@@ -1,3 +1,12 @@
+## [13.2.4](https://github.com/Torwent/WaspLib/compare/v13.2.3...v13.2.4) (2023-04-02)
+
+
+### Bug Fixes
+
+* **map:** added clan hall and it's respective rsregion ([c89df88](https://github.com/Torwent/WaspLib/commit/c89df88e8db748c3f7d052210a5ac1341a7b06ca))
+
+
+
 ## [13.2.3](https://github.com/Torwent/WaspLib/compare/v13.2.2...v13.2.3) (2023-04-01)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added anti-bot farm and other changes (read notes) ([f271668](https://github.com/Torwent/WaspLib/commit/f271668967afa5b9871c0359ae685ced29dfffcc))
-
-
-
-# [13.1.0](https://github.com/Torwent/WaspLib/compare/v13.0.2...v13.1.0) (2023-03-28)
-
-
-### Features
-
-* **ItemData:** ItemData caching implemented ([b15b240](https://github.com/Torwent/WaspLib/commit/b15b24072e5d66a3ecbbb0e2578813050d6f767a))
 
 
 

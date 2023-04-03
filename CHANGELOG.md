@@ -1,3 +1,12 @@
+## [13.2.5](https://github.com/Torwent/WaspLib/compare/v13.2.4...v13.2.5) (2023-04-03)
+
+
+### Bug Fixes
+
+* missing button setup in withdrawhelper, oops! ([338a736](https://github.com/Torwent/WaspLib/commit/338a736d10bd0bb1cda4d858435c8d05ef870635))
+
+
+
 ## [13.2.4](https://github.com/Torwent/WaspLib/compare/v13.2.3...v13.2.4) (2023-04-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsregions:** fixed deathplateu ([9428b5e](https://github.com/Torwent/WaspLib/commit/9428b5e5366e80652ab7e35b917af002166c4dc6))
-
-
-
-# [13.2.0](https://github.com/Torwent/WaspLib/compare/v13.1.0...v13.2.0) (2023-04-01)
-
-
-### Features
-
-* added anti-bot farm and other changes (read notes) ([f271668](https://github.com/Torwent/WaspLib/commit/f271668967afa5b9871c0359ae685ced29dfffcc))
 
 
 

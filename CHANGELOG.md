@@ -1,3 +1,12 @@
+## [13.2.7](https://github.com/Torwent/WaspLib/compare/v13.2.6...v13.2.7) (2023-04-03)
+
+
+### Bug Fixes
+
+* **rsobjects:** fixed tithe table ([b69cbac](https://github.com/Torwent/WaspLib/commit/b69cbac1f42741cba17dd98d002edef7267d6338))
+
+
+
 ## [13.2.6](https://github.com/Torwent/WaspLib/compare/v13.2.5...v13.2.6) (2023-04-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **loothandler:** now loots again. ([bb62bde](https://github.com/Torwent/WaspLib/commit/bb62bded874246dd7f8228e9140ad3005c38c279))
-
-
-
-## [13.2.2](https://github.com/Torwent/WaspLib/compare/v13.2.1...v13.2.2) (2023-04-01)
-
-
-### Bug Fixes
-
-* **rsmonsters:** add giantfrogs, credits to UlyssesTheHillGiant ([4489027](https://github.com/Torwent/WaspLib/commit/4489027907cbd1ce1933f6bc0dff8e4f92b885fd))
 
 
 

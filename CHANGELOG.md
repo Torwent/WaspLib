@@ -1,3 +1,12 @@
+## [13.2.6](https://github.com/Torwent/WaspLib/compare/v13.2.5...v13.2.6) (2023-04-03)
+
+
+### Bug Fixes
+
+* **TBaseScript:** Printing the progress report on simba output now includes revision ([41600df](https://github.com/Torwent/WaspLib/commit/41600df2df3970e12b4e29ce48f65b3cd98f21e7))
+
+
+
 ## [13.2.5](https://github.com/Torwent/WaspLib/compare/v13.2.4...v13.2.5) (2023-04-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsmonsters:** add giantfrogs, credits to UlyssesTheHillGiant ([4489027](https://github.com/Torwent/WaspLib/commit/4489027907cbd1ce1933f6bc0dff8e4f92b885fd))
-
-
-
-## [13.2.1](https://github.com/Torwent/WaspLib/compare/v13.2.0...v13.2.1) (2023-04-01)
-
-
-### Bug Fixes
-
-* **rsregions:** fixed deathplateu ([9428b5e](https://github.com/Torwent/WaspLib/commit/9428b5e5366e80652ab7e35b917af002166c4dc6))
 
 
 

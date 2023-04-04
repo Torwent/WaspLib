@@ -1,45 +1,45 @@
+## [13.2.7](https://github.com/Torwent/WaspLib/compare/v13.2.6...v13.2.7) (2023-04-03)
+
+
+### Bug Fixes
+
+* **rsobjects:** fixed tithe table ([b69cbac](https://github.com/Torwent/WaspLib/commit/b69cbac1f42741cba17dd98d002edef7267d6338))
+
+
+
+## [13.2.6](https://github.com/Torwent/WaspLib/compare/v13.2.5...v13.2.6) (2023-04-03)
+
+
+### Bug Fixes
+
+* **TBaseScript:** Printing the progress report on simba output now includes revision ([41600df](https://github.com/Torwent/WaspLib/commit/41600df2df3970e12b4e29ce48f65b3cd98f21e7))
+
+
+
+## [13.2.5](https://github.com/Torwent/WaspLib/compare/v13.2.4...v13.2.5) (2023-04-03)
+
+
+### Bug Fixes
+
+* missing button setup in withdrawhelper, oops! ([338a736](https://github.com/Torwent/WaspLib/commit/338a736d10bd0bb1cda4d858435c8d05ef870635))
+
+
+
+## [13.2.4](https://github.com/Torwent/WaspLib/compare/v13.2.3...v13.2.4) (2023-04-02)
+
+
+### Bug Fixes
+
+* **map:** added clan hall and it's respective rsregion ([c89df88](https://github.com/Torwent/WaspLib/commit/c89df88e8db748c3f7d052210a5ac1341a7b06ca))
+
+
+
 ## [13.2.3](https://github.com/Torwent/WaspLib/compare/v13.2.2...v13.2.3) (2023-04-01)
 
 
 ### Bug Fixes
 
 * **loothandler:** now loots again. ([bb62bde](https://github.com/Torwent/WaspLib/commit/bb62bded874246dd7f8228e9140ad3005c38c279))
-
-
-
-## [13.2.2](https://github.com/Torwent/WaspLib/compare/v13.2.1...v13.2.2) (2023-04-01)
-
-
-### Bug Fixes
-
-* **rsmonsters:** add giantfrogs, credits to UlyssesTheHillGiant ([4489027](https://github.com/Torwent/WaspLib/commit/4489027907cbd1ce1933f6bc0dff8e4f92b885fd))
-
-
-
-## [13.2.1](https://github.com/Torwent/WaspLib/compare/v13.2.0...v13.2.1) (2023-04-01)
-
-
-### Bug Fixes
-
-* **rsregions:** fixed deathplateu ([9428b5e](https://github.com/Torwent/WaspLib/commit/9428b5e5366e80652ab7e35b917af002166c4dc6))
-
-
-
-# [13.2.0](https://github.com/Torwent/WaspLib/compare/v13.1.0...v13.2.0) (2023-04-01)
-
-
-### Features
-
-* added anti-bot farm and other changes (read notes) ([f271668](https://github.com/Torwent/WaspLib/commit/f271668967afa5b9871c0359ae685ced29dfffcc))
-
-
-
-# [13.1.0](https://github.com/Torwent/WaspLib/compare/v13.0.2...v13.1.0) (2023-03-28)
-
-
-### Features
-
-* **ItemData:** ItemData caching implemented ([b15b240](https://github.com/Torwent/WaspLib/commit/b15b24072e5d66a3ecbbb0e2578813050d6f767a))
 
 
 

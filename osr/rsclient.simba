@@ -79,58 +79,44 @@ begin
   Self.ClientModeChanged();
 end;
 
-procedure TRSClient.CheckScriptThreads();
-  function _GetSimbaExe(): String;
-  var
-    exes: TStringArray;
-    i: Int32;
-  begin
-    exes := FindFile(APPPATH, '*.exe', False, False);
-
-    for i := 0 to High(exes) do
-    begin
-      exes[i] := ExtractFileName(exes[i]).Before('.exe')
-      if exes[i].ContainsAny(['Simba', 'simba']) then
-      begin
-        Result := exes[i];
-        Break;
-      end;
-    end;
-
-    if Result = '' then
-      TerminateScript('Simba.exe couldn''t be found!');
-
-    Result := ExtractFileName(Result).Before('.exe');
-  end;
-
+function TWaspLib.CountScriptThreads(): Int32;
 var
-  simbaWindows, processes: TOSWindowArray;
+  processes, procArr: TOSWindowArray;
   pids, mainPIDs: TIntegerArray;
-  i, threadCount: Int32;
+  i, pidCount, procCount: Int32;
 begin
   processes := GetWindows();
   for i := 0 to High(processes) do
+  begin
     if 'simba' in LowerCase(processes[i].GetTitle()) then
+    begin
       pids += processes[i].GetPID();
+      procArr += processes[i];
+    end;
+  end;
 
   pids.Sort();
   pids.ClearDuplicates();
+  pidCount := Length(pids);
 
-  simbaWindows := FindWindow(_GetSimbaExe());
-  for i := 0 to High(simbaWindows) do
-    if simbaWindows[i].GetChildren(True) = [] then
-      mainPIDs += simbaWindows[i].GetPID();
+  pids := [];
+  for i := 0 to High(procArr) do
+    if procArr[i] = procArr[i].GetRootWindow() then
+      pids += procArr[i].GetPID();
 
-  mainPIDs.Sort();
+  mainPIDs := pids;
   mainPIDs.ClearDuplicates();
+  procCount := Length(pids) - Length(mainPIDs);
+  Result := pidCount - procCount * 2;
+end;
 
-  threadCount := Length(pids) - (Length(mainPIDs) * 2);
-
-  if threadCount >= 7 then
+procedure TWaspLib.CheckScriptThreads();
+begin
+  if Self.CountScriptThreads() >= 7 then
     TerminateScript('You seem to be running more than 7 simba scripts.' +
     LINEENDING + LINEENDING + 'WaspLib is not meant for gold farming. If this is not the case contact Torwent in discord.');
 end;
 
 begin
-  RSClient.CheckScriptThreads();
+  WL.CheckScriptThreads();
 end;

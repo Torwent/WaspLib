@@ -49,45 +49,44 @@ const
 type
   TRSLootHandler = record(TSRLBaseRecord)
     Loot: TRSGroundItem;
-    Drops: array of TRSMonsterDrop;
+    Drops: TRSMonsterDropArray;
     ValueThreshold: Int32;
     CheckedLoot: Boolean;
     IsSetup: Boolean;
   end;
 
-function TRSLootHandler.IsGoodDrop(Drop: TRSMonsterDrop): Boolean;
+function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
 var
-  GEValue: Int32;
+  value: Int32;
 begin
-  if LOOT_ITEM_ARRAY.IndexOf(Drop.Item) > -1 then
+  if LOOT_ITEM_ARRAY.Contains(drop.Item) then
     Exit(True);
 
-  GEValue := ItemData.GetAverage(Drop.ID);
+  value := ItemData.GetAverage(drop.ID);
 
-  Result := GEValue >= Self.ValueThreshold;
+  Result := value >= Self.ValueThreshold;
   if Result then
     Exit;
 
-  Result := Drop.Stackable and
-            ((GEValue * Drop.Quantity) >= (Self.ValueThreshold / 5));
+  value := value * drop.Quantity;
+  Result := drop.Stackable and (value >= (Self.ValueThreshold / 5));
   if Result then
     Exit;
 
-  Result := ItemData.GetHighAlch(Drop.ID) > Self.ValueThreshold;
+  Result := ItemData.GetHighAlch(drop.ID) > Self.ValueThreshold;
   if Result then
-    AlchItemArray += Drop.Item;
+    AlchItemArray += drop.Item;
 end;
 
 procedure TRSLootHandler.Setup(monster: TRSMonster; value: Int32 = 5000);
 var
   i: Int32;
-  tempDrops: array of TRSMonsterDrop;
+  tmpDrops: TRSMonsterDropArray;
 begin
   if (monster.Name = '') or (value <= 0) then
     Exit;
 
   Self.ValueThreshold := value;
-
   Self.Loot._Setup();
 
   if monster.Coordinates <> [] then
@@ -103,14 +102,15 @@ begin
 
   DebugMMDotArray += Self.Loot;
 
-  tempDrops := MonsterData.GetDrops(monster.Name);
+  tmpDrops := MonsterData.GetDrops(monster.Name);
+  tmpDrops.ClearDuplicates();
 
-  for i := 0 to High(tempDrops) do
+  for i := 0 to High(tmpDrops) do
   begin
-    if Self.IsGoodDrop(tempDrops[i]) then
+    if Self.IsGoodDrop(tmpDrops[i]) then
     begin
-      Self.Drops += tempDrops[i];
-      Self.Loot.UpText += tempDrops[i].Item;
+      Self.Drops += tmpDrops[i];
+      Self.Loot.UpText += tmpDrops[i].Item;
     end;
   end;
 

@@ -456,6 +456,58 @@ type
     Quantity: Int32;
   end;
 
+  TRSMonsterDropArray = array of TRSMonsterDrop;
+
+function TRSMonsterDropArray.Contains(drop: TRSMonsterDrop): Boolean;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i] = drop then
+      Exit(True);
+
+  Result := False;
+end;
+
+function TRSMonsterDropArray.ContainsEx(drop: TRSMonsterDrop): Boolean;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i].ID = drop.ID then
+      Exit(True);
+
+  Result := False;
+end;
+
+procedure TRSMonsterDropArray.ClearDuplicates();
+var
+  i, j: Int32;
+  tmp: TRSMonsterDropArray;
+  best: TRSMonsterDrop;
+begin
+  for i := 0 to High(Self) do
+  begin
+    best := Self[i];
+    if tmp.ContainsEx(best) then
+      Continue;
+
+    for j := High(Self) downto i + 1  do
+    begin
+      if best.ID <> Self[j].ID then
+        Continue;
+
+      if best.Quantity < Self[j].Quantity then
+        best := Self[j];
+    end;
+
+    tmp += best;
+  end;
+  WriteLn Self;
+  WriteLn tmp;
+  Self := tmp;
+end;
+
 type MonsterData = record(TSRLBaseRecord) class var
     Names: TStringList;
     Data: TJSONObject;
@@ -698,7 +750,7 @@ end;
 (*
 MonsterData.GetDrops()
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function MonsterData.GetDrops(Monster: String): array of TRSMonsterDrop;
+.. pascal:: function MonsterData.GetDrops(Monster: String): TRSMonsterDropArray;
 
 Method to return all monster drops as an array of TRSMonsterDrop.
 
@@ -707,7 +759,7 @@ Example
 
   WriteLn MonsterData.GetDrops('Abyssal demon'); //prints all monster drops.
 *)
-function MonsterData.GetDrops(monster: String): array of TRSMonsterDrop; static;
+function MonsterData.GetDrops(monster: String): TRSMonsterDropArray; static;
 var
   JSONArray: TJSONArray;
   i: Int32;

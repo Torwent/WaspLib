@@ -1,3 +1,12 @@
+## [13.2.10](https://github.com/Torwent/WaspLib/compare/v13.2.9...v13.2.10) (2023-04-05)
+
+
+### Bug Fixes
+
+* **RSClient:** Checking thread count was still bugged. should now work properly ([3a73f79](https://github.com/Torwent/WaspLib/commit/3a73f79682eda44e100f8338f9fa046e5d91b9e0))
+
+
+
 ## [13.2.9](https://github.com/Torwent/WaspLib/compare/v13.2.8...v13.2.9) (2023-04-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseScript:** Printing the progress report on simba output now includes revision ([41600df](https://github.com/Torwent/WaspLib/commit/41600df2df3970e12b4e29ce48f65b3cd98f21e7))
-
-
-
-## [13.2.5](https://github.com/Torwent/WaspLib/compare/v13.2.4...v13.2.5) (2023-04-03)
-
-
-### Bug Fixes
-
-* missing button setup in withdrawhelper, oops! ([338a736](https://github.com/Torwent/WaspLib/commit/338a736d10bd0bb1cda4d858435c8d05ef870635))
 
 
 

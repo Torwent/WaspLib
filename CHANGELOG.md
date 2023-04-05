@@ -1,3 +1,12 @@
+## [13.2.12](https://github.com/Torwent/WaspLib/compare/v13.2.11...v13.2.12) (2023-04-05)
+
+
+### Bug Fixes
+
+* **RSObjects:** Prif bank to BankUnspecified and uptext  ([a70aa0f](https://github.com/Torwent/WaspLib/commit/a70aa0ff6fbd188b5582e27af9f4e5dca008affa))
+
+
+
 ## [13.2.11](https://github.com/Torwent/WaspLib/compare/v13.2.10...v13.2.11) (2023-04-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * checking simba threads should now be less strict with simba.exe file name ([9c6d0b6](https://github.com/Torwent/WaspLib/commit/9c6d0b611228e194162fadf25c9c8802b24e2f46))
-
-
-
-## [13.2.7](https://github.com/Torwent/WaspLib/compare/v13.2.6...v13.2.7) (2023-04-03)
-
-
-### Bug Fixes
-
-* **rsobjects:** fixed tithe table ([b69cbac](https://github.com/Torwent/WaspLib/commit/b69cbac1f42741cba17dd98d002edef7267d6338))
 
 
 

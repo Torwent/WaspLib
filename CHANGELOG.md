@@ -1,3 +1,12 @@
+## [13.2.11](https://github.com/Torwent/WaspLib/compare/v13.2.10...v13.2.11) (2023-04-05)
+
+
+### Bug Fixes
+
+* reworked the script thread counter since it was failing a lot ([5dc7b32](https://github.com/Torwent/WaspLib/commit/5dc7b32b17047698ac8ce526aded0e31b150a17b))
+
+
+
 ## [13.2.10](https://github.com/Torwent/WaspLib/compare/v13.2.9...v13.2.10) (2023-04-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsobjects:** fixed tithe table ([b69cbac](https://github.com/Torwent/WaspLib/commit/b69cbac1f42741cba17dd98d002edef7267d6338))
-
-
-
-## [13.2.6](https://github.com/Torwent/WaspLib/compare/v13.2.5...v13.2.6) (2023-04-03)
-
-
-### Bug Fixes
-
-* **TBaseScript:** Printing the progress report on simba output now includes revision ([41600df](https://github.com/Torwent/WaspLib/commit/41600df2df3970e12b4e29ce48f65b3cd98f21e7))
 
 
 

@@ -1,3 +1,12 @@
+## [13.2.8](https://github.com/Torwent/WaspLib/compare/v13.2.7...v13.2.8) (2023-04-05)
+
+
+### Bug Fixes
+
+* checking simba threads should now be less strict with simba.exe file name ([9c6d0b6](https://github.com/Torwent/WaspLib/commit/9c6d0b611228e194162fadf25c9c8802b24e2f46))
+
+
+
 ## [13.2.7](https://github.com/Torwent/WaspLib/compare/v13.2.6...v13.2.7) (2023-04-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **map:** added clan hall and it's respective rsregion ([c89df88](https://github.com/Torwent/WaspLib/commit/c89df88e8db748c3f7d052210a5ac1341a7b06ca))
-
-
-
-## [13.2.3](https://github.com/Torwent/WaspLib/compare/v13.2.2...v13.2.3) (2023-04-01)
-
-
-### Bug Fixes
-
-* **loothandler:** now loots again. ([bb62bde](https://github.com/Torwent/WaspLib/commit/bb62bded874246dd7f8228e9140ad3005c38c279))
 
 
 

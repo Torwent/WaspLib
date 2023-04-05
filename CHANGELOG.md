@@ -1,3 +1,12 @@
+## [13.2.9](https://github.com/Torwent/WaspLib/compare/v13.2.8...v13.2.9) (2023-04-05)
+
+
+### Bug Fixes
+
+* **ItemData:** typo that would make getting item prices fail. ([413d90c](https://github.com/Torwent/WaspLib/commit/413d90cc094d24ac70c0db35e5e21859552fcb3c))
+
+
+
 ## [13.2.8](https://github.com/Torwent/WaspLib/compare/v13.2.7...v13.2.8) (2023-04-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * missing button setup in withdrawhelper, oops! ([338a736](https://github.com/Torwent/WaspLib/commit/338a736d10bd0bb1cda4d858435c8d05ef870635))
-
-
-
-## [13.2.4](https://github.com/Torwent/WaspLib/compare/v13.2.3...v13.2.4) (2023-04-02)
-
-
-### Bug Fixes
-
-* **map:** added clan hall and it's respective rsregion ([c89df88](https://github.com/Torwent/WaspLib/commit/c89df88e8db748c3f7d052210a5ac1341a7b06ca))
 
 
 

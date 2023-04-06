@@ -1,3 +1,12 @@
+## [13.2.13](https://github.com/Torwent/WaspLib/compare/v13.2.12...v13.2.13) (2023-04-06)
+
+
+### Bug Fixes
+
+* added CHANGELOG.md to gitignore since each fork creates its own ([1945e4d](https://github.com/Torwent/WaspLib/commit/1945e4d86f618826ddf02cfaa85088b8b5023317))
+
+
+
 ## [13.2.12](https://github.com/Torwent/WaspLib/compare/v13.2.11...v13.2.12) (2023-04-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **ItemData:** typo that would make getting item prices fail. ([413d90c](https://github.com/Torwent/WaspLib/commit/413d90cc094d24ac70c0db35e5e21859552fcb3c))
-
-
-
-## [13.2.8](https://github.com/Torwent/WaspLib/compare/v13.2.7...v13.2.8) (2023-04-05)
-
-
-### Bug Fixes
-
-* checking simba threads should now be less strict with simba.exe file name ([9c6d0b6](https://github.com/Torwent/WaspLib/commit/9c6d0b611228e194162fadf25c9c8802b24e2f46))
 
 
 

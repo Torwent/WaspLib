@@ -1,45 +1,45 @@
-## [13.2.7](https://github.com/Torwent/WaspLib/compare/v13.2.6...v13.2.7) (2023-04-03)
+## [13.2.12](https://github.com/Torwent/WaspLib/compare/v13.2.11...v13.2.12) (2023-04-05)
 
 
 ### Bug Fixes
 
-* **rsobjects:** fixed tithe table ([b69cbac](https://github.com/Torwent/WaspLib/commit/b69cbac1f42741cba17dd98d002edef7267d6338))
+* **RSObjects:** Prif bank to BankUnspecified and uptext  ([a70aa0f](https://github.com/Torwent/WaspLib/commit/a70aa0ff6fbd188b5582e27af9f4e5dca008affa))
 
 
 
-## [13.2.6](https://github.com/Torwent/WaspLib/compare/v13.2.5...v13.2.6) (2023-04-03)
-
-
-### Bug Fixes
-
-* **TBaseScript:** Printing the progress report on simba output now includes revision ([41600df](https://github.com/Torwent/WaspLib/commit/41600df2df3970e12b4e29ce48f65b3cd98f21e7))
-
-
-
-## [13.2.5](https://github.com/Torwent/WaspLib/compare/v13.2.4...v13.2.5) (2023-04-03)
+## [13.2.11](https://github.com/Torwent/WaspLib/compare/v13.2.10...v13.2.11) (2023-04-05)
 
 
 ### Bug Fixes
 
-* missing button setup in withdrawhelper, oops! ([338a736](https://github.com/Torwent/WaspLib/commit/338a736d10bd0bb1cda4d858435c8d05ef870635))
+* reworked the script thread counter since it was failing a lot ([5dc7b32](https://github.com/Torwent/WaspLib/commit/5dc7b32b17047698ac8ce526aded0e31b150a17b))
 
 
 
-## [13.2.4](https://github.com/Torwent/WaspLib/compare/v13.2.3...v13.2.4) (2023-04-02)
-
-
-### Bug Fixes
-
-* **map:** added clan hall and it's respective rsregion ([c89df88](https://github.com/Torwent/WaspLib/commit/c89df88e8db748c3f7d052210a5ac1341a7b06ca))
-
-
-
-## [13.2.3](https://github.com/Torwent/WaspLib/compare/v13.2.2...v13.2.3) (2023-04-01)
+## [13.2.10](https://github.com/Torwent/WaspLib/compare/v13.2.9...v13.2.10) (2023-04-05)
 
 
 ### Bug Fixes
 
-* **loothandler:** now loots again. ([bb62bde](https://github.com/Torwent/WaspLib/commit/bb62bded874246dd7f8228e9140ad3005c38c279))
+* **RSClient:** Checking thread count was still bugged. should now work properly ([3a73f79](https://github.com/Torwent/WaspLib/commit/3a73f79682eda44e100f8338f9fa046e5d91b9e0))
+
+
+
+## [13.2.9](https://github.com/Torwent/WaspLib/compare/v13.2.8...v13.2.9) (2023-04-05)
+
+
+### Bug Fixes
+
+* **ItemData:** typo that would make getting item prices fail. ([413d90c](https://github.com/Torwent/WaspLib/commit/413d90cc094d24ac70c0db35e5e21859552fcb3c))
+
+
+
+## [13.2.8](https://github.com/Torwent/WaspLib/compare/v13.2.7...v13.2.8) (2023-04-05)
+
+
+### Bug Fixes
+
+* checking simba threads should now be less strict with simba.exe file name ([9c6d0b6](https://github.com/Torwent/WaspLib/commit/9c6d0b611228e194162fadf25c9c8802b24e2f46))
 
 
 

@@ -1,3 +1,12 @@
+## [13.2.14](https://github.com/Torwent/WaspLib/compare/v13.2.13...v13.2.14) (2023-04-11)
+
+
+### Bug Fixes
+
+* read notes ([5593fc4](https://github.com/Torwent/WaspLib/commit/5593fc4430f1c6e3da7daafe9aa47a1a599ad84f))
+
+
+
 ## [13.2.13](https://github.com/Torwent/WaspLib/compare/v13.2.12...v13.2.13) (2023-04-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSClient:** Checking thread count was still bugged. should now work properly ([3a73f79](https://github.com/Torwent/WaspLib/commit/3a73f79682eda44e100f8338f9fa046e5d91b9e0))
-
-
-
-## [13.2.9](https://github.com/Torwent/WaspLib/compare/v13.2.8...v13.2.9) (2023-04-05)
-
-
-### Bug Fixes
-
-* **ItemData:** typo that would make getting item prices fail. ([413d90c](https://github.com/Torwent/WaspLib/commit/413d90cc094d24ac70c0db35e5e21859552fcb3c))
 
 
 

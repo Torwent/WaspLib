@@ -1,3 +1,12 @@
+## [13.2.15](https://github.com/Torwent/WaspLib/compare/v13.2.14...v13.2.15) (2023-04-13)
+
+
+### Bug Fixes
+
+* several fixes, read notes ([69f7738](https://github.com/Torwent/WaspLib/commit/69f7738cb01f2184d2124e5b6ccd2e14e57dcf4c))
+
+
+
 ## [13.2.14](https://github.com/Torwent/WaspLib/compare/v13.2.13...v13.2.14) (2023-04-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * reworked the script thread counter since it was failing a lot ([5dc7b32](https://github.com/Torwent/WaspLib/commit/5dc7b32b17047698ac8ce526aded0e31b150a17b))
-
-
-
-## [13.2.10](https://github.com/Torwent/WaspLib/compare/v13.2.9...v13.2.10) (2023-04-05)
-
-
-### Bug Fixes
-
-* **RSClient:** Checking thread count was still bugged. should now work properly ([3a73f79](https://github.com/Torwent/WaspLib/commit/3a73f79682eda44e100f8338f9fa046e5d91b9e0))
 
 
 

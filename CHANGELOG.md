@@ -1,3 +1,12 @@
+## [13.2.16](https://github.com/Torwent/WaspLib/compare/v13.2.15...v13.2.16) (2023-04-13)
+
+
+### Bug Fixes
+
+* read notes ([92a99d8](https://github.com/Torwent/WaspLib/commit/92a99d8cf098f3c22086d893c77968b1d7d140bf))
+
+
+
 ## [13.2.15](https://github.com/Torwent/WaspLib/compare/v13.2.14...v13.2.15) (2023-04-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSObjects:** Prif bank to BankUnspecified and uptext  ([a70aa0f](https://github.com/Torwent/WaspLib/commit/a70aa0ff6fbd188b5582e27af9f4e5dca008affa))
-
-
-
-## [13.2.11](https://github.com/Torwent/WaspLib/compare/v13.2.10...v13.2.11) (2023-04-05)
-
-
-### Bug Fixes
-
-* reworked the script thread counter since it was failing a lot ([5dc7b32](https://github.com/Torwent/WaspLib/commit/5dc7b32b17047698ac8ce526aded0e31b150a17b))
 
 
 

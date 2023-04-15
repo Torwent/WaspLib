@@ -1,3 +1,12 @@
+## [13.2.17](https://github.com/Torwent/WaspLib/compare/v13.2.16...v13.2.17) (2023-04-15)
+
+
+### Bug Fixes
+
+* several GUI improvements ([d9bf702](https://github.com/Torwent/WaspLib/commit/d9bf70240877f1356bce5ed5032d4f124dd4c87b))
+
+
+
 ## [13.2.16](https://github.com/Torwent/WaspLib/compare/v13.2.15...v13.2.16) (2023-04-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added CHANGELOG.md to gitignore since each fork creates its own ([1945e4d](https://github.com/Torwent/WaspLib/commit/1945e4d86f618826ddf02cfaa85088b8b5023317))
-
-
-
-## [13.2.12](https://github.com/Torwent/WaspLib/compare/v13.2.11...v13.2.12) (2023-04-05)
-
-
-### Bug Fixes
-
-* **RSObjects:** Prif bank to BankUnspecified and uptext  ([a70aa0f](https://github.com/Torwent/WaspLib/commit/a70aa0ff6fbd188b5582e27af9f4e5dca008affa))
 
 
 

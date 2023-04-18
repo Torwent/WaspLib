@@ -1,3 +1,12 @@
+## [13.2.18](https://github.com/Torwent/WaspLib/compare/v13.2.17...v13.2.18) (2023-04-18)
+
+
+### Bug Fixes
+
+* readded TRSItem.IsNull() ([9b8b402](https://github.com/Torwent/WaspLib/commit/9b8b402b9fbe0e8de2cce0ac38d94d8dfc24ec11))
+
+
+
 ## [13.2.17](https://github.com/Torwent/WaspLib/compare/v13.2.16...v13.2.17) (2023-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([5593fc4](https://github.com/Torwent/WaspLib/commit/5593fc4430f1c6e3da7daafe9aa47a1a599ad84f))
-
-
-
-## [13.2.13](https://github.com/Torwent/WaspLib/compare/v13.2.12...v13.2.13) (2023-04-06)
-
-
-### Bug Fixes
-
-* added CHANGELOG.md to gitignore since each fork creates its own ([1945e4d](https://github.com/Torwent/WaspLib/commit/1945e4d86f618826ddf02cfaa85088b8b5023317))
 
 
 

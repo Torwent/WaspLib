@@ -1,3 +1,12 @@
+## [13.2.19](https://github.com/Torwent/WaspLib/compare/v13.2.18...v13.2.19) (2023-04-19)
+
+
+### Bug Fixes
+
+* **rsmonsters:** hill giants now have coordinates in edge/varrock dungeon ([57c1a95](https://github.com/Torwent/WaspLib/commit/57c1a95e57aba57bae099ec2b0ab0c6753e23af5))
+
+
+
 ## [13.2.18](https://github.com/Torwent/WaspLib/compare/v13.2.17...v13.2.18) (2023-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * several fixes, read notes ([69f7738](https://github.com/Torwent/WaspLib/commit/69f7738cb01f2184d2124e5b6ccd2e14e57dcf4c))
-
-
-
-## [13.2.14](https://github.com/Torwent/WaspLib/compare/v13.2.13...v13.2.14) (2023-04-11)
-
-
-### Bug Fixes
-
-* read notes ([5593fc4](https://github.com/Torwent/WaspLib/commit/5593fc4430f1c6e3da7daafe9aa47a1a599ad84f))
 
 
 

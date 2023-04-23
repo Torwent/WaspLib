@@ -1,3 +1,12 @@
+## [13.2.20](https://github.com/Torwent/WaspLib/compare/v13.2.19...v13.2.20) (2023-04-23)
+
+
+### Bug Fixes
+
+* **forms:** fixed a tiny bug with checkboxes ([dcbc6f6](https://github.com/Torwent/WaspLib/commit/dcbc6f6633bab35917ca8db43df87d70f654cc2e))
+
+
+
 ## [13.2.19](https://github.com/Torwent/WaspLib/compare/v13.2.18...v13.2.19) (2023-04-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([92a99d8](https://github.com/Torwent/WaspLib/commit/92a99d8cf098f3c22086d893c77968b1d7d140bf))
-
-
-
-## [13.2.15](https://github.com/Torwent/WaspLib/compare/v13.2.14...v13.2.15) (2023-04-13)
-
-
-### Bug Fixes
-
-* several fixes, read notes ([69f7738](https://github.com/Torwent/WaspLib/commit/69f7738cb01f2184d2124e5b6ccd2e14e57dcf4c))
 
 
 

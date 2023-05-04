@@ -1445,7 +1445,7 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
     checked: Boolean;
   begin
     checked := TCheckBox(sender).IsChecked();
-    arr := ['block_real_input', 'hud_report', 'hud_debug'];
+    arr := ['block_real_input', 'hud_report', 'hud_debug', 'hud_transparent'];
 
     for i := 0 to High(arr) do
     begin
@@ -1456,9 +1456,10 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
       WLSettings.RemoteInput.Enabled := checked;
 
       case i of
-        0: WLSettings.RemoteInput.BlockInput  := checked and child.IsChecked();
-        1: WLSettings.RemoteInput.HUDReport   := checked and child.IsChecked();
-        2: WLSettings.RemoteInput.HUDDebug := checked and child.IsChecked();
+        0: WLSettings.RemoteInput.BlockInput     := checked and child.IsChecked();
+        1: WLSettings.RemoteInput.HUDReport      := checked and child.IsChecked();
+        2: WLSettings.RemoteInput.HUDDebug       := checked and child.IsChecked();
+        3: WLSettings.RemoteInput.HUDTransparent := checked and child.IsChecked();
       end;
     end;
   end;
@@ -1475,13 +1476,27 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
       'hud_report_group_checkbox':
         begin
           WLSettings.RemoteInput.HUDReport := checkbox.IsChecked();
+          panel := checkbox.getParent().getParent();
+
           if not checkbox.IsChecked() then
+          begin
+            WLSettings.RemoteInput.HUDTransparent := False;
+            panel := panel.GetChild('hud_transparent_group_panel');
+            panel.setEnabled(False);
+            sibling := panel.GetChild('hud_transparent_group_checkbox');
+            sibling.setEnabled(False);
             Exit;
+          end;
 
           WLSettings.RemoteInput.HUDDebug := False;
-          panel := checkbox.getParent().getParent();
           sibling := panel.GetChild('hud_debug_group_checkbox');
           sibling.SetChecked(False);
+
+          panel := panel.GetChild('hud_transparent_group_panel');
+          panel.setEnabled(True);
+          sibling := panel.GetChild('hud_transparent_group_checkbox');
+          sibling.setEnabled(True);
+          WLSettings.RemoteInput.HUDTransparent := sibling.IsChecked();
         end;
 
       'hud_debug_group_checkbox':
@@ -1491,13 +1506,22 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
             Exit;
 
           WLSettings.RemoteInput.HUDReport := False;
+          WLSettings.RemoteInput.HUDTransparent := False;
           panel := checkbox.getParent().getParent();
           sibling := panel.GetChild('hud_report_group_checkbox');
-          sibling.SetChecked(False)
+          sibling.SetChecked(False);
+
+          panel := panel.GetChild('hud_transparent_group_panel');
+          panel.setEnabled(False);
+          sibling := panel.GetChild('hud_transparent_group_checkbox');
+          sibling.setEnabled(False);
+        end;
+
+      'hud_transparent_group_checkbox':
+        begin
+          WLSettings.RemoteInput.HUDTransparent := checkbox.IsChecked();
         end;
     end;
-
-
   end;
 
 var
@@ -1514,7 +1538,7 @@ begin
     SetName('ri_panel');
     setCaption('');
     setBevelWidth(0);
-    setHeight(Round(Self.Size.Y / 5));
+    setHeight(Round(Self.Size.Y / 4.2));
     SetTooltip('Remote Input settings.');
   end;
 
@@ -1531,7 +1555,7 @@ begin
     SetName('ri_info');
   end;
 
-  arr := ['Block Real Input', 'HUD Report', 'HUD Debug'];
+  arr := ['Block Real Input', 'HUD Report', 'HUD Debug', 'HUD Transparent'];
   with riGroup do
   begin
     Create(Result);
@@ -1548,6 +1572,7 @@ begin
         0: SetCheckedChild(WLSettings.RemoteInput.BlockInput, str);
         1: SetCheckedChild(WLSettings.RemoteInput.HUDReport, str);
         2: SetCheckedChild(WLSettings.RemoteInput.HUDDebug, str);
+        3: SetCheckedChild(WLSettings.RemoteInput.HUDTransparent, str);
       end;
 
       tmp := GetChildCheckBox(str);

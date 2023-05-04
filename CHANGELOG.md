@@ -1,3 +1,12 @@
+# [13.3.0](https://github.com/Torwent/WaspLib/compare/v13.2.20...v13.3.0) (2023-05-04)
+
+
+### Features
+
+* read notes ([b7b2e28](https://github.com/Torwent/WaspLib/commit/b7b2e28d908f1841113464b081564b6da28fd7c7))
+
+
+
 ## [13.2.20](https://github.com/Torwent/WaspLib/compare/v13.2.19...v13.2.20) (2023-04-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * several GUI improvements ([d9bf702](https://github.com/Torwent/WaspLib/commit/d9bf70240877f1356bce5ed5032d4f124dd4c87b))
-
-
-
-## [13.2.16](https://github.com/Torwent/WaspLib/compare/v13.2.15...v13.2.16) (2023-04-13)
-
-
-### Bug Fixes
-
-* read notes ([92a99d8](https://github.com/Torwent/WaspLib/commit/92a99d8cf098f3c22086d893c77968b1d7d140bf))
 
 
 

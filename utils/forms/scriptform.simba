@@ -437,7 +437,7 @@ begin
   with user do
   begin
     Create(Result);
-    SetCaption('WaspStats Username:');
+    SetCaption('WaspStats Username (this will be visible!):');
     SetName('api_user');
     SetLeft(uuid.getLeft());
     SetTop(pass.GetBottom() + TControl.AdjustToDPI(25));
@@ -857,20 +857,6 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     end;
   end;
 
-  procedure TScriptForm._ABPanelToggle(sender: TObject);
-  var
-    check: TCheckBox;
-  begin
-    check := TPanel(sender).GetComponent(1);
-    check.Toggle();
-    Self._ABOnChange(check);
-  end;
-
-  procedure TScriptForm._ABLabelToggle(sender: TObject);
-  begin
-    Self._ABPanelToggle(TControl(sender).getParent());
-  end;
-
 
   procedure TScriptForm._ABGroupOnChange(sender: TObject);
   var
@@ -885,21 +871,6 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
       'bank_group_checkbox':     WLSettings.Antiban.Bank     := checkbox.IsChecked();
     end;
   end;
-
-  procedure TScriptForm._ABGroupPanelToggle(sender: TObject);
-  var
-    check: TCheckBox;
-  begin
-    check := TPanel(sender).GetComponent(1);
-    check.Toggle();
-    Self._ABGroupOnChange(check);
-  end;
-
-  procedure TScriptForm._ABGroupLabelToggle(sender: TObject);
-  begin
-    Self._ABGroupPanelToggle(TControl(sender).getParent());
-  end;
-
 
   procedure TScriptForm._BreaksOnChange(sender: TObject);
   var
@@ -988,7 +959,6 @@ var
   antibanGroup: TCheckCheckGroup;
   breaks, sleeps: TLabeledCheckBox;
   tmp: TCheckBox;
-  tmpControl: TWinControl;
   arr: TStringArray;
   str: String;
   combobox: TComboBox;
@@ -1056,8 +1026,6 @@ begin
     Create(Result);
     SetCaption('Antiban');
     SetTooltip('Antiban settings.');
-    CaptionPanel.SetOnClick(@Self._ABPanelToggle);
-    Caption.SetOnClick(@Self._ABLabelToggle);
     SetTop(TControl.AdjustToDPI(100));
     SetLeft(space);
     AddItemArray(arr);
@@ -1075,12 +1043,6 @@ begin
 
       tmp := GetChildCheckBox(str);
       tmp.setOnChange(@Self._ABGroupOnChange);
-
-      tmpControl := GetChildPanel(str);
-      tmpControl.setOnClick(@Self._ABGroupPanelToggle);
-
-      tmpControl := GetChildLabel(str);
-      tmpControl.setOnClick(@Self._ABGroupLabelToggle);
     end;
 
     CheckBox.setOnChange(@Self._ABOnChange);
@@ -1412,11 +1374,11 @@ function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
     if str = '' then
       str := '-1';
 
-    WLSettings.MaxTime := StrToInt(str);
+    WLSettings.MaxTime := StrToInt(str) * ONE_MINUTE;
     if WLSettings.MaxTime < -1 then
       WLSettings.MaxTime := -1;
 
-    edit.setText(IntToStr(WLSettings.MaxTime));
+    edit.setText(FloatToStr(WLSettings.MaxTime / ONE_MINUTE));
   end;
 
 var
@@ -1483,7 +1445,7 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
     checked: Boolean;
   begin
     checked := TCheckBox(sender).IsChecked();
-    arr := ['block_real_input', 'hud_report', 'hud_debug'];
+    arr := ['block_real_input', 'hud_report', 'hud_debug', 'hud_transparent'];
 
     for i := 0 to High(arr) do
     begin
@@ -1494,25 +1456,12 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
       WLSettings.RemoteInput.Enabled := checked;
 
       case i of
-        0: WLSettings.RemoteInput.BlockInput  := checked and child.IsChecked();
-        1: WLSettings.RemoteInput.HUDReport   := checked and child.IsChecked();
-        2: WLSettings.RemoteInput.HUDDebug := checked and child.IsChecked();
+        0: WLSettings.RemoteInput.BlockInput     := checked and child.IsChecked();
+        1: WLSettings.RemoteInput.HUDReport      := checked and child.IsChecked();
+        2: WLSettings.RemoteInput.HUDDebug       := checked and child.IsChecked();
+        3: WLSettings.RemoteInput.HUDTransparent := checked and child.IsChecked();
       end;
     end;
-  end;
-
-  procedure TScriptForm._RIPanelToggle(sender: TObject);
-  var
-    check: TCheckBox;
-  begin
-    check := TPanel(sender).GetComponent(1);
-    check.Toggle();
-    Self._RIOnChange(check);
-  end;
-
-  procedure TScriptForm._RILabelToggle(sender: TObject);
-  begin
-    Self._RIPanelToggle(TControl(sender).getParent());
   end;
 
   procedure TScriptForm._RIGroupOnChange(sender: TObject);
@@ -1527,13 +1476,27 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
       'hud_report_group_checkbox':
         begin
           WLSettings.RemoteInput.HUDReport := checkbox.IsChecked();
+          panel := checkbox.getParent().getParent();
+
           if not checkbox.IsChecked() then
+          begin
+            WLSettings.RemoteInput.HUDTransparent := False;
+            panel := panel.GetChild('hud_transparent_group_panel');
+            panel.setEnabled(False);
+            sibling := panel.GetChild('hud_transparent_group_checkbox');
+            sibling.setEnabled(False);
             Exit;
+          end;
 
           WLSettings.RemoteInput.HUDDebug := False;
-          panel := checkbox.getParent().getParent();
           sibling := panel.GetChild('hud_debug_group_checkbox');
           sibling.SetChecked(False);
+
+          panel := panel.GetChild('hud_transparent_group_panel');
+          panel.setEnabled(True);
+          sibling := panel.GetChild('hud_transparent_group_checkbox');
+          sibling.setEnabled(True);
+          WLSettings.RemoteInput.HUDTransparent := sibling.IsChecked();
         end;
 
       'hud_debug_group_checkbox':
@@ -1543,27 +1506,22 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
             Exit;
 
           WLSettings.RemoteInput.HUDReport := False;
+          WLSettings.RemoteInput.HUDTransparent := False;
           panel := checkbox.getParent().getParent();
           sibling := panel.GetChild('hud_report_group_checkbox');
-          sibling.SetChecked(False)
+          sibling.SetChecked(False);
+
+          panel := panel.GetChild('hud_transparent_group_panel');
+          panel.setEnabled(False);
+          sibling := panel.GetChild('hud_transparent_group_checkbox');
+          sibling.setEnabled(False);
+        end;
+
+      'hud_transparent_group_checkbox':
+        begin
+          WLSettings.RemoteInput.HUDTransparent := checkbox.IsChecked();
         end;
     end;
-
-
-  end;
-
-  procedure TScriptForm._RIGroupPanelToggle(sender: TObject);
-  var
-    check: TCheckBox;
-  begin
-    check := TPanel(sender).GetComponent(1);
-    check.Toggle();
-    Self._RIGroupOnChange(check);
-  end;
-
-  procedure TScriptForm._RIGroupLabelToggle(sender: TObject);
-  begin
-    Self._RIGroupPanelToggle(TControl(sender).getParent());
   end;
 
 var
@@ -1573,7 +1531,6 @@ var
   arr: TStringArray;
   str: String;
   tmp: TCheckBox;
-  tmpControl: TWinControl;
 begin
   with Result do
   begin
@@ -1581,7 +1538,7 @@ begin
     SetName('ri_panel');
     setCaption('');
     setBevelWidth(0);
-    setHeight(Round(Self.Size.Y / 5));
+    setHeight(Round(Self.Size.Y / 4.2));
     SetTooltip('Remote Input settings.');
   end;
 
@@ -1598,14 +1555,12 @@ begin
     SetName('ri_info');
   end;
 
-  arr := ['Block Real Input', 'HUD Report', 'HUD Debug'];
+  arr := ['Block Real Input', 'HUD Report', 'HUD Debug', 'HUD Transparent'];
   with riGroup do
   begin
     Create(Result);
     SetCaption('Remote Input');
     SetTooltip('Remote Input settings.');
-    CaptionPanel.SetOnClick(@Self._RIPanelToggle);
-    Caption.SetOnClick(@Self._RILabelToggle);
     SetTop(TControl.AdjustToDPI(20));
     SetLeft(space);
     AddItemArray(arr);
@@ -1617,16 +1572,11 @@ begin
         0: SetCheckedChild(WLSettings.RemoteInput.BlockInput, str);
         1: SetCheckedChild(WLSettings.RemoteInput.HUDReport, str);
         2: SetCheckedChild(WLSettings.RemoteInput.HUDDebug, str);
+        3: SetCheckedChild(WLSettings.RemoteInput.HUDTransparent, str);
       end;
 
       tmp := GetChildCheckBox(str);
       tmp.setOnChange(@Self._RIGroupOnChange);
-
-      tmpControl := GetChildPanel(str);
-      tmpControl.setOnClick(@Self._RIGroupPanelToggle);
-
-      tmpControl := GetChildLabel(str);
-      tmpControl.setOnClick(@Self._RIGroupLabelToggle);
     end;
 
     CheckBox.setOnChange(@Self._RIOnChange);

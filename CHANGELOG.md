@@ -1,45 +1,45 @@
-## [13.2.7](https://github.com/Torwent/WaspLib/compare/v13.2.6...v13.2.7) (2023-04-03)
+# [13.3.0](https://github.com/Torwent/WaspLib/compare/v13.2.20...v13.3.0) (2023-05-04)
+
+
+### Features
+
+* read notes ([b7b2e28](https://github.com/Torwent/WaspLib/commit/b7b2e28d908f1841113464b081564b6da28fd7c7))
+
+
+
+## [13.2.20](https://github.com/Torwent/WaspLib/compare/v13.2.19...v13.2.20) (2023-04-23)
 
 
 ### Bug Fixes
 
-* **rsobjects:** fixed tithe table ([b69cbac](https://github.com/Torwent/WaspLib/commit/b69cbac1f42741cba17dd98d002edef7267d6338))
+* **forms:** fixed a tiny bug with checkboxes ([dcbc6f6](https://github.com/Torwent/WaspLib/commit/dcbc6f6633bab35917ca8db43df87d70f654cc2e))
 
 
 
-## [13.2.6](https://github.com/Torwent/WaspLib/compare/v13.2.5...v13.2.6) (2023-04-03)
-
-
-### Bug Fixes
-
-* **TBaseScript:** Printing the progress report on simba output now includes revision ([41600df](https://github.com/Torwent/WaspLib/commit/41600df2df3970e12b4e29ce48f65b3cd98f21e7))
-
-
-
-## [13.2.5](https://github.com/Torwent/WaspLib/compare/v13.2.4...v13.2.5) (2023-04-03)
+## [13.2.19](https://github.com/Torwent/WaspLib/compare/v13.2.18...v13.2.19) (2023-04-19)
 
 
 ### Bug Fixes
 
-* missing button setup in withdrawhelper, oops! ([338a736](https://github.com/Torwent/WaspLib/commit/338a736d10bd0bb1cda4d858435c8d05ef870635))
+* **rsmonsters:** hill giants now have coordinates in edge/varrock dungeon ([57c1a95](https://github.com/Torwent/WaspLib/commit/57c1a95e57aba57bae099ec2b0ab0c6753e23af5))
 
 
 
-## [13.2.4](https://github.com/Torwent/WaspLib/compare/v13.2.3...v13.2.4) (2023-04-02)
-
-
-### Bug Fixes
-
-* **map:** added clan hall and it's respective rsregion ([c89df88](https://github.com/Torwent/WaspLib/commit/c89df88e8db748c3f7d052210a5ac1341a7b06ca))
-
-
-
-## [13.2.3](https://github.com/Torwent/WaspLib/compare/v13.2.2...v13.2.3) (2023-04-01)
+## [13.2.18](https://github.com/Torwent/WaspLib/compare/v13.2.17...v13.2.18) (2023-04-18)
 
 
 ### Bug Fixes
 
-* **loothandler:** now loots again. ([bb62bde](https://github.com/Torwent/WaspLib/commit/bb62bded874246dd7f8228e9140ad3005c38c279))
+* readded TRSItem.IsNull() ([9b8b402](https://github.com/Torwent/WaspLib/commit/9b8b402b9fbe0e8de2cce0ac38d94d8dfc24ec11))
+
+
+
+## [13.2.17](https://github.com/Torwent/WaspLib/compare/v13.2.16...v13.2.17) (2023-04-15)
+
+
+### Bug Fixes
+
+* several GUI improvements ([d9bf702](https://github.com/Torwent/WaspLib/commit/d9bf70240877f1356bce5ed5032d4f124dd4c87b))
 
 
 

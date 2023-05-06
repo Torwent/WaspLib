@@ -21,22 +21,20 @@ type ProgressReport
 Type responsible for handling the HUDProgressReport, also commonly called as "Paint" or InGame/OnScreen Progress Report.
 *)
 type ProgressReport = record(TSRLBaseRecord) class var
-    BGImg: TMufasaBitmap;
-    ClientImg: TMufasaBitmap;
+  BGImg: TMufasaBitmap;
+  ClientImg: TMufasaBitmap;
 
-    TextColor: Int32;
-    PreviousStrArray: TStringArray;
+  TextColor, PadLength: Int32;
 
-    Timer: TTimer;
-    UsernameBox: TBox;
+  Timer: TTimer;
+  UsernameBox: TBox;
 
-    Terminated: Boolean;
-    IsSetup: Boolean;
+  Terminated, IsSetup: Boolean;
 
-    PadLength: Int32;
-    PTimeRunning: ^TStopwatch;
-    ProgressArray: TStringArray;
-  end;
+  PTimeRunning: ^TStopwatch;
+  PreviousStrArray, ProgressArray: TStringArray;
+  TopLeft: TPoint;
+end;
 
 {$IFNDEF SRL_DISABLE_REMOTEINPUT}
 (*
@@ -69,7 +67,17 @@ procedure ProgressReport.Setup(); static;
 begin
   ProgressReport.BGImg.Init();
   ProgressReport.BGImg.SetName('Progress report background');
-  ProgressReport.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
+
+  ProgressReport.TopLeft := [Chat.Bounds().X1, Chat.Bounds().Y1 - 12];
+  if WLSettings.RemoteInput.HUDTransparent then
+  begin
+    ProgressReport.TopLeft.Y -= Chat.Height - 12;
+    ProgressReport.BGImg.SetSize(Chat.Width(), Chat.Height() + 12);
+  end
+  else
+    ProgressReport.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
+
+
   ProgressReport.BGImg.setFontAntialiasing(True);
 
   ProgressReport.ClientImg := RSClient.Image();
@@ -107,16 +115,19 @@ begin
       Exit;
 
     ProgressReport.BGImg.setFontSize(18);
-    ProgressReport.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(ProgressReport.BGImg.GetWidth()/2) + 25, 7], FontColor, False);
+    ProgressReport.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(ProgressReport.BGImg.GetWidth()/2) + 25, 7], FontColor, WLSettings.RemoteInput.HUDTransparent);
 
     ProgressReport.BGImg.setFontSize(14);
     fontColor -= $90A301 - $C8D100;
 
-    ProgressReport.BGImg.DrawText(strArray[High(strArray)], [10, 135], fontColor);
+    if WLSettings.RemoteInput.HUDTransparent then
+      ProgressReport.BGImg.DrawTextShadow(strArray[High(strArray)], [10, 135], fontColor, True)
+    else
+      ProgressReport.BGImg.DrawText(strArray[High(strArray)], [10, 135], fontColor);
     ProgressReport.IsSetup := True;
   end;
 
-  ProgressReport.ClientImg.DrawBitmap(ProgressReport.BGImg, [Chat.Bounds().X1, Chat.Bounds().Y1 - 12]);
+  ProgressReport.ClientImg.DrawBitmap(ProgressReport.BGImg, ProgressReport.TopLeft);
 end;
 
 (*
@@ -132,8 +143,10 @@ var
   p, q: TPoint;
   i: Int32;
 begin
-  p := [Chat.Bounds().X1 + 10, Chat.Bounds().Y1 + 40];
-  q := [Round(Chat.Bounds().Width()/2) + 20, p.y];
+  p := [ProgressReport.TopLeft.X + 10, ProgressReport.TopLeft.Y + 40];
+  if WLSettings.RemoteInput.HUDTransparent then
+    p.Y -= 12;
+  q := [Round(Chat.Bounds().Width()/2) + 20, p.Y];
 
   fontColor -= $C8D100;
 
@@ -141,17 +154,19 @@ begin
   begin
     if Frac(i/2) = 0 then
     begin
-      ClientImg.DrawTextShadow(strArray[i], p, fontColor, False);
+      ClientImg.DrawTextShadow(strArray[i], p, fontColor, WLSettings.RemoteInput.HUDTransparent);
       p.Y += 20;
     end
     else
     begin
-      ClientImg.DrawTextShadow(strArray[i], q, fontColor, False);
+      ClientImg.DrawTextShadow(strArray[i], q, fontColor, WLSettings.RemoteInput.HUDTransparent);
       q.Y += 20;
     end;
   end;
 
   ProgressReport.PreviousStrArray := strArray;
+  if WLSettings.RemoteInput.HUDTransparent then
+    ProgressReport.ClientImg.DrawBoxFilled(ProgressReport.UsernameBox, False, $819DAC);
 end;
 
 (*
@@ -166,7 +181,7 @@ procedure ProgressReport.HideProgress(); static;
 begin
   ProgressReport.IsSetup := False;
 
-  ProgressReport.ClientImg.DrawBoxFilled(ProgressReport.UsernameBox, True, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
+  ProgressReport.ClientImg.DrawBoxFilled(ProgressReport.UsernameBox, False, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
 end;
 
 (*

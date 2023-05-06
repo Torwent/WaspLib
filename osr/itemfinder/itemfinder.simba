@@ -3,9 +3,6 @@ ItemFinder
 ==========
 Methods to extend SRL's ItemFinder functionality.
 
-This file is responsible for loading fixed sprites for known broken items with
-the default SRL (e.g.: Rune pouch).
-
 Some handy item wrappers were added for all cakes, pies and pizzas
 (e.g.: Cake(3) for "Cake", Cake(2) for "2/3 cake" and Cake(1) for "Slice of cake").
 *)
@@ -15,158 +12,9 @@ Some handy item wrappers were added for all cakes, pies and pizzas
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-(*
-const WL_ITEM_FINDER_IMAGES_PATH
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Global const for WaspLib's ItemFinder override images:
-`Simba\\Includes\\WaspLib\\osr\\itemfinder\\images\\`
-*)
-const
-  WL_ITEM_FINDER_IMAGES_PATH = {$macro CURRENT_DIRECTORY} + DirectorySeparator + 'images' + DirectorySeparator;
-
 function TRSItem.IsNull(): Boolean;
 begin
-  Result := ToString(Self) = '';
-end;
-
-type
-  TOverridenItem = record
-    ItemID: Int32;
-    Files: TStringArray;
-  end;
-
-  TOverridenItemArray = array of TOverridenItem;
-
-procedure TOverridenItemArray.Setup(Item: TRSItem; FileName: String; FileCount: Int32 = 0);
-var
-  OverridenItem: TOverridenItem;
-  i: Int32;
-  Str: String;
-begin
-  Str := VarToStr(Item);
-
-  if VarToStr(Str).IsDigit() then
-    OverridenItem.ItemID := StrToInt(Str)
-  else
-  begin
-    OverridenItem.ItemID := StrToInt(ItemFinder.ItemNames.GetValues(Str));
-    if (OverridenItem.ItemID = 0) then
-      ItemFinder.Fatal('Unknown item: ' + Str);
-  end;
-
-  for i := 0 to FileCount do
-    OverridenItem.Files += FileName + ToStr(i) + '.png';
-
-  Self += OverridenItem;
-end;
-
-function TOverridenItemArray.Find(ItemID: Int32): Int32;
-var
-  i: Int32;
-begin
-  for i := 0 to High(Self) do
-    if Self[i].ItemId = ItemId then
-      Exit(i);
-  Result := -1;
-end;
-
-
-var
-  OverridenItems: TOverridenItemArray;
-
-(*
-ItemFinder.GetItemImages
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSItemFinder.GetItemImages(Item: String): array of TMufasaBitmap; override;
-
-Overrides the default ItemFinder.GetItemImages so it also loads the fixed
-sprites stored in **WL_ITEM_FINDER_IMAGES_PATH**.
-*)
-function TRSItemFinder.GetItemImages(Item: String): array of TMufasaBitmap; override;
-type
-  TMufasaBitmap = TMufasaBitmap;
-
-  function TMufasaBitmap.Equals(Other: TMufasaBitmap): Boolean; override;
-  begin
-    Result := (Self.GetWidth()  = Other.GetWidth()) and
-              (Self.GetHeight() = Other.GetHeight()) and
-              (CompareMem(Self.GetData()^, Other.GetData()^, Self.GetWidth() * Self.GetHeight() * SizeOf(TRGB32)));
-  end;
-
-var
-  FileName, Str: String;
-  Image: TMufasaBitmap;
-  ItemID: Int32;
-  I, J: Int32;
-begin
-  for I := 0 to High(Self.ItemImages) do
-    if (Self.ItemImages[I].Name = Item) then
-    begin
-      Result := Self.ItemImages[I].Images;
-
-      Exit;
-    end;
-
-  for ItemID in GetItemIDs(Item) do
-  begin
-    FileName := ExpandFileName(ITEM_FINDER_IMAGES_PATH + ToStr(ItemID) + '.png');
-
-    if FileExists(FileName) or UnZipOneFile(ITEM_FINDER_IMAGES_ZIP, ExtractFileName(FileName), ITEM_FINDER_IMAGES_PATH) then
-    begin
-      Image.Init(Client.GetMBitmaps());
-      Image.LoadFromFile(FileName);
-      Image.SetName(Item);
-      Image.ReplaceColor(RS_ITEM_SHADOW, 0);
-
-      for J := 0 to High(Result) do
-        if Image.Equals(Result[J]) then
-        begin
-          Image.Free();
-          Image := nil;
-
-          Break;
-        end;
-
-      if (Image <> nil) then
-        Result += Image;
-    end
-    else
-      Self.Fatal('Unknown item: ' + ToStr(ItemID));
-
-    I := OverridenItems.Find(ItemId);
-    if I > -1 then
-    begin
-      for Str in OverridenItems[I].Files do
-      begin
-        FileName := ExpandFileName(WL_ITEM_FINDER_IMAGES_PATH + Str);
-        if FileExists(FileName) then
-        begin
-          Image.Init(Client.GetMBitmaps());
-          Image.LoadFromFile(FileName);
-          Image.SetName(Item);
-          Image.ReplaceColor(RS_ITEM_SHADOW, 0);
-
-          for J := 0 to High(Result) do
-            if Image.Equals(Result[J]) then
-            begin
-              Image.Free();
-              Image := nil;
-
-              Break;
-            end;
-
-          if (Image <> nil) then
-            Result += Image;
-        end;
-      end;
-    end;
-  end;
-
-  if (Length(Result) = 0) then
-    Self.Fatal('Unknown item: ' + Item);
-
-  Self.ItemImages += [Item, Result];
+  Result := VarIsClear(Self) or (Self = '') or (LowerCase(Self) = 'null');
 end;
 
 (*
@@ -217,20 +65,6 @@ Example
   Name: summer pie(1) => ItemID: 7220
 *)
 begin
-  OverridenItems.Setup('Pay-dirt', 'paydirt');
-  OverridenItems.Setup('Rune pouch', 'runepouch');
-  OverridenItems.Setup('Divine rune pouch', 'divinerunepouch');
-  OverridenItems.Setup('Golovanova seed', 'golovanovaseed');
-  OverridenItems.Setup('Bologano seed', 'bologanoseed');
-  OverridenItems.Setup('Logavano seed', 'logavanoseed');
-  OverridenItems.Setup('Spirit angler top', 'spiritanglertop');
-  OverridenItems.Setup('Spirit angler waders', 'spiritanglerwaders');
-  OverridenItems.Setup('Ring of returning(5)', 'ror');
-  OverridenItems.Setup('Ring of returning(4)', 'ror');
-  OverridenItems.Setup('Ring of returning(3)', 'ror');
-  OverridenItems.Setup('Ring of returning(2)', 'ror');
-  OverridenItems.Setup('Ring of returning(1)', 'ror');
-
   ItemFinder.AddItemName('cake(3)', '1891');
   ItemFinder.AddItemName('cake(2)', '1893');
   ItemFinder.AddItemName('cake(1)', '1895');

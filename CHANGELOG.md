@@ -1,45 +1,45 @@
-## [13.2.12](https://github.com/Torwent/WaspLib/compare/v13.2.11...v13.2.12) (2023-04-05)
+# [13.3.0](https://github.com/Torwent/WaspLib/compare/v13.2.20...v13.3.0) (2023-05-04)
+
+
+### Features
+
+* read notes ([b7b2e28](https://github.com/Torwent/WaspLib/commit/b7b2e28d908f1841113464b081564b6da28fd7c7))
+
+
+
+## [13.2.20](https://github.com/Torwent/WaspLib/compare/v13.2.19...v13.2.20) (2023-04-23)
 
 
 ### Bug Fixes
 
-* **RSObjects:** Prif bank to BankUnspecified and uptext  ([a70aa0f](https://github.com/Torwent/WaspLib/commit/a70aa0ff6fbd188b5582e27af9f4e5dca008affa))
+* **forms:** fixed a tiny bug with checkboxes ([dcbc6f6](https://github.com/Torwent/WaspLib/commit/dcbc6f6633bab35917ca8db43df87d70f654cc2e))
 
 
 
-## [13.2.11](https://github.com/Torwent/WaspLib/compare/v13.2.10...v13.2.11) (2023-04-05)
-
-
-### Bug Fixes
-
-* reworked the script thread counter since it was failing a lot ([5dc7b32](https://github.com/Torwent/WaspLib/commit/5dc7b32b17047698ac8ce526aded0e31b150a17b))
-
-
-
-## [13.2.10](https://github.com/Torwent/WaspLib/compare/v13.2.9...v13.2.10) (2023-04-05)
+## [13.2.19](https://github.com/Torwent/WaspLib/compare/v13.2.18...v13.2.19) (2023-04-19)
 
 
 ### Bug Fixes
 
-* **RSClient:** Checking thread count was still bugged. should now work properly ([3a73f79](https://github.com/Torwent/WaspLib/commit/3a73f79682eda44e100f8338f9fa046e5d91b9e0))
+* **rsmonsters:** hill giants now have coordinates in edge/varrock dungeon ([57c1a95](https://github.com/Torwent/WaspLib/commit/57c1a95e57aba57bae099ec2b0ab0c6753e23af5))
 
 
 
-## [13.2.9](https://github.com/Torwent/WaspLib/compare/v13.2.8...v13.2.9) (2023-04-05)
-
-
-### Bug Fixes
-
-* **ItemData:** typo that would make getting item prices fail. ([413d90c](https://github.com/Torwent/WaspLib/commit/413d90cc094d24ac70c0db35e5e21859552fcb3c))
-
-
-
-## [13.2.8](https://github.com/Torwent/WaspLib/compare/v13.2.7...v13.2.8) (2023-04-05)
+## [13.2.18](https://github.com/Torwent/WaspLib/compare/v13.2.17...v13.2.18) (2023-04-18)
 
 
 ### Bug Fixes
 
-* checking simba threads should now be less strict with simba.exe file name ([9c6d0b6](https://github.com/Torwent/WaspLib/commit/9c6d0b611228e194162fadf25c9c8802b24e2f46))
+* readded TRSItem.IsNull() ([9b8b402](https://github.com/Torwent/WaspLib/commit/9b8b402b9fbe0e8de2cce0ac38d94d8dfc24ec11))
+
+
+
+## [13.2.17](https://github.com/Torwent/WaspLib/compare/v13.2.16...v13.2.17) (2023-04-15)
+
+
+### Bug Fixes
+
+* several GUI improvements ([d9bf702](https://github.com/Torwent/WaspLib/commit/d9bf70240877f1356bce5ed5032d4f124dd4c87b))
 
 
 

@@ -36,11 +36,12 @@ begin
 end;
 
 function TRSXPBar.Read(): Int32; override;
+var
+  i: Int32;
 begin
   if not Self.IsSetup then
     Self._Setup();
 
-  //Self.SetupLocation() already checks Self.CircleIsOpen() but it's only called once.
   if not Self.IsSetup or not Self.Enable() then
     Exit;
 
@@ -60,6 +61,24 @@ begin
   end;
 
   if not WL.GameSettings.XPBarIsSetup and not MainScreen.HasInterface() then
-    XPBarSetup.Fix();
+  begin
+    Mouse.Click(Minimap.GetXPCircle(), MOUSE_LEFT);
+
+    repeat
+      Wait(50, 250, wdLeft);
+      case i of
+        0..7: ;
+        8..10: WriteLn 'Stuck in TRSXPBar.Read()';
+        else TerminateScript('Couldn''t toggle the XPBar.');
+      end;
+      Inc(i);
+    until Self.Enable();
+
+    Result := OCR.RecognizeNumber(Self.Bounds(), TOCRColorRule.Create([$FFFFFF]), Self.Font);
+    WL.XP.IsSetup := (Result > 0) and (Result >= WL.XP.Previous);
+
+    if not WL.XP.IsSetup then
+      XPBarSetup.Fix();
+  end;
 end;
 

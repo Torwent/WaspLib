@@ -1,0 +1,92 @@
+{$DEFINE WL_STORE_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  TRSMushTree = type TRSTitledInteface;
+
+procedure TRSMushtree.Setup; override;
+begin
+  inherited;
+  Self.Name := 'Mycelium Transportation System';
+  Self.ButtonColors += CTS1(2070783, 0);
+end;
+
+procedure TRSMushTree.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  case Self.Mode of
+    ERSClientMode.FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 487;
+        Self.Alignment.Center.MaxHeight := 300;
+      end;
+
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 487;
+        Self.Alignment.Center.MaxHeight := 300;
+      end;
+  end;
+end;
+
+
+function TRSMushTree.GetItemBoxes: TBoxArray;
+begin
+  Result := Grid(8, 5, 35, 32, [12, 16], [Self.X1 + 61, Self.Y1 + 40])
+end;
+
+function TRSMushTree.IsOpen: Boolean; overload;
+var
+  B: TBox;
+  Txt: String;
+begin
+  B := Self.Bounds();
+  B.X1 += 15;
+  B.Y1 := 25;
+  B.X2 -= 15;
+  B.Y2 -= 265;
+ // B.LimitTo(Self.Bounds);
+  Txt := OCR.Recognize(B, TOCRTHRESHOLDRULE.Create(15), RS_FONT_BOLD_12);
+  Result := 'Mycelium' in Txt;
+end;
+function TRSMushTree.IsOpen(WaitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), WaitTime);
+end;
+function TRSMushTree.Close(PressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+var
+ mshtree : TRSMushtree;
+
+procedure TRSClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  mshtree.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  mshtree.Setup();
+end;
+begin
+  mshtree.Close(True);
+end;

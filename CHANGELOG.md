@@ -1,3 +1,12 @@
+## [13.3.1](https://github.com/Torwent/WaspLib/compare/v13.3.0...v13.3.1) (2023-05-18)
+
+
+### Bug Fixes
+
+* added more suqah coordinates ([9949724](https://github.com/Torwent/WaspLib/commit/9949724d47f5ee2893aa63ea8a479276fa7de282))
+
+
+
 # [13.3.0](https://github.com/Torwent/WaspLib/compare/v13.2.20...v13.3.0) (2023-05-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * readded TRSItem.IsNull() ([9b8b402](https://github.com/Torwent/WaspLib/commit/9b8b402b9fbe0e8de2cce0ac38d94d8dfc24ec11))
-
-
-
-## [13.2.17](https://github.com/Torwent/WaspLib/compare/v13.2.16...v13.2.17) (2023-04-15)
-
-
-### Bug Fixes
-
-* several GUI improvements ([d9bf702](https://github.com/Torwent/WaspLib/commit/d9bf70240877f1356bce5ed5032d4f124dd4c87b))
 
 
 

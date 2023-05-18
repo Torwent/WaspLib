@@ -1,3 +1,12 @@
+## [13.3.5](https://github.com/Torwent/WaspLib/compare/v13.3.4...v13.3.5) (2023-05-18)
+
+
+### Bug Fixes
+
+* reverting back InRange() ([1ec09f4](https://github.com/Torwent/WaspLib/commit/1ec09f40dfa8382d4d8b385c6ef1db9df8f677dd))
+
+
+
 ## [13.3.4](https://github.com/Torwent/WaspLib/compare/v13.3.3...v13.3.4) (2023-05-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added more suqah coordinates ([9949724](https://github.com/Torwent/WaspLib/commit/9949724d47f5ee2893aa63ea8a479276fa7de282))
-
-
-
-# [13.3.0](https://github.com/Torwent/WaspLib/compare/v13.2.20...v13.3.0) (2023-05-04)
-
-
-### Features
-
-* read notes ([b7b2e28](https://github.com/Torwent/WaspLib/commit/b7b2e28d908f1841113464b081564b6da28fd7c7))
 
 
 

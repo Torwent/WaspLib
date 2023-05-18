@@ -1,3 +1,12 @@
+## [13.3.3](https://github.com/Torwent/WaspLib/compare/v13.3.2...v13.3.3) (2023-05-18)
+
+
+### Bug Fixes
+
+* typo in last commit ([39d23d9](https://github.com/Torwent/WaspLib/commit/39d23d9b3fd825ffcd05d6bb3fcf80de15812041))
+
+
+
 ## [13.3.2](https://github.com/Torwent/WaspLib/compare/v13.3.1...v13.3.2) (2023-05-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **forms:** fixed a tiny bug with checkboxes ([dcbc6f6](https://github.com/Torwent/WaspLib/commit/dcbc6f6633bab35917ca8db43df87d70f654cc2e))
-
-
-
-## [13.2.19](https://github.com/Torwent/WaspLib/compare/v13.2.18...v13.2.19) (2023-04-19)
-
-
-### Bug Fixes
-
-* **rsmonsters:** hill giants now have coordinates in edge/varrock dungeon ([57c1a95](https://github.com/Torwent/WaspLib/commit/57c1a95e57aba57bae099ec2b0ab0c6753e23af5))
 
 
 

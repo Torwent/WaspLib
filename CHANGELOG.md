@@ -1,3 +1,13 @@
+## [13.3.6](https://github.com/Torwent/WaspLib/compare/v13.3.5...v13.3.6) (2023-05-20)
+
+
+### Bug Fixes
+
+* add mushtree to osr.simba ([923ac0f](https://github.com/Torwent/WaspLib/commit/923ac0fc97b13c1403f528ea29da0e96326c8eb4))
+* several fixes to mushtrees ([76e60a7](https://github.com/Torwent/WaspLib/commit/76e60a767317fac4bf5162bc6e76b8c2b6281351))
+
+
+
 ## [13.3.5](https://github.com/Torwent/WaspLib/compare/v13.3.4...v13.3.5) (2023-05-18)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * typo ([bbaf6de](https://github.com/Torwent/WaspLib/commit/bbaf6de838d18c7e82dbecce944f06b671d01503))
-
-
-
-## [13.3.1](https://github.com/Torwent/WaspLib/compare/v13.3.0...v13.3.1) (2023-05-18)
-
-
-### Bug Fixes
-
-* added more suqah coordinates ([9949724](https://github.com/Torwent/WaspLib/commit/9949724d47f5ee2893aa63ea8a479276fa7de282))
 
 
 

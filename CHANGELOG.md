@@ -1,3 +1,12 @@
+## [13.3.7](https://github.com/Torwent/WaspLib/compare/v13.3.6...v13.3.7) (2023-05-21)
+
+
+### Bug Fixes
+
+* **Minimap:** should now check if we are logged in setting the compass times out. ([6cf5cad](https://github.com/Torwent/WaspLib/commit/6cf5cad2eb3bec706d961970bab2659476d99ff4))
+
+
+
 ## [13.3.6](https://github.com/Torwent/WaspLib/compare/v13.3.5...v13.3.6) (2023-05-20)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * typo in last commit ([39d23d9](https://github.com/Torwent/WaspLib/commit/39d23d9b3fd825ffcd05d6bb3fcf80de15812041))
-
-
-
-## [13.3.2](https://github.com/Torwent/WaspLib/compare/v13.3.1...v13.3.2) (2023-05-18)
-
-
-### Bug Fixes
-
-* typo ([bbaf6de](https://github.com/Torwent/WaspLib/commit/bbaf6de838d18c7e82dbecce944f06b671d01503))
 
 
 

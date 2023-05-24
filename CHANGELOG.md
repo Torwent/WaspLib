@@ -1,3 +1,12 @@
+## [13.3.10](https://github.com/Torwent/WaspLib/compare/v13.3.9...v13.3.10) (2023-05-24)
+
+
+### Bug Fixes
+
+* **combathandler:** should now stop trying to alch the weapon and shield ([07d9b3f](https://github.com/Torwent/WaspLib/commit/07d9b3fd5739dae06f68ab9b5906ac7fe30ac7cb))
+
+
+
 ## [13.3.9](https://github.com/Torwent/WaspLib/compare/v13.3.8...v13.3.9) (2023-05-24)
 
 
@@ -32,15 +41,6 @@
 
 * add mushtree to osr.simba ([923ac0f](https://github.com/Torwent/WaspLib/commit/923ac0fc97b13c1403f528ea29da0e96326c8eb4))
 * several fixes to mushtrees ([76e60a7](https://github.com/Torwent/WaspLib/commit/76e60a767317fac4bf5162bc6e76b8c2b6281351))
-
-
-
-## [13.3.5](https://github.com/Torwent/WaspLib/compare/v13.3.4...v13.3.5) (2023-05-18)
-
-
-### Bug Fixes
-
-* reverting back InRange() ([1ec09f4](https://github.com/Torwent/WaspLib/commit/1ec09f40dfa8382d4d8b385c6ef1db9df8f677dd))
 
 
 

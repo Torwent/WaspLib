@@ -1,3 +1,12 @@
+## [13.3.8](https://github.com/Torwent/WaspLib/compare/v13.3.7...v13.3.8) (2023-05-24)
+
+
+### Bug Fixes
+
+* **consumables:** boost consumables now set their timer properly ([91e5a2b](https://github.com/Torwent/WaspLib/commit/91e5a2bb83848697735890f0d5498521bf9ee488))
+
+
+
 ## [13.3.7](https://github.com/Torwent/WaspLib/compare/v13.3.6...v13.3.7) (2023-05-21)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **rsnpcs.simba:** MasterFarmer uptext ([1a326b4](https://github.com/Torwent/WaspLib/commit/1a326b4c1201b0784a8aaf339d98981b6dc51b7f))
-
-
-
-## [13.3.3](https://github.com/Torwent/WaspLib/compare/v13.3.2...v13.3.3) (2023-05-18)
-
-
-### Bug Fixes
-
-* typo in last commit ([39d23d9](https://github.com/Torwent/WaspLib/commit/39d23d9b3fd825ffcd05d6bb3fcf80de15812041))
 
 
 

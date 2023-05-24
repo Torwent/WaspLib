@@ -1,3 +1,12 @@
+## [13.3.11](https://github.com/Torwent/WaspLib/compare/v13.3.10...v13.3.11) (2023-05-24)
+
+
+### Bug Fixes
+
+* read notes ([5fafd86](https://github.com/Torwent/WaspLib/commit/5fafd86680bfe8240fe7109a1044622294e75184))
+
+
+
 ## [13.3.10](https://github.com/Torwent/WaspLib/compare/v13.3.9...v13.3.10) (2023-05-24)
 
 
@@ -31,16 +40,6 @@
 ### Bug Fixes
 
 * **Minimap:** should now check if we are logged in setting the compass times out. ([6cf5cad](https://github.com/Torwent/WaspLib/commit/6cf5cad2eb3bec706d961970bab2659476d99ff4))
-
-
-
-## [13.3.6](https://github.com/Torwent/WaspLib/compare/v13.3.5...v13.3.6) (2023-05-20)
-
-
-### Bug Fixes
-
-* add mushtree to osr.simba ([923ac0f](https://github.com/Torwent/WaspLib/commit/923ac0fc97b13c1403f528ea29da0e96326c8eb4))
-* several fixes to mushtrees ([76e60a7](https://github.com/Torwent/WaspLib/commit/76e60a767317fac4bf5162bc6e76b8c2b6281351))
 
 
 

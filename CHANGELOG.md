@@ -1,3 +1,12 @@
+## [13.3.9](https://github.com/Torwent/WaspLib/compare/v13.3.8...v13.3.9) (2023-05-24)
+
+
+### Bug Fixes
+
+* **combathandler:** combat handler shouldn't try to alch your spec weapon anymore ([1937638](https://github.com/Torwent/WaspLib/commit/1937638885e1e6aec3875ac3b069ea83958aaaf1))
+
+
+
 ## [13.3.8](https://github.com/Torwent/WaspLib/compare/v13.3.7...v13.3.8) (2023-05-24)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * reverting back InRange() ([1ec09f4](https://github.com/Torwent/WaspLib/commit/1ec09f40dfa8382d4d8b385c6ef1db9df8f677dd))
-
-
-
-## [13.3.4](https://github.com/Torwent/WaspLib/compare/v13.3.3...v13.3.4) (2023-05-18)
-
-
-### Bug Fixes
-
-* **rsnpcs.simba:** MasterFarmer uptext ([1a326b4](https://github.com/Torwent/WaspLib/commit/1a326b4c1201b0784a8aaf339d98981b6dc51b7f))
 
 
 

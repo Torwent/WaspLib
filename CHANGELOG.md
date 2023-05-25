@@ -1,3 +1,12 @@
+## [13.3.13](https://github.com/Torwent/WaspLib/compare/v13.3.12...v13.3.13) (2023-05-25)
+
+
+### Bug Fixes
+
+* **webgraph:** added more paths to several niche locations ([ddf908d](https://github.com/Torwent/WaspLib/commit/ddf908d72e8b114fd370efb91326e84d56dd8fb7))
+
+
+
 ## [13.3.12](https://github.com/Torwent/WaspLib/compare/v13.3.11...v13.3.12) (2023-05-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combathandler:** combat handler shouldn't try to alch your spec weapon anymore ([1937638](https://github.com/Torwent/WaspLib/commit/1937638885e1e6aec3875ac3b069ea83958aaaf1))
-
-
-
-## [13.3.8](https://github.com/Torwent/WaspLib/compare/v13.3.7...v13.3.8) (2023-05-24)
-
-
-### Bug Fixes
-
-* **consumables:** boost consumables now set their timer properly ([91e5a2b](https://github.com/Torwent/WaspLib/commit/91e5a2bb83848697735890f0d5498521bf9ee488))
 
 
 

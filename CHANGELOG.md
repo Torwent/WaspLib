@@ -1,3 +1,12 @@
+## [13.3.14](https://github.com/Torwent/WaspLib/compare/v13.3.13...v13.3.14) (2023-05-28)
+
+
+### Bug Fixes
+
+* Added Redwood region ([#61](https://github.com/Torwent/WaspLib/issues/61)) ([f2a1cd8](https://github.com/Torwent/WaspLib/commit/f2a1cd80827272301fb9de82dfe5681f1cf3c89c))
+
+
+
 ## [13.3.13](https://github.com/Torwent/WaspLib/compare/v13.3.12...v13.3.13) (2023-05-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combathandler:** should now stop trying to alch the weapon and shield ([07d9b3f](https://github.com/Torwent/WaspLib/commit/07d9b3fd5739dae06f68ab9b5906ac7fe30ac7cb))
-
-
-
-## [13.3.9](https://github.com/Torwent/WaspLib/compare/v13.3.8...v13.3.9) (2023-05-24)
-
-
-### Bug Fixes
-
-* **combathandler:** combat handler shouldn't try to alch your spec weapon anymore ([1937638](https://github.com/Torwent/WaspLib/commit/1937638885e1e6aec3875ac3b069ea83958aaaf1))
 
 
 

@@ -1,3 +1,12 @@
+## [13.3.15](https://github.com/Torwent/WaspLib/compare/v13.3.14...v13.3.15) (2023-06-04)
+
+
+### Bug Fixes
+
+* read notes ([5c50e37](https://github.com/Torwent/WaspLib/commit/5c50e37226f8791de0c38b45ee722ebc20051962))
+
+
+
 ## [13.3.14](https://github.com/Torwent/WaspLib/compare/v13.3.13...v13.3.14) (2023-05-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([5fafd86](https://github.com/Torwent/WaspLib/commit/5fafd86680bfe8240fe7109a1044622294e75184))
-
-
-
-## [13.3.10](https://github.com/Torwent/WaspLib/compare/v13.3.9...v13.3.10) (2023-05-24)
-
-
-### Bug Fixes
-
-* **combathandler:** should now stop trying to alch the weapon and shield ([07d9b3f](https://github.com/Torwent/WaspLib/commit/07d9b3fd5739dae06f68ab9b5906ac7fe30ac7cb))
 
 
 

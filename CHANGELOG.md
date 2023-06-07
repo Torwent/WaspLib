@@ -1,3 +1,12 @@
+## [13.3.18](https://github.com/Torwent/WaspLib/compare/v13.3.17...v13.3.18) (2023-06-07)
+
+
+### Bug Fixes
+
+* **minimap:** read notes ([493e68a](https://github.com/Torwent/WaspLib/commit/493e68a9a4f97fae52e50e100c18bf59667f92bc))
+
+
+
 ## [13.3.17](https://github.com/Torwent/WaspLib/compare/v13.3.16...v13.3.17) (2023-06-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Added Redwood region ([#61](https://github.com/Torwent/WaspLib/issues/61)) ([f2a1cd8](https://github.com/Torwent/WaspLib/commit/f2a1cd80827272301fb9de82dfe5681f1cf3c89c))
-
-
-
-## [13.3.13](https://github.com/Torwent/WaspLib/compare/v13.3.12...v13.3.13) (2023-05-25)
-
-
-### Bug Fixes
-
-* **webgraph:** added more paths to several niche locations ([ddf908d](https://github.com/Torwent/WaspLib/commit/ddf908d72e8b114fd370efb91326e84d56dd8fb7))
 
 
 

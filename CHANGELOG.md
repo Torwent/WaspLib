@@ -1,3 +1,12 @@
+## [13.3.19](https://github.com/Torwent/WaspLib/compare/v13.3.18...v13.3.19) (2023-06-08)
+
+
+### Bug Fixes
+
+* **FormsV2:** shouldn't throw exceptions anymore when add/delete buttons are clicked ([879a1c7](https://github.com/Torwent/WaspLib/commit/879a1c71c26a3da7b2bc43a97c6f73e7a2fca86f))
+
+
+
 ## [13.3.18](https://github.com/Torwent/WaspLib/compare/v13.3.17...v13.3.18) (2023-06-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([5c50e37](https://github.com/Torwent/WaspLib/commit/5c50e37226f8791de0c38b45ee722ebc20051962))
-
-
-
-## [13.3.14](https://github.com/Torwent/WaspLib/compare/v13.3.13...v13.3.14) (2023-05-28)
-
-
-### Bug Fixes
-
-* Added Redwood region ([#61](https://github.com/Torwent/WaspLib/issues/61)) ([f2a1cd8](https://github.com/Torwent/WaspLib/commit/f2a1cd80827272301fb9de82dfe5681f1cf3c89c))
 
 
 

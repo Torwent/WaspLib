@@ -1,3 +1,12 @@
+## [13.3.20](https://github.com/Torwent/WaspLib/compare/v13.3.19...v13.3.20) (2023-06-09)
+
+
+### Bug Fixes
+
+* **xpbarsetup:** made it more verbose to warn users if they have xpbar not setup properly ([fe41cfa](https://github.com/Torwent/WaspLib/commit/fe41cfa5c8a11079bc49a0226b687276a085aa34))
+
+
+
 ## [13.3.19](https://github.com/Torwent/WaspLib/compare/v13.3.18...v13.3.19) (2023-06-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([de7e0d0](https://github.com/Torwent/WaspLib/commit/de7e0d062b8d7168b2f7e638f59f258accef467b))
-
-
-
-## [13.3.15](https://github.com/Torwent/WaspLib/compare/v13.3.14...v13.3.15) (2023-06-04)
-
-
-### Bug Fixes
-
-* read notes ([5c50e37](https://github.com/Torwent/WaspLib/commit/5c50e37226f8791de0c38b45ee722ebc20051962))
 
 
 

@@ -1,3 +1,12 @@
+# [13.4.0](https://github.com/Torwent/WaspLib/compare/v13.3.20...v13.4.0) (2023-06-12)
+
+
+### Features
+
+* added Olly's recorder ([bc50b65](https://github.com/Torwent/WaspLib/commit/bc50b65863bc999a6783fb9b92a22f057913ddc8))
+
+
+
 ## [13.3.20](https://github.com/Torwent/WaspLib/compare/v13.3.19...v13.3.20) (2023-06-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * typo when calculating object heights ([d699932](https://github.com/Torwent/WaspLib/commit/d699932d1a64aca38d3a50610ed6c5c4d7e0b0e8))
-
-
-
-## [13.3.16](https://github.com/Torwent/WaspLib/compare/v13.3.15...v13.3.16) (2023-06-06)
-
-
-### Bug Fixes
-
-* read notes ([de7e0d0](https://github.com/Torwent/WaspLib/commit/de7e0d062b8d7168b2f7e638f59f258accef467b))
 
 
 

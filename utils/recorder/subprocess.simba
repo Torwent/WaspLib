@@ -1,0 +1,71 @@
+{$loadlib librecorder}
+
+var
+  Image: TMufasaBitmap;
+  PID: PtrUInt;
+  UsernameBox, ExperienceBox: TBox;
+
+function GetFrame(sender: TRecorder): Pointer;
+begin
+  Image.CopyClientToBitmap(Client.getIOManager(), False, 0, 0, Image.GetWidth()-1, Image.GetHeight()-1);
+
+  if UsernameBox.X2 > 0 then
+    Image.DrawBoxFilled(UsernameBox, False, $819DAC);
+
+  if ExperienceBox.x2 > 0 then
+    Image.DrawBoxFilled(ExperienceBox, False, $FFFFFF);
+
+  Result := Image.GetData();
+end;
+
+function GetTerminated(sender: TRecorder): Boolean;
+begin
+  Result := (not IsProcessRunning(PID)) or (not Client.GetIOManager().TargetValid());
+end;
+
+function GetParam(Name: String): Variant;
+begin
+  {$IFDEF SIMBA1400}
+  Result := GetProcessParameter(Name);
+  {$ELSE}
+  Result := GetScriptParameter(Name);
+  {$ENDIF}
+end;
+
+var
+  Recorder: TRecorder;
+  W, H: Integer;
+  param: String;
+  strArr: TStringArray;
+begin
+  Client.GetIOManager().SetTarget(GetParam('Window'));
+  Client.GetIOManager().GetDimensions(W, H);
+
+  param := GetParam('UsernameBox');
+  if param <> '' then
+  begin
+    strArr := Explode('-', param);
+    if Length(strArr) = 4 then
+      UsernameBox := [StrToInt(strArr[0]), StrToInt(strArr[1]), StrToInt(strArr[2]), StrToInt(strArr[3])];
+  end;
+
+  param := GetParam('ExperienceBox');
+  if param <> '' then
+  begin
+    strArr := Explode('-', param);
+    if Length(strArr) = 4 then
+      ExperienceBox := [StrToInt(strArr[0]), StrToInt(strArr[1]), StrToInt(strArr[2]), StrToInt(strArr[3])];
+  end;
+
+  Image.Init();
+  Image.SetSize(W, H);
+
+  PID := GetParam('ScriptPID');
+
+  Recorder := TRecorder.Create(GetParam('Seconds'), GetParam('Directory'), W, H, @GetFrame, @GetTerminated);
+  Recorder.SetFFMPEG(IncludeTrailingPathDelimiter({$MACRO CURRENT_DIRECTORY}) + 'ffmpeg.exe');
+  Recorder.Run(GetParam('Debugging') = 'True');
+  Recorder.Free();
+
+  Image.Free();
+end;

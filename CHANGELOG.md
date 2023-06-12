@@ -1,45 +1,45 @@
-# [13.3.0](https://github.com/Torwent/WaspLib/compare/v13.2.20...v13.3.0) (2023-05-04)
+# [13.4.0](https://github.com/Torwent/WaspLib/compare/v13.3.20...v13.4.0) (2023-06-12)
 
 
 ### Features
 
-* read notes ([b7b2e28](https://github.com/Torwent/WaspLib/commit/b7b2e28d908f1841113464b081564b6da28fd7c7))
+* added Olly's recorder ([bc50b65](https://github.com/Torwent/WaspLib/commit/bc50b65863bc999a6783fb9b92a22f057913ddc8))
 
 
 
-## [13.2.20](https://github.com/Torwent/WaspLib/compare/v13.2.19...v13.2.20) (2023-04-23)
-
-
-### Bug Fixes
-
-* **forms:** fixed a tiny bug with checkboxes ([dcbc6f6](https://github.com/Torwent/WaspLib/commit/dcbc6f6633bab35917ca8db43df87d70f654cc2e))
-
-
-
-## [13.2.19](https://github.com/Torwent/WaspLib/compare/v13.2.18...v13.2.19) (2023-04-19)
+## [13.3.20](https://github.com/Torwent/WaspLib/compare/v13.3.19...v13.3.20) (2023-06-09)
 
 
 ### Bug Fixes
 
-* **rsmonsters:** hill giants now have coordinates in edge/varrock dungeon ([57c1a95](https://github.com/Torwent/WaspLib/commit/57c1a95e57aba57bae099ec2b0ab0c6753e23af5))
+* **xpbarsetup:** made it more verbose to warn users if they have xpbar not setup properly ([fe41cfa](https://github.com/Torwent/WaspLib/commit/fe41cfa5c8a11079bc49a0226b687276a085aa34))
 
 
 
-## [13.2.18](https://github.com/Torwent/WaspLib/compare/v13.2.17...v13.2.18) (2023-04-18)
-
-
-### Bug Fixes
-
-* readded TRSItem.IsNull() ([9b8b402](https://github.com/Torwent/WaspLib/commit/9b8b402b9fbe0e8de2cce0ac38d94d8dfc24ec11))
-
-
-
-## [13.2.17](https://github.com/Torwent/WaspLib/compare/v13.2.16...v13.2.17) (2023-04-15)
+## [13.3.19](https://github.com/Torwent/WaspLib/compare/v13.3.18...v13.3.19) (2023-06-08)
 
 
 ### Bug Fixes
 
-* several GUI improvements ([d9bf702](https://github.com/Torwent/WaspLib/commit/d9bf70240877f1356bce5ed5032d4f124dd4c87b))
+* **FormsV2:** shouldn't throw exceptions anymore when add/delete buttons are clicked ([879a1c7](https://github.com/Torwent/WaspLib/commit/879a1c71c26a3da7b2bc43a97c6f73e7a2fca86f))
+
+
+
+## [13.3.18](https://github.com/Torwent/WaspLib/compare/v13.3.17...v13.3.18) (2023-06-07)
+
+
+### Bug Fixes
+
+* **minimap:** read notes ([493e68a](https://github.com/Torwent/WaspLib/commit/493e68a9a4f97fae52e50e100c18bf59667f92bc))
+
+
+
+## [13.3.17](https://github.com/Torwent/WaspLib/compare/v13.3.16...v13.3.17) (2023-06-07)
+
+
+### Bug Fixes
+
+* typo when calculating object heights ([d699932](https://github.com/Torwent/WaspLib/commit/d699932d1a64aca38d3a50610ed6c5c4d7e0b0e8))
 
 
 

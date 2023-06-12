@@ -43,6 +43,8 @@ begin
 end;
 
 procedure TRSClient.CheckClientSettings();
+var
+  userB, expB: TBox;
 begin
   if not WL.GameSettings.HighestPitch then
   begin
@@ -63,6 +65,17 @@ begin
 
   if WL.XP.Previous = 0 then
     XPBar.Read();
+
+  if WLSettings.SaveVideo and not WL.IsRecording then
+  begin
+    userB := Chat.GetDisplayNameBox();
+    if userB = Chat.GetLineBoxes()[CHAT_INPUT_LINE] then
+      userB := [];
+
+    expB := XPBar.Bounds();
+
+    Recorder.Start(15, WL_DATAPATH + 'videos', userB, expB);
+  end;
 end;
 
 function TRSClient.IsLoggedIn(): Boolean; override;
@@ -111,10 +124,18 @@ begin
 end;
 
 procedure TWaspLib.CheckScriptThreads();
+var
+  threads: Int32;
 begin
-  if Self.CountScriptThreads() >= 7 then
-    TerminateScript('You seem to be running more than 7 simba scripts.' +
-    LINEENDING + LINEENDING + 'WaspLib is not meant for gold farming. If this is not the case contact Torwent in discord.');
+  threads := Self.CountScriptThreads();
+
+  {%codetools off}
+  if threads >= %0111 then
+    TerminateScript(
+      'You seem to be running ' + ToString(threads) + ' simba scripts.' +
+      LINEENDING + 'The maximum allowed are 7 instances.' +
+      LINEENDING + 'WaspLib is not meant for gold farming. If this is not the case contact Torwent in discord.');
+  {%codetools on}
 end;
 
 begin

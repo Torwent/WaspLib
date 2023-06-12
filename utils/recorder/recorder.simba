@@ -1,0 +1,94 @@
+(*
+Recorder
+========
+Heavily based in Olly's SimbaRecorder: https://github.com/ollydev/SimbaRecorder
+
+This was modified to:
+- Allow recording while using remoteinput
+- Add frame filters to hide Username/XPBar.
+
+Things to keep in mind when using recorder:
+- It spawns another simba thread, which means it will count towards the WaspLib maximum thread limit.
+
+This can be used to record the last few seconds of a script shutting down/crashing.
+*)
+{$DEFINE WL_RECORDER_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+type Recorder
+~~~~~~~~~~~~~
+.. pascal::
+  type Recorder = record(TSRLBaseRecord) class var
+    PID: Integer;
+    Debugging: Boolean;
+  end;
+*)
+type Recorder = record(TSRLBaseRecord) class var
+    PID: Integer;
+    Debugging: Boolean;
+  end;
+
+(*
+Recorder.Start
+~~~~~~~~~~~~~~
+.. pascal::
+  procedure Recorder.Start(window: PtrUInt; seconds: Int32; directory: String; userBox, expBox: TBox); static; overload;
+  procedure Recorder.Start(seconds: Integer; directory: String; userBox, expBox: TBox = []); static; overload;
+
+Start the recorder.
+- **window** should be the window you want to record, hidding this parameter will use **SimbaTargetWindow()** for it.
+- **seconds** is the amount of "last" seconds you want the recorder to record.
+- **directory** is the directory you want the file to be saved to.
+- **userBox** and **expBox** are "box filters" to hide username and XPBar.
+*)
+procedure Recorder.Start(window: PtrUInt; seconds: Int32; directory: String; userBox, expBox: TBox); static; overload;
+  function _ScriptPID(): Integer;
+  begin
+    {$IFDEF SIMBA1400}
+    Result := GetProcessID()
+    {$ELSE}
+    Result := GetScriptPID();
+    {$ENDIF}
+  end;
+
+  function _RecorderScript(): String;
+  begin
+    Result :=  IncludeTrailingPathDelimiter({$macro CURRENT_DIRECTORY}) + 'subprocess.simba';
+  end;
+
+var
+  params: TStringArray;
+begin
+  params := [
+    'ScriptPID=' + ToString(_ScriptPID()),
+    'Window='    + ToString(window),
+    'Seconds='   + ToString(seconds),
+    'Directory=' + ToString(directory),
+    'Debugging=' + ToString(Recorder.Debugging)
+  ];
+
+  if userBox.X2 > 0 then
+  begin
+    params += 'UsernameBox=' + ToString(userBox.X1) + '-' +
+               ToString(userBox.Y1) + '-' + ToString(userBox.X2) + '-' +
+               ToString(userBox.Y2);
+  end;
+
+  if expBox.X2 > 0 then
+  begin
+    params += 'ExperienceBox=' + ToString(expBox.X1) + '-' +
+               ToString(expBox.Y1) + '-' + ToString(expBox.X2) + '-' +
+               ToString(expBox.Y2);
+  end;
+
+  RunScript(_RecorderScript(), params);
+  Recorder.PID := _ScriptPID();
+end;
+
+procedure Recorder.Start(seconds: Integer; directory: String; userBox, expBox: TBox = []); static; overload;
+begin
+  Recorder.Start(GetSimbaTargetWindow(), seconds, directory, userBox, expBox);
+end;

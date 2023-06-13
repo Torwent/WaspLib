@@ -563,36 +563,44 @@ begin
   Result := WaitUntil(Self.FindArrow, Interval, WaitTime);
 end;
 
-function TRSMainScreen.IsUpText(Text: TStringArray; Timeout: Int32; out Index: Int32): Boolean; overload;
+function TRSMainScreen.IsUpText(text: TStringArray; timeout: Int32; out index: Int32; caseSensitive: Boolean = True): Boolean; overload;
 
-  function IsUpText: Boolean;
+  function IsUpText(): Boolean;
   var
-    UpText: String;
+    upText, tmp: String;
   begin
-    UpText := Self.GetUpText;
+    upText := Self.GetUpText();
 
-    for Index := 0 to High(Text) do
-      if (Text[Index] in UpText) or (Text[Index] = UpText) then
+    if not caseSensitive then
+      upText := upText.ToLower();
+
+    for index := 0 to High(text) do
+    begin
+      if (text[index] in upText) or (text[index] = upText) then
         Exit(True);
+    end;
   end;
 
 var
-  T: UInt64;
+  t: UInt64;
 begin
-  if (Timeout = -1) then
-    T := GetTickCount + Round(SRL.SkewedRand(100, 85, 250))
+  if (timeout = -1) then
+    t := GetTickCount() + Round(SRL.SkewedRand(100, 85, 250))
   else
-    T := GetTickCount + Timeout;
+    t := GetTickCount() + timeout;
+
+  if not caseSensitive then
+    text := text.ToLower();
 
   repeat
-    if IsUpText then
+    if IsUpText() then
     begin
       Wait(50); // Uptext is delayed at least a frame. wait 50ms for confirmation.
-      if IsUpText then
+      if IsUpText() then
         Exit(True);
     end;
 
     Wait(25);
-  until (GetTickCount >= T);
+  until (GetTickCount() >= t);
 end;
 

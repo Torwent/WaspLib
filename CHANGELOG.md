@@ -1,3 +1,12 @@
+## [13.4.2](https://github.com/Torwent/WaspLib/compare/v13.4.1...v13.4.2) (2023-06-13)
+
+
+### Bug Fixes
+
+* **loothandler:** read notes ([1bd4fd2](https://github.com/Torwent/WaspLib/commit/1bd4fd2bc27f4783da6e1b002aa56830466b42a3))
+
+
+
 ## [13.4.1](https://github.com/Torwent/WaspLib/compare/v13.4.0...v13.4.1) (2023-06-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **FormsV2:** shouldn't throw exceptions anymore when add/delete buttons are clicked ([879a1c7](https://github.com/Torwent/WaspLib/commit/879a1c71c26a3da7b2bc43a97c6f73e7a2fca86f))
-
-
-
-## [13.3.18](https://github.com/Torwent/WaspLib/compare/v13.3.17...v13.3.18) (2023-06-07)
-
-
-### Bug Fixes
-
-* **minimap:** read notes ([493e68a](https://github.com/Torwent/WaspLib/commit/493e68a9a4f97fae52e50e100c18bf59667f92bc))
 
 
 

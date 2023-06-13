@@ -1,3 +1,12 @@
+## [13.4.1](https://github.com/Torwent/WaspLib/compare/v13.4.0...v13.4.1) (2023-06-13)
+
+
+### Bug Fixes
+
+* read notes ([8f97b74](https://github.com/Torwent/WaspLib/commit/8f97b747c79b93d236611326028e1bac83a1c0d9))
+
+
+
 # [13.4.0](https://github.com/Torwent/WaspLib/compare/v13.3.20...v13.4.0) (2023-06-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **minimap:** read notes ([493e68a](https://github.com/Torwent/WaspLib/commit/493e68a9a4f97fae52e50e100c18bf59667f92bc))
-
-
-
-## [13.3.17](https://github.com/Torwent/WaspLib/compare/v13.3.16...v13.3.17) (2023-06-07)
-
-
-### Bug Fixes
-
-* typo when calculating object heights ([d699932](https://github.com/Torwent/WaspLib/commit/d699932d1a64aca38d3a50610ed6c5c4d7e0b0e8))
 
 
 

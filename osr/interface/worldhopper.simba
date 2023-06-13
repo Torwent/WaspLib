@@ -1,18 +1,30 @@
+(*
+WorldHopper
+===========
+
+Made by @Yolandi, modified by @Torwent.
+
+World hopper is resposible for hopping worlds with the logged in world hopper in the logout tab.
+
+.. pascal::
+  type WorldHopper = record(TSRLBaseRecord) class var
+      Silver, Yellow, Orange: Integer;
+      Font, BoldFont: TFontSet;
+      ScrollBarWidth: Integer;
+      ScrollBar: TBox;
+      CurrentWorldBounds: TBox;
+      WorldListBounds: TBox;
+      PleaseWaitBounds: TBox;
+      readyTime: UInt64;
+    end;
+*)
 {$DEFINE WL_WORLDHOPPER_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-(*
-  {test}
-  begin
-    worldhopper.Setup();
-    while true do
-      worldhopper.Hop([430,435,436,437,431,432,433,468,469,470]);
-  end.
-*)
-type
-  TRSWorldHopper = record
+
+type WorldHopper = record(TSRLBaseRecord) class var
     Silver, Yellow, Orange: Integer;
     Font, BoldFont: TFontSet;
     ScrollBarWidth: Integer;
@@ -23,31 +35,47 @@ type
     readyTime: UInt64;
   end;
 
-procedure TRSWorldHopper.Setup();
+procedure WorldHopper.DebugLn(text: String); constref; override;
+var
+  timeStamp: String;
 begin
-  Self.Silver := 14737632;
-  Self.Yellow := 61680;
-  Self.Orange := 2070783;
-  Self.ScrollBarWidth := 16;
-  Self.ScrollBar := Box(
-    logout.bounds.X2-Self.ScrollBarWidth,
+  timeStamp := SRL.TimeStamp();
+  text := timeStamp + ':[WorldHopper]: ' + text;
+  WriteLn text;
+end;
+
+(*
+WorldHopper.Setup
+~~~~~~~~~~~~~~~~~
+.. pascal:: procedure WorldHopper.Setup(); static;
+
+Internal method used to setup the WorldHopper.
+*)
+procedure WorldHopper.Setup(); static;
+begin
+  WorldHopper.Silver := 14737632;
+  WorldHopper.Yellow := 61680;
+  WorldHopper.Orange := 2070783;
+  WorldHopper.ScrollBarWidth := 16;
+  WorldHopper.ScrollBar := Box(
+    logout.bounds.X2-WorldHopper.ScrollBarWidth,
     logout.bounds.Y1,
     logout.bounds.X2,
     logout.bounds.Y2
   );
-  Self.CurrentWorldBounds := Box(
+  WorldHopper.CurrentWorldBounds := Box(
     logout.Bounds.X1,
     logout.Bounds.Y1,
     logout.Bounds.X2,
     logout.Bounds.Y1+24
   );
-  Self.WorldListBounds := Box(
+  WorldHopper.WorldListBounds := Box(
     logout.Bounds.X1,
     logout.Bounds.Y1+35,
     logout.Bounds.X2,
     logout.Bounds.Y2-32
   );
-  Self.PleaseWaitBounds := Box(
+  WorldHopper.PleaseWaitBounds := Box(
     mainscreen.Bounds.X1+4,
     mainscreen.Bounds.Y1+4,
     mainscreen.Bounds.X1+79,
@@ -55,45 +83,88 @@ begin
   );
 end;
 
-// scrolls one 'page'
-procedure TRSWorldHopper.Scroll(down: Boolean);
+(*
+WorldHopper.Scroll
+~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure WorldHopper.Scroll(down: Boolean); static;
+
+Scroll one page up or down of the world hopper.
+
+Example
+-------
+
+  WorldHopper.Scroll(True);
+*)
+procedure WorldHopper.Scroll(down: Boolean); static;
 begin
-  mouse.Move(Self.ScrollBar, True);
+  mouse.Move(WorldHopper.ScrollBar, True);
   mouse.Scroll(4, down);
 end;
 
-// Internal
-procedure TRSWorldHopper.ClickWorld(ocrBounds: TBox);
+(*
+WorldHopper.ClickWorld
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure WorldHopper.ClickWorld(ocrBounds: TBox); static;
+
+Click a world in the world hopper.
+
+Example
+-------
+
+  WorldHopper.ReadWorlds(ocrBounds);
+  WorldHopper.ClickWorld(ocrBounds[0]);
+*)
+procedure WorldHopper.ClickWorld(ocrBounds: TBox); static;
 begin
-  mouse.Click(
-    Box(
-      logout.bounds.X1,
-      ocrBounds.Y1,
-      logout.bounds.X2-Self.ScrollBarWidth,
-      ocrBounds.Y2
-    ),
-    MOUSE_LEFT
-  );
+  ocrBounds.X1 := logout.bounds.X1;
+  ocrBounds.X2 := logout.bounds.X2-WorldHopper.ScrollBarWidth;
+
+  Mouse.Click(ocrBounds, MOUSE_LEFT);
 end;
 
-function TRSWorldHopper.GetCurrentWorld(): Integer;
+(*
+WorldHopper.GetCurrentWorld
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function WorldHopper.GetCurrentWorld(): Int32; static;
+
+Returns the current world we are on.
+
+Example
+-------
+
+  WriteLn WorldHopper.GetCurrentWorld();
+*)
+function WorldHopper.GetCurrentWorld(): Int32; static;
 begin
   Result := ocr.RecognizeNumber(
-    Self.CurrentWorldBounds,
-    TOCRColorRule.Create([Self.Orange]),
+    WorldHopper.CurrentWorldBounds,
+    TOCRColorRule.Create([WorldHopper.Orange]),
     RS_FONT_BOLD_12
   );
 end;
 
-// returns currently visible worlds
-function TRSWorldHopper.ReadWorlds(out bounds: TBoxArray): TIntegerArray;
+(*
+WorldHopper.ReadWorlds
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function WorldHopper.ReadWorlds(out bounds: TBoxArray): TIntegerArray; static;
+  function WorldHopper.ReadWorlds(): TIntegerArray; static; overload;
+
+Returns currently visible worlds.
+
+Example
+-------
+
+  WriteLn WorldHopper.ReadWorlds();
+*)
+function WorldHopper.ReadWorlds(out bounds: TBoxArray): TIntegerArray; static;
 var
   StringResults: TStringArray;
   str: String;
 begin
   StringResults := ocr.RecognizeMulti(
-    self.WorldListBounds,
-    TOCRColorRule.Create([Self.Silver, Self.Yellow]),
+    WorldHopper.WorldListBounds,
+    TOCRColorRule.Create([WorldHopper.Silver, WorldHopper.Yellow]),
     RS_FONT_PLAIN_12,
     bounds
   );
@@ -101,26 +172,33 @@ begin
     try
       Result += StrToInt(str);
     except
-      WriteLn str + " could not be parsed into int";
+      WorldHopper.DebugLn(str + " could not be parsed into int");
     end;
 end;
 
+function WorldHopper.ReadWorlds(): TIntegerArray; static; overload;
+var
+  boxes: TBoxArray;
+begin
+  Result := WorldHopper.ReadWorlds(boxes);
+end;
+
 (*
-  Internal
-  Exits false if "Please wait" not found, presumably due to combat
+WorldHopper.WaitForHop
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function WorldHopper.WaitForHop(world: Integer; ocrBounds: TBox; coolDownOnFail: Boolean=True): Boolean; static;
+
+Internal
+Exits false if "Please wait" not found, presumably due to combat.
 *)
-function TRSWorldHopper.WaitForHop(
-  world: Integer;
-  ocrBounds: TBox;
-  coolDownOnFail: Boolean=True
-): Boolean;
+function WorldHopper.WaitForHop(world: Integer; ocrBounds: TBox; coolDownOnFail: Boolean=True): Boolean; static;
 var
   cd: UInt64;
 begin
-  WriteLn("Hopping to "+ToStr(world)+"...");
+  WorldHopper.DebugLn("Hopping to "+ToStr(world)+"...");
   if not waituntil(
     ocr.LocateText(
-      self.PleaseWaitBounds,
+      WorldHopper.PleaseWaitBounds,
       "Please wait",
       RS_FONT_PLAIN_12,
       TOCRColorRule.Create([$FFFFFF]),
@@ -130,12 +208,12 @@ begin
     2000
   ) then
   begin
-    writeln("hop failed: " + chat.GetMessage(7));
+    WorldHopper.DebugLn("hop failed: " + chat.GetMessage(7));
     if coolDownOnFail then
     begin
       cd := random(8000, 15000);
-      writeln("hop will be ready in " + tostr(cd) + "ms");
-      self.readyTime := getsystemtime() + cd;
+      WorldHopper.DebugLn("hop will be ready in " + tostr(cd) + "ms");
+      WorldHopper.readyTime := getsystemtime() + cd;
     end;
     exit(False);
   end;
@@ -143,41 +221,52 @@ begin
   if waituntil(
     ocr.RecognizeNumber(
       ocrBounds.Expand(1),
-      TOCRColorRule.Create([Self.Silver, Self.Yellow]),
+      TOCRColorRule.Create([WorldHopper.Silver, WorldHopper.Yellow]),
       RS_FONT_PLAIN_12
     ) <> world,
     random(100,300),
     10000
   ) then
   begin
-    writeln("Done");
+    WorldHopper.DebugLn("Done");
     exit(True);
   end
   else
-    writeln("timed out");
+    WorldHopper.DebugLn("timed out");
 end;
 
-function TRSWorldHopper.Hop(targetWorlds: TIntegerArray): Boolean;
+(*
+WorldHopper.Hop
+~~~~~~~~~~~~~~~
+.. pascal:: function WorldHopper.Hop(targetWorlds: TIntegerArray): Boolean; static;
+
+Hops to a different world from the specified **targetWorlds**.
+
+Example
+-------
+
+  WriteLn WorldHopper.Hop([303, 304, 305]);
+*)
+function WorldHopper.Hop(targetWorlds: TIntegerArray): Boolean; static;
 var
   visibleWorlds: TIntegerArray;
   ocrBounds: TBoxArray;
   currentWorld: Integer;
   i: Integer;
   nextWorld: Integer;
-  target: Integer;
   StartTime: UInt64;
-  TimeOut: UInt64 = 12000;
+  timeOut: UInt64 = 12000;
 begin
-  if getsystemtime() < self.readyTime then
-    exit(False);
+  if GetSystemTime() < WorldHopper.readyTime then
+    Exit;
 
-  logout.Open();
+  Logout.Open();
   if not logout.IsWorldSwitcherOpen() then
-    logout.GetButton(ERSLogoutButton.WORLD_SWITCHER).Click(MOUSE_LEFT);
-  waituntil(Self.GetCurrentWorld() <> 0, 200, TimeOut);
+    Logout.GetButton(ERSLogoutButton.WORLD_SWITCHER).Click(MOUSE_LEFT);
+  waituntil(WorldHopper.GetCurrentWorld() <> 0, 200, timeOut);
 
-  currentWorld := Self.GetCurrentWorld();
-  writeln("current world: " + tostr(currentWorld));
+  currentWorld := WorldHopper.GetCurrentWorld();
+  WorldHopper.DebugLn("current world: " + tostr(currentWorld));
 
   if (targetWorlds.Len = 1) and (currentWorld = targetWorlds[0]) then
     Exit(True);
@@ -190,27 +279,24 @@ begin
   end;
 
   StartTime := GetSystemTime();
-  while (GetSystemTime() - StartTime < TimeOut) do
+  while (GetSystemTime() - StartTime < timeOut) do
     begin
-      visibleWorlds := Self.ReadWorlds(ocrBounds);
+      visibleWorlds := WorldHopper.ReadWorlds(ocrBounds);
       i := visibleWorlds.find(nextWorld);
       if i <> -1 then
       begin
         mouse.click(ocrBounds[i], MOUSE_LEFT, true);
-        Exit(self.WaitForHop(nextWorld, ocrBounds[i]))
+        Exit(WorldHopper.WaitForHop(nextWorld, ocrBounds[i]))
       end
       else if visibleWorlds.max > nextWorld then
-        Self.Scroll(False) // up
+        WorldHopper.Scroll(False) // up
       else if visibleWorlds.min < nextWorld then
-        Self.Scroll(True); // down
+        WorldHopper.Scroll(True); // down
     end;
-  WriteLn("Timed out (TimeOut="+ToStr(TimeOut)+"ms)");
-
+  WorldHopper.DebugLn("Timed out (timeOut="+ToStr(timeOut)+"ms)");
 end;
 
 
-var
-  worldhopper: TRSWorldHopper;
 begin
   worldhopper.Setup();
 end;

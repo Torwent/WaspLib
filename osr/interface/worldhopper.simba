@@ -1,0 +1,215 @@
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+(*
+  {test}
+  begin
+    worldhopper.Setup();
+    while true do
+      worldhopper.Hop([430,435,436,437,431,432,433,468,469,470]);
+  end.
+*)
+type
+  TRSWorldHopper = record
+    Silver, Yellow, Orange: Integer;
+    Font, BoldFont: TFontSet;
+    ScrollBarWidth: Integer;
+    ScrollBar: TBox;
+    CurrentWorldBounds: TBox;
+    WorldListBounds: TBox;
+    PleaseWaitBounds: TBox;
+    readyTime: UInt64;
+  end;
+
+procedure TRSWorldHopper.Setup();
+begin
+  Self.Silver := 14737632;
+  Self.Yellow := 61680;
+  Self.Orange := 2070783;
+  Self.ScrollBarWidth := 16;
+  Self.ScrollBar := Box(
+    logout.bounds.X2-Self.ScrollBarWidth,
+    logout.bounds.Y1,
+    logout.bounds.X2,
+    logout.bounds.Y2
+  );
+  Self.CurrentWorldBounds := Box(
+    logout.Bounds.X1,
+    logout.Bounds.Y1,
+    logout.Bounds.X2,
+    logout.Bounds.Y1+24
+  );
+  Self.WorldListBounds := Box(
+    logout.Bounds.X1,
+    logout.Bounds.Y1+35,
+    logout.Bounds.X2,
+    logout.Bounds.Y2-32
+  );
+  Self.PleaseWaitBounds := Box(
+    mainscreen.Bounds.X1+4,
+    mainscreen.Bounds.Y1+4,
+    mainscreen.Bounds.X1+79,
+    mainscreen.Bounds.Y1+20
+  );
+end;
+
+// scrolls one 'page'
+procedure TRSWorldHopper.Scroll(down: Boolean);
+begin
+  mouse.Move(Self.ScrollBar, True);
+  mouse.Scroll(4, down);
+end;
+
+// Internal
+procedure TRSWorldHopper.ClickWorld(ocrBounds: TBox);
+begin
+  mouse.Click(
+    Box(
+      logout.bounds.X1,
+      ocrBounds.Y1,
+      logout.bounds.X2-Self.ScrollBarWidth,
+      ocrBounds.Y2
+    ),
+    MOUSE_LEFT
+  );
+end;
+
+function TRSWorldHopper.GetCurrentWorld(): Integer;
+begin
+  Result := ocr.RecognizeNumber(
+    Self.CurrentWorldBounds,
+    TOCRColorRule.Create([Self.Orange]),
+    RS_FONT_BOLD_12
+  );
+end;
+
+// returns currently visible worlds
+function TRSWorldHopper.ReadWorlds(out bounds: TBoxArray): TIntegerArray;
+var
+  StringResults: TStringArray;
+  str: String;
+begin
+  StringResults := ocr.RecognizeMulti(
+    self.WorldListBounds,
+    TOCRColorRule.Create([Self.Silver, Self.Yellow]),
+    RS_FONT_PLAIN_12,
+    bounds
+  );
+  for str in StringResults do
+    try
+      Result += StrToInt(str);
+    except
+      WriteLn str + " could not be parsed into int";
+    end;
+end;
+
+(*
+  Internal
+  Exits false if "Please wait" not found, presumably due to combat
+*)
+function TRSWorldHopper.WaitForHop(
+  world: Integer;
+  ocrBounds: TBox;
+  coolDownOnFail: Boolean=True
+): Boolean;
+var
+  cd: UInt64;
+begin
+  WriteLn("Hopping to "+ToStr(world)+"...");
+  if not waituntil(
+    ocr.LocateText(
+      self.PleaseWaitBounds,
+      "Please wait",
+      RS_FONT_PLAIN_12,
+      TOCRColorRule.Create([$FFFFFF]),
+      1
+    ),
+    100,
+    2000
+  ) then
+  begin
+    writeln("hop failed: " + chat.GetMessage(7));
+    if coolDownOnFail then
+    begin
+      cd := random(8000, 15000);
+      writeln("hop will be ready in " + tostr(cd) + "ms");
+      self.readyTime := getsystemtime() + cd;
+    end;
+    exit(False);
+  end;
+
+  if waituntil(
+    ocr.RecognizeNumber(
+      ocrBounds.Expand(1),
+      TOCRColorRule.Create([Self.Silver, Self.Yellow]),
+      RS_FONT_PLAIN_12
+    ) <> world,
+    random(100,300),
+    10000
+  ) then
+  begin
+    writeln("Done");
+    exit(True);
+  end
+  else
+    writeln("timed out");
+end;
+
+function TRSWorldHopper.Hop(targetWorlds: TIntegerArray): Boolean;
+var
+  visibleWorlds: TIntegerArray;
+  ocrBounds: TBoxArray;
+  currentWorld: Integer;
+  i: Integer;
+  nextWorld: Integer;
+  target: Integer;
+  StartTime: UInt64;
+  TimeOut: UInt64 = 12000;
+begin
+  if getsystemtime() < self.readyTime then
+    exit(False);
+
+  logout.Open();
+  if not logout.IsWorldSwitcherOpen() then
+    logout.GetButton(ERSLogoutButton.WORLD_SWITCHER).Click(MOUSE_LEFT);
+  waituntil(Self.GetCurrentWorld() <> 0, 200, TimeOut);
+
+  currentWorld := Self.GetCurrentWorld();
+  writeln("current world: " + tostr(currentWorld));
+
+  if (targetWorlds.Len = 1) and (currentWorld = targetWorlds[0]) then
+    Exit(True);
+
+  i := targetWorlds.Find(currentWorld);
+  try
+    nextWorld := targetWorlds[i+1];
+  except
+    nextWorld := targetWorlds[0];
+  end;
+
+  StartTime := GetSystemTime();
+  while (GetSystemTime() - StartTime < TimeOut) do
+    begin
+      visibleWorlds := Self.ReadWorlds(ocrBounds);
+      i := visibleWorlds.find(nextWorld);
+      if i <> -1 then
+      begin
+        mouse.click(ocrBounds[i], MOUSE_LEFT, true);
+        Exit(self.WaitForHop(nextWorld, ocrBounds[i]))
+      end
+      else if visibleWorlds.max > nextWorld then
+        Self.Scroll(False) // up
+      else if visibleWorlds.min < nextWorld then
+        Self.Scroll(True); // down
+    end;
+  WriteLn("Timed out (TimeOut="+ToStr(TimeOut)+"ms)");
+
+end;
+
+
+var
+  worldhopper: TRSWorldHopper;
+begin
+  worldhopper.Setup();
+end;
+

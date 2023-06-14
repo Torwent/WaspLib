@@ -1,3 +1,12 @@
+## [13.4.4](https://github.com/Torwent/WaspLib/compare/v13.4.3...v13.4.4) (2023-06-14)
+
+
+### Bug Fixes
+
+* **XPBar:** XPBar shouldn't fail anymore on script startup due to interfaces ([2dda8da](https://github.com/Torwent/WaspLib/commit/2dda8da5246b0a6241f3ae023cf215f09b9289e6))
+
+
+
 ## [13.4.3](https://github.com/Torwent/WaspLib/compare/v13.4.2...v13.4.3) (2023-06-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added Olly's recorder ([bc50b65](https://github.com/Torwent/WaspLib/commit/bc50b65863bc999a6783fb9b92a22f057913ddc8))
-
-
-
-## [13.3.20](https://github.com/Torwent/WaspLib/compare/v13.3.19...v13.3.20) (2023-06-09)
-
-
-### Bug Fixes
-
-* **xpbarsetup:** made it more verbose to warn users if they have xpbar not setup properly ([fe41cfa](https://github.com/Torwent/WaspLib/commit/fe41cfa5c8a11079bc49a0226b687276a085aa34))
 
 
 

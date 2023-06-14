@@ -1,3 +1,12 @@
+## [13.4.3](https://github.com/Torwent/WaspLib/compare/v13.4.2...v13.4.3) (2023-06-14)
+
+
+### Bug Fixes
+
+* read notes ([8d531aa](https://github.com/Torwent/WaspLib/commit/8d531aa97b6295e56421c0319140954a18577905))
+
+
+
 ## [13.4.2](https://github.com/Torwent/WaspLib/compare/v13.4.1...v13.4.2) (2023-06-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **xpbarsetup:** made it more verbose to warn users if they have xpbar not setup properly ([fe41cfa](https://github.com/Torwent/WaspLib/commit/fe41cfa5c8a11079bc49a0226b687276a085aa34))
-
-
-
-## [13.3.19](https://github.com/Torwent/WaspLib/compare/v13.3.18...v13.3.19) (2023-06-08)
-
-
-### Bug Fixes
-
-* **FormsV2:** shouldn't throw exceptions anymore when add/delete buttons are clicked ([879a1c7](https://github.com/Torwent/WaspLib/commit/879a1c71c26a3da7b2bc43a97c6f73e7a2fca86f))
 
 
 

@@ -1,3 +1,12 @@
+## [13.4.5](https://github.com/Torwent/WaspLib/compare/v13.4.4...v13.4.5) (2023-06-16)
+
+
+### Bug Fixes
+
+* minor adjustments to BF objects ([4de4c3f](https://github.com/Torwent/WaspLib/commit/4de4c3f7919453bc34493f0db67742df93e91327))
+
+
+
 ## [13.4.4](https://github.com/Torwent/WaspLib/compare/v13.4.3...v13.4.4) (2023-06-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8f97b74](https://github.com/Torwent/WaspLib/commit/8f97b747c79b93d236611326028e1bac83a1c0d9))
-
-
-
-# [13.4.0](https://github.com/Torwent/WaspLib/compare/v13.3.20...v13.4.0) (2023-06-12)
-
-
-### Features
-
-* added Olly's recorder ([bc50b65](https://github.com/Torwent/WaspLib/commit/bc50b65863bc999a6783fb9b92a22f057913ddc8))
 
 
 

@@ -1,3 +1,12 @@
+## [13.4.7](https://github.com/Torwent/WaspLib/compare/v13.4.6...v13.4.7) (2023-06-21)
+
+
+### Bug Fixes
+
+* **forms:** read notes ([b779a1a](https://github.com/Torwent/WaspLib/commit/b779a1a8f13e2916a583ac6ad59cdf53f84b81f3))
+
+
+
 ## [13.4.6](https://github.com/Torwent/WaspLib/compare/v13.4.5...v13.4.6) (2023-06-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8d531aa](https://github.com/Torwent/WaspLib/commit/8d531aa97b6295e56421c0319140954a18577905))
-
-
-
-## [13.4.2](https://github.com/Torwent/WaspLib/compare/v13.4.1...v13.4.2) (2023-06-13)
-
-
-### Bug Fixes
-
-* **loothandler:** read notes ([1bd4fd2](https://github.com/Torwent/WaspLib/commit/1bd4fd2bc27f4783da6e1b002aa56830466b42a3))
 
 
 

@@ -1,3 +1,12 @@
+## [13.4.8](https://github.com/Torwent/WaspLib/compare/v13.4.7...v13.4.8) (2023-06-22)
+
+
+### Bug Fixes
+
+* read notes ([0028eee](https://github.com/Torwent/WaspLib/commit/0028eee2b0d62a696b1fbe85ed2bf9f3000abb10))
+
+
+
 ## [13.4.7](https://github.com/Torwent/WaspLib/compare/v13.4.6...v13.4.7) (2023-06-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **XPBar:** XPBar shouldn't fail anymore on script startup due to interfaces ([2dda8da](https://github.com/Torwent/WaspLib/commit/2dda8da5246b0a6241f3ae023cf215f09b9289e6))
-
-
-
-## [13.4.3](https://github.com/Torwent/WaspLib/compare/v13.4.2...v13.4.3) (2023-06-14)
-
-
-### Bug Fixes
-
-* read notes ([8d531aa](https://github.com/Torwent/WaspLib/commit/8d531aa97b6295e56421c0319140954a18577905))
 
 
 

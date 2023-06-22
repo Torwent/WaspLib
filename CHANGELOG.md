@@ -1,3 +1,12 @@
+## [13.4.9](https://github.com/Torwent/WaspLib/compare/v13.4.8...v13.4.9) (2023-06-22)
+
+
+### Bug Fixes
+
+* **RSNPCs:** ShiloVillageBankers ([da93221](https://github.com/Torwent/WaspLib/commit/da9322192cc142fc4ff14a6a413e6c6cfb814a52))
+
+
+
 ## [13.4.8](https://github.com/Torwent/WaspLib/compare/v13.4.7...v13.4.8) (2023-06-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * minor adjustments to BF objects ([4de4c3f](https://github.com/Torwent/WaspLib/commit/4de4c3f7919453bc34493f0db67742df93e91327))
-
-
-
-## [13.4.4](https://github.com/Torwent/WaspLib/compare/v13.4.3...v13.4.4) (2023-06-14)
-
-
-### Bug Fixes
-
-* **XPBar:** XPBar shouldn't fail anymore on script startup due to interfaces ([2dda8da](https://github.com/Torwent/WaspLib/commit/2dda8da5246b0a6241f3ae023cf215f09b9289e6))
 
 
 

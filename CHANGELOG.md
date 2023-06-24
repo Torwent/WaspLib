@@ -1,3 +1,12 @@
+## [13.4.11](https://github.com/Torwent/WaspLib/compare/v13.4.10...v13.4.11) (2023-06-24)
+
+
+### Bug Fixes
+
+* **webgraph:** several pathing fixes ([2a0679e](https://github.com/Torwent/WaspLib/commit/2a0679e7db76b9feca3bcbe5b05519c875776870))
+
+
+
 ## [13.4.10](https://github.com/Torwent/WaspLib/compare/v13.4.9...v13.4.10) (2023-06-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **forms:** read notes ([b779a1a](https://github.com/Torwent/WaspLib/commit/b779a1a8f13e2916a583ac6ad59cdf53f84b81f3))
-
-
-
-## [13.4.6](https://github.com/Torwent/WaspLib/compare/v13.4.5...v13.4.6) (2023-06-18)
-
-
-### Bug Fixes
-
-* **store:** store open shouldn't affect inventory anymore ([700cc2d](https://github.com/Torwent/WaspLib/commit/700cc2d89404777766b3835f45a2d84fcfbe6ea7))
 
 
 

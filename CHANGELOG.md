@@ -1,3 +1,12 @@
+## [13.4.10](https://github.com/Torwent/WaspLib/compare/v13.4.9...v13.4.10) (2023-06-24)
+
+
+### Bug Fixes
+
+* **RSObjects:** Banks up text was tweaked so poll booths are not clicked as often ([2625aef](https://github.com/Torwent/WaspLib/commit/2625aef0dd0132d0baf5495464f4e07c3d47a7a9))
+
+
+
 ## [13.4.9](https://github.com/Torwent/WaspLib/compare/v13.4.8...v13.4.9) (2023-06-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **store:** store open shouldn't affect inventory anymore ([700cc2d](https://github.com/Torwent/WaspLib/commit/700cc2d89404777766b3835f45a2d84fcfbe6ea7))
-
-
-
-## [13.4.5](https://github.com/Torwent/WaspLib/compare/v13.4.4...v13.4.5) (2023-06-16)
-
-
-### Bug Fixes
-
-* minor adjustments to BF objects ([4de4c3f](https://github.com/Torwent/WaspLib/commit/4de4c3f7919453bc34493f0db67742df93e91327))
 
 
 

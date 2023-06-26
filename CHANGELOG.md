@@ -1,3 +1,12 @@
+# [13.5.0](https://github.com/Torwent/WaspLib/compare/v13.4.12...v13.5.0) (2023-06-26)
+
+
+### Features
+
+* removed forms v1 ([4c7c17a](https://github.com/Torwent/WaspLib/commit/4c7c17ad2b0e7497b400dac0c5e63dac2e081996))
+
+
+
 ## [13.4.12](https://github.com/Torwent/WaspLib/compare/v13.4.11...v13.4.12) (2023-06-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSNPCs:** ShiloVillageBankers ([da93221](https://github.com/Torwent/WaspLib/commit/da9322192cc142fc4ff14a6a413e6c6cfb814a52))
-
-
-
-## [13.4.8](https://github.com/Torwent/WaspLib/compare/v13.4.7...v13.4.8) (2023-06-22)
-
-
-### Bug Fixes
-
-* read notes ([0028eee](https://github.com/Torwent/WaspLib/commit/0028eee2b0d62a696b1fbe85ed2bf9f3000abb10))
 
 
 

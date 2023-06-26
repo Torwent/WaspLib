@@ -582,11 +582,16 @@ begin
   begin
     if MainScreen.HasInterface() then
     begin
-      if Result := Bank.IsOpen then Break
-      else MainScreen.CloseInterface;
+      Result := Bank.IsOpen();
+      if Result then
+        Break;
+
+      MainScreen.CloseInterface();
     end;
 
-    if Result := Bank.WalkOpen() then
+    Result := Bank.WalkOpen();
+
+    if Result then
       Break;
   end;
   //override me to add more stuff.
@@ -702,6 +707,31 @@ begin
 
     if Bank.IsSearchOpen() then
       Bank.CloseSearch();
+  end;
+
+  Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
+
+  if Self.BankEmpty then
+    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
+
+  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+    Self.CollectEmpty := False;
+end;
+
+function TBaseBankScript.Withdraw(out item: TRSBankItem): Boolean; overload;
+begin
+  WriteLn item;
+  Result := Bank.WithdrawItem(item, item.Quantity <> 1); //I'm gonna assume 1 quantity that it's a tool.
+
+  if not Result then
+  begin
+    Bank.UnHoverIncinerator();
+
+    if Bank.IsSearchOpen() then
+      Bank.CloseSearch();
+
+    Result := Bank.WithdrawItem(item, item.Quantity <> 1);
+    Self.BankEmpty := not Result;
   end;
 
   Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();

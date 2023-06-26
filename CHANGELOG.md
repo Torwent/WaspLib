@@ -1,3 +1,12 @@
+## [13.4.12](https://github.com/Torwent/WaspLib/compare/v13.4.11...v13.4.12) (2023-06-26)
+
+
+### Bug Fixes
+
+* **Bank:** added support to the new SRL-T Bank scrolling feature ([e36145d](https://github.com/Torwent/WaspLib/commit/e36145d83861ec331f4858592c9cddcdb84ff76e))
+
+
+
 ## [13.4.11](https://github.com/Torwent/WaspLib/compare/v13.4.10...v13.4.11) (2023-06-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([0028eee](https://github.com/Torwent/WaspLib/commit/0028eee2b0d62a696b1fbe85ed2bf9f3000abb10))
-
-
-
-## [13.4.7](https://github.com/Torwent/WaspLib/compare/v13.4.6...v13.4.7) (2023-06-21)
-
-
-### Bug Fixes
-
-* **forms:** read notes ([b779a1a](https://github.com/Torwent/WaspLib/commit/b779a1a8f13e2916a583ac6ad59cdf53f84b81f3))
 
 
 

@@ -45,7 +45,7 @@ begin
   Result := Grid(8, 5, 35, 32, [12, 16], [Self.X1 + 61, Self.Y1 + 40])
 end;
 
-function TRSStore.IsOpen: Boolean; overload;
+function TRSStore.IsOpen: Boolean;
 var
   B: TBox;
   Txt: String;
@@ -74,7 +74,7 @@ begin
   Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
 end;
 
-function TRSStore.FindItem(Item: TRSItem; out Box: TBox): Boolean; overload;
+function TRSStore.FindItem(Item: TRSItem; out Box: TBox): Boolean;
 var
   Boxes: TBoxArray;
   Indices: TIntegerArray;
@@ -88,6 +88,76 @@ begin
   Result := True;
   Box := Boxes[Indices[0]];
 end;
+
+function TRSStore.FindAny(itemArray: TRSItemArray; out Boxes: TBoxArray): Boolean;
+var
+  item: TRSItem;
+  i: Int32;
+  tba: TBoxArray;
+  indices: TIntegerArray;
+begin
+  if not Self.IsOpen() then Exit;
+  tba := Self.GetItemBoxes();
+
+  for item in itemArray do
+  begin
+    indices := ItemFinder.Find(Item, tba, 1);
+    if indices.Len() < 1 then Continue;
+
+    for i := 0 to High(indices) do
+      Boxes += tba[i];
+  end;
+  Result := Boxes <> [];
+end;
+
+function TRSStore.FindAll(itemArray: TRSItemArray; out Boxes: TBoxArray): Boolean;
+var
+  item: TRSItem;
+  i: Int32;
+  tba: TBoxArray;
+  indices: TIntegerArray;
+begin
+  if not Self.IsOpen() then Exit;
+  tba := Self.GetItemBoxes();
+
+  Result := True;
+
+  for item in itemArray do
+  begin
+    indices := ItemFinder.Find(Item, tba);
+    if indices.Len() < 1 then
+    begin
+      Result := False;
+      Continue;
+    end;
+
+    for i := 0 to High(indices) do
+      Boxes += tba[i];
+  end;
+end;
+
+
+function TRSStore.ContainsItem(item: TRSItem): Boolean;
+var
+  b: TBox;
+begin
+  Result := Self.FindItem(item, b);
+end;
+
+function TRSStore.ContainsAny(itemArray: TRSItemArray): Boolean;
+var
+  tba: TBoxArray;
+begin
+  Result := Self.FindAny(itemArray, tba);
+end;
+
+function TRSStore.ContainsAll(itemArray: TRSItemArray): Boolean;
+var
+  tba: TBoxArray;
+begin
+  Result := Self.FindAll(itemArray, tba);
+end;
+
 
 function TRSStore.CountItemStack(Item: TRSItem): Int32;
 var

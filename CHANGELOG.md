@@ -1,3 +1,12 @@
+# [13.6.0](https://github.com/Torwent/WaspLib/compare/v13.5.0...v13.6.0) (2023-06-27)
+
+
+### Features
+
+* read notes ([a0a5fdf](https://github.com/Torwent/WaspLib/commit/a0a5fdf1476721bc7f414758f05416091910a330))
+
+
+
 # [13.5.0](https://github.com/Torwent/WaspLib/compare/v13.4.12...v13.5.0) (2023-06-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSObjects:** Banks up text was tweaked so poll booths are not clicked as often ([2625aef](https://github.com/Torwent/WaspLib/commit/2625aef0dd0132d0baf5495464f4e07c3d47a7a9))
-
-
-
-## [13.4.9](https://github.com/Torwent/WaspLib/compare/v13.4.8...v13.4.9) (2023-06-22)
-
-
-### Bug Fixes
-
-* **RSNPCs:** ShiloVillageBankers ([da93221](https://github.com/Torwent/WaspLib/commit/da9322192cc142fc4ff14a6a413e6c6cfb814a52))
 
 
 

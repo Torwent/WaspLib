@@ -1,3 +1,12 @@
+## [13.6.1](https://github.com/Torwent/WaspLib/compare/v13.6.0...v13.6.1) (2023-06-27)
+
+
+### Bug Fixes
+
+* the recorder has been fixed. ([d0d4c59](https://github.com/Torwent/WaspLib/commit/d0d4c590af2260f6c6492e8590e068a6deac0fdc))
+
+
+
 # [13.6.0](https://github.com/Torwent/WaspLib/compare/v13.5.0...v13.6.0) (2023-06-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **webgraph:** several pathing fixes ([2a0679e](https://github.com/Torwent/WaspLib/commit/2a0679e7db76b9feca3bcbe5b05519c875776870))
-
-
-
-## [13.4.10](https://github.com/Torwent/WaspLib/compare/v13.4.9...v13.4.10) (2023-06-24)
-
-
-### Bug Fixes
-
-* **RSObjects:** Banks up text was tweaked so poll booths are not clicked as often ([2625aef](https://github.com/Torwent/WaspLib/commit/2625aef0dd0132d0baf5495464f4e07c3d47a7a9))
 
 
 

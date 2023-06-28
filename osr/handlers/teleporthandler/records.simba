@@ -1,0 +1,70 @@
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+type
+  TItemAmount = record
+    name: String;
+    amount: Int32;
+  end;
+
+  TScriptRecipeItem = record (TItemAmount)
+    maxToPurchase, minToPurchase: Int32;
+  end;
+
+  TScriptRecipeItemArray = array of TScriptRecipeItem;
+  TScriptRecipe = record
+    items: TScriptRecipeItemArray;
+    msPerAction, actions, levelRequired: Int32;
+    skill: ERSSkill;
+    product: String;
+  end;
+  TScriptRecipeArray = array of TScriptRecipe;
+
+  // if using a TSkunkscript these all must be set
+  TSkunkScript = record (TBaseBankScript)
+    recipes: TScriptRecipeArray;
+    startLocation: TPoint;
+    skill: ERSSkill;
+    gearRequired: TRSItemArray;
+    questsRequired: TStringArray;
+  end;
+
+function TSkunkScript.getIdealRecipe(): TScriptRecipe;
+var
+  recipe: TScriptRecipe;
+  skillLevel: Int32 := BaseStats.GetCurrentLevel(self.skill);
+begin
+  for recipe in self.recipes do
+  begin
+    if recipe.criterionSatisfied(skillLevel) then
+      Exit(recipe);
+  end;
+end;
+
+function TScriptRecipe.criterionSatisfied(playerLevel: Int32): Boolean;
+begin
+  Exit(playerLevel > self.levelRequired);
+end;
+
+function TScriptRecipe.tool(): String;
+begin
+  Exit(self.items[0].name);
+end;
+
+function TScriptRecipe.item1(): String;
+begin
+  Exit(self.items[1].name);
+end;
+function TScriptRecipe.item1Amount(): Int32;
+begin
+  Exit(self.items[1].amount);
+end;
+
+function TScriptRecipe.item2(): String;
+begin
+  Exit(self.items[2].name);
+end;
+function TScriptRecipe.item2Amount(): Int32;
+begin
+  Exit(self.items[2].amount);
+end;

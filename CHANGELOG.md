@@ -1,3 +1,12 @@
+## [13.6.3](https://github.com/Torwent/WaspLib/compare/v13.6.2...v13.6.3) (2023-06-28)
+
+
+### Bug Fixes
+
+* **TRSConsumable:** typo in pineapple pizzas ([c84e71c](https://github.com/Torwent/WaspLib/commit/c84e71c8707d17fdc30a9ee557c7fc8a24c62fe9))
+
+
+
 ## [13.6.2](https://github.com/Torwent/WaspLib/compare/v13.6.1...v13.6.2) (2023-06-28)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * removed forms v1 ([4c7c17a](https://github.com/Torwent/WaspLib/commit/4c7c17ad2b0e7497b400dac0c5e63dac2e081996))
-
-
-
-## [13.4.12](https://github.com/Torwent/WaspLib/compare/v13.4.11...v13.4.12) (2023-06-26)
-
-
-### Bug Fixes
-
-* **Bank:** added support to the new SRL-T Bank scrolling feature ([e36145d](https://github.com/Torwent/WaspLib/commit/e36145d83861ec331f4858592c9cddcdb84ff76e))
 
 
 

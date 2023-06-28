@@ -1,3 +1,12 @@
+## [13.6.2](https://github.com/Torwent/WaspLib/compare/v13.6.1...v13.6.2) (2023-06-28)
+
+
+### Bug Fixes
+
+* mainscreen.clickclosebutton won't spam click buttons anymore ([8408820](https://github.com/Torwent/WaspLib/commit/840882018f5b8451ff34379ad3b9da6b9688de31))
+
+
+
 ## [13.6.1](https://github.com/Torwent/WaspLib/compare/v13.6.0...v13.6.1) (2023-06-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Bank:** added support to the new SRL-T Bank scrolling feature ([e36145d](https://github.com/Torwent/WaspLib/commit/e36145d83861ec331f4858592c9cddcdb84ff76e))
-
-
-
-## [13.4.11](https://github.com/Torwent/WaspLib/compare/v13.4.10...v13.4.11) (2023-06-24)
-
-
-### Bug Fixes
-
-* **webgraph:** several pathing fixes ([2a0679e](https://github.com/Torwent/WaspLib/commit/2a0679e7db76b9feca3bcbe5b05519c875776870))
 
 
 

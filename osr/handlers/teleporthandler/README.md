@@ -2,10 +2,6 @@
 ## TUniversalTransport and TTeleportLocation
 There are some types in `records.simba` that might be interesting, but the two central parts of this library are the record `TUniversalTransport` in `transport.simba` and the static record `RSTeleports` in `rsteleports.simba`.
 
-To use `TUniversalTransport`, I recommend cloning this repo into your scripts/SkunkLib folder, and then including 
-`{$include ./Skunklib/transport.simba}` 
-at the top of your script.
-
 On `RSTeleports` you can find many `TTeleportLocation`s for example `RSTeleports.GRAND_EXCHANGE`
 
 If you `WriteLn` this, it looks like:

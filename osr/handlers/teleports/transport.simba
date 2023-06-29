@@ -1,41 +1,26 @@
-//{$DEFINE SCRIPT_ID := 'a398a123-63fd-4f13-936b-3963354fb4c1'}
-//{$DEFINE SCRIPT_REVISION := '1'}
-{$DEFINE SCRIPT_GUI}
+//THIS IS NOT INCLUDED IN WASPLIB, NEEDS TO WORKED ON STILL.
+{$DEFINE SKUNK_UNIVERSAL_TRANSPORT}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
-//{$include_once ./RSTeleports.simba} not needed with the new including way, just need to include WL
 
 type
-  TUniversalTransport = record (TBaseBankScript)
-    //config
+  TUniversalTransport = record
     ardougneCape: TRSItem;
     fairyTeleportItem: EFairyTeleportItem;
     cacheRSW: TRSWalker; //I don't fully like this, I will think of another solution and if I can't find any it at least has to be tweaked to work well with RSObjects which shouldn't be too hard
   end;
 
-
 procedure TUniversalTransport.Init(fairyTeleportItem: EFairyTeleportItem; ardougneCape: TRSItem); overload;
-var
-  regions: TBoxArray; //not used
 begin
   self.cacheRSW.Setup();
-  regions := [Box(cacheRSW.GetMyPos(), 400, 400)]; //not used
-  if not RSClient.RemoteInput.IsSetup() then RSClient.RemoteInput.Setup();
   self.fairyTeleportItem := fairyTeleportItem;
   self.ardougneCape := ardougneCape;
-  WriteLn('RSW Initializing ', regions); //not used, well yes, I guess.
-  self.RSW.WebGraph := WaspWeb;
-  self.RSW.AdaptiveWalk := True;
-  RSMouseZoom.SetZoomLevel(SRL.TruncatedGauss(1, 15));
-  Mouse.Speed := 28;
-  Mouse.MissChance := 1;
-  Mouse.Distribution := MOUSE_DISTRIBUTION_GAUSS;
 end;
 
 procedure TUniversalTransport.overwriteRegions(regions: TBoxArray);
 begin
-  self.RSW.Setup(regions); //I'll look into creating TRSWalker.AddRegion()
+  TRSWalkerObject.Walker^.Setup(regions);
 end;
 
 function TUniversalTransport.getContainingRegion(destination: TPoint): TRSNamedRegion;
@@ -68,7 +53,7 @@ end;
 
 function TUniversalTransport.pathLength(point1, point2: TPoint): Int32; overload;
 var
-  path: TPointArray := self.rsw.WebGraph.PathBetween(point1, point2);
+  path: TPointArray := TRSWalkerObject.Walker^.WebGraph.PathBetween(point1, point2);
 begin
   Exit(self.pathLength(path));
 end;
@@ -81,7 +66,7 @@ var
 begin
   for currentClosest in RSTeleports.sortTeleportsByDistance(destination, teleports) do
   begin
-    pathBetween := self.rsw.WebGraph.PathBetween(destination, currentClosest.worldPoint);
+    pathBetween := TRSWalkerObject.Walker^.WebGraph.PathBetween(destination, currentClosest.worldPoint);
     if pathBetween.Len() > 0 then
       Exit(currentClosest);
   end;
@@ -101,7 +86,7 @@ begin
   for currentClosest in teleportsByDistance do
   begin
     try
-      pathBetween := self.rsw.WebGraph.PathBetween(destination, currentClosest.worldPoint);
+      pathBetween := TRSWalkerObject.Walker^.WebGraph.PathBetween(destination, currentClosest.worldPoint);
     except
       // we don't want to raise if there is no pathbetween
     end;
@@ -129,7 +114,7 @@ begin
   for currentClosest in teleportsByDistance do
   begin
     try
-      pathBetween := self.rsw.WebGraph.PathBetween(destination, currentClosest.worldPoint);
+      pathBetween := TRSWalkerObject.Walker^.WebGraph.PathBetween(destination, currentClosest.worldPoint);
     except
       // we don't want to raise if there is no pathbetween
     end;
@@ -152,7 +137,7 @@ end;
 
 function TUniversalTransport.getRegionBetween(point1, point2: TPoint): TBox;
 var
-  path: TPointArray := self.rsw.WebGraph.PathBetween(point1, point2, 1);
+  path: TPointArray := TRSWalkerObject.Walker^.WebGraph.PathBetween(point1, point2, 1);
 begin
   Exit(self.getPathRegion(path));
 end;
@@ -198,10 +183,10 @@ begin
     if didTeleport then
     begin
       self.overwriteRegions([self.getRegionBetween(cacheRSW.GetMyPos(), destination)]);
-      self.RSW.WebWalk(destination, 20);
+      TRSWalkerObject.Walker^.WebWalk(destination, 20);
     end;
   except
-    WaitUntil(self.getContainingRegion(destination).Bounds.Contains(self.rsw.GetMyPos()), 200, 5000);
+    WaitUntil(self.getContainingRegion(destination).Bounds.Contains(TRSWalkerObject.Walker^.GetMyPos()), 200, 5000);
 
   if attempt = 5 then raise 'Bomba - rsw cannae connect lassie';
   end;
@@ -323,6 +308,7 @@ end;
 
 function TUniversalTransport.withdrawTeleportItem(teleportLocation: TTeleportLocation): Boolean;
 var
+  bankItem: TRSBankItem;
   chargedJewellery: TRSItem;
   chargedVariants: TRSItemArray;
   teleportTabName: String;
@@ -337,10 +323,12 @@ begin
       for chargedJewellery in chargedVariants do
       begin
         WriteLn('Withdrawing', chargedJewellery);
-        if self.Withdraw([chargedJewellery, 1, False]) then
+        bankItem.Setup(chargedJewellery);
+        if Bank.WithdrawItem(bankItem, False) then
           Exit(True);
-        if WaitUntil(Inventory.ContainsItem(chargedJewellery), 200, 5000) then
-          Exit(True);
+        //The following shouldn't be required. The lines above already kinda do this.
+        //if WaitUntil(Inventory.ContainsItem(chargedJewellery), 200, 5000) then
+        //  Exit(True);
       end;
     end;
     ETeleportType.ANCIENT_MAGICKS,
@@ -350,10 +338,12 @@ begin
     begin
       teleportTabName := teleportLocation.destination.Lower() + " teleport";
       WriteLn('Withdrawing: ', teleportTabName);
-      if self.Withdraw([teleportTabName, 1, False]) then
+      bankItem.Setup(teleportTabName);
+      if Bank.WithdrawItem(bankItem, False) then
         Exit(True);
-      if WaitUntil(Inventory.ContainsItem(teleportTabName), 200, 5000) then
-        Exit(True);
+      //The following shouldn't be required. The lines above already kinda do this.
+      //if WaitUntil(Inventory.ContainsItem(teleportTabName), 200, 5000) then
+      //  Exit(True);
     end;
   end;
 end;
@@ -388,7 +378,7 @@ begin
   if (Length(butteryflyTPA) > 0) then
     Exit(butteryflyTPA.RandomValue());
 
-  Exit(rsw.GetTileMS(fairyRing.worldPoint).mean());
+  Exit(TRSWalkerObject.Walker^.GetTileMS(fairyRing.worldPoint).mean());
 end;
 
 function TUniversalTransport.getFairyDialTeleportBox(): TBox;
@@ -446,6 +436,7 @@ var
   travelLogOpen: Boolean;
   codeFindAttempt: Int32;
   fairyTeleportStaff: TRSItem;
+  bankItem: TRSBankItem;
 begin
   // make sure dramen is equipped
   WriteLn 'Searching for dramen staff';
@@ -454,7 +445,7 @@ begin
     case self.fairyTeleportItem of
       EFairyTeleportItem.DRAMEN: fairyTeleportStaff := 'Dramen staff';
       EFairyTeleportItem.LUNAR: fairyTeleportStaff := 'Lunar staff';
-      EFairyTeleportItem.NONE: raise 'You either need to configure a method for fairy teleports (dramen/lunar/diary) or not use them.';
+      EFairyTeleportItem.UNKNOWN: raise 'You either need to configure a method for fairy teleports (dramen/lunar/diary) or not use them.';
     end;
     if Inventory.ContainsItem(fairyTeleportStaff) then
       canFairyTeleport := WaitUntil(Inventory.ClickItem(fairyTeleportStaff), 500, 2000);
@@ -470,10 +461,11 @@ begin
       // teleport nearby bank if possible
       self.genericJewelleryBankTeleport();
       if not Bank.WalkOpen() then
-        raise "We can't get to a bank from here: " + ToString(RSW.GetMyPos()) + ". Consider adding some jewellery to teleport with.";
+        raise "We can't get to a bank from here: " + ToString(TRSWalkerObject.Walker^.GetMyPos()) + ". Consider adding some jewellery to teleport with.";
       // TO DO ^ maybe add desperate teleports to banks like home teleport
       WriteLn('Withdrawing ', fairyTeleportStaff);
-      if not WaitUntil(self.Withdraw([fairyTeleportStaff, 1, False]), 200, 5000) then
+      bankItem.Setup(fairyTeleportStaff);
+      if not WaitUntil(Bank.WithdrawItem(bankItem, False), 200, 5000) then
         raise "You do not have a dramen/lunar staff. You can turn off fairy teleports";
     end;
   until canFairyTeleport;
@@ -500,7 +492,7 @@ begin
 
   self.overwriteRegions([self.getRegionBetween(cacheRSW.GetMyPos(), walkableFairyRing.worldPoint)]);
   WriteLn 'We are going to walk to ' + ToString(walkableFairyRing.worldPoint);
-  self.RSW.WebWalk(walkableFairyRing.worldPoint, 40);
+  TRSWalkerObject.Walker^.WebWalk(walkableFairyRing.worldPoint, 40);
 
   // open fairy ring teleports
   WriteLn("opening fairy ring teleports");
@@ -558,7 +550,7 @@ begin
   if self.nearGE() then
   begin
     self.overwriteRegions([self.getRegionBetween(cacheRSW.GetMyPos(), RSTeleports.GRAND_EXCHANGE.worldPoint)]);
-    Result := self.RSW.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
+    Result := TRSWalkerObject.Walker^.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
   end
   else
     Result := self.run(RSTeleports.GRAND_EXCHANGE.worldPoint);

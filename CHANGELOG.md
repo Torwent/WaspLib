@@ -1,3 +1,12 @@
+## [13.6.4](https://github.com/Torwent/WaspLib/compare/v13.6.3...v13.6.4) (2023-06-30)
+
+
+### Bug Fixes
+
+* removed deprecated bank tweaks that are now included in SRL ([c6513d8](https://github.com/Torwent/WaspLib/commit/c6513d8b8ddc7146c2d954a4be763ece658dc171))
+
+
+
 ## [13.6.3](https://github.com/Torwent/WaspLib/compare/v13.6.2...v13.6.3) (2023-06-28)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([a0a5fdf](https://github.com/Torwent/WaspLib/commit/a0a5fdf1476721bc7f414758f05416091910a330))
-
-
-
-# [13.5.0](https://github.com/Torwent/WaspLib/compare/v13.4.12...v13.5.0) (2023-06-26)
-
-
-### Features
-
-* removed forms v1 ([4c7c17a](https://github.com/Torwent/WaspLib/commit/4c7c17ad2b0e7497b400dac0c5e63dac2e081996))
 
 
 

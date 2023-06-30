@@ -18,11 +18,6 @@ begin
   self.ardougneCape := ardougneCape;
 end;
 
-procedure TUniversalTransport.overwriteRegions(regions: TBoxArray);
-begin
-  TRSWalkerObject.Walker^.Setup(regions);
-end;
-
 function TUniversalTransport.getContainingRegion(destination: TPoint): TRSNamedRegion;
 var
   region: TRSNamedRegion;
@@ -53,7 +48,7 @@ end;
 
 function TUniversalTransport.pathLength(point1, point2: TPoint): Int32; overload;
 var
-  path: TPointArray := TRSWalkerObject.Walker^.WebGraph.PathBetween(point1, point2);
+  path: TPointArray := WaspWeb.PathBetween(point1, point2);
 begin
   Exit(self.pathLength(path));
 end;
@@ -66,7 +61,7 @@ var
 begin
   for currentClosest in RSTeleports.sortTeleportsByDistance(destination, teleports) do
   begin
-    pathBetween := TRSWalkerObject.Walker^.WebGraph.PathBetween(destination, currentClosest.worldPoint);
+    pathBetween := WaspWeb.PathBetween(destination, currentClosest.worldPoint);
     if pathBetween.Len() > 0 then
       Exit(currentClosest);
   end;
@@ -86,7 +81,7 @@ begin
   for currentClosest in teleportsByDistance do
   begin
     try
-      pathBetween := TRSWalkerObject.Walker^.WebGraph.PathBetween(destination, currentClosest.worldPoint);
+      pathBetween := WaspWeb.PathBetween(destination, currentClosest.worldPoint);
     except
       // we don't want to raise if there is no pathbetween
     end;
@@ -114,7 +109,7 @@ begin
   for currentClosest in teleportsByDistance do
   begin
     try
-      pathBetween := TRSWalkerObject.Walker^.WebGraph.PathBetween(destination, currentClosest.worldPoint);
+      pathBetween := WaspWeb.PathBetween(destination, currentClosest.worldPoint);
     except
       // we don't want to raise if there is no pathbetween
     end;
@@ -137,7 +132,7 @@ end;
 
 function TUniversalTransport.getRegionBetween(point1, point2: TPoint): TBox;
 var
-  path: TPointArray := TRSWalkerObject.Walker^.WebGraph.PathBetween(point1, point2, 1);
+  path: TPointArray := WaspWeb.PathBetween(point1, point2, 1);
 begin
   Exit(self.getPathRegion(path));
 end;
@@ -182,7 +177,8 @@ begin
   try
     if didTeleport then
     begin
-      self.overwriteRegions([self.getRegionBetween(cacheRSW.GetMyPos(), destination)]);
+      TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), destination));
+      //TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), destination)]);
       TRSWalkerObject.Walker^.WebWalk(destination, 20);
     end;
   except
@@ -490,7 +486,7 @@ begin
   if (walkableFairyRing.worldPoint = [0,0]) then
     raise 'Fairy ring ' + walkableFairyRing.destination + ' is not configured properly';
 
-  self.overwriteRegions([self.getRegionBetween(cacheRSW.GetMyPos(), walkableFairyRing.worldPoint)]);
+  TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), walkableFairyRing.worldPoint));
   WriteLn 'We are going to walk to ' + ToString(walkableFairyRing.worldPoint);
   TRSWalkerObject.Walker^.WebWalk(walkableFairyRing.worldPoint, 40);
 
@@ -549,7 +545,7 @@ function TUniversalTransport.goToGE(): Boolean;
 begin
   if self.nearGE() then
   begin
-    self.overwriteRegions([self.getRegionBetween(cacheRSW.GetMyPos(), RSTeleports.GRAND_EXCHANGE.worldPoint)]);
+    TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), RSTeleports.GRAND_EXCHANGE.worldPoint));
     Result := TRSWalkerObject.Walker^.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
   end
   else
@@ -587,7 +583,8 @@ begin
   WriteLn('Distance to bank from current ', pathDistance);
   if pathDistance < maxDistance then
   begin
-    self.overwriteRegions([pathRegion, Box(cacheRSW.GetMyPos(), 100, 100)]);
+    TRSWalkerObject.Walker^.AddRegion(pathRegion);
+    TRSWalkerObject.Walker^.AddRegion(Box(cacheRSW.GetMyPos(), 100, 100));
     WriteLn pathRegion;
     WriteLn myPos;
     Bank.WalkOpen(closestBanker);
@@ -608,7 +605,7 @@ begin
 
   // load path between current and bank and then walk
   pathRegion := self.getRegionBetween(walkableBank.Coordinates.first(), cacheRSW.GetMyPos);
-  self.overwriteRegions([pathRegion]);
+  TRSWalkerObject.Walker^.AddRegion(pathRegion);
   walkableBank := self.getConnectingBank(cacheRSW.GetMyPos())^;
   Bank.WalkOpen(walkableBank);
 end;

@@ -1,3 +1,12 @@
+## [13.6.5](https://github.com/Torwent/WaspLib/compare/v13.6.4...v13.6.5) (2023-06-30)
+
+
+### Bug Fixes
+
+* **Store:** now has a dynamic grid like that of TRSBank ([5231efa](https://github.com/Torwent/WaspLib/commit/5231efa98487fa9061fc44778f5e23fab5ab3bdd))
+
+
+
 ## [13.6.4](https://github.com/Torwent/WaspLib/compare/v13.6.3...v13.6.4) (2023-06-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * the recorder has been fixed. ([d0d4c59](https://github.com/Torwent/WaspLib/commit/d0d4c590af2260f6c6492e8590e068a6deac0fdc))
-
-
-
-# [13.6.0](https://github.com/Torwent/WaspLib/compare/v13.5.0...v13.6.0) (2023-06-27)
-
-
-### Features
-
-* read notes ([a0a5fdf](https://github.com/Torwent/WaspLib/commit/a0a5fdf1476721bc7f414758f05416091910a330))
 
 
 

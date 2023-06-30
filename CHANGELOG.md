@@ -1,3 +1,12 @@
+## [13.6.6](https://github.com/Torwent/WaspLib/compare/v13.6.5...v13.6.6) (2023-06-30)
+
+
+### Bug Fixes
+
+* **EFairySomething:** changed `UNKNOWN` to `UNAVAILBLE` ([b6bda91](https://github.com/Torwent/WaspLib/commit/b6bda91f298abdf16467cb5cf775dcd693a8df1d))
+
+
+
 ## [13.6.5](https://github.com/Torwent/WaspLib/compare/v13.6.4...v13.6.5) (2023-06-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * mainscreen.clickclosebutton won't spam click buttons anymore ([8408820](https://github.com/Torwent/WaspLib/commit/840882018f5b8451ff34379ad3b9da6b9688de31))
-
-
-
-## [13.6.1](https://github.com/Torwent/WaspLib/compare/v13.6.0...v13.6.1) (2023-06-27)
-
-
-### Bug Fixes
-
-* the recorder has been fixed. ([d0d4c59](https://github.com/Torwent/WaspLib/commit/d0d4c590af2260f6c6492e8590e068a6deac0fdc))
 
 
 

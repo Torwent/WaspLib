@@ -158,68 +158,6 @@ begin
   Result := buttons[i].Click();
 end;
 
-function TRSBank.WithdrawHelper(b: TBox; amount: Int32; noted: Boolean; useQuantityButtons: Boolean): Boolean; override;
-var
-  button: TRSButton;
-begin
-  if noted then
-    button := Self.GetButton(ERSBankButton.NOTE)
-  else
-    button := Self.GetButton(ERSBankButton.ITEM);
-
-  if not button.Enable() then
-    Exit;
-
-  if not useQuantityButtons then
-  begin
-    Mouse.Move(B);
-
-    case amount of
-      BANK_WITHDRAW_ALL:         Exit(ChooseOption.Select('Withdraw-All'));
-      BANK_WITHDRAW_ALL_BUT_ONE: Exit(ChooseOption.Select('Withdraw-All-but-1'));
-    end;
-
-    Exit(ChooseOption.Select('Withdraw-' + ToString(amount) + ' ', MOUSE_LEFT, True, False) or
-         ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(amount), Random(2000, 2500)));
-  end;
-
-  if not Self.IsCustomQuantity(amount) then
-  begin
-    case amount of
-      1:   button := Self.GetButton(ERSBankButton.QUANTITY_1);
-      5:   button := Self.GetButton(ERSBankButton.QUANTITY_5);
-      10:  button := Self.GetButton(ERSBankButton.QUANTITY_10);
-      else button := Self.GetButton(ERSBankButton.QUANTITY_ALL);
-    end;
-
-    if button.Enable() then
-    begin
-      Result := True;
-      Mouse.Click(b, MOUSE_LEFT);
-    end;
-
-    Exit;
-  end;
-
-  button := Self.GetButton(ERSBankButton.QUANTITY_CUSTOM);
-  if not button.Enable() then
-    Exit;
-
-  Mouse.Move(b);
-
-  if (WL.GameSettings.BankWithdrawX = amount) or MainScreen.IsUpText('Withdraw-' + ToString(amount)) then
-  begin
-    WL.GameSettings.BankWithdrawX := amount;
-    Mouse.Click(MOUSE_LEFT);
-    Exit(True);
-  end;
-
-  WL.GameSettings.BankWithdrawX := 0; //in case we falsely return the next statement true we reset this.
-  Result := ChooseOption.Select('Withdraw-X') and Chat.AnswerQuery('Enter amount', ToString(amount), Random(2000, 4000));
-  if Result then
-    WL.GameSettings.BankWithdrawX := amount;
-end;
-
 
 function TRSBank.WithdrawSlot(tab: Int32; item: TRSBankWithdrawSlot; useQuantityButtons: Boolean): Boolean; overload;
 var

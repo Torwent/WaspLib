@@ -1,3 +1,12 @@
+## [13.6.7](https://github.com/Torwent/WaspLib/compare/v13.6.6...v13.6.7) (2023-07-02)
+
+
+### Bug Fixes
+
+* minor tweaks to transport.simba ([b731b18](https://github.com/Torwent/WaspLib/commit/b731b18d4c65271ea146018066b55355257cadfb))
+
+
+
 ## [13.6.6](https://github.com/Torwent/WaspLib/compare/v13.6.5...v13.6.6) (2023-06-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSConsumable:** typo in pineapple pizzas ([c84e71c](https://github.com/Torwent/WaspLib/commit/c84e71c8707d17fdc30a9ee557c7fc8a24c62fe9))
-
-
-
-## [13.6.2](https://github.com/Torwent/WaspLib/compare/v13.6.1...v13.6.2) (2023-06-28)
-
-
-### Bug Fixes
-
-* mainscreen.clickclosebutton won't spam click buttons anymore ([8408820](https://github.com/Torwent/WaspLib/commit/840882018f5b8451ff34379ad3b9da6b9688de31))
 
 
 

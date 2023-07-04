@@ -1,3 +1,12 @@
+## [13.6.10](https://github.com/Torwent/WaspLib/compare/v13.6.9...v13.6.10) (2023-07-04)
+
+
+### Bug Fixes
+
+* added osr/walker/maps/* to .gitignore ([3b29a5a](https://github.com/Torwent/WaspLib/commit/3b29a5ab91dc89611e2b3fb214dcdea47b8ae1b8))
+
+
+
 ## [13.6.9](https://github.com/Torwent/WaspLib/compare/v13.6.8...v13.6.9) (2023-07-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **EFairySomething:** changed `UNKNOWN` to `UNAVAILBLE` ([b6bda91](https://github.com/Torwent/WaspLib/commit/b6bda91f298abdf16467cb5cf775dcd693a8df1d))
-
-
-
-## [13.6.5](https://github.com/Torwent/WaspLib/compare/v13.6.4...v13.6.5) (2023-06-30)
-
-
-### Bug Fixes
-
-* **Store:** now has a dynamic grid like that of TRSBank ([5231efa](https://github.com/Torwent/WaspLib/commit/5231efa98487fa9061fc44778f5e23fab5ab3bdd))
 
 
 

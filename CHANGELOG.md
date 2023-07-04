@@ -1,3 +1,12 @@
+## [13.6.9](https://github.com/Torwent/WaspLib/compare/v13.6.8...v13.6.9) (2023-07-04)
+
+
+### Bug Fixes
+
+* read notes ([cfbebb7](https://github.com/Torwent/WaspLib/commit/cfbebb7526a1c0acb3f8ccab140d41c7aea7cac2))
+
+
+
 ## [13.6.8](https://github.com/Torwent/WaspLib/compare/v13.6.7...v13.6.8) (2023-07-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Store:** now has a dynamic grid like that of TRSBank ([5231efa](https://github.com/Torwent/WaspLib/commit/5231efa98487fa9061fc44778f5e23fab5ab3bdd))
-
-
-
-## [13.6.4](https://github.com/Torwent/WaspLib/compare/v13.6.3...v13.6.4) (2023-06-30)
-
-
-### Bug Fixes
-
-* removed deprecated bank tweaks that are now included in SRL ([c6513d8](https://github.com/Torwent/WaspLib/commit/c6513d8b8ddc7146c2d954a4be763ece658dc171))
 
 
 

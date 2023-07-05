@@ -159,21 +159,34 @@ Example
 *)
 function WorldHopper.ReadWorlds(out bounds: TBoxArray): TIntegerArray; static;
 var
-  StringResults: TStringArray;
-  str: String;
+  tpa: TPointArray;
+  i, value: Int32;
+  tmp: TBoxArray;
 begin
-  StringResults :=OCR.RecognizeLines(
-    WorldHopper.WorldListBounds,
-    TOCRColorFilter.Create([WorldHopper.Silver, WorldHopper.Yellow]),
-    RS_FONT_PLAIN_12,
-    bounds
-  );
-  for str in StringResults do
-    try
-      Result += StrToInt(str);
-    except
-      WorldHopper.DebugLn(str + " could not be parsed into int");
-    end;
+  if SRL.FindColors(tpa, [WorldHopper.Silver, WorldHopper.Yellow], WorldHopper.WorldListBounds) = 0 then
+    Exit;
+
+  tmp := tpa.Cluster(5, 1).ToTBA();
+  tmp.SortByY();
+
+  for i := 0 to High(tmp) do
+  begin
+    value := OCR.RecognizeNumber(
+      tmp[i],
+      TOCRColorFilter.Create([WorldHopper.Silver, WorldHopper.Yellow]),
+      RS_FONT_PLAIN_12
+    );
+
+    if value = 0 then
+      Continue;
+
+    Result += value;
+    tmp[i].X1 := WorldHopper.WorldListBounds.X1;
+    tmp[i].Y1 -= 1;
+    tmp[i].X2 := WorldHopper.ScrollBar.X1 - 1;
+    tmp[i].Y2 += 3;
+    bounds += tmp[i];
+  end;
 end;
 
 function WorldHopper.ReadWorlds(): TIntegerArray; static; overload;
@@ -272,27 +285,28 @@ begin
     Exit(True);
 
   i := targetWorlds.Find(currentWorld);
-  try
-    nextWorld := targetWorlds[i+1];
-  except
-    nextWorld := targetWorlds[0];
-  end;
+  if i = High(targetWorlds) then
+    i := -1;
+
+  nextWorld := targetWorlds[i+1];
 
   StartTime := GetSystemTime();
   while (GetSystemTime() - StartTime < timeOut) do
+  begin
+    visibleWorlds := WorldHopper.ReadWorlds(ocrBounds);
+
+    i := visibleWorlds.find(nextWorld);
+    if i <> -1 then
     begin
-      visibleWorlds := WorldHopper.ReadWorlds(ocrBounds);
-      i := visibleWorlds.find(nextWorld);
-      if i <> -1 then
-      begin
-        mouse.click(ocrBounds[i], MOUSE_LEFT, true);
-        Exit(WorldHopper.WaitForHop(nextWorld, ocrBounds[i]))
-      end
-      else if visibleWorlds.max > nextWorld then
-        WorldHopper.Scroll(False) // up
-      else if visibleWorlds.min < nextWorld then
-        WorldHopper.Scroll(True); // down
-    end;
+      mouse.click(ocrBounds[i], MOUSE_LEFT, true);
+      Exit(WorldHopper.WaitForHop(nextWorld, ocrBounds[i]))
+    end
+    else if visibleWorlds.max > nextWorld then
+      WorldHopper.Scroll(False) // up
+    else if visibleWorlds.min < nextWorld then
+      WorldHopper.Scroll(True); // down
+  end;
+    WriteLn 'here3';
   WorldHopper.DebugLn("Timed out (timeOut="+ToStr(timeOut)+"ms)");
 end;
 

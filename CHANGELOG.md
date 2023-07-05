@@ -1,3 +1,12 @@
+## [13.6.11](https://github.com/Torwent/WaspLib/compare/v13.6.10...v13.6.11) (2023-07-05)
+
+
+### Bug Fixes
+
+* read notes ([83ed69f](https://github.com/Torwent/WaspLib/commit/83ed69f257ee6f67d098f0ef08c87d4ae718e259))
+
+
+
 ## [13.6.10](https://github.com/Torwent/WaspLib/compare/v13.6.9...v13.6.10) (2023-07-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * minor tweaks to transport.simba ([b731b18](https://github.com/Torwent/WaspLib/commit/b731b18d4c65271ea146018066b55355257cadfb))
-
-
-
-## [13.6.6](https://github.com/Torwent/WaspLib/compare/v13.6.5...v13.6.6) (2023-06-30)
-
-
-### Bug Fixes
-
-* **EFairySomething:** changed `UNKNOWN` to `UNAVAILBLE` ([b6bda91](https://github.com/Torwent/WaspLib/commit/b6bda91f298abdf16467cb5cf775dcd693a8df1d))
 
 
 

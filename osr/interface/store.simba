@@ -1,4 +1,4 @@
-{$DEFINE WL_STORE_INCLUDED}
+{$DEFINE AERO_STORE_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
@@ -45,6 +45,28 @@ begin
   Result := Grid(8, 5, 35, 32, [12, 16], [Self.X1 + 61, Self.Y1 + 40])
 end;
 
+function TRSStore.FindItemBoundaries(): TBoxArray;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  area, b: TBox;
+begin
+  area := Self.GetItemBoxes().Merge();
+
+  if SRL.FindColors(tpa, RS_ITEM_BORDER, area) > 0 then
+  begin
+    atpa := tpa.Cluster(50, 3);
+
+    for b in atpa.ToTBA() do
+    begin
+      if b.Height() <= 5 then
+        Continue;
+
+      Result += Grid(8, 1, 32, b.Height(), [15], [area.X1, b.Y1 - 1]);
+    end;
+  end;
+end;
+
 function TRSStore.IsOpen: Boolean;
 var
   B: TBox;
@@ -57,7 +79,7 @@ begin
   B.Y2 -= 9;
   B.LimitTo(Self.Bounds);
 
-  Txt := OCR.Recognize(B, TOCRThresholdRule.Create(15), RS_FONT_PLAIN_12);
+  Txt := OCR.Recognize(B, TOCRThresholdFilter.Create(15), RS_FONT_PLAIN_12);
   Result := 'shop' in Txt;
 end;
 
@@ -80,7 +102,7 @@ var
   Indices: TIntegerArray;
 begin
   if not Self.IsOpen() then Exit;
-  Boxes := Self.GetItemBoxes();
+  Boxes := Self.FindItemBoundaries();
 
   Indices := ItemFinder.Find(Item, Boxes, 1);
   if Indices.Len() < 1 then Exit;
@@ -97,7 +119,7 @@ var
   indices: TIntegerArray;
 begin
   if not Self.IsOpen() then Exit;
-  tba := Self.GetItemBoxes();
+  tba := Self.FindItemBoundaries();
 
   for item in itemArray do
   begin
@@ -118,7 +140,7 @@ var
   indices: TIntegerArray;
 begin
   if not Self.IsOpen() then Exit;
-  tba := Self.GetItemBoxes();
+  tba := Self.FindItemBoundaries();
 
   Result := True;
 
@@ -159,12 +181,12 @@ begin
 end;
 
 
-function TRSStore.CountItemStack(Item: TRSItem): Int32;
+function TRSStore.CountItemStack(item: TRSItem): Int32;
 var
-  Box: TBox;
+  b: TBox;
 begin
-  if Self.FindItem(Item, Box) then
-    Result := SRL.GetItemAmount(Box);
+  if Self.FindItem(item, b) then
+    Result := SRL.GetItemAmount(SRL.GetItemAmountBox(b));
 end;
 
 function TRSStore.HoverItem(Item: TRSItem): Boolean;

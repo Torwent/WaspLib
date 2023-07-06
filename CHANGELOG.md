@@ -1,45 +1,45 @@
-## [13.6.3](https://github.com/Torwent/WaspLib/compare/v13.6.2...v13.6.3) (2023-06-28)
+## [13.6.11](https://github.com/Torwent/WaspLib/compare/v13.6.10...v13.6.11) (2023-07-05)
 
 
 ### Bug Fixes
 
-* **TRSConsumable:** typo in pineapple pizzas ([c84e71c](https://github.com/Torwent/WaspLib/commit/c84e71c8707d17fdc30a9ee557c7fc8a24c62fe9))
+* read notes ([83ed69f](https://github.com/Torwent/WaspLib/commit/83ed69f257ee6f67d098f0ef08c87d4ae718e259))
 
 
 
-## [13.6.2](https://github.com/Torwent/WaspLib/compare/v13.6.1...v13.6.2) (2023-06-28)
-
-
-### Bug Fixes
-
-* mainscreen.clickclosebutton won't spam click buttons anymore ([8408820](https://github.com/Torwent/WaspLib/commit/840882018f5b8451ff34379ad3b9da6b9688de31))
-
-
-
-## [13.6.1](https://github.com/Torwent/WaspLib/compare/v13.6.0...v13.6.1) (2023-06-27)
+## [13.6.10](https://github.com/Torwent/WaspLib/compare/v13.6.9...v13.6.10) (2023-07-04)
 
 
 ### Bug Fixes
 
-* the recorder has been fixed. ([d0d4c59](https://github.com/Torwent/WaspLib/commit/d0d4c590af2260f6c6492e8590e068a6deac0fdc))
+* added osr/walker/maps/* to .gitignore ([3b29a5a](https://github.com/Torwent/WaspLib/commit/3b29a5ab91dc89611e2b3fb214dcdea47b8ae1b8))
 
 
 
-# [13.6.0](https://github.com/Torwent/WaspLib/compare/v13.5.0...v13.6.0) (2023-06-27)
+## [13.6.9](https://github.com/Torwent/WaspLib/compare/v13.6.8...v13.6.9) (2023-07-04)
 
 
-### Features
+### Bug Fixes
 
-* read notes ([a0a5fdf](https://github.com/Torwent/WaspLib/commit/a0a5fdf1476721bc7f414758f05416091910a330))
-
-
-
-# [13.5.0](https://github.com/Torwent/WaspLib/compare/v13.4.12...v13.5.0) (2023-06-26)
+* read notes ([cfbebb7](https://github.com/Torwent/WaspLib/commit/cfbebb7526a1c0acb3f8ccab140d41c7aea7cac2))
 
 
-### Features
 
-* removed forms v1 ([4c7c17a](https://github.com/Torwent/WaspLib/commit/4c7c17ad2b0e7497b400dac0c5e63dac2e081996))
+## [13.6.8](https://github.com/Torwent/WaspLib/compare/v13.6.7...v13.6.8) (2023-07-02)
+
+
+### Bug Fixes
+
+* small oversight in RSNamedRegions ([f3d522a](https://github.com/Torwent/WaspLib/commit/f3d522addf9788a54bc643e1787ce0aba3d76b46))
+
+
+
+## [13.6.7](https://github.com/Torwent/WaspLib/compare/v13.6.6...v13.6.7) (2023-07-02)
+
+
+### Bug Fixes
+
+* minor tweaks to transport.simba ([b731b18](https://github.com/Torwent/WaspLib/commit/b731b18d4c65271ea146018066b55355257cadfb))
 
 
 

@@ -155,6 +155,7 @@ begin
     ETeleportType.LUNAR_MAGIC,
     ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
   end;
 
   Exit(didTeleport);
@@ -176,6 +177,7 @@ begin
     ETeleportType.LUNAR_MAGIC,
     ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
   end;
 
   for attempt in [0..5] do
@@ -222,6 +224,7 @@ begin
   if not (teleportLocation.teleportType = ETeleportType.JEWELLERY) then
     raise 'Requires teleport type jewellery. Got ' + ToStr(teleportLocation.teleportType);
 
+  WaitUntil(Chat.FindOption(teleportLocation.destination, [0]), 200, 5000);
   WriteLn("Clicking ", teleportLocation.destination);
   if Chat.ClickOption(teleportLocation.destination, False, [CHAT_COLOR_BLACK]) then
     Exit(True);
@@ -305,6 +308,39 @@ begin
   end;
 end;
 
+function TUniversalTransport.handleDiaryTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  numberedItems: TRSItemArray := getNumberedDiaryItems(teleportLocation.item);
+  numberedDiaryItem: TRSItem;
+  didTeleport: Boolean;
+  startPosition: TPoint := cacheRSW.GetMyPos();
+begin
+  for numberedDiaryItem in numberedItems do
+  begin
+    WriteLn("Searching for ", numberedDiaryItem, " in inventory");
+    if Inventory.ContainsItem(numberedDiaryItem) then
+    begin
+      WriteLn("Searching for ", numberedDiaryItem, " ", teleportLocation.destination);
+      didTeleport := WaitUntil(Inventory.ClickItem(numberedDiaryItem, teleportLocation.destination), 200, 5000);
+
+      if didTeleport then
+        Exit(WaitUntil(cacheRSW.GetMyPos().DistanceTo(startPosition) > 10, 200, 5000));
+    end;
+  end;
+
+  for numberedDiaryItem in numberedItems do
+  begin
+    WriteLn("Searching for ", numberedDiaryItem, " in Equipment");
+    if Equipment.ContainsItem(numberedDiaryItem) then
+    begin
+      WriteLn("Searching for ", numberedDiaryItem, " ", teleportLocation.destination);
+      didTeleport := WaitUntil(Equipment.ClickItem(numberedDiaryItem, teleportLocation.destination), 200, 5000);
+
+      if didTeleport then
+        Exit(WaitUntil(cacheRSW.GetMyPos().DistanceTo(startPosition) > 10, 200, 5000));
+    end;
+  end;
+end;
 
 function TUniversalTransport.withdrawTeleportItem(teleportLocation: TTeleportLocation): Boolean;
 var

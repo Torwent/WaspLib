@@ -92,44 +92,10 @@ Parent record of all TRSWalkerObjects.
   class var
     CurrentUpText: TStringArray;
     RedClicked: Boolean;
-    Walker: PRSWalker;
     Regions: TBoxArray;
   end;
 
   PRSWalkerObjectArray = array of ^TRSWalkerObject;
-
-
-(*
-Walker.InternalSetup
-~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.InternalSetup(); override;
-
-This is an internal TRSWalker function and you shouldn't touch it unless you know what you are doing.
-This is overriden so it sets up the TRSWalkerObject.Walker pointer and TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
-TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
-*)
-procedure TRSWalker.InternalSetup(); override;
-begin
-  inherited;
-
-  TRSWalkerObject.Walker := @Self;
-  TRSWalkerObject.Regions := [[0, 0, Self.Map.Map.getWidth()-1, Self.Map.Map.getHeight()-1]];
-end;
-
-(*
-Walker.Setup
-~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-
-You shouldn't modify this unless you know what you are doing, otherwise you might break TRSWalkerObjects.
-This is overriden so it sets up TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
-TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
-*)
-procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions := Regions;
-end;
 
 (*
 Walker.Click
@@ -267,10 +233,19 @@ Example
   end;
 *)
 procedure TRSWalkerObject.Setup(coordinates: TPointArray);
+var
+  i: Int32;
 begin
-  Self.Filter.Skip := TRSWalkerObject.Walker = nil;
+  Self.Filter.Skip := ScriptWalker = nil;
+
   if Self.Filter.Skip then
     Exit;
+
+  if TRSWalkerObject.Regions = [] then
+  begin
+    for i := 0 to High(ScriptWalker^.Map.Regions) do
+      TRSWalkerObject.Regions += ScriptWalker^.Map.Regions[i].Offset(ScriptWalker^.Map.RegionOffsets[i]);
+  end;
 
   coordinates := TRSWalkerObject.Regions.Filter(coordinates);
 
@@ -312,12 +287,12 @@ function TRSWalkerObject.GetCuboidArrayEx(out floorTiles, roofTiles: TRectArray)
 var
   me: TPoint;
 begin
-  me := TRSWalkerObject.Walker^.GetMyPos();
+  me := ScriptWalker^.GetMyPos();
 
-  floorTiles := TRSWalkerObject.Walker^.GetTileArrayMS(me, Self.Coordinates, Self.ShapeArray.GetShape(0));
+  floorTiles := ScriptWalker^.GetTileArrayMS(me, Self.Coordinates, Self.ShapeArray.GetShape(0));
   if not Self.ShapeArray.ZeroHeight() then
   begin
-    roofTiles := TRSWalkerObject.Walker^.GetTileArrayMS(me, Self.Coordinates, Self.ShapeArray);
+    roofTiles := ScriptWalker^.GetTileArrayMS(me, Self.Coordinates, Self.ShapeArray);
     Exit(floorTiles.GetCuboids(roofTiles));
   end;
 
@@ -330,9 +305,9 @@ var
   me: TPoint;
   coordinates: TPointArray;
 begin
-  me := TRSWalkerObject.Walker^.GetMyPos();
+  me := ScriptWalker^.GetMyPos();
   coordinates := Self.Coordinates.Sorted(me);
-  Result := TRSWalkerObject.Walker^.GetCuboidArrayMS(me, coordinates, Self.ShapeArray, [0, 0]);
+  Result := ScriptWalker^.GetCuboidArrayMS(me, coordinates, Self.ShapeArray, [0, 0]);
 end;
 
 (*
@@ -605,10 +580,10 @@ begin
   if Self = [] then
     Exit;
 
-  if TRSWalkerObject.Walker = nil then
+  if ScriptWalker = nil then
     Exit;
 
-  me := TRSWalkerObject.Walker^.GetMyPos();
+  me := ScriptWalker^.GetMyPos();
 
   hi := High(Self);
   for i := 0 to hi do
@@ -832,7 +807,7 @@ begin
   WriteLn('Send ', filePath, ' to Torwent on discord!');
   Bitmap.Debug();
 
-  WriteLn('Position: ', TRSWalkerObject.Walker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
+  WriteLn('Position: ', ScriptWalker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
   WriteLn('RSObject: ', Self);
   Bitmap.Free();
 end;
@@ -1033,17 +1008,17 @@ begin
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True);
 
-    if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 50) then
+    if not ScriptWalker^.AtTile(Self.Coordinates, 50) then
     begin
-      TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15);
+      ScriptWalker^.WebWalk(Self.Coordinates, 30, 0.15);
       Continue;
     end;
 
     if attempt = (attempts - 1) then
     begin
-      if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 25) then
+      if not ScriptWalker^.AtTile(Self.Coordinates, 25) then
       begin
-        TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 25, 0.15);
+        ScriptWalker^.WebWalk(Self.Coordinates, 25, 0.15);
         Continue;
       end;
 
@@ -1097,17 +1072,17 @@ begin
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True);
 
-    if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 50) then
+    if not ScriptWalker^.AtTile(Self.Coordinates, 50) then
     begin
-      TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15);
+      ScriptWalker^.WebWalk(Self.Coordinates, 30, 0.15);
       Continue;
     end;
 
     if attempt = (attempts - 1) then
     begin
-      if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 25) then
+      if not ScriptWalker^.AtTile(Self.Coordinates, 25) then
       begin
-        TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 25, 0.15);
+        ScriptWalker^.WebWalk(Self.Coordinates, 25, 0.15);
         Continue;
       end;
 
@@ -1171,7 +1146,7 @@ begin
     ChooseOption.Close();
   end;
 
-  if Self.Filter.Walker and not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) then
+  if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
     Exit;
 
   Result := (async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
@@ -1220,8 +1195,8 @@ begin
   if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
-  if not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) and
-     not TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15) then
+  if not ScriptWalker^.MakePointVisible(Self.Coordinates) and
+     not ScriptWalker^.WebWalk(Self.Coordinates, 30, 0.15) then
       Exit;
 
   Result := (async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
@@ -1396,13 +1371,13 @@ var
   me: TPoint;
   angle: Double;
 begin
-  me := TRSWalkerObject.Walker^.GetMyPos();
+  me := ScriptWalker^.GetMyPos();
   angle := Minimap.GetCompassAngle(False);
 
-  mmTPA := TRSWalkerObject.Walker^.WorldToMM(me, Self.Coordinates, angle);
+  mmTPA := ScriptWalker^.WorldToMM(me, Self.Coordinates, angle);
 
   dotFilters.ClearExpired();
-  dotFilters := TRSWalkerObject.Walker^.WorldToMM(me, Self.DotFilter, angle);
+  dotFilters := ScriptWalker^.WorldToMM(me, Self.DotFilter, angle);
   dots := Minimap.GetFilteredDotArray(Self.DotType, dotFilters);
 
   floorTiles := Minimap.GetTileArrayMS(dots, Self.ShapeArray.GetShape(0), [-2, -2], angle);
@@ -1477,7 +1452,7 @@ begin
   if Self.Filter.Walker and Self.Filter.MinimapDot then
   begin
     angle := Minimap.GetCompassAngle(False);
-    dots := Minimap.GetFilteredDotArray(Self.DotType, TRSWalkerObject.Walker^.WorldToMM(Self.DotFilter, angle));
+    dots := Minimap.GetFilteredDotArray(Self.DotType, ScriptWalker^.WorldToMM(Self.DotFilter, angle));
     if dots = [] then
       Exit;
 
@@ -1535,8 +1510,8 @@ begin
     atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
 
   if Result := (atpa <> []) then
-    if TRSWalkerObject.Walker <> nil then
-      Self.ClosestDot := TRSWalkerObject.Walker^.MSToWorld(atpa.First().Mean()); //not the best way since we are reversing operations but will do for now.
+    if ScriptWalker <> nil then
+      Self.ClosestDot := ScriptWalker^.MSToWorld(atpa.First().Mean()); //not the best way since we are reversing operations but will do for now.
 end;
 
 (*
@@ -1576,8 +1551,8 @@ begin
   end;
 
   if Result := (atpa <> []) then
-    if TRSWalkerObject.Walker <> nil then
-      Self.ClosestDot := TRSWalkerObject.Walker^.MSToWorld(ATPA[0].Mean());
+    if ScriptWalker <> nil then
+      Self.ClosestDot := ScriptWalker^.MSToWorld(ATPA[0].Mean());
 end;
 
 function TRSMMDot.IsVisible(): Boolean; overload;
@@ -1705,7 +1680,7 @@ begin
   WriteLn('Send ', filePath, ' to Torwent on discord!');
   Bitmap.Debug();
 
-  WriteLn('Position: ', TRSWalkerObject.Walker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
+  WriteLn('Position: ', ScriptWalker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
   WriteLn('RSObject: ', Self);
   Bitmap.Free();
 end;
@@ -1933,17 +1908,17 @@ begin
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True);
 
-    if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 50) then
+    if not ScriptWalker^.AtTile(Self.Coordinates, 50) then
     begin
-      TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15);
+      ScriptWalker^.WebWalk(Self.Coordinates, 30, 0.15);
       Continue;
     end;
 
     if attempt = (attempts - 1) then
     begin
-      if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 25) then
+      if not ScriptWalker^.AtTile(Self.Coordinates, 25) then
       begin
-        TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 25, 0.15);
+        ScriptWalker^.WebWalk(Self.Coordinates, 25, 0.15);
         Continue;
       end;
 
@@ -2003,17 +1978,17 @@ begin
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True);
 
-    if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 50) then
+    if not ScriptWalker^.AtTile(Self.Coordinates, 50) then
     begin
-      TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15);
+      ScriptWalker^.WebWalk(Self.Coordinates, 30, 0.15);
       Continue;
     end;
 
     if attempt = (attempts - 1) then
     begin
-      if not TRSWalkerObject.Walker^.AtTile(Self.Coordinates, 25) then
+      if not ScriptWalker^.AtTile(Self.Coordinates, 25) then
       begin
-        TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 25, 0.15);
+        ScriptWalker^.WebWalk(Self.Coordinates, 25, 0.15);
         Continue;
       end;
 
@@ -2084,7 +2059,7 @@ begin
   if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
-  if Self.Filter.Walker and not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) then
+  if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
     Exit;
 
   Result := (Async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
@@ -2135,8 +2110,8 @@ begin
   if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
-  if not TRSWalkerObject.Walker^.MakePointVisible(Self.Coordinates) and
-     not TRSWalkerObject.Walker^.WebWalk(Self.Coordinates, 30, 0.15) then
+  if not ScriptWalker^.MakePointVisible(Self.Coordinates) and
+     not ScriptWalker^.WebWalk(Self.Coordinates, 30, 0.15) then
       Exit;
 
   Result := (Async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
@@ -2368,10 +2343,10 @@ begin
   if Self = [] then
     Exit;
 
-  if TRSWalkerObject.Walker = nil then
+  if ScriptWalker = nil then
     Exit;
 
-  me := TRSWalkerObject.Walker^.GetMyPos();
+  me := ScriptWalker^.GetMyPos();
 
   hi := High(Self);
   for i := 0 to hi do

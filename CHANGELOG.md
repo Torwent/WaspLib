@@ -1,3 +1,19 @@
+# [14.0.0](https://github.com/Torwent/WaspLib/compare/v13.6.12...v14.0.0) (2023-07-07)
+
+
+### Bug Fixes
+
+* banking tweaks again ([40baf4e](https://github.com/Torwent/WaspLib/commit/40baf4e2ad3669b3b673fcadb39ca06a8a25475b))
+* moved librecorder to the plugins directory ([e8f2c5c](https://github.com/Torwent/WaspLib/commit/e8f2c5c44e0ff8e96c3023226dd3251fef7857f1))
+* **walker:** read notes ([bda9fce](https://github.com/Torwent/WaspLib/commit/bda9fce19c8e7d7dbb2fa6f8810fffd0249934fe))
+
+
+### BREAKING CHANGES
+
+* **walker:** This will break compatibility with previous scripts that were using TRSWalkerObject.Walker
+
+
+
 ## [13.6.12](https://github.com/Torwent/WaspLib/compare/v13.6.11...v13.6.12) (2023-07-06)
 
 
@@ -31,15 +47,6 @@
 ### Bug Fixes
 
 * read notes ([cfbebb7](https://github.com/Torwent/WaspLib/commit/cfbebb7526a1c0acb3f8ccab140d41c7aea7cac2))
-
-
-
-## [13.6.8](https://github.com/Torwent/WaspLib/compare/v13.6.7...v13.6.8) (2023-07-02)
-
-
-### Bug Fixes
-
-* small oversight in RSNamedRegions ([f3d522a](https://github.com/Torwent/WaspLib/commit/f3d522addf9788a54bc643e1787ce0aba3d76b46))
 
 
 

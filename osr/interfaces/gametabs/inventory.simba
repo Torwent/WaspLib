@@ -187,43 +187,32 @@ begin
 end;
 
 
-function TRSInventory.FindItems(items: TRSItemArray): TIntegerArray; overload;//override;
+function TRSInventory.FindItems(items: TRSItemArray): TIntegerArray; overload;
 var
   item, singleItem: TRSItem;
-  i: Int32;
-  tba, tmp: TBoxArray;
-  usedSlots, tmpSlots: TIntegerArray;
 begin
   if not Self.Open() then
     Exit;
 
-  tba := Self.GetSlotBoxes();
-  for i:=0 to High(tba) do
-    if Self.IsSlotUsed(tba[i]) then
-    begin
-      tmp += tba[i];
-      usedSlots += i;
-    end;
-
-
-  for Item in Items do
+  for item in items do
     for singleItem in item.GetArray() do
-      tmpSlots += ItemFinder.Find(singleItem, tmp);
-
-  for i in tmpSlots do
-    Result += usedSlots[i];
+      Result += Self.ItemFinder.IndicesOf([singleItem]);
 
   Result := Result.Unique();
 end;
 
 
-function TRSInventory.FindItem(item: TRSItem): Integer; overload;
+function TRSInventory.FindItem(item: TRSItem): Int32; overload;
 var
   tempItem: TRSItem;
 begin
   for tempItem in item.GetArray() do
-    if Self.FindItem(tempItem, Result) then
+  begin
+    Result := Self.FindItem(tempItem);
+
+    if Result > -1 then
       Exit;
+  end;
 end;
 
 function TRSInventory.ContainsItem(item: TRSItem): Boolean; override;
@@ -252,22 +241,6 @@ begin
 
   Result := inherited(itemArray);
 end;
-
-
-function TRSInventory.FindItem(item: TRSItem): Integer; override;
-var
-  tempItem: TRSItem;
-begin
-  for tempItem in item.GetArray() do
-  begin
-    Result := inherited(tempItem);
-
-    if Result > -1 then
-      Exit;
-  end;
-end;
-
-
 
 
 function TRSInventory.ItemIsStackable(Item: TRSItem): Boolean;
@@ -384,8 +357,21 @@ begin
 end;
 
 
+function TRSInventory.FindRandomItems(items: TRSItemArray): TIntegerArray;
+var
+  usedSlots: TIntegerArray;
+begin
+  usedSlots := Self.GetUsedSlots();
+  Result := usedSlots.Difference(Self.ItemFinder.IndicesOf(items));
+end;
 
-function TRSInventory.HasRandomItem(NeededItems: TRSItemArray; out Slots: TIntegerArray): Boolean;
+function TRSInventory.ContainsRandomItem(items: TRSItemArray): Boolean; overload;
+begin
+  Result := Self.FindRandomItems(items) <> [];
+end;
+
+
+function TRSInventory.HasRandomItem(NeededItems: TRSItemArray; out Slots: TIntegerArray): Boolean; deprecated 'Use Inventory.FindRandomItems() instead.';
 var
   UsedSlots, NeededSlots: TIntegerArray;
 begin
@@ -396,12 +382,11 @@ begin
   Result := Slots <> [];
 end;
 
-function TRSInventory.HasRandomItem(NeededItems: TRSItemArray): Boolean; overload;
-var
-  Slots: TIntegerArray;
+function TRSInventory.HasRandomItem(NeededItems: TRSItemArray): Boolean; overload; deprecated 'Use Inventory.ContainsRandomItems() instead.';
 begin
-  Result := Self.HasRandomItem(NeededItems, Slots);
+  Result := Self.ContainsRandomItem(NeededItems);
 end;
+
 
 
 

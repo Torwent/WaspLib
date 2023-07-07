@@ -60,27 +60,18 @@ begin
   end;
 end;
 
-function TRSBank.FindItem(Item: TRSItem; out bounds: TBox): Boolean; override;
-var
-  boxes: TBoxArray;
-  items: TRSItemArray;
-  singleItem: TRSItem;
-  indices: TIntegerArray;
+
+function TRSBank.FindItem(item: TRSItem; out box: TBox): Boolean; override;
 begin
   if not Self.IsOpen() then
     Exit;
 
-  boxes := Self.FindItemBoundaries();
-  items := Item.GetArray();
-  for singleItem in items do
-  begin
-    indices := ItemFinder.Find(singleItem, boxes, 1);
-    if Result := indices <> [] then
-      Break;
-  end;
+  Result := Self.ItemFinder.Find(item.GetArray(), box);
+end;
 
-  if Result then
-    bounds := boxes[indices[0]];
+function TRSBank.ContainsItem(item: TRSItem): Boolean; override;
+begin
+  Result := Self.ItemFinder.ContainsAny(item.GetArray());
 end;
 
 
@@ -129,9 +120,15 @@ end;
 
 
 function TRSBank.CountSlotStack(slot: Int32): Int32;
+var
+  box: TBox;
 begin
   Result := -1;
-  Result := SRL.GetItemAmount(SRL.GetItemAmountBox(Self.GetSlotBoxes[slot]));
+
+  box := Self.GetSlotBoxes()[slot];
+  box.X2 := box.X1 + 35;
+  box.Y2 := box.Y1 + 7;
+  Result := SRL.GetItemAmount(box);
 end;
 
 
@@ -278,7 +275,7 @@ begin
 end;
 
 
-function TRSBank.DepositAllBut(Tab: Int32; Items: TRSItemArray): Boolean;
+function TRSBank.DepositAllBut(Tab: Int32; Items: TRSItemArray): Boolean; deprecated 'Use Bank.DepositRandomItems() instead.';
 var
   Item: TRSItem;
   Slots: TIntegerArray;
@@ -307,6 +304,25 @@ begin
   until Result := (DepositSlots = []);
 end;
 
+function TRSBank.DepositRandomItems(items: TRSItemArray): Boolean;
+var
+  slots: TIntegerArray;
+begin
+  slots := Inventory.FindRandomItems(items);
+
+  while slots <> [] do
+  begin
+    if not Self.IsOpen() then //Exit in case the bank somehow closed.
+      Exit;
+
+    if Self.DepositSlot([slots[0], BANK_DEPOSIT_ALL], True) then
+      WaitUntil(not Inventory.IsSlotUsed(slots[0]), 100, 2000);
+
+    slots := Inventory.FindRandomItems(items);
+  end;
+
+  Result := True;
+end;
 
 function TRSBank.Close(PressEscape: Boolean = False): Boolean; override;
 begin

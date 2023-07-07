@@ -1,3 +1,12 @@
+## [14.0.1](https://github.com/Torwent/WaspLib/compare/v14.0.0...v14.0.1) (2023-07-07)
+
+
+### Bug Fixes
+
+* revert to the previous way of setting TRSWalkerObject.Regions ([eac3d80](https://github.com/Torwent/WaspLib/commit/eac3d80fad28e25212c6887ca65bc4c34e6474b8))
+
+
+
 # [14.0.0](https://github.com/Torwent/WaspLib/compare/v13.6.12...v14.0.0) (2023-07-07)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * added osr/walker/maps/* to .gitignore ([3b29a5a](https://github.com/Torwent/WaspLib/commit/3b29a5ab91dc89611e2b3fb214dcdea47b8ae1b8))
-
-
-
-## [13.6.9](https://github.com/Torwent/WaspLib/compare/v13.6.8...v13.6.9) (2023-07-04)
-
-
-### Bug Fixes
-
-* read notes ([cfbebb7](https://github.com/Torwent/WaspLib/commit/cfbebb7526a1c0acb3f8ccab140d41c7aea7cac2))
 
 
 

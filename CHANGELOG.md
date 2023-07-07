@@ -1,3 +1,12 @@
+## [14.0.2](https://github.com/Torwent/WaspLib/compare/v14.0.1...v14.0.2) (2023-07-07)
+
+
+### Bug Fixes
+
+* readme ([33d45f3](https://github.com/Torwent/WaspLib/commit/33d45f3e85bf737e8221afa0b641955328cc5c4b))
+
+
+
 ## [14.0.1](https://github.com/Torwent/WaspLib/compare/v14.0.0...v14.0.1) (2023-07-07)
 
 
@@ -38,15 +47,6 @@
 ### Bug Fixes
 
 * read notes ([83ed69f](https://github.com/Torwent/WaspLib/commit/83ed69f257ee6f67d098f0ef08c87d4ae718e259))
-
-
-
-## [13.6.10](https://github.com/Torwent/WaspLib/compare/v13.6.9...v13.6.10) (2023-07-04)
-
-
-### Bug Fixes
-
-* added osr/walker/maps/* to .gitignore ([3b29a5a](https://github.com/Torwent/WaspLib/commit/3b29a5ab91dc89611e2b3fb214dcdea47b8ae1b8))
 
 
 

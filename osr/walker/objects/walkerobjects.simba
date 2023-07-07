@@ -107,6 +107,44 @@ This is overriden so if we redclick our current TRSWalkerObject target while mai
 When we start the walking process towards a TRSWalkerObject, TRSWalkerObject.CurrentUpText is temporarily set so we
 know what we are looking for while walking. Once we click the target TRSWalkerObject.CurrentUpText is cleared.
 *)
+
+(*
+Walker.InternalSetup
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.InternalSetup(); override;
+
+This is an internal TRSWalker function and you shouldn't touch it unless you know what you are doing.
+This is overriden so it sets up the TRSWalkerObject.Walker pointer and TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
+TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
+*)
+procedure TRSWalker.InternalSetup(); override;
+begin
+  inherited;
+
+  TRSWalkerObject.Regions := [[0, 0, Self.Map.Map.getWidth()-1, Self.Map.Map.getHeight()-1]];
+end;
+
+(*
+Walker.Setup
+~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
+
+You shouldn't modify this unless you know what you are doing, otherwise you might break TRSWalkerObjects.
+This is overriden so it sets up TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
+TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
+*)
+procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
+begin
+  inherited;
+  TRSWalkerObject.Regions := Regions;
+end;
+
+procedure TRSWalker.AddRegion(region: TBox); override;
+begin
+  inherited;
+  TRSWalkerObject.Regions += region;
+end;
+
 function TRSWalker.Click(MinimapPoint: TPoint; Randomness: Int32): Boolean; override;
 var
   p: TPoint;
@@ -233,19 +271,11 @@ Example
   end;
 *)
 procedure TRSWalkerObject.Setup(coordinates: TPointArray);
-var
-  i: Int32;
 begin
   Self.Filter.Skip := ScriptWalker = nil;
 
   if Self.Filter.Skip then
     Exit;
-
-  if TRSWalkerObject.Regions = [] then
-  begin
-    for i := 0 to High(ScriptWalker^.Map.Regions) do
-      TRSWalkerObject.Regions += ScriptWalker^.Map.Regions[i].Offset(ScriptWalker^.Map.RegionOffsets[i]);
-  end;
 
   coordinates := TRSWalkerObject.Regions.Filter(coordinates);
 

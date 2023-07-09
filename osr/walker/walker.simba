@@ -17,6 +17,10 @@ const
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
   WL_WALKER_MAP_VERSION = '9'; //Increment when maps are updated to force recaching.
 
+var
+  WLWalker: TRSWalker;
+  ScriptWalker: PRSWalker;
+
 (*
 type RSHeightMap
 ~~~~~~~~~~~~~~~~
@@ -375,22 +379,29 @@ Walker.InternalSetup
 
 Overrides SRL's Walker.InternalSetup() so it uses WaspWeb as the walker webgraph and so it uses ScreenWalk by default.
 This is an internal Walker method, you probably don't need to call it.
+It also sets up the ScriptWalker pointer which is used for several things in WaspLib like TRSWalkerObjects and Skunk's transport system.
 *)
 procedure TRSWalker.InternalSetup(); override;
 var
-  MinimapImage, MinimapSample: TMufasaBitmap;
+  minimapImage, minimapSample: TMufasaBitmap;
 begin
-  Self.Name := 'Walker';
+  if Self = WLWalker then
+    Self.Name := 'WLWalker'
+  else
+    Self.Name := 'ScriptWalker';
 
-  MinimapImage := Self.GetCleanMinimap();
-  MinimapSample := Self.ScaleMinimap(MinimapImage, Self.Scaling);
+  minimapImage := Self.GetCleanMinimap();
+  minimapSample := Self.ScaleMinimap(minimapImage, Self.Scaling);
 
   Self.Cache := TMatchTemplateRGBCache.Create(Self.Map.ScaledMap.ToMatrix(), MinimapSample.ToMatrix());
   Self.WebGraph := WaspWeb;
   Self.ScreenWalk := True;
 
-  MinimapSample.Free();
-  MinimapImage.Free();
+  minimapSample.Free();
+  minimapImage.Free();
+
+  if (Self <> WLWalker) or (Length(Self.Map.Regions) > 1) then
+    ScriptWalker := @Self;
 end;
 
 (*

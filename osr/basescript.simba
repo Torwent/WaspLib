@@ -714,23 +714,24 @@ begin
     Self.CollectEmpty := False;
 end;
 
-function TBaseBankScript.Withdraw(out item: TRSBankItem): Boolean; overload;
+function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean; overload;
 begin
-  Result := Bank.WithdrawItem(item, item.Quantity <> 1); //I'm gonna assume 1 quantity that it's a tool.
+  if Bank.WithdrawItem(item, item.Quantity <> 1) then
+    Result := WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000);
 
   if Result then
-    WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000);
+    Exit;
 
-  if not Result then
-  begin
-    Bank.UnHoverIncinerator();
+  Bank.UnHoverIncinerator();
+  if Bank.IsSearchOpen() then
+    Bank.CloseSearch();
 
-    if Bank.IsSearchOpen() then
-      Bank.CloseSearch();
+  if Inventory.IsFull() or not Inventory.ItemIsStackable(item.Item) then
+    if WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000) then
+      Exit(True);
 
-    Result := Bank.WithdrawItem(item, item.Quantity <> 1);
-    Self.BankEmpty := not Result;
-  end;
+  if attempt < 2 then
+    Exit(Self.Withdraw(item, attempt + 1));
 
   Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
 

@@ -8,13 +8,12 @@ type
   TUniversalTransport = record(TSRLBaseRecord)
     ardougneCape: TRSItem;
     fairyTeleportItem: EFairyTeleportItem;
-    cacheRSW: TRSWalker; //I don't fully like this, I will think of another solution and if I can't find any it at least has to be tweaked to work well with RSObjects which shouldn't be too hard
   end;
 
 procedure TUniversalTransport.Init(fairyTeleportItem: EFairyTeleportItem; ardougneCape: TRSItem); overload;
 begin
   Self.Name := 'Universal Transport';
-  self.cacheRSW.Setup();
+  WLWalker.Setup();
   self.fairyTeleportItem := fairyTeleportItem;
   self.ardougneCape := ardougneCape;
 end;
@@ -166,12 +165,12 @@ begin
   try
     if didTeleport then
     begin
-      TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), destination));
-      //TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), destination)]);
-      TRSWalkerObject.Walker^.WebWalk(destination, 20);
+      ScriptWalker^.AddRegion(self.getRegionBetween(WLWalker.GetMyPos(), destination));
+      //ScriptWalker^.AddRegion(self.getRegionBetween(WLWalker.GetMyPos(), destination)]);
+      ScriptWalker^.WebWalk(destination, 20);
     end;
   except
-    WaitUntil(RSNamedRegionsArray.Find(destination).Bounds.Contains(TRSWalkerObject.Walker^.GetMyPos()), 200, 5000);
+    WaitUntil(RSNamedRegionsArray.Find(destination).Bounds.Contains(ScriptWalker^.GetMyPos()), 200, 5000);
 
   if attempt = 5 then raise 'Bomba - rsw cannae connect lassie';
   end;
@@ -255,7 +254,7 @@ end;
 
 function TUniversalTransport.handleJewelleryTeleport(teleportLocation: TTeleportLocation): Boolean;
 var
-  startPosition: TPoint := cacheRSW.GetMyPos();
+  startPosition: TPoint := WLWalker.GetMyPos();
   chargedJewellery: TRSItem;
   chargedVariants: TRSItemArray := getChargedJewelleryNames(teleportLocation.item);
   didTeleport: Boolean;
@@ -274,7 +273,7 @@ begin
         didTeleport := self.handleChatJewellery(teleportLocation);
 
       if didTeleport then
-        Exit(WaitUntil(cacheRSW.GetMyPos().DistanceTo(startPosition) > 10, 200, 5000));
+        Exit(WaitUntil(WLWalker.AtTile(startPosition, 10), 200, 5000));
     end;
   end;
 
@@ -296,7 +295,7 @@ var
   numberedItems: TRSItemArray := getNumberedDiaryItems(teleportLocation.item);
   numberedDiaryItem: TRSItem;
   didTeleport: Boolean;
-  startPosition: TPoint := cacheRSW.GetMyPos();
+  startPosition: TPoint := WLWalker.GetMyPos();
 begin
   for numberedDiaryItem in numberedItems do
   begin
@@ -307,7 +306,7 @@ begin
       didTeleport := WaitUntil(Inventory.ClickItem(numberedDiaryItem, teleportLocation.destination), 200, 5000);
 
       if didTeleport then
-        Exit(WaitUntil(cacheRSW.GetMyPos().DistanceTo(startPosition) > 10, 200, 5000));
+        Exit(WaitUntil(WLWalker.AtTile(startPosition, 10), 200, 5000));
     end;
   end;
 
@@ -320,7 +319,7 @@ begin
       didTeleport := WaitUntil(Equipment.ClickItem(numberedDiaryItem, teleportLocation.destination), 200, 5000);
 
       if didTeleport then
-        Exit(WaitUntil(cacheRSW.GetMyPos().DistanceTo(startPosition) > 10, 200, 5000));
+        Exit(WaitUntil(WLWalker.AtTile(startPosition, 10), 200, 5000));
     end;
   end;
 end;
@@ -397,7 +396,7 @@ begin
   if (Length(butteryflyTPA) > 0) then
     Exit(butteryflyTPA.RandomValue());
 
-  Exit(TRSWalkerObject.Walker^.GetTileMS(fairyRing.worldPoint).mean());
+  Exit(ScriptWalker^.GetTileMS(fairyRing.worldPoint).mean());
 end;
 
 function TUniversalTransport.getFairyDialTeleportBox(): TBox;
@@ -418,7 +417,7 @@ function TUniversalTransport.getWalkableFairyRing(maximumDistance: Int32): TTele
 var
   sortedWalkableRings: array of TTeleportLocation;
   ringTeleport: TTeleportLocation;
-  myPos: TPoint := cacheRSW.GetMyPos();
+  myPos: TPoint := WLWalker.GetMyPos();
 begin
   try
     sortedWalkableRings := self.getConnectingTeleports(myPos, RSTeleports.FairyRingTeleports);
@@ -480,7 +479,7 @@ begin
       // teleport nearby bank if possible
       self.genericJewelleryBankTeleport();
       if not Bank.WalkOpen() then
-        raise "We can't get to a bank from here: " + ToString(TRSWalkerObject.Walker^.GetMyPos()) + ". Consider adding some jewellery to teleport with.";
+        raise "We can't get to a bank from here: " + ToString(ScriptWalker^.GetMyPos()) + ". Consider adding some jewellery to teleport with.";
       // TO DO ^ maybe add desperate teleports to banks like home teleport
       Self.DebugLn('Withdrawing ', fairyTeleportStaff);
       bankItem.Setup(fairyTeleportStaff);
@@ -509,9 +508,9 @@ begin
   if (walkableFairyRing.worldPoint = [0,0]) then
     raise 'Fairy ring ' + walkableFairyRing.destination + ' is not configured properly';
 
-  TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), walkableFairyRing.worldPoint));
+  ScriptWalker^.AddRegion(self.getRegionBetween(WLWalker.GetMyPos(), walkableFairyRing.worldPoint));
   Self.DebugLn('We are going to walk to ' + ToString(walkableFairyRing.worldPoint));
-  TRSWalkerObject.Walker^.WebWalk(walkableFairyRing.worldPoint, 40);
+  ScriptWalker^.WebWalk(walkableFairyRing.worldPoint, 40);
 
   // open fairy ring teleports
   Self.DebugLn("opening fairy ring teleports");
@@ -561,15 +560,15 @@ function TUniversalTransport.nearGE(): Boolean;
 var
   boxAroundGE: TBox := Box(RSTeleports.GRAND_EXCHANGE.worldPoint, 400, 400);
 begin
-  Exit(boxAroundGE.Contains(cacheRSW.GetMyPos()));
+  Exit(boxAroundGE.Contains(WLWalker.GetMyPos()));
 end;
 
 function TUniversalTransport.goToGE(): Boolean;
 begin
   if self.nearGE() then
   begin
-    TRSWalkerObject.Walker^.AddRegion(self.getRegionBetween(cacheRSW.GetMyPos(), RSTeleports.GRAND_EXCHANGE.worldPoint));
-    Result := TRSWalkerObject.Walker^.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
+    ScriptWalker^.AddRegion(self.getRegionBetween(WLWalker.GetMyPos(), RSTeleports.GRAND_EXCHANGE.worldPoint));
+    Result := ScriptWalker^.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
   end
   else
     Result := self.run(RSTeleports.GRAND_EXCHANGE.worldPoint);
@@ -596,7 +595,7 @@ var
   maxDistance: Int32 := 1000;
   closestBanker: TRSObject := RSObjects.Banks.GetClosest();
   closestBankPoint: TPoint := closestBanker.Coordinates.First();
-  myPos: TPoint := cacheRSW.GetMyPos();
+  myPos: TPoint := WLWalker.GetMyPos();
   pathRegion: TBox := self.getRegionBetween(myPos, closestBankPoint);
   pathDistance: Int32 := self.pathLength(closestBankPoint, myPos);
   walkableBank: TRSObject;
@@ -606,8 +605,8 @@ begin
   Self.DebugLn('Distance to bank from current ' + ToString(pathDistance));
   if pathDistance < maxDistance then
   begin
-    TRSWalkerObject.Walker^.AddRegion(pathRegion);
-    TRSWalkerObject.Walker^.AddRegion(Box(cacheRSW.GetMyPos(), 100, 100));
+    ScriptWalker^.AddRegion(pathRegion);
+    ScriptWalker^.AddRegion(Box(WLWalker.GetMyPos(), 100, 100));
     Self.DebugLn(ToString(pathRegion));
     Self.DebugLn(ToString(myPos));
     Bank.WalkOpen(closestBanker);
@@ -617,19 +616,19 @@ begin
 
   // to do: add more ways to get to bank
   if Magic.CastSpell(ERSSpell.LUMBRIDGE_HOME_TELEPORT) then
-    WaitUntil(cacheRSW.GetMyPos().InBox(Box(RSTeleports.LUMBRIDGE.worldPoint, 200, 200)), 200, 15000)
+    WaitUntil(WLWalker.GetMyPos().InBox(Box(RSTeleports.LUMBRIDGE.worldPoint, 200, 200)), 200, 15000)
   else if Magic.CastSpell(ERSSpell.EDGEVILLE_HOME_TELEPORT) then
-    WaitUntil(cacheRSW.GetMyPos().InBox(Box(RSTeleports.EDGEVILLE.worldPoint, 200, 200)), 200, 15000)
+    WaitUntil(WLWalker.GetMyPos().InBox(Box(RSTeleports.EDGEVILLE.worldPoint, 200, 200)), 200, 15000)
   else if Magic.CastSpell(ERSSpell.MOONCLAN_TELEPORT) then
-    WaitUntil(cacheRSW.GetMyPos().InBox(Box(RSTeleports.MOONCLAN.worldPoint, 200, 200)), 200, 15000)
+    WaitUntil(WLWalker.GetMyPos().InBox(Box(RSTeleports.MOONCLAN.worldPoint, 200, 200)), 200, 15000)
   else if Magic.CastSpell(ERSSpell.ARCEUUS_HOME_TELEPORT) then
-    WaitUntil(cacheRSW.GetMyPos().InBox(Box(RSTeleports.CIS_NORTH_OF_THE_ARCEUUS_LIBRARY.worldPoint, 500, 500)), 200, 15000)
+    WaitUntil(WLWalker.GetMyPos().InBox(Box(RSTeleports.CIS_NORTH_OF_THE_ARCEUUS_LIBRARY.worldPoint, 500, 500)), 200, 15000)
   else raise "Couldn't go home!";
 
   // load path between current and bank and then walk
-  pathRegion := self.getRegionBetween(walkableBank.Coordinates.first(), cacheRSW.GetMyPos);
-  TRSWalkerObject.Walker^.AddRegion(pathRegion);
-  walkableBank := self.getConnectingBank(cacheRSW.GetMyPos())^;
+  pathRegion := self.getRegionBetween(walkableBank.Coordinates.first(), WLWalker.GetMyPos);
+  ScriptWalker^.AddRegion(pathRegion);
+  walkableBank := self.getConnectingBank(WLWalker.GetMyPos())^;
   Bank.WalkOpen(walkableBank);
 end;
 

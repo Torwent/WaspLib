@@ -1,3 +1,12 @@
+## [14.0.4](https://github.com/Torwent/WaspLib/compare/v14.0.3...v14.0.4) (2023-07-10)
+
+
+### Bug Fixes
+
+* minor tweak to waspweb ([7d01188](https://github.com/Torwent/WaspLib/commit/7d0118899410ff8a1df9cf023b1ee069c45e463d))
+
+
+
 ## [14.0.3](https://github.com/Torwent/WaspLib/compare/v14.0.2...v14.0.3) (2023-07-10)
 
 
@@ -42,15 +51,6 @@
 ### BREAKING CHANGES
 
 * **walker:** This will break compatibility with previous scripts that were using TRSWalkerObject.Walker
-
-
-
-## [13.6.12](https://github.com/Torwent/WaspLib/compare/v13.6.11...v13.6.12) (2023-07-06)
-
-
-### Bug Fixes
-
-* **rsteleports:** removed unneeded import ([dbc2327](https://github.com/Torwent/WaspLib/commit/dbc2327e07139238d97198b3f08258284bae4897))
 
 
 

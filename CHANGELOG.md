@@ -1,3 +1,12 @@
+# [14.1.0](https://github.com/Torwent/WaspLib/compare/v14.0.4...v14.1.0) (2023-07-10)
+
+
+### Features
+
+* read notes ([f416fb4](https://github.com/Torwent/WaspLib/commit/f416fb4b56ac6777867ce27ddcd5ccac52a725f8))
+
+
+
 ## [14.0.4](https://github.com/Torwent/WaspLib/compare/v14.0.3...v14.0.4) (2023-07-10)
 
 
@@ -35,22 +44,6 @@
 ### Bug Fixes
 
 * revert to the previous way of setting TRSWalkerObject.Regions ([eac3d80](https://github.com/Torwent/WaspLib/commit/eac3d80fad28e25212c6887ca65bc4c34e6474b8))
-
-
-
-# [14.0.0](https://github.com/Torwent/WaspLib/compare/v13.6.12...v14.0.0) (2023-07-07)
-
-
-### Bug Fixes
-
-* banking tweaks again ([40baf4e](https://github.com/Torwent/WaspLib/commit/40baf4e2ad3669b3b673fcadb39ca06a8a25475b))
-* moved librecorder to the plugins directory ([e8f2c5c](https://github.com/Torwent/WaspLib/commit/e8f2c5c44e0ff8e96c3023226dd3251fef7857f1))
-* **walker:** read notes ([bda9fce](https://github.com/Torwent/WaspLib/commit/bda9fce19c8e7d7dbb2fa6f8810fffd0249934fe))
-
-
-### BREAKING CHANGES
-
-* **walker:** This will break compatibility with previous scripts that were using TRSWalkerObject.Walker
 
 
 

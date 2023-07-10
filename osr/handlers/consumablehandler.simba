@@ -101,7 +101,8 @@ begin
     begin
       Self.DebugLn('Consumable found: ' + ToStr(item));
       consumable := Self.Setup(item);
-      consumable.BankTab := Bank.GetCurrentTab(); //TODO: Search parent maybe?
+      consumable.BankItem.Tab := Bank.GetCurrentTab(); //TODO: Search parent maybe?
+      consumable.BankItem.Scroll := Bank.GetScrollPosition();
 
       Result += consumable;
     end;
@@ -574,7 +575,7 @@ Example
 function TRSBank.FindConsumable(consumableArray: TRSConsumableArray; out consumable: TRSConsumable): Boolean;
 begin
   for consumable in consumableArray do
-    if Self.ContainsItem(consumable.BankTab, consumable.Item) then
+    if Self.ContainsItem(consumable.BankItem) then
       Exit(True);
 end;
 
@@ -697,26 +698,16 @@ var
   consumable: TRSConsumable;
 begin
   consumableHandler := TConsumableHandler.GetHandler(consumableType);
-  if not Self.FindConsumable(consumableType, Consumable) then
-  begin
-    if not consumableHandler^.IsSetup then
-      Exit;
-
-    if consumableHandler^.ConsumableArray[0].BankTab < 0 then
-      consumableHandler^.ConsumableArray[0].BankTab := Self.FindItemTab(consumable.Item)
-    else
-      Self.OpenTab(consumableHandler^.ConsumableArray[0].BankTab);
-
-    if not Self.FindConsumable(consumableType, consumable) then
-      Exit;
-  end;
+  if not Self.FindConsumable(consumableType, consumable) then
+    Exit;
 
   withdrawAmount := Self.WithdrawConsumableAmount(consumableType, consumable);
 
   if (withdrawAmount = 0) then
     Exit(True); //We have enough food.
 
-  Self.WithdrawItem(consumable.BankTab, [consumable.Item, withdrawAmount, False], False);
+  consumable.BankItem.Quantity := withdrawAmount;
+  Self.WithdrawItem(consumable.BankItem, False);
 
   Result := WaitUntil(Inventory.HasEnoughConsumable(consumableType), 100, 3000);
 end;

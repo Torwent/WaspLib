@@ -666,55 +666,7 @@ Example
   if Bank.IsOpen() then
     BankScript.Withdraw(['Shark', 1, True]);
 *)
-function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
-var
-  invCount, stackCount: Int32;
-  useButton: Boolean;
-begin
-  if Self.BankTab = -1 then
-  begin
-    Self.BankTab := Bank.FindItemTab(item.Item);
-    Self.BankEmpty := Self.BankTab = -1;
-
-    if Self.BankEmpty then
-      Exit;
-  end;
-
-  stackCount := Inventory.CountItemStack(item.Item);
-  invCount   := Inventory.Count();
-
-  if (invCount = 28) then //maybe no space to withdraw the item.
-  begin
-    //no space and we don't have the item or the item is not stackable. we can't withdraw.
-    if not Inventory.ContainsItem(item.Item) or (stackCount <= 0) then
-      Exit;
-  end;
-
-  useButton := item.Quantity <> 1; //I'm gonna assume 1 quantity that it's a tool.
-
-  if Bank.WithdrawItem(Self.BankTab, item, useButton) then
-    Result := WaitUntil((Inventory.Count() > invCount) or (Inventory.CountItemStack(item.Item) > stackCount), 100, 3000);
-
-  if not Result then
-  begin
-    Bank.UnHoverIncinerator();
-    Self.BankEmpty := not Bank.IsSearchOpen() and
-                      not WaitUntil(Bank.ContainsItem(Self.BankTab, item), 300, 3000);
-
-    if Bank.IsSearchOpen() then
-      Bank.CloseSearch();
-  end;
-
-  Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
-
-  if Self.BankEmpty then
-    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
-
-  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
-    Self.CollectEmpty := False;
-end;
-
-function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean; overload;
+function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean;
 begin
   if Bank.WithdrawItem(item, item.Quantity <> 1) then
     Result := WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000);
@@ -740,6 +692,18 @@ begin
 
   if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
     Self.CollectEmpty := False;
+end;
+
+function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean; overload; deprecated 'Use the TRSBankItem version instead!';
+var
+  tmp: TRSBankItem;
+begin
+  tmp := TRSBankItem.Setup(item.item, item.Quantity, item.Noted);
+  tmp.Tab := Self.BankTab;
+
+  Result := Self.Withdraw(tmp);
+
+  Self.BankTab := tmp.Tab;
 end;
 
 (*

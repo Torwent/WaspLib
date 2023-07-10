@@ -1,3 +1,12 @@
+## [14.1.1](https://github.com/Torwent/WaspLib/compare/v14.1.0...v14.1.1) (2023-07-10)
+
+
+### Bug Fixes
+
+* improve TPoint.WithinDistance() ([e25128f](https://github.com/Torwent/WaspLib/commit/e25128fcb332b79b2df0807f95060768d71f7e20))
+
+
+
 # [14.1.0](https://github.com/Torwent/WaspLib/compare/v14.0.4...v14.1.0) (2023-07-10)
 
 
@@ -35,15 +44,6 @@
 ### Bug Fixes
 
 * readme ([33d45f3](https://github.com/Torwent/WaspLib/commit/33d45f3e85bf737e8221afa0b641955328cc5c4b))
-
-
-
-## [14.0.1](https://github.com/Torwent/WaspLib/compare/v14.0.0...v14.0.1) (2023-07-07)
-
-
-### Bug Fixes
-
-* revert to the previous way of setting TRSWalkerObject.Regions ([eac3d80](https://github.com/Torwent/WaspLib/commit/eac3d80fad28e25212c6887ca65bc4c34e6474b8))
 
 
 

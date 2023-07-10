@@ -90,13 +90,21 @@ begin
   RSMouseZoom.SetZoomLevel(newZoom);
 end;
 
+//by Flight
+procedure TAntiban.SmallCameraRotation();
+begin
+  Self.DebugLn('Small camera rotation');
+  Minimap.SetCompassAngle(Minimap.GetCompassAngle+(Random(-15,15)));
+end;
+
 
 // POV antibans
 procedure TAntiban.RandomPOVTask();
 begin
   case Random(10) of
-    0..4:    Self.AdjustZoom();
-    else Self.RandomRotate();
+    0..4: Self.AdjustZoom();
+    5..7: Self.SmallCameraRotation();
+    else  Self.RandomRotate();
   end;
 end;
 
@@ -563,6 +571,61 @@ begin
   end;
 end;
 
+
+//by Flight
+procedure TAntiBan.HoverMSTile(dotType: ERSMinimapDot; rightClick: Boolean = False);
+var
+  tries: Int32;
+  a: Double;
+  rDot: TPoint;
+  msBox: TBox;
+  dots,cTPA: TPointArray;
+  cArr: TIntegerArray;
+begin
+  dots := Minimap.GetDots(dotType);
+  if dots.Len() < 1 then Exit;
+  a := Minimap.GetCompassAngle(False);
+  repeat
+    Inc(tries);
+    rDot := dots[Random(Low(dots),High(dots))];
+    msBox := Minimap.VecToMsRect(Vec3(rDot.X + 2, rDot.Y + 2, 0), 1, 1, a).Bounds();
+    if MainScreen.Bounds.Contains(msBox) then
+    begin
+      Self.DebugLn('Hovering random ' + toStr(dotType));
+      cArr := GetColors(TPAFromBox(msBox));
+      SRL.FindColors(cTPA, CTS1(cArr.GetRarest(), 30), msBox);
+      Mouse.HumanMove(cTPA.Mean());
+      if rightClick then
+        Mouse.Click(MOUSE_RIGHT);
+
+      wait(1500, 2700);
+      if rightClick then
+        ChooseOption.Close();
+      Exit;
+    end;
+  until(tries > 10);
+end;
+
+//by Flight
+procedure TAntiban.HoverMSNPCs();
+begin
+  Self.HoverMSTile(ERSMinimapDot.NPC);
+end;
+
+//by Flight
+procedure TAntiban.HoverMSPlayers();
+begin
+  Self.HoverMSTile(ERSMinimapDot.PLAYER);
+end;
+
+//by Flight
+procedure TAntiban.HoverMSItems();
+begin
+  Self.HoverMSTile(ERSMinimapDot.ITEM);
+end;
+
+
+
 procedure TAntiban.SetupTasks();
 begin
   if Self.Tasks <> [] then
@@ -619,6 +682,7 @@ begin
 
   Self.OnSleeping := @OnSleepingTask;
 end;
+
 
 procedure TAntiban.WalkingTasks();
 begin

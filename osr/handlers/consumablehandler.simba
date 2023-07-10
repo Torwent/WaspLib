@@ -263,48 +263,32 @@ Inventory.FindItems()
 ~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSInventory.FindItems(Items: TRSConsumableArray; out FoundItems: TRSConsumableArray; out Slots: TIntegerArray): Boolean; overload;
 
-Overloaded method used to find consumables in the inventory. Can be used directly but in most cases is used internally.
+Method used to find consumables in the inventory. Can be used directly but in most cases is used internally.
 *)
 function TRSInventory.FindConsumable(consumables: TRSConsumableArray; out foundConsumable: TRSConsumableArray): TIntegerArray;
 var
   singleItem: TRSItem;
   consumable: TRSConsumable;
   currentSearch: TIntegerArray;
-  i: Int32;
-  tba, tmp: TBoxArray;
-  usedSlots, tmpSlots: TIntegerArray;
 begin
-  //NOTE: THIS FUNCTION IS A CONFUSING MESS DUE TO BEING A PORT OF SIMBA1500!
   if not Self.Open() then
     Exit;
-
-  tba := Self.GetSlotBoxes();
-  for i:=0 to High(tba) do
-    if Self.IsSlotUsed(tba[i]) then
-    begin
-      tmp += tba[i];
-      usedSlots += i;
-    end;
 
   for consumable in consumables do
   begin
     for singleItem in consumable.Item.GetArray() do
     begin
-      currentSearch := ItemFinder.Find(singleItem, tmp);
+      currentSearch := Self.ItemFinder.IndicesOf([singleItem]);
       if currentSearch <> [] then
       begin
         foundConsumable += consumable;
-        tmpSlots += currentSearch;
+        Result += currentSearch;
       end;
     end;
   end;
 
-  for i in tmpSlots do
-    Result += usedSlots[i];
-
   Result := Result.Unique();
 end;
-
 
 function TRSInventory.ContainsConsumable(consumables: TRSConsumableArray): Boolean;
 var
@@ -347,12 +331,13 @@ end;
 
 function TRSInventory.ContainsConsumable(consumableType: ERSConsumable): Boolean; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler;
 begin
-  if not ConsumableHandler^.IsSetup then
+  consumableHandler := TConsumableHandler.GetHandler(consumableType);
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  Result := Self.ContainsConsumable(ConsumableHandler^.ConsumableArray.Reversed());
+  Result := Self.ContainsConsumable(consumableHandler^.ConsumableArray.Reversed());
 end;
 
 

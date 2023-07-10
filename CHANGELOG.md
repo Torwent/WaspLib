@@ -1,3 +1,16 @@
+## [14.0.3](https://github.com/Torwent/WaspLib/compare/v14.0.2...v14.0.3) (2023-07-10)
+
+
+### Bug Fixes
+
+* better integration with srl-t item interface changes ([b060991](https://github.com/Torwent/WaspLib/commit/b06099116ebffe4b6e6f0c6a5c8f46c2e2e04b67))
+* item interfaces changes ([379ee9e](https://github.com/Torwent/WaspLib/commit/379ee9e854553ce5b1095be27f8c90d16e170933))
+* read notes ([54f522a](https://github.com/Torwent/WaspLib/commit/54f522a34cd2454d38b764a55799b1ccfdcf2b89))
+* rollback the way TRSWalkerObject.Regions was being set ([c706162](https://github.com/Torwent/WaspLib/commit/c7061625eb0e66365706947ce43086032fb11e37))
+* this is all in srl or not needed anymore ([3f4890d](https://github.com/Torwent/WaspLib/commit/3f4890d7f66c450b47210c9254095c198e8d7559))
+
+
+
 ## [14.0.2](https://github.com/Torwent/WaspLib/compare/v14.0.1...v14.0.2) (2023-07-07)
 
 
@@ -38,15 +51,6 @@
 ### Bug Fixes
 
 * **rsteleports:** removed unneeded import ([dbc2327](https://github.com/Torwent/WaspLib/commit/dbc2327e07139238d97198b3f08258284bae4897))
-
-
-
-## [13.6.11](https://github.com/Torwent/WaspLib/compare/v13.6.10...v13.6.11) (2023-07-05)
-
-
-### Bug Fixes
-
-* read notes ([83ed69f](https://github.com/Torwent/WaspLib/commit/83ed69f257ee6f67d098f0ef08c87d4ae718e259))
 
 
 

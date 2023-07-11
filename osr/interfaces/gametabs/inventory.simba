@@ -187,33 +187,31 @@ begin
 end;
 
 
-function TRSInventory.FindItems(items: TRSItemArray): TIntegerArray; overload;
+function TRSInventory.FindItems(items: TRSItemArray; out slots: TIntegerArray): Boolean; override;
 var
-  item, singleItem: TRSItem;
+  item: TRSItem;
+  tmp: TRSItemArray;
 begin
   if not Self.Open() then
     Exit;
 
   for item in items do
-    for singleItem in item.GetArray() do
-      Result += Self.ItemFinder.IndicesOf([singleItem]);
+    tmp += item.GetArray();
 
-  Result := Result.Unique();
+  slots := Self.ItemFinder.IndicesOf(tmp);
+  Result := Length(slots) > 0;
 end;
 
-
-function TRSInventory.FindItem(item: TRSItem): Int32; overload;
-var
-  tempItem: TRSItem;
+function TRSInventory.FindItem(item: TRSItem; out slot: Int32): Boolean; override;
 begin
-  for tempItem in item.GetArray() do
-  begin
-    Result := Self.FindItem(tempItem);
-
-    if Result > -1 then
-      Exit;
-  end;
+  slot := -1;
+  if not Self.Open() then
+    Exit;
+  slot := Self.ItemFinder.IndexOf(item.GetArray());
+  Result := slot <> -1;
 end;
+
+
 
 function TRSInventory.ContainsItem(item: TRSItem): Boolean; override;
 begin

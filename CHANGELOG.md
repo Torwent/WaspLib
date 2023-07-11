@@ -1,3 +1,12 @@
+## [14.1.2](https://github.com/Torwent/WaspLib/compare/v14.1.1...v14.1.2) (2023-07-11)
+
+
+### Bug Fixes
+
+* **Inventory:** read notes ([3701e41](https://github.com/Torwent/WaspLib/commit/3701e41fb364e370f80ec53f8dbf7a44692d902d))
+
+
+
 ## [14.1.1](https://github.com/Torwent/WaspLib/compare/v14.1.0...v14.1.1) (2023-07-10)
 
 
@@ -35,15 +44,6 @@
 * read notes ([54f522a](https://github.com/Torwent/WaspLib/commit/54f522a34cd2454d38b764a55799b1ccfdcf2b89))
 * rollback the way TRSWalkerObject.Regions was being set ([c706162](https://github.com/Torwent/WaspLib/commit/c7061625eb0e66365706947ce43086032fb11e37))
 * this is all in srl or not needed anymore ([3f4890d](https://github.com/Torwent/WaspLib/commit/3f4890d7f66c450b47210c9254095c198e8d7559))
-
-
-
-## [14.0.2](https://github.com/Torwent/WaspLib/compare/v14.0.1...v14.0.2) (2023-07-07)
-
-
-### Bug Fixes
-
-* readme ([33d45f3](https://github.com/Torwent/WaspLib/commit/33d45f3e85bf737e8221afa0b641955328cc5c4b))
 
 
 

@@ -658,9 +658,19 @@ Example
     BankScript.Withdraw(['Shark', 1, True]);
 *)
 function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean;
+var
+  count, stack: Int32;
 begin
+  stack := Inventory.CountItemStack(item.Item);
+  if Inventory.IsFull() and (stack = 0) then //item not stackable.
+    Exit;
+
+  count := Inventory.CountItem(item.Item);
+
   if Bank.WithdrawItem(item, item.Quantity <> 1) then
-    Result := WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000);
+    Result := WaitUntil(
+                (Inventory.CountItemStack(item.Item) > stack) or
+                (Inventory.CountItem(item.Item) > count), 300, 3000);
 
   if Result then
     Exit;

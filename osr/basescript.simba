@@ -537,7 +537,7 @@ begin
   inherited;
 
   Self.BankTab := -1;
-  Self.CollectTimer.Init(600000);
+  Self.CollectTimer.Init(10 * ONE_MINUTE);
 
   //override me to add more stuff.
 end;
@@ -576,19 +576,10 @@ var
 begin
   for i := 0 to 5 do
   begin
-    if MainScreen.HasInterface() then
-    begin
-      Result := Bank.IsOpen();
-      if Result then
-        Break;
-
-      MainScreen.CloseInterface();
-    end;
-
     Result := Bank.WalkOpen();
 
     if Result then
-      Break;
+      Exit;
   end;
   //override me to add more stuff.
 end;
@@ -705,6 +696,92 @@ begin
 
   Self.BankTab := tmp.Tab;
 end;
+
+
+(*
+BaseBankScript.DepositItem
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TBaseBankScript.DepositItem(out item: TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean;
+  function TBaseBankScript.DepositItem(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; overload;
+
+Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
+*)
+function TBaseBankScript.DepositItem(out item: TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean; static;
+begin
+  if isBank and isDepositBox then
+  begin
+    isBank := False;
+    isDepositBox := False;
+  end;
+
+  if not isBank and not isDepositBox and not MainScreen.HasInterface() then
+    Exit;
+
+  if not isDepositBox and (isBank or Bank.IsOpen()) then
+    Exit(Bank.DepositItem(item, True));
+
+  if isDepositBox or DepositBox.IsOpen() then
+    Result := DepositBox.DepositItem(item, True);
+end;
+
+function TBaseBankScript.DepositItem(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; static; overload;
+var
+  tmp: TRSBankItem;
+begin
+  tmp := TRSBankItem.Setup(item);
+  Result := TBaseBankScript.DepositItem(tmp, isBank, isDepositBox);
+end;
+
+(*
+BaseBankScript.DepositItems
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TBaseBankScript.DepositItem(out items: array of TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean;
+  function TBaseBankScript.DepositItems(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; overload;
+
+Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
+*)
+function TBaseBankScript.DepositItems(out items: array of TRSBankItem): Boolean; static;
+var
+  item: TRSBankItem;
+  isBank, isDepositBox: Boolean;
+begin
+  if not MainScreen.HasInterface() then
+    Exit;
+
+  isBank := Bank.IsOpen();
+  if isBank then
+    isDepositBox := DepositBox.IsOpen();
+
+  if not isBank and not isDepositBox then
+    Exit;
+
+  for item in items do
+    if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Result := True;
+end;
+
+function TBaseBankScript.DepositItems(items: TRSItemArray): Boolean; static; overload;
+var
+  item: TRSItem;
+  isBank, isDepositBox: Boolean;
+begin
+  if not MainScreen.HasInterface() then
+    Exit;
+
+  isBank := Bank.IsOpen();
+  if isBank then
+    isDepositBox := DepositBox.IsOpen();
+
+  if not isBank and not isDepositBox then
+    Exit;
+
+  for item in items do
+    if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Result := True;
+end;
+
 
 (*
 BaseBankScript.HandleCollectBox

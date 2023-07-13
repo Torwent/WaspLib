@@ -1,3 +1,12 @@
+# [14.2.0](https://github.com/Torwent/WaspLib/compare/v14.1.3...v14.2.0) (2023-07-13)
+
+
+### Features
+
+* **TBaseBankScript:** read notes ([f8aaf6f](https://github.com/Torwent/WaspLib/commit/f8aaf6f26cac945a4049c362a960135c6669bf61))
+
+
+
 ## [14.1.3](https://github.com/Torwent/WaspLib/compare/v14.1.2...v14.1.3) (2023-07-12)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([f416fb4](https://github.com/Torwent/WaspLib/commit/f416fb4b56ac6777867ce27ddcd5ccac52a725f8))
-
-
-
-## [14.0.4](https://github.com/Torwent/WaspLib/compare/v14.0.3...v14.0.4) (2023-07-10)
-
-
-### Bug Fixes
-
-* minor tweak to waspweb ([7d01188](https://github.com/Torwent/WaspLib/commit/7d0118899410ff8a1df9cf023b1ee069c45e463d))
 
 
 

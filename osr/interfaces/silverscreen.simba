@@ -4,7 +4,7 @@ SilverScreen
 Methods to interact with the silver screen on a furnace.
 *)
 
-{$DEFINE WL_SILVERSCREEN_INCLUDED}
+{$DEFINE AERO_SILVERSCREEN_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
@@ -20,11 +20,22 @@ type
 
   TRSSilverScreen = type TRSTitledInteface;
 
+
+function TRSSilverScreen.GetItemBoxes(): TBoxArray;
+var
+  jewellery: TBoxArray;
+begin
+  jewellery := Grid(3, 4, 79, 55, [5, 1], [Self.X1 + 10, Self.Y1 + 40]);
+  Result := jewellery.Combine(Grid(2, 4, 109, 55, [5, 1], [Self.X2 - 233, Self.Y1 + 40]));
+end;
+
 procedure TRSSilverScreen.Setup(); override;
 begin
   inherited;
 
   Self.Name := 'Silver Screen';
+  Self.ItemFinder.Name := Self.Name + '.ItemFinder';
+  Self.ItemFinder.GetSearchBoxesFunction := @Self.GetItemBoxes;
 end;
 
 procedure TRSSilverScreen.SetupAlignment(Mode: ERSClientMode); override;
@@ -50,13 +61,6 @@ var
 begin
   if (Length(Buttons) = Length(ERSSilverScreenButton)) then
     Result := Buttons[Button];
-end;
-
-function TRSSilverScreen.GetItemBoxes(): TBoxArray;
-var Jewellery: TBoxArray;
-begin
-  Jewellery := Grid(3, 4, 79, 55, [5, 1], [Self.X1 + 10, Self.Y1 + 40]);
-  Result := Jewellery.Combine(Grid(2, 4, 109, 55, [5, 1], [Self.X2 - 233, Self.Y1 + 40]));
 end;
 
 (*
@@ -178,24 +182,21 @@ Example
   if SilverScreen.CanCraftItem('Topaz bracelet', ItmBox) then
     Mouse.Move(ItmBox);
 *)
-function TRSSilverScreen.CanCraftItem(Item: TRSItem; out ItemBox: TBox): Boolean;
+function TRSSilverScreen.CanCraftItem(item: TRSItem; out box: TBox): Boolean;
 const
   ORANGE_COLOR = 2070783;
   SELECTED_COLOR = $FFFFFF;
 var
-  Boxes: TBoxArray;
-  TPA: TPointArray;
-  Indices: TIntegerArray;
+  tpa: TPointArray;
 begin
-  if not Self.IsOpen() then Exit;
-  Boxes := Self.GetItemBoxes();
+  if not Self.IsOpen() then
+    Exit;
 
-  Indices := ItemFinder.Find(Item, Boxes, 1);
-  if Indices.Len() < 1 then Exit;
+  if not Self.ItemFinder.Find([item], box) then
+    Exit;
 
-  ItemBox := Boxes[Indices[0]];
-  Result := (SRL.FindColors(TPA, ORANGE_COLOR, ItemBox) > 0) or
-            (SRL.FindColors(TPA, SELECTED_COLOR, ItemBox) > 0);
+  Result := (SRL.FindColors(tpa, ORANGE_COLOR, box) > 0) or
+            (SRL.FindColors(tpa, SELECTED_COLOR, box) > 0);
 end;
 
 (*

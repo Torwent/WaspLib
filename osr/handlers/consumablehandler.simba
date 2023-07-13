@@ -101,7 +101,8 @@ begin
     begin
       Self.DebugLn('Consumable found: ' + ToStr(item));
       consumable := Self.Setup(item);
-      consumable.BankTab := Bank.GetCurrentTab(); //TODO: Search parent maybe?
+      consumable.BankItem.Tab := Bank.GetCurrentTab(); //TODO: Search parent maybe?
+      consumable.BankItem.Scroll := Bank.GetScrollPosition();
 
       Result += consumable;
     end;
@@ -263,48 +264,32 @@ Inventory.FindItems()
 ~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: function TRSInventory.FindItems(Items: TRSConsumableArray; out FoundItems: TRSConsumableArray; out Slots: TIntegerArray): Boolean; overload;
 
-Overloaded method used to find consumables in the inventory. Can be used directly but in most cases is used internally.
+Method used to find consumables in the inventory. Can be used directly but in most cases is used internally.
 *)
 function TRSInventory.FindConsumable(consumables: TRSConsumableArray; out foundConsumable: TRSConsumableArray): TIntegerArray;
 var
   singleItem: TRSItem;
   consumable: TRSConsumable;
   currentSearch: TIntegerArray;
-  i: Int32;
-  tba, tmp: TBoxArray;
-  usedSlots, tmpSlots: TIntegerArray;
 begin
-  //NOTE: THIS FUNCTION IS A CONFUSING MESS DUE TO BEING A PORT OF SIMBA1500!
   if not Self.Open() then
     Exit;
-
-  tba := Self.GetSlotBoxes();
-  for i:=0 to High(tba) do
-    if Self.IsSlotUsed(tba[i]) then
-    begin
-      tmp += tba[i];
-      usedSlots += i;
-    end;
 
   for consumable in consumables do
   begin
     for singleItem in consumable.Item.GetArray() do
     begin
-      currentSearch := ItemFinder.Find(singleItem, tmp);
+      currentSearch := Self.ItemFinder.IndicesOf([singleItem]);
       if currentSearch <> [] then
       begin
         foundConsumable += consumable;
-        tmpSlots += currentSearch;
+        Result += currentSearch;
       end;
     end;
   end;
 
-  for i in tmpSlots do
-    Result += usedSlots[i];
-
   Result := Result.Unique();
 end;
-
 
 function TRSInventory.ContainsConsumable(consumables: TRSConsumableArray): Boolean;
 var
@@ -321,8 +306,9 @@ end;
 (*
 Inventory.FindConsumable()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSInventory.FindConsumable(consumableType: ERSConsumable; out FoundConsumables: TRSConsumableArray; out Slots: TIntegerArray): Boolean;
-.. pascal:: function TRSInventory.FindConsumable(consumableType: ERSConsumable): Boolean; overload;
+.. pascal::
+  function TRSInventory.FindConsumable(consumableType: ERSConsumable; out FoundConsumables: TRSConsumableArray; out Slots: TIntegerArray): Boolean;
+  function TRSInventory.FindConsumable(consumableType: ERSConsumable): Boolean; overload;
 
 Method used to find already setup consumables in the inventory. Can be used directly but in most cases is used internally.
 *)
@@ -346,12 +332,13 @@ end;
 
 function TRSInventory.ContainsConsumable(consumableType: ERSConsumable): Boolean; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler;
 begin
-  if not ConsumableHandler^.IsSetup then
+  consumableHandler := TConsumableHandler.GetHandler(consumableType);
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  Result := Self.ContainsConsumable(ConsumableHandler^.ConsumableArray.Reversed());
+  Result := Self.ContainsConsumable(consumableHandler^.ConsumableArray.Reversed());
 end;
 
 
@@ -446,9 +433,7 @@ begin
 
     TotalConsumableCost += foundConsumables[0].Cost;
 
-    trashSlots := Self.FindItems(TRASH_ARRAY);
-
-    if trashSlots.Len() > 0 then
+    if Self.FindItems(TRASH_ARRAY, trashSlots) then
     begin
       if Bank.IsOpen() then
         Bank.DepositSlot([trashSlots[0], -1], False)
@@ -514,8 +499,9 @@ end;
 (*
 Inventory.CountPoints()
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSInventory.CountPoints(Consumable: TRSConsumable): Int32;
-.. pascal:: function TRSInventory.CountPoints(consumableType: ERSConsumable): Int32; overload;
+.. pascal::
+  function TRSInventory.CountPoints(Consumable: TRSConsumable): Int32;
+  function TRSInventory.CountPoints(consumableType: ERSConsumable): Int32; overload;
 
 Method used to count the total points value of a **Consumable** or **consumableType**.
 
@@ -571,10 +557,11 @@ end;
 (*
 Bank.FindConsumable()
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray; out Consumable: TRSConsumable): Boolean;
-.. pascal:: function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray): Boolean; overload;
-.. pascal:: function TRSBank.FindConsumable(consumableType: ERSConsumable; out Consumable: TRSConsumable): Boolean; overload;
-.. pascal:: function TRSBank.FindConsumable(consumableType: ERSConsumable): Boolean; overload;
+.. pascal::
+  function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray; out Consumable: TRSConsumable): Boolean;
+  function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray): Boolean; overload;
+  function TRSBank.FindConsumable(consumableType: ERSConsumable; out Consumable: TRSConsumable): Boolean; overload;
+  function TRSBank.FindConsumable(consumableType: ERSConsumable): Boolean; overload;
 
 Method used to find already setup consumables in the bank. Can be used directly but in most cases is used internally.
 
@@ -586,7 +573,7 @@ Example
 function TRSBank.FindConsumable(consumableArray: TRSConsumableArray; out consumable: TRSConsumable): Boolean;
 begin
   for consumable in consumableArray do
-    if Self.ContainsItem(consumable.BankTab, consumable.Item) then
+    if Self.ContainsItem(consumable.BankItem) then
       Exit(True);
 end;
 
@@ -645,8 +632,9 @@ end;
 (*
 Bank.WithdrawConsumableAmount()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable): Int32;
-.. pascal:: function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; consumable: TRSConsumable): Int32; overload;
+.. pascal::
+  function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable): Int32;
+  function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; consumable: TRSConsumable): Int32; overload;
 
 Method used to return the amount we need to withdraw to meet the TRSConsumable.MinInvPoints.
 *)
@@ -708,32 +696,20 @@ var
   consumable: TRSConsumable;
 begin
   consumableHandler := TConsumableHandler.GetHandler(consumableType);
-  if not Self.FindConsumable(consumableType, Consumable) then
-  begin
-    if not consumableHandler^.IsSetup then
-      Exit;
-
-    if consumableHandler^.ConsumableArray[0].BankTab < 0 then
-      consumableHandler^.ConsumableArray[0].BankTab := Self.FindItemTab(consumable.Item)
-    else
-      Self.OpenTab(consumableHandler^.ConsumableArray[0].BankTab);
-
-    if not Self.FindConsumable(consumableType, consumable) then
-      Exit;
-  end;
+  if not Self.FindConsumable(consumableType, consumable) then
+    Exit;
 
   withdrawAmount := Self.WithdrawConsumableAmount(consumableType, consumable);
 
   if (withdrawAmount = 0) then
     Exit(True); //We have enough food.
 
-  Self.WithdrawItem(consumable.BankTab, [consumable.Item, withdrawAmount, False], False);
+  consumable.BankItem.Quantity := withdrawAmount;
+  Self.WithdrawItem(consumable.BankItem, False);
 
   Result := WaitUntil(Inventory.HasEnoughConsumable(consumableType), 100, 3000);
 end;
 
-//overrides
-{$IFDEF FORMS_V2}
 function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet; override;
   type TScriptForm = TScriptForm;
 
@@ -821,31 +797,3 @@ begin
     combobox.SetOnChange(event);
 end;
 
-
-{$ELSE}
-procedure TConsumablePanel.Init();
-var
-  i: Int32;
-begin
-  if not Self.IsSetup then
-    Exit;
-
-  i := Self.ConsumableSelector.GetItemIndex();
-
-  if i > -1 then
-    case Self.ConsumableType of
-      FOOD_CONSUMABLE: FoodHandler.Setup(FOOD_ARRAY[i]);
-      PRAYER_CONSUMABLE: PrayerHandler.Setup(PRAYER_ARRAY[i]);
-      ENERGY_CONSUMABLE: EnergyHandler.Setup(ENERGY_ARRAY[i]);
-      BOOST_CONSUMABLE:  BoostHandler.Setup(BOOST_ARRAY[i]);
-    end;
-end;
-
-procedure TScriptForm.Init(Sender: TObject); override;
-begin
-  //override me to add stuff!
-  Self.WLPanel.FoodPanel.Init();
-  Self.WLPanel.PrayerPanel.Init();
-  inherited;
-end;
-{$ENDIF}

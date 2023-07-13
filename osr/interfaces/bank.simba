@@ -1,0 +1,273 @@
+(*
+BankPin
+=======
+Methods to extend and/or modify SRL's bank interface.
+*)
+{$DEFINE WL_BANK_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+function TRSBank.GetScrollArea({$H-}scrollBar: TRSScrollBar): TBox;{$H-} override;
+begin
+  Result := Self.Bounds();
+  Result.X1 += 5;
+  Result.Y1 += 77;
+  Result.X2 -= 24;
+  Result.Y2 -= 44;
+end;
+
+procedure TRSBank.SetScrollPosition(value: Int32); override;
+var
+  oldPos: Int32;
+  scrollBar: TRSScrollBar;
+begin
+  value := EnsureRange(value, 0, 100);
+
+  scrollBar := Self.GetScrollBar();
+  oldPos := scrollBar.Position;
+
+  if not scrollBar.IsVisible() or not Self.CanScroll() then
+    Exit;
+
+  if scrollBar.Position = value then
+    Exit;
+
+  if (scrollBar.Position < value) then
+  begin
+    while scrollBar.IsVisible() and (scrollBar.Position < value) do
+    begin
+      Mouse.Scroll(Self.GetScrollArea(scrollBar), Random(1, 3), True);
+
+      scrollBar := Self.GetScrollBar();
+      if oldPos = scrollBar.Position then
+        Mouse.Move(Self.GetScrollArea(scrollBar), True);
+
+      oldPos := scrollBar.Position;
+    end;
+    Exit;
+  end;
+
+  while scrollBar.IsVisible() and (scrollBar.Position > value) do
+  begin
+    Mouse.Scroll(Self.GetScrollArea(scrollBar), Random(1, 3), False);
+
+    scrollBar := Self.GetScrollBar();
+    if oldPos = scrollBar.Position then
+      Mouse.Move(scrollBar.SliderRegion, True);
+
+    oldPos := scrollBar.Position;
+  end;
+end;
+
+
+function TRSBank.FindItem(item: TRSItem; out box: TBox): Boolean; override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Result := Self.ItemFinder.Find(item.GetArray(), box);
+end;
+
+function TRSBank.ContainsItem(item: TRSItem): Boolean; override;
+begin
+  Result := Self.ItemFinder.ContainsAny(item.GetArray());
+end;
+
+
+function TRSBank.ContainsItem(item: TRSBankWithdrawItem): Boolean; overload; deprecated 'Use the TRSBankItem version instead!';
+begin
+  Result := Self.ContainsItem(item.Item);
+end;
+
+function TRSBank.FindItem(bankTab: Int32; item: TRSItem; out Bounds: TBox): Boolean; overload;
+begin
+  if Self.OpenTab(bankTab) then
+    Result := Self.FindItem(item, Bounds);
+end;
+
+function TRSBank.ContainsItem(bankTab: Int32; Item: TRSItem): Boolean; overload;
+begin
+  if Self.OpenTab(bankTab) then
+    Result := Self.ContainsItem(item);
+end;
+
+function TRSBank.ContainsItem(bankTab: Int32; item: TRSBankWithdrawItem): Boolean; overload; deprecated 'Use the TRSBankItem version instead!';
+begin
+  if Self.OpenTab(bankTab) then
+    Result := Self.ContainsItem(item);
+end;
+
+
+
+
+
+
+
+function TRSBank.DepositAll(): Boolean; override;
+var
+  buttons: TRSButtonArray;
+  i, count: Int32;
+begin
+  if Inventory.Count() = 0 then
+    Exit(True);
+
+  buttons := Self.GetButtons();
+
+  for i := 0 to High(buttons) do
+  begin
+    count := SRL.CountColor(CTS2(1717089, 13, 0.24, 1.71), buttons[i].Bounds);
+    if count > 180 then
+      Break;
+  end;
+
+  if (i > High(Buttons)) and Bank.IsOpen() then
+    Self.Fatal('This script needs the "Deposit Inventory" button visible!');
+
+  Result := buttons[i].Click();
+end;
+
+
+function TRSBank.WithdrawSlot(tab: Int32; item: TRSBankWithdrawSlot; useQuantityButtons: Boolean): Boolean; overload;
+var
+  itemCount: Int32;
+begin
+  if not Self.IsOpen or (tab = -1) then
+    Exit;
+
+  Self.OpenTab(tab);
+
+  itemCount := Self.CountSlotStack(item.Slot);
+  if Self.WithdrawSlot(item, useQuantityButtons) then
+    Result := WaitUntil(Self.CountSlotStack(item.Slot) < itemCount, 100, 2000);
+end;
+
+
+function TRSBank.WithdrawItem(out tab: Int32; item: TRSBankWithdrawItem; useQuantityButtons: Boolean): Boolean; overload; deprecated 'Use TRSBankItem version instead!';
+var
+  b: TBox;
+  count: Int32;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  if Inventory.IsFull() and (Length(Item.Item.GetArray()) = 1) and not Inventory.ItemIsStackable(Item.Item) then
+    Exit;
+
+  if not Self.FindItem(item.Item, b) then
+  begin
+    if tab = -1 then
+      tab := Self.FindItemTab(item.Item)
+    else
+      Self.OpenTab(tab);
+
+    if not Self.FindItem(item.Item, b) then
+      Exit(False);
+  end;
+
+  count := SRL.GetItemAmount(b);
+  if Self.WithdrawHelper(b, item.Quantity, item.Noted, useQuantityButtons) then
+    Result := WaitUntil(SRL.GetItemAmount(b) < count, 100, 2000);
+end;
+
+function TRSBank.WithdrawItems(Tab: Int32; Items: array of TRSBankWithdrawItem; UseQuantityButtons: Boolean): Boolean; deprecated 'Use TRSBankItem version instead!';
+var
+  Item: TRSBankWithdrawItem;
+begin
+  for Item in Items do
+    if not Self.WithdrawItem(Tab, Item, UseQuantityButtons) then
+      Exit(False);
+
+  Result := True;
+end;
+
+
+
+function TRSBank.DepositAllBut(Tab: Int32; Items: TRSItemArray): Boolean; deprecated 'Use Bank.DepositRandomItems() instead.';
+var
+  Item: TRSItem;
+  Slots: TIntegerArray;
+  DepositSlots: TIntegerArray;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  if Tab > -1 then
+    Self.OpenTab(Tab);
+
+  for Item in Items do
+    Inventory.FindItem(Item, Slots);
+
+  DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+
+  if DepositSlots <> [] then
+  repeat
+    if not Self.IsOpen then //Exit in case the bank somehow closed.
+      Exit;
+
+    if Self.DepositSlot([DepositSlots[0], BANK_DEPOSIT_ALL], True) then
+      WaitUntil(not Inventory.IsSlotUsed(DepositSlots[0]), 100, 2000);
+
+    DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+  until Result := (DepositSlots = []);
+end;
+
+function TRSBank.DepositRandomItems(items: TRSItemArray): Boolean;
+var
+  slots: TIntegerArray;
+begin
+  slots := Inventory.FindRandomItems(items);
+
+  while slots <> [] do
+  begin
+    if not Self.IsOpen() then //Exit in case the bank somehow closed.
+      Exit;
+
+    if Self.DepositSlot([slots[0], BANK_DEPOSIT_ALL], True) then
+      WaitUntil(not Inventory.IsSlotUsed(slots[0]), 100, 2000);
+
+    slots := Inventory.FindRandomItems(items);
+  end;
+
+  Result := True;
+end;
+
+
+function TRSBank.Close(PressEscape: Boolean = False): Boolean; override;
+begin
+  if not Self.IsOpen(False) then
+    Exit(True);
+
+  Result := MainScreen.CloseInterface(PressEscape);
+end;
+
+function TRSBank.Close(chance: Double): Boolean; overload;
+var
+  pressEscape: Boolean;
+begin
+  if chance = BioHash then
+    pressEscape := Antiban.BioDice()
+  else
+    pressEscape := SRL.Dice(chance);
+
+  Result := MainScreen.CloseInterface(pressEscape);
+end;
+
+//Temporarily here.
+function TRSDepositBox.Close(PressEscape: Boolean = False): Boolean; override;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := MainScreen.CloseInterface(PressEscape);
+end;
+
+//Temporarily here.
+function TRSGrandExchange.Close(PressEscape: Boolean = False): Boolean; override;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := MainScreen.CloseInterface(PressEscape);
+end;
+

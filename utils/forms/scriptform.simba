@@ -10,11 +10,58 @@ This might be complicated to understand if you are not familiar with pointers an
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
+(*
+Compiler Directives
+~~~~~~~~~~~~~~~~~~~
+..pascal::
+  {$IFHASFILE credentials.simba}{$I credentials.simba}{$ENDIF}
+  {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+  {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := ''}{$ENDIF}
+
+The first line looks for a credentials.simba file and include it if it exists.
+This is what gives WaspLib scripts access to their accounts through several scripts.
+It's important to know that player information is stored in Simba code to compile when the file is included, what this means is that the information is in plain text.
+
+The next 2 lines are unrelated to credentials but related to each other.
+The way **TScriptForm** was made, it assumes a valid SCRIPT_ID and SCRIPT_REVISION have been assigned.
+Because WaspLib is not meant to enforce the usage of https://waspscripts..com, this was added as a way of users being able to use WaspLib regardless of having a script id/revision or not.
+*)
 {$IFHASFILE credentials.simba}{$I credentials.simba}{$ENDIF}
 {$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
 {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := ''}{$ENDIF}
 
+type
+(*
+TScriptForm
+~~~~~~~~~~~
+.. pascal::
+  TScriptForm = record
+    Size: TPoint;
+    PageControl: TPageControl;
+    Tabs: array of TTabSheet;
+    Start: TButton;
+    Form: TForm;
+  end;
+
+TScriptForm is the record responsible for handling the WaspLib form.
+*)
+  TScriptForm = record
+    Size: TPoint;
+    PageControl: TPageControl;
+    Tabs: array of TTabSheet;
+    Start: TButton;
+  class var
+    Form: TForm;
+  end;
+
 const
+(*
+CREDENTIALS_FILE
+~~~~~~~~~~~~~~~~
+..pascal:: const CREDENTIALS_FILE = AppPath + 'credentials.simba';
+
+Global constant that points to the location of credentials.simba which is Simba's root directory.
+*)
   CREDENTIALS_FILE = AppPath + 'credentials.simba';
 
 (*
@@ -23,7 +70,17 @@ RewriteCredentials
 .. pascal:: procedure RewriteCredentials();
 
 Internal method used to rewrite the credentials.simba file.
-This will use whatever is stored at the moment in **Login.Players**
+This will use whatever is stored at the moment in **Login.Players** array and replace Simba/credentials.simba with it written
+in the appropiate format.
+
+Example
+-------
+
+  begin
+    Login.AddPlayer('USERNAME1', 'PASSWORD1', 'PIN1', []); //[] is an array of world numbers.
+    Login.AddPlayer('USERNAME2', 'PASSWORD2', 'PIN2', []);
+    Login.AddPlayer('USERNAME3', 'PASSWORD3', 'PIN3', []);
+  end;
 *)
 procedure RewriteCredentials();
   function _FilterDuplicatePlayers(players: array of TRSLoginPlayer): array of TRSLoginPlayer;
@@ -83,18 +140,45 @@ begin
   end;
 end;
 
+(*
+TScriptForm.AddTab
+~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TScriptForm.AddTab(caption: String);
+  procedure TScriptForm.AddTab(tab: TTabSheet); overload;
+  procedure TScriptForm.AddTabArray(captions: TStringArray);
 
+Methods to add tabs to TScriptForm.
 
-type
-  TScriptForm = record
-    Size: TPoint;
-    PageControl: TPageControl;
-    Tabs: array of TTabSheet;
-    Start: TButton;
-  class var
-    Form: TForm;
+When you a tab by **caption** be it a single one or an array of them, the caption you use can be used
+to reference the tab later.
+
+It's **caption** get sanitized with:
+.. pascal:: LowerCase(StringReplace(caption, ' ', '_', [rfReplaceAll]))
+
+Which means that if you "HelLo WOrLD" as your **caption**, it's name internally will become "hello_world_settings".
+This is only important if you need to retrieve the tab with the use of **TScriptForm.Form.GetChild()**.
+If you use the other tab methods you simply have to write the **caption** name the same way you did the first time.
+Your tab will also be added to **TScriptForm.Tabs** as the last element of the array and you can get it right after adding it with **MyForm.Tabs[High(MyForm.Tabs)]**.
+
+This example as a very simple setup of a TScriptForm with one tab:
+
+Example
+-------
+
+  procedure TMyScriptForm.Run(); override;
+  var
+    tab: TTabSheet;
+  begin
+    Self.Setup('HELLO WORLD SCRIPT');
+    Self.Start.setOnClick(@Self.StartScript);
+
+    Self.AddTab('Script Settings');
+    tab := Self.Tabs[High(Self.Tabs)];
+
+    inherited;
   end;
-
+*)
 procedure TScriptForm.AddTab(caption: String);
 var
   tab: TTabSheet;
@@ -134,6 +218,16 @@ begin
 end;
 
 
+(*
+TScriptForm.AddTab
+~~~~~~~~~~~~~~~~~~
+.. pascal::
+  procedure TScriptForm.InsertTab(caption: String; index: Int32 = 0);
+  procedure TScriptForm.InsertTab(tab: TTabSheet; index: Int32 = 0); overload;
+
+Adds a tab to TScriptForm and places it in TScriptForm.Tabs at the specified index.
+This is rarely ever useful at all to be honest.
+*)
 procedure TScriptForm.InsertTab(caption: String; index: Int32 = 0);
 var
   tab: TTabSheet;
@@ -161,7 +255,21 @@ begin
   Insert(tab, Self.Tabs, index);
 end;
 
+(*
+TScriptForm.GetTab
+~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TScriptForm.GetTab(index: Int32): TTabSheet;
+  function TScriptForm.GetTab(caption: String; ignoreCase: Boolean = False): TTabSheet; overload;
 
+Returns a tab based on index or caption.
+
+Example
+-------
+
+  MyForm.AddTab('Hello wolrd');
+  tab := MyForm.GetTab('Hello world');
+*)
 function TScriptForm.GetTab(index: Int32): TTabSheet;
 begin
   Result := Self.Tabs[index];
@@ -187,7 +295,14 @@ begin
       Exit(Self.Tabs[i]);
 end;
 
+(*
+TScriptForm.SetTabOrder
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TScriptForm.SetTabOrder(captions: TStringArray; ignoreCase: Boolean = False); overload;
 
+Changes the tab order to that of the specified **captions** in the TScriptForm.Tabs array.
+Keep in mind this doesnt actually move the tabs in the Form.
+*)
 procedure TScriptForm.SetTabOrder(captions: TStringArray; ignoreCase: Boolean = False); overload;
 var
   tmp: array of TTabSheet;
@@ -200,6 +315,100 @@ begin
 end;
 
 
+(*
+TScriptForm.CreateTabs
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TScriptForm.CreateAPISettings(): TTabSheet;
+  function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
+  function TScriptForm.CreateAccountManager(): TTabSheet; overload;
+  function TScriptForm.CreateAntibanManager(): TTabSheet;
+  function TScriptForm.CreateConsumableSettings(owner: TControl; consumableType: ERSConsumable; addInfo: Boolean = True): TPanel;
+  function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet; overload;
+  function TScriptForm.CreateBankSettings(): TTabSheet;
+  function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
+  function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
+  function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
+  function TScriptForm.CreateVideoPanel(owner: TControl): TPanel;
+  function TScriptForm.CreateWaspLibSettings(limits: Boolean = True): TTabSheet;
+  function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray = [$27BA70, $00D8FF, $0000FF]; align: TAlign = alBottom): TPanel;
+
+Set of methods used to create pre-configured panels and/or tabs to interact with SRL/WaspLib.
+The methods that return panels require you to specify a **owner** which will be the parent of that TPanel.
+Some panels might also require you to position the panel correctly as you wish. You can either align it or set coordinates.
+
+All of this are quite complex but have all their own methods self contained and it's not worth going over them since if you understand them, you might as well just refer to their source code anyway.
+
+
+Very basic example of a full TScriptForm setup:
+
+Example
+-------
+
+.. pascal
+  {$I SRL-T/osr.simba}
+  {$I WaspLib/osr.simba}
+
+  type
+    TMyScriptForm = record(TScriptForm)
+      Selector: TLabeledCombobox;
+      Info: TLabel;
+    end;
+
+  procedure TMyScriptForm.StartScript(sender: TObject); override;
+  begin
+    //Read your form options to setup the script here.
+    inherited; //This is important if you use TScript.Setup().
+  end;
+
+  procedure TMyScriptForm.Run(); override;
+  var
+    tab: TTabSheet;
+  begin
+    Self.Setup('HELLO WORLD SCRIPT');
+    Self.Start.setOnClick(@Self.StartScript); //this is important, don't forget it.
+
+    Self.AddTab('Script Settings');
+    tab := Self.Tabs[High(Self.Tabs)];
+
+    Self.CreateAccountManager(tab);
+
+    with Self.Selector do
+    begin
+      Create(tab);
+      SetCaption('Item type:');
+      SetLeft(TControl.AdjustToDPI(40));
+      SetTop(TControl.AdjustToDPI(170));
+      SetStyle(csDropDownList);
+      AddItemArray(['Item1', 'Item2', 'Item3', 'Item4']);
+      SetItemIndex(2);
+    end;
+
+    with Self.Info do
+    begin
+      Create(tab);
+      SetCaption('Get 99 Hello world today!');
+      SetLeft(Self.Selector.GetRight() + TControl.AdjustToDPI(40));
+      SetTop(TControl.AdjustToDPI(190));
+    end;
+
+    Self.CreateVersionPanel(tab);
+    Self.CreateAntibanManager();
+    Self.CreateBankSettings();
+    Self.CreateWaspLibSettings();
+    Self.CreateAPISettings();
+
+    inherited;
+  end;
+
+  var
+    MyScriptForm: TMyScriptForm;
+
+  begin
+    MyScriptForm.Run();
+    //RUN SCRIPT HERE!
+  end.
+*)
 function TScriptForm.CreateAPISettings(): TTabSheet;
   type TScriptForm = TScriptForm;
   procedure TScriptForm._NewUUIDOnChange(sender: TObject);
@@ -209,7 +418,7 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     new, old: String;
   begin
     newEdit := sender;
-    oldEdit := Self.Form.GetChild('api_uuid_edit');
+    oldEdit := TScriptForm.Form.GetChild('api_uuid_edit');
     font := newEdit.getFont();
     new := Trim(newEdit.getText());
     old := Trim(oldEdit.getText());
@@ -245,8 +454,8 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     success: Boolean;
     settings: TStringArray;
   begin
-    newUUIDEdit := Self.Form.GetChild('api_new_uuid_edit');
-    oldUUIDEdit := Self.Form.GetChild('api_uuid_edit');
+    newUUIDEdit := TScriptForm.Form.GetChild('api_new_uuid_edit');
+    oldUUIDEdit := TScriptForm.Form.GetChild('api_uuid_edit');
     new := Trim(newUUIDEdit.getText());
 
     if new = Trim(oldUUIDEdit.getText()) then
@@ -269,8 +478,8 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
       Exit;
 
 
-    newPassEdit := Self.Form.GetChild('api_new_pass_edit');
-    oldPassEdit := Self.Form.GetChild('api_pass_edit');
+    newPassEdit := TScriptForm.Form.GetChild('api_new_pass_edit');
+    oldPassEdit := TScriptForm.Form.GetChild('api_pass_edit');
 
     APIClient.UUID := new;
     StatsPayload.Password := password;
@@ -290,8 +499,8 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     new: String;
     success: Boolean;
   begin
-    oldEdit := Self.Form.GetChild('api_pass_edit');
-    newEdit := Self.Form.GetChild('api_new_pass_edit');
+    oldEdit := TScriptForm.Form.GetChild('api_pass_edit');
+    newEdit := TScriptForm.Form.GetChild('api_new_pass_edit');
     new := Trim(newEdit.getText());
 
     if new = '' then
@@ -456,16 +665,16 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
   var
     edit: TCustomEdit;
   begin
-    edit := Self.Form.GetChild('am_user_edit');
+    edit := TScriptForm.Form.GetChild('am_user_edit');
     edit.Clear();
 
-    edit := Self.Form.GetChild('am_pass_edit');
+    edit := TScriptForm.Form.GetChild('am_pass_edit');
     edit.Clear();
 
-    edit := Self.Form.GetChild('am_pin_edit');
+    edit := TScriptForm.Form.GetChild('am_pin_edit');
     edit.Clear();
 
-    edit := Self.Form.GetChild('am_worlds_memo');
+    edit := TScriptForm.Form.GetChild('am_worlds_memo');
     edit.Clear();
   end;
 
@@ -478,10 +687,10 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
   begin
     idx := Login.PlayerIndex;
 
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
+    user := TScriptForm.Form.GetChild('am_user_edit');
+    pass := TScriptForm.Form.GetChild('am_pass_edit');
+    pin := TScriptForm.Form.GetChild('am_pin_edit');
+    worlds := TScriptForm.Form.GetChild('am_worlds_memo');
 
     user.SetText(Login.Players[idx].User);
     pass.setText(Login.Players[idx].Password);
@@ -504,13 +713,13 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     save, delete: TButton;
     player: TRSLoginPlayer;
   begin
-    selector := Self.Form.GetChild('am_selector_combobox');
+    selector := TScriptForm.Form.GetChild('am_selector_combobox');
     selector.Clear();
 
     hasPlayers := Login.Players <> [];
     selector.SetEnabled(hasPlayers);
-    save := Self.Form.GetChild('am_save_button');
-    delete := Self.Form.GetChild('am_delete_button');
+    save := TScriptForm.Form.GetChild('am_save_button');
+    delete := TScriptForm.Form.GetChild('am_delete_button');
 
     save.SetEnabled(hasPlayers);
     delete.SetEnabled(hasPlayers);
@@ -562,11 +771,11 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     worlds: TMemo;
     worldsArray: TIntegerArray;
   begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin  := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
+    selector := TScriptForm.Form.GetChild('am_selector_combobox');
+    user := TScriptForm.Form.GetChild('am_user_edit');
+    pass := TScriptForm.Form.GetChild('am_pass_edit');
+    pin  := TScriptForm.Form.GetChild('am_pin_edit');
+    worlds := TScriptForm.Form.GetChild('am_worlds_memo');
 
     if user.IsEmpty() then
     begin
@@ -593,11 +802,11 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     i: Int32;
     player: TRSLoginPlayer;
   begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin  := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
+    selector := TScriptForm.Form.GetChild('am_selector_combobox');
+    user := TScriptForm.Form.GetChild('am_user_edit');
+    pass := TScriptForm.Form.GetChild('am_pass_edit');
+    pin  := TScriptForm.Form.GetChild('am_pin_edit');
+    worlds := TScriptForm.Form.GetChild('am_worlds_memo');
 
     if user.IsEmpty() then
     begin
@@ -630,7 +839,7 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     selector: TComboBox;
     i: Int32;
   begin
-    selector := Self.Form.GetChild('am_selector_combobox');
+    selector := TScriptForm.Form.GetChild('am_selector_combobox');
     i := selector.getItemIndex();
 
     if i > High(Login.Players) then
@@ -792,7 +1001,7 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     str: String;
   begin
     edit := sender;
-    bar := Self.Form.GetChild('ab_biohash_trackbar');
+    bar := TScriptForm.Form.GetChild('ab_biohash_trackbar');
 
     str := edit.getText();
     if not str.IsFloat() then
@@ -816,7 +1025,7 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     str: String;
   begin
     bar := sender;
-    edit := Self.Form.GetChild('ab_biohash_edit');
+    edit := TScriptForm.Form.GetChild('ab_biohash_edit');
 
     value := bar.getPosition() * 0.111111111111111;
     if value = 0 then
@@ -843,9 +1052,9 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
 
     for i := 0 to High(arr) do
     begin
-      child := Self.Form.GetChild(arr[i] + '_group_checkbox');
+      child := TScriptForm.Form.GetChild(arr[i] + '_group_checkbox');
       child.setEnabled(checked);
-      panel := Self.Form.GetChild(arr[i] + '_group_panel');
+      panel := TScriptForm.Form.GetChild(arr[i] + '_group_panel');
       panel.setEnabled(checked);
       WLSettings.Antiban.Enabled := checked;
 
@@ -894,8 +1103,8 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     sleeps := sender;
     checked := sleeps.IsChecked();
 
-    sleepHour   := Self.Form.GetChild('ab_sleep_hour_edit');
-    sleepLength := Self.Form.GetChild('ab_sleep_length_edit');
+    sleepHour   := TScriptForm.Form.GetChild('ab_sleep_hour_edit');
+    sleepLength := TScriptForm.Form.GetChild('ab_sleep_length_edit');
 
     sleepHour.setEnabled(checked);
     sleepLength.setEnabled(checked);
@@ -911,10 +1120,9 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
   begin
     edit := sender;
     text := edit.GetText();
-
     if not ExecRegExpr(REGEX, text) then
     begin
-      text := WLSettings.Sleep.HourOverride;
+      text := WLSettings.Sleep.Hour;
       edit.setText(text);
     end;
 
@@ -968,7 +1176,7 @@ begin
   Self.AddTab('Antiban Manager');
   Result := Self.Tabs[High(Self.Tabs)];
 
-  combobox := Self.Form.GetChild('am_selector_combobox');
+  combobox := TScriptForm.Form.GetChild('am_selector_combobox');
   if combobox = nil then
   begin
     Antiban.SetupBiometrics();
@@ -1081,8 +1289,8 @@ begin
     SetCaption('Sleep hour:');
     SetName('ab_sleep_hour');
     SetMaxLength(8);
-    //Edit.setOnKeyPress(@Edit.NumberField);
-    Edit.setOnChange(@Self._SleepHourOnChange);
+    Edit.setOnKeyPress(@Edit.TimeField);
+    Edit.setOnEditingDone(@Self._SleepHourOnChange);
     SetText(WLSettings.Sleep.Hour);
   end;
 
@@ -1213,7 +1421,7 @@ begin
     Edit.setOnKeyPress(@Edit.NumberField);
   end;
 
-  if Self.Form.GetChild('bank_settings') <> nil then
+  if TScriptForm.Form.GetChild('bank_settings') <> nil then
     with consumableAmount do
     begin
       Create(Result);
@@ -1269,7 +1477,7 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
     p: TPoint;
   begin
     combobox := sender;
-    imgBox := Self.Form.GetChild('map_selector');
+    imgBox := TScriptForm.Form.GetChild('map_selector');
 
     WLSettings.BankLocation := EWLBankLocation(combobox.getItemIndex());
     b := RSBankRegions[Ord(WLSettings.BankLocation)].Bounds;
@@ -1295,7 +1503,7 @@ var
   imgBox: TSimbaImageBox;
   fullWidth, w, space, x, y: Int32;
 begin
-  Self.Form.setOnShow(@Self._FormOnShow);
+  TScriptForm.Form.setOnShow(@Self._FormOnShow);
 
   Self.AddTab('Bank Settings');
   Result := Self.Tabs[High(Self.Tabs)];
@@ -1341,8 +1549,6 @@ begin
 
   bmp.Free();
 end;
-
-
 
 function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
   type TScriptForm = TScriptForm;
@@ -1451,9 +1657,9 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
 
     for i := 0 to High(arr) do
     begin
-      child := Self.Form.GetChild(arr[i] + '_group_checkbox');
+      child := TScriptForm.Form.GetChild(arr[i] + '_group_checkbox');
       child.setEnabled(checked);
-      panel := Self.Form.GetChild(arr[i] + '_group_panel');
+      panel := TScriptForm.Form.GetChild(arr[i] + '_group_panel');
       panel.setEnabled(checked);
       WLSettings.RemoteInput.Enabled := checked;
 
@@ -1587,13 +1793,82 @@ begin
   end;
 end;
 
+function TScriptForm.CreateVideoPanel(owner: TControl): TPanel;
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._VideoOnChange(sender: TObject);
+  var
+    checked: Boolean;
+    edit: TEdit;
+  begin
+    checked := TCheckBox(sender).IsChecked();
+    WLSettings.SaveVideo.Enabled := checked;
+    edit := TScriptForm.Form.GetChild('v_time_edit');
+    edit.setEnabled(checked);
+  end;
+
+  procedure TScriptForm._TimeOnChange(sender: TObject);
+  begin
+    WLSettings.SaveVideo.Time := StrToInt(TEdit(sender).getText());
+  end;
+var
+  enabled: TLabeledCheckBox;
+  time: TLabeledEdit;
+begin
+  with Result do
+  begin
+    Create(owner);
+    SetName('v_panel');
+    SetCaption('');
+    setBevelWidth(0);
+    SetTooltip(
+      'Record script crashes with simba.'
+      + LineEnding +
+      'Videos are saved at: ' + AppPath + 'Data/WaspLib/videos/'
+      + LineEnding +
+      'This is a resource intense feature, use it only for debugging purposes.'
+    );
+    SetTop(TControl.AdjustToDPI(250));
+    SetHeight(TControl.AdjustToDPI(68));
+  end;
+
+  with enabled do
+  begin
+    Create(Result);
+    SetCaption('Record crashes');
+    SetName('v_enabled');
+    SetLeft(TControl.AdjustToDPI(10));
+    SetTop(TControl.AdjustToDPI(10));
+    SetChecked(WLSettings.SaveVideo.Enabled);
+    CheckBox.setOnChange(@Self._VideoOnChange);
+  end;
+
+  with time do
+  begin
+    Create(Result);
+    SetLeft(enabled.GetLeft());
+    SetTop(enabled.GetBottom() + TControl.AdjustToDPI(10));
+    SetCaption('Video time (seconds):');
+    SetName('v_time');
+    SetTooltip('');
+    SetMaxLength(2);
+    SetEnabled(False);
+    Edit.setOnKeyPress(@Edit.NumberField);
+    Edit.SetOnChange(@Self._TimeOnChange);
+    SetText(ToString(WLSettings.SaveVideo.Time));
+    SetWidth(TControl.AdjustToDPI(110));
+  end;
+end;
 
 function TScriptForm.CreateWaspLibSettings(limits: Boolean = True): TTabSheet;
 var
-  riPanel, limitPanel: TPanel;
+  riPanel, limitPanel, videoPanel: TPanel;
 begin
   Self.AddTab('WaspLib Settings');
   Result := Self.Tabs[High(Self.Tabs)];
+
+  videoPanel := Self.CreateVideoPanel(Result);
+  videoPanel.setAlign(alTop);
 
   riPanel := Self.CreateRemoteInputSettings(Result);
   riPanel.setAlign(alTop);
@@ -1725,12 +2000,40 @@ begin
   revPanel.SetLeft(TControl.AdjustToDPI(5));
 end;
 
+
+(*
+TScriptForm.StartScript
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TScriptForm.StartScript({$H-}sender: TObject);{$H+}
+
+This exists so you can close and terminate your script by closing the form window, otherwise it would just run the script.
+Overriding this will require you to use **inherited** on your override.
+
+Overriding this is also my recommended way of setting up your script variables like the following example:
+
+Example
+-------
+
+  procedure TScriptForm.StartScript(sender: TObject); override;
+  begin
+    CurrentTask := ETask(Self.TaskSelector.GetItemIndex());
+    inherited;
+  end;
+*)
 procedure TScriptForm.StartScript({$H-}sender: TObject);{$H+}
 begin
-  Self.Form.SetOnClose(nil);
-  Self.Form.Close();
+  TScriptForm.Form.SetOnClose(nil);
+  TScriptForm.Form.Close();
 end;
 
+(*
+TScriptForm.Setup
+~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
+
+Responsible for setting your TScriptForm up.
+This sets up the sekeleton of your TScriptForm ready to take in tabs.
+*)
 procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
   type TScriptForm = TScriptForm;
 
@@ -1766,32 +2069,52 @@ begin
 
   with Self.PageControl do
   begin
-    Create(Self.Form);
+    Create(TScriptForm.Form);
     setName('pagecontrol');
     setAlign(alClient);
   end;
 
   with Self.Start do
   begin
-    Create(Self.Form);
+    Create(TScriptForm.Form);
     setAlign(alBottom);
     SetCaption('Start!');
     setOnClick(@Self.StartScript);
   end;
 end;
 
+(*
+TScriptForm.Show
+~~~~~~~~~~~~~~~~
+.. pascal:: procedure TScriptForm.Show();
 
+Shows your TScriptForm after it has been setup. To run this you have to use **Sync()**
+
+Example
+-------
+
+  Sync(@MyForm.Show);
+*)
 procedure TScriptForm.Show();
 begin
   try
-    Self.Form.ShowModal();
+    TScriptForm.Form.ShowModal();
   except
     Writeln(GetExceptionMessage());
   finally
-    Self.Form.Free();
+    TScriptForm.Form.Free();
   end;
 end;
 
+(*
+TScriptForm.Run
+~~~~~~~~~~~~~~~
+.. pascal:: procedure TScriptForm.Run();
+
+Basically a wrapper for TScriptForm.Show() so users don't have to use **Sync()** directly.
+It is also a great method to override to setup your custom form things on like in the previous examples.
+If you do override it, you absolutely must use **inherited** on your override and it should be at the end of the method.
+*)
 procedure TScriptForm.Run();
 begin
   Sync(@Self.Show);

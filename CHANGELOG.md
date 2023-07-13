@@ -1,45 +1,45 @@
-# [13.4.0](https://github.com/Torwent/WaspLib/compare/v13.3.20...v13.4.0) (2023-06-12)
+# [14.2.0](https://github.com/Torwent/WaspLib/compare/v14.1.3...v14.2.0) (2023-07-13)
 
 
 ### Features
 
-* added Olly's recorder ([bc50b65](https://github.com/Torwent/WaspLib/commit/bc50b65863bc999a6783fb9b92a22f057913ddc8))
+* **TBaseBankScript:** read notes ([f8aaf6f](https://github.com/Torwent/WaspLib/commit/f8aaf6f26cac945a4049c362a960135c6669bf61))
 
 
 
-## [13.3.20](https://github.com/Torwent/WaspLib/compare/v13.3.19...v13.3.20) (2023-06-09)
-
-
-### Bug Fixes
-
-* **xpbarsetup:** made it more verbose to warn users if they have xpbar not setup properly ([fe41cfa](https://github.com/Torwent/WaspLib/commit/fe41cfa5c8a11079bc49a0226b687276a085aa34))
-
-
-
-## [13.3.19](https://github.com/Torwent/WaspLib/compare/v13.3.18...v13.3.19) (2023-06-08)
+## [14.1.3](https://github.com/Torwent/WaspLib/compare/v14.1.2...v14.1.3) (2023-07-12)
 
 
 ### Bug Fixes
 
-* **FormsV2:** shouldn't throw exceptions anymore when add/delete buttons are clicked ([879a1c7](https://github.com/Torwent/WaspLib/commit/879a1c71c26a3da7b2bc43a97c6f73e7a2fca86f))
+* **BankPin:** all bankpin overrides were removed from wasplib, it's now built in, in SRL-T ([11219cf](https://github.com/Torwent/WaspLib/commit/11219cfd2f2a4aee122ed6e2e034552390f50022))
 
 
 
-## [13.3.18](https://github.com/Torwent/WaspLib/compare/v13.3.17...v13.3.18) (2023-06-07)
-
-
-### Bug Fixes
-
-* **minimap:** read notes ([493e68a](https://github.com/Torwent/WaspLib/commit/493e68a9a4f97fae52e50e100c18bf59667f92bc))
-
-
-
-## [13.3.17](https://github.com/Torwent/WaspLib/compare/v13.3.16...v13.3.17) (2023-06-07)
+## [14.1.2](https://github.com/Torwent/WaspLib/compare/v14.1.1...v14.1.2) (2023-07-11)
 
 
 ### Bug Fixes
 
-* typo when calculating object heights ([d699932](https://github.com/Torwent/WaspLib/commit/d699932d1a64aca38d3a50610ed6c5c4d7e0b0e8))
+* **Inventory:** read notes ([3701e41](https://github.com/Torwent/WaspLib/commit/3701e41fb364e370f80ec53f8dbf7a44692d902d))
+
+
+
+## [14.1.1](https://github.com/Torwent/WaspLib/compare/v14.1.0...v14.1.1) (2023-07-10)
+
+
+### Bug Fixes
+
+* improve TPoint.WithinDistance() ([e25128f](https://github.com/Torwent/WaspLib/commit/e25128fcb332b79b2df0807f95060768d71f7e20))
+
+
+
+# [14.1.0](https://github.com/Torwent/WaspLib/compare/v14.0.4...v14.1.0) (2023-07-10)
+
+
+### Features
+
+* read notes ([f416fb4](https://github.com/Torwent/WaspLib/commit/f416fb4b56ac6777867ce27ddcd5ccac52a725f8))
 
 
 

@@ -17,6 +17,9 @@ const
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
   WL_WALKER_MAP_VERSION = '9'; //Increment when maps are updated to force recaching.
 
+var
+  ScriptWalker: PRSWalker;
+
 (*
 type RSHeightMap
 ~~~~~~~~~~~~~~~~
@@ -291,6 +294,83 @@ begin
       hBitmaps[I].Free();
 end;
 
+procedure TRSWalkerMap.Load(fileName: String; ARegion: TBox; Scaling: Integer; Padding: Integer = 50); overload;
+var
+  bitmaps, hBitmaps: TMufasaBitmapArray;
+  bitmap, hBitmap: TMufasaBitmap;
+  i, hi: Int32;
+  hFileName: String;
+begin
+  for i := 0 to High(Self.Regions) do
+  begin
+    bitmaps += Self.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+    if not RSHeightMap.Disabled then
+      hBitmaps += RSHeightMap.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+  end;
+
+  Self.Map.Clear();
+  if not RSHeightMap.Disabled then
+    RSHeightmap.Map.Clear();
+
+  fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
+
+  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(fileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or
+                         (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
+
+  SetLength(Self.Regions, Length(Self.Regions) + 1);
+  SetLength(Self.RegionOffsets, Length(Self.Regions));
+
+  hi := High(Self.Regions);
+
+  Self.RegionOffsets[hi] := TPoint.Create(ARegion.X1, ARegion.Y1);
+
+  bitmap := Self.InternalLoadMap(FileName, ARegion);
+  if not RSHeightMap.Disabled then
+    hBitmap := Self.InternalLoadMap(hFileName, ARegion);
+
+  if (ARegion <> RSWalkerRegions.WORLD) then
+  begin
+    Self.RegionOffsets[hi].X -= Padding;
+    Self.RegionOffsets[hi].Y -= Padding;
+
+    bitmap.Pad(Padding);
+    if not RSHeightMap.Disabled then
+      hBitmap.Pad(Padding);
+  end;
+
+  Self.Regions[hi] := TBox.Create(0, 0, bitmap.GetWidth(), bitmap.GetHeight());
+  bitmaps += bitmap;
+  if not RSHeightMap.Disabled then
+    hBitmaps += hBitmap;
+
+  Self.Regions := Self.Regions.Pack();
+  Self.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  for I := 0 to High(Self.Regions) do
+  begin
+    Self.Map.DrawBitmap(bitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+    if not RSHeightMap.Disabled then
+      RSHeightMap.Map.DrawBitmap(hBitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+  end;
+
+  Self.ScaledMap.Clear();
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+
+  for I := 0 to High(bitmaps) do
+    bitmaps[I].Free();
+
+  if not RSHeightMap.Disabled then
+    for I := 0 to High(hBitmaps) do
+      hBitmaps[I].Free();
+end;
+
+
+
+
 (*
 Walker.InternalSetup
 ~~~~~~~~~~~~~~~~~~~~
@@ -298,22 +378,25 @@ Walker.InternalSetup
 
 Overrides SRL's Walker.InternalSetup() so it uses WaspWeb as the walker webgraph and so it uses ScreenWalk by default.
 This is an internal Walker method, you probably don't need to call it.
+It also sets up the ScriptWalker pointer which is used for several things in WaspLib like TRSWalkerObjects and Skunk's transport system.
 *)
 procedure TRSWalker.InternalSetup(); override;
 var
-  MinimapImage, MinimapSample: TMufasaBitmap;
+  minimapImage, minimapSample: TMufasaBitmap;
 begin
   Self.Name := 'Walker';
 
-  MinimapImage := Self.GetCleanMinimap();
-  MinimapSample := Self.ScaleMinimap(MinimapImage, Self.Scaling);
+  minimapImage := Self.GetCleanMinimap();
+  minimapSample := Self.ScaleMinimap(minimapImage, Self.Scaling);
 
   Self.Cache := TMatchTemplateRGBCache.Create(Self.Map.ScaledMap.ToMatrix(), MinimapSample.ToMatrix());
   Self.WebGraph := WaspWeb;
   Self.ScreenWalk := True;
 
-  MinimapSample.Free();
-  MinimapImage.Free();
+  minimapSample.Free();
+  minimapImage.Free();
+
+  ScriptWalker := @Self;
 end;
 
 (*
@@ -340,6 +423,44 @@ begin
     region := RSBankRegions[WLSettings.BankLocation];
 
   Self.Setup([region.Bounds]);
+end;
+
+(*
+Walker.SetupFromURL
+~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.SetupFromURL(url: String; map: String = ''; scaling: Int32 = 8; forceDownload: Boolean = False); overload;
+
+Allows you to setup a TRSWalker with a map from the internet.
+You can optionally skip downloading the file if it already exists by using **forceDownload**.
+If **map** is empty, the url file name will be used.
+*)
+procedure TRSWalker.SetupFromURL(url: String; map: String = ''; scaling: Int32 = 8; forceDownload: Boolean = False); overload;
+var
+  tmp: TStringArray;
+begin
+  if map = '' then
+  begin
+    tmp := url.Explode('/');
+    map := tmp[High(tmp)];
+  end;
+
+  DownloadToFile(url, WL_WALKER_MAPS + map, forceDownload);
+  Self.Setup(map, scaling);
+end;
+
+
+
+(*
+Walker.AddRegion
+~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSWalker.AddRegion(region: TBox); overload;
+
+Add a region to walker on the fly after it is already setup.
+*)
+procedure TRSWalker.AddRegion(region: TBox); overload;
+begin
+  Self.Map.Load(SRL_WALKER_MAP, region, Self.Scaling);
+  Self.InternalSetup();
 end;
 
 (*

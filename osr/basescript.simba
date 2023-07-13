@@ -342,10 +342,6 @@ begin
   Self.ID := {$macro SCRIPT_ID};
   Self.Revision := {$macro SCRIPT_REVISION};
 
-  {$IFNDEF FORMS_V2}
-  CheckUpdates(Self.Name);
-  {$ENDIF}
-
   GenerateLog(Self.Name);
   WriteFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding, True);
 
@@ -541,7 +537,7 @@ begin
   inherited;
 
   Self.BankTab := -1;
-  Self.CollectTimer.Init(600000);
+  Self.CollectTimer.Init(10 * ONE_MINUTE);
 
   //override me to add more stuff.
 end;
@@ -580,14 +576,10 @@ var
 begin
   for i := 0 to 5 do
   begin
-    if MainScreen.HasInterface() then
-    begin
-      if Result := Bank.IsOpen then Break
-      else MainScreen.CloseInterface;
-    end;
+    Result := Bank.WalkOpen();
 
-    if Result := Bank.WalkOpen() then
-      Break;
+    if Result then
+      Exit;
   end;
   //override me to add more stuff.
 end;
@@ -665,44 +657,24 @@ Example
   if Bank.IsOpen() then
     BankScript.Withdraw(['Shark', 1, True]);
 *)
-function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean;
-var
-  invCount, stackCount: Int32;
-  useButton: Boolean;
+function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean;
 begin
-  if Self.BankTab = -1 then
-  begin
-    Self.BankTab := Bank.FindItemTab(item.Item);
-    Self.BankEmpty := Self.BankTab = -1;
+  if Bank.WithdrawItem(item, item.Quantity <> 1) then
+    Result := WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000);
 
-    if Self.BankEmpty then
-      Exit;
-  end;
+  if Result then
+    Exit;
 
-  stackCount := Inventory.CountItemStack(item.Item);
-  invCount   := Inventory.Count();
+  Bank.UnHoverIncinerator();
+  if Bank.IsSearchOpen() then
+    Bank.CloseSearch();
 
-  if (invCount = 28) then //maybe no space to withdraw the item.
-  begin
-    //no space and we don't have the item or the item is not stackable. we can't withdraw.
-    if not Inventory.ContainsItem(item.Item) or (stackCount <= 0) then
-      Exit;
-  end;
+  if Inventory.IsFull() or not Inventory.ItemIsStackable(item.Item) then
+    if WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000) then
+      Exit(True);
 
-  useButton := item.Quantity <> 1; //I'm gonna assume 1 quantity that it's a tool.
-
-  if Bank.WithdrawItem(Self.BankTab, item, useButton) then
-    Result := WaitUntil((Inventory.Count() > invCount) or (Inventory.CountItemStack(item.Item) > stackCount), 100, 3000);
-
-  if not Result then
-  begin
-    Bank.UnHoverIncinerator();
-    Self.BankEmpty := not Bank.IsSearchOpen() and
-                      not WaitUntil(Bank.ContainsItem(Self.BankTab, item), 300, 3000);
-
-    if Bank.IsSearchOpen() then
-      Bank.CloseSearch();
-  end;
+  if attempt < 2 then
+    Exit(Self.Withdraw(item, attempt + 1));
 
   Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
 
@@ -712,6 +684,104 @@ begin
   if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
     Self.CollectEmpty := False;
 end;
+
+function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean; overload; deprecated 'Use the TRSBankItem version instead!';
+var
+  tmp: TRSBankItem;
+begin
+  tmp := TRSBankItem.Setup(item.item, item.Quantity, item.Noted);
+  tmp.Tab := Self.BankTab;
+
+  Result := Self.Withdraw(tmp);
+
+  Self.BankTab := tmp.Tab;
+end;
+
+
+(*
+BaseBankScript.DepositItem
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TBaseBankScript.DepositItem(out item: TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean;
+  function TBaseBankScript.DepositItem(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; overload;
+
+Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
+*)
+function TBaseBankScript.DepositItem(out item: TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean; static;
+begin
+  if isBank and isDepositBox then
+  begin
+    isBank := False;
+    isDepositBox := False;
+  end;
+
+  if not isBank and not isDepositBox and not MainScreen.HasInterface() then
+    Exit;
+
+  if not isDepositBox and (isBank or Bank.IsOpen()) then
+    Exit(Bank.DepositItem(item, True));
+
+  if isDepositBox or DepositBox.IsOpen() then
+    Result := DepositBox.DepositItem(item, True);
+end;
+
+function TBaseBankScript.DepositItem(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; static; overload;
+var
+  tmp: TRSBankItem;
+begin
+  tmp := TRSBankItem.Setup(item);
+  Result := TBaseBankScript.DepositItem(tmp, isBank, isDepositBox);
+end;
+
+(*
+BaseBankScript.DepositItems
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal::
+  function TBaseBankScript.DepositItem(out items: array of TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean;
+  function TBaseBankScript.DepositItems(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; overload;
+
+Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
+*)
+function TBaseBankScript.DepositItems(out items: array of TRSBankItem): Boolean; static;
+var
+  item: TRSBankItem;
+  isBank, isDepositBox: Boolean;
+begin
+  if not MainScreen.HasInterface() then
+    Exit;
+
+  isBank := Bank.IsOpen();
+  if isBank then
+    isDepositBox := DepositBox.IsOpen();
+
+  if not isBank and not isDepositBox then
+    Exit;
+
+  for item in items do
+    if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Result := True;
+end;
+
+function TBaseBankScript.DepositItems(items: TRSItemArray): Boolean; static; overload;
+var
+  item: TRSItem;
+  isBank, isDepositBox: Boolean;
+begin
+  if not MainScreen.HasInterface() then
+    Exit;
+
+  isBank := Bank.IsOpen();
+  if isBank then
+    isDepositBox := DepositBox.IsOpen();
+
+  if not isBank and not isDepositBox then
+    Exit;
+
+  for item in items do
+    if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Result := True;
+end;
+
 
 (*
 BaseBankScript.HandleCollectBox
@@ -735,7 +805,6 @@ begin
     Self.BankEmpty := not Self.CollectEmpty;
   end;
 end;
-
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
 begin

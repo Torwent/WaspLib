@@ -7,7 +7,7 @@
 //Antiban overrides:
 
 //Makes inventory patterns more common to each player based on their BioHash.
-function TRSInventory.RandomPattern: TIntegerArray; override;
+function TRSInventory.RandomPattern(): TIntegerArray; override;
 const
   PATTERNS: T2DIntegerArray = [
     DROP_PATTERN_SNAKE, DROP_PATTERN_SPIRAL,
@@ -21,21 +21,26 @@ begin
   hi := High(PATTERNS);
   randomCase := Antiban.GetUniqueNumber(Random(hi+1), 0, hi);
 
-  Result := Patterns[Round(randomCase)];
+  Result := PATTERNS[Round(randomCase)];
   if Antiban.BioDice(30) then
     Result := Result.Reversed();
 end;
 
 //overriden to use Bank.Close with biohash.
-function TRSGameTabs.Open(Tab: ERSGameTab): Boolean; override;
+function TRSGameTabs.Open(tab: ERSGameTab): Boolean; override;
+  function _InventoryIterfaceIsOpen(): Boolean;
+  begin
+    Result := Bank.IsOpen(False) or DepositBox.IsOpen() or Store.IsOpen();
+  end;
+
 begin
-  if Self.GetCurrentTab() = Tab then
+  if Self.GetCurrentTab() = tab then
     Exit(True);
 
-  if MainScreen.HasInterface() and (Bank.IsOpen(False) or DepositBox.IsOpen()) then
+  if MainScreen.HasInterface() and _InventoryIterfaceIsOpen() then
     MainScreen.CloseInterface();
 
-  Result := inherited(Tab);
+  Result := inherited(tab);
 end;
 
 
@@ -85,34 +90,34 @@ end;
 function TRSChooseOption.Select(Text: TStringArray; MouseAction: Int32 = MOUSE_LEFT; CaseSensitive: Boolean = True; CloseIfNotFound: Boolean = True): Boolean; override;
 var
   choices: TRSChooseOption_OptionArray;
-  I, J: Int32;
+  i, j: Int32;
   rand: Double;
 begin
-  if Self.Open() then
+  if not Self.Open() then
+    Exit;
+
+  rand := Antiban.GetUniqueNumber(750, 500, 1000);
+  case Antiban.GetChance(EBioBehavior.REACTION_SPEED) of
+    0.00..0.30: Wait(0, rand, wdRight);
+    0.30..0.70: Wait(0, rand, wdMean);
+    else        Wait(0, rand, wdLeft);
+  end;
+
+  choices := Self.GetOptions();
+
+  for i := 0 to High(choices) do
+    for j := 0 to High(Text) do
+      if (CaseSensitive and (Text[j] in choices[i].Text)) or ((not CaseSensitive) and (Lowercase(Text[j]) in Lowercase(Choices[i].Text))) then
+      begin
+        Self.Select(choices[i], MouseAction);
+
+        Exit(True);
+      end;
+
+  if CloseIfNotFound then
   begin
-    rand := Antiban.GetUniqueNumber(750, 500, 1000);
-    case Antiban.GetChance(EBioBehavior.REACTION_SPEED) of
-      0.00..0.30: Wait(0, rand, wdRight);
-      0.30..0.70: Wait(0, rand, wdMean);
-      else        Wait(0, rand, wdLeft);
-    end;
+    WaitEx(500, 250);
 
-    choices := Self.GetOptions();
-
-    for I := 0 to High(choices) do
-      for J := 0 to High(Text) do
-        if (CaseSensitive and (Text[J] in choices[I].Text)) or ((not CaseSensitive) and (Lowercase(Text[J]) in Lowercase(Choices[I].Text))) then
-        begin
-          Self.Select(choices[I], MouseAction);
-
-          Exit(True);
-        end;
-
-    if CloseIfNotFound then
-    begin
-      WaitEx(500, 250);
-
-      Self.Close;
-    end;
+    Self.Close();
   end;
 end;

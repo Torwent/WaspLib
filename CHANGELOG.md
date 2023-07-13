@@ -1,3 +1,12 @@
+## [14.2.1](https://github.com/Torwent/WaspLib/compare/v14.2.0...v14.2.1) (2023-07-13)
+
+
+### Bug Fixes
+
+* merge Simon's PR ([397d802](https://github.com/Torwent/WaspLib/commit/397d802f81fd2296d2fb5a32ca2db5f21cc7acdf)), closes [#67](https://github.com/Torwent/WaspLib/issues/67)
+
+
+
 # [14.2.0](https://github.com/Torwent/WaspLib/compare/v14.1.3...v14.2.0) (2023-07-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * improve TPoint.WithinDistance() ([e25128f](https://github.com/Torwent/WaspLib/commit/e25128fcb332b79b2df0807f95060768d71f7e20))
-
-
-
-# [14.1.0](https://github.com/Torwent/WaspLib/compare/v14.0.4...v14.1.0) (2023-07-10)
-
-
-### Features
-
-* read notes ([f416fb4](https://github.com/Torwent/WaspLib/commit/f416fb4b56ac6777867ce27ddcd5ccac52a725f8))
 
 
 

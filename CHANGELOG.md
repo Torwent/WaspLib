@@ -1,3 +1,12 @@
+## [14.2.2](https://github.com/Torwent/WaspLib/compare/v14.2.1...v14.2.2) (2023-07-13)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** fixed withdrawing ([ef230c0](https://github.com/Torwent/WaspLib/commit/ef230c0ac0ffef8f3450435b8e693331a6e2a7cb))
+
+
+
 ## [14.2.1](https://github.com/Torwent/WaspLib/compare/v14.2.0...v14.2.1) (2023-07-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Inventory:** read notes ([3701e41](https://github.com/Torwent/WaspLib/commit/3701e41fb364e370f80ec53f8dbf7a44692d902d))
-
-
-
-## [14.1.1](https://github.com/Torwent/WaspLib/compare/v14.1.0...v14.1.1) (2023-07-10)
-
-
-### Bug Fixes
-
-* improve TPoint.WithinDistance() ([e25128f](https://github.com/Torwent/WaspLib/commit/e25128fcb332b79b2df0807f95060768d71f7e20))
 
 
 

@@ -654,13 +654,24 @@ Withdraws **item** from the bank.
 
 Example
 -------
+  item := TRSBankItem.Setup('Shark', 1, True);
   if Bank.IsOpen() then
-    BankScript.Withdraw(['Shark', 1, True]);
+    BankScript.Withdraw(item);
 *)
 function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean;
+var
+  count, stack: Int32;
 begin
+  stack := Inventory.CountItemStack(item.Item);
+  if Inventory.IsFull() and (stack = 0) then //item not stackable.
+    Exit;
+
+  count := Inventory.CountItem(item.Item);
+
   if Bank.WithdrawItem(item, item.Quantity <> 1) then
-    Result := WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000);
+    Result := WaitUntil(
+                (Inventory.CountItemStack(item.Item) > stack) or
+                (Inventory.CountItem(item.Item) > count), 300, 3000);
 
   if Result then
     Exit;
@@ -669,14 +680,10 @@ begin
   if Bank.IsSearchOpen() then
     Bank.CloseSearch();
 
-  if Inventory.IsFull() or not Inventory.ItemIsStackable(item.Item) then
-    if WaitUntil(Inventory.ContainsItem(item.Item), 300, 3000) then
-      Exit(True);
-
   if attempt < 2 then
     Exit(Self.Withdraw(item, attempt + 1));
 
-  Self.BankEmpty := Self.BankEmpty and Bank.IsOpen();
+  Self.BankEmpty := Bank.IsOpen();
 
   if Self.BankEmpty then
     SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());

@@ -1,3 +1,12 @@
+## [14.2.3](https://github.com/Torwent/WaspLib/compare/v14.2.2...v14.2.3) (2023-07-15)
+
+
+### Bug Fixes
+
+* renamed ItemFinderInterface to ItemInterface ([d5c3bb1](https://github.com/Torwent/WaspLib/commit/d5c3bb18f888d99d7ef5833c6927092b8220e081))
+
+
+
 ## [14.2.2](https://github.com/Torwent/WaspLib/compare/v14.2.1...v14.2.2) (2023-07-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **BankPin:** all bankpin overrides were removed from wasplib, it's now built in, in SRL-T ([11219cf](https://github.com/Torwent/WaspLib/commit/11219cfd2f2a4aee122ed6e2e034552390f50022))
-
-
-
-## [14.1.2](https://github.com/Torwent/WaspLib/compare/v14.1.1...v14.1.2) (2023-07-11)
-
-
-### Bug Fixes
-
-* **Inventory:** read notes ([3701e41](https://github.com/Torwent/WaspLib/commit/3701e41fb364e370f80ec53f8dbf7a44692d902d))
 
 
 

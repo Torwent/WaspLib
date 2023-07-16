@@ -96,6 +96,29 @@ begin
   Result.ClearDuplicates();
 end;
 
+function TPointArray.TotalDistance(): Double;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if i < High(Self) then
+      Result += Self[i].DistanceTo(Self[i+1]);
+end;
+
+function TPointArray.MakeLine(): TPointArray; constref;
+var
+  line:TPointArray;
+  i:Int32;
+begin
+  if Length(self) = 0 then Exit;
+
+  for i:=0 to High(self)-1 do
+  begin
+    line := TPAFromLine(self[i].x, self[i].y, self[i+1].x, self[i+1].y);
+    Result := Result.Combine(line);
+  end;
+end;
+
 
 (*
 T2DPointArray.Connect
@@ -116,3 +139,46 @@ begin
   for i := 0 to High(Self) do
     Result += Self[i].Connect();
 end;
+
+function T2DPointArray.MakeLines(): T2DPointArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].MakeLine();
+end;
+
+
+function T2DPointArray.Shortest(): TPointArray; constref;
+var
+  tpa: TPointArray;
+  newDist, currentDist: Double;
+begin
+  for tpa in Self do
+  begin
+    newDist := tpa.TotalDistance();
+
+    if (Result = []) or (newDist < currentDist) then
+    begin
+      Result := tpa;
+      currentDist := newDist;
+    end;
+  end;
+end;
+
+function T2DPointArray.ShortestDistance(): Double; constref;
+var
+  tpa: TPointArray;
+  newDist: Double;
+begin
+  Result := High(Int32);
+
+  for tpa in Self do
+  begin
+    newDist := tpa.TotalDistance();
+
+    if (newDist < Result) then
+      Result := newDist;
+  end;
+end;
+

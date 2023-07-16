@@ -1,3 +1,12 @@
+## [14.2.4](https://github.com/Torwent/WaspLib/compare/v14.2.3...v14.2.4) (2023-07-16)
+
+
+### Bug Fixes
+
+* **walker:** read notes ([aed0bdc](https://github.com/Torwent/WaspLib/commit/aed0bdc6fb42d44a46e72b373eee1c42751d946b))
+
+
+
 ## [14.2.3](https://github.com/Torwent/WaspLib/compare/v14.2.2...v14.2.3) (2023-07-15)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TBaseBankScript:** read notes ([f8aaf6f](https://github.com/Torwent/WaspLib/commit/f8aaf6f26cac945a4049c362a960135c6669bf61))
-
-
-
-## [14.1.3](https://github.com/Torwent/WaspLib/compare/v14.1.2...v14.1.3) (2023-07-12)
-
-
-### Bug Fixes
-
-* **BankPin:** all bankpin overrides were removed from wasplib, it's now built in, in SRL-T ([11219cf](https://github.com/Torwent/WaspLib/commit/11219cfd2f2a4aee122ed6e2e034552390f50022))
 
 
 

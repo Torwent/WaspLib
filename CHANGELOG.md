@@ -1,3 +1,12 @@
+## [14.2.5](https://github.com/Torwent/WaspLib/compare/v14.2.4...v14.2.5) (2023-07-17)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** Better AIO deposit item ([abf107b](https://github.com/Torwent/WaspLib/commit/abf107b1ed4cd97a2218088445c38117614a19ec))
+
+
+
 ## [14.2.4](https://github.com/Torwent/WaspLib/compare/v14.2.3...v14.2.4) (2023-07-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * merge Simon's PR ([397d802](https://github.com/Torwent/WaspLib/commit/397d802f81fd2296d2fb5a32ca2db5f21cc7acdf)), closes [#67](https://github.com/Torwent/WaspLib/issues/67)
-
-
-
-# [14.2.0](https://github.com/Torwent/WaspLib/compare/v14.1.3...v14.2.0) (2023-07-13)
-
-
-### Features
-
-* **TBaseBankScript:** read notes ([f8aaf6f](https://github.com/Torwent/WaspLib/commit/f8aaf6f26cac945a4049c362a960135c6669bf61))
 
 
 

@@ -715,6 +715,8 @@ BaseBankScript.DepositItem
 Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
 *)
 function TBaseBankScript.DepositItem(out item: TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean; static;
+var
+  count: Int32;
 begin
   if isBank and isDepositBox then
   begin
@@ -726,10 +728,17 @@ begin
     Exit;
 
   if not isDepositBox and (isBank or Bank.IsOpen()) then
-    Exit(Bank.DepositItem(item, True));
+  begin
+    count := Inventory.CountItem(item.Item);
+    Exit(Bank.DepositItem(item, True) and WaitUntil(count > Inventory.CountItem(item.Item), 300, 3000));
+  end;
 
   if isDepositBox or DepositBox.IsOpen() then
-    Result := DepositBox.DepositItem(item, True);
+  begin
+    count := DepositBox.CountItem(item.Item);
+    if DepositBox.DepositItem(item, True) then
+      Result := WaitUntil(count > DepositBox.CountItem(item.Item), 300, 3000);
+  end;
 end;
 
 function TBaseBankScript.DepositItem(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; static; overload;

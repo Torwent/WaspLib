@@ -1,3 +1,12 @@
+## [14.2.6](https://github.com/Torwent/WaspLib/compare/v14.2.5...v14.2.6) (2023-07-17)
+
+
+### Bug Fixes
+
+* TRSItemArray.Find() moved to SRLT ([03ed9ba](https://github.com/Torwent/WaspLib/commit/03ed9ba556c95e5b5583e7c6b7c13342fd819c7e))
+
+
+
 ## [14.2.5](https://github.com/Torwent/WaspLib/compare/v14.2.4...v14.2.5) (2023-07-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** fixed withdrawing ([ef230c0](https://github.com/Torwent/WaspLib/commit/ef230c0ac0ffef8f3450435b8e693331a6e2a7cb))
-
-
-
-## [14.2.1](https://github.com/Torwent/WaspLib/compare/v14.2.0...v14.2.1) (2023-07-13)
-
-
-### Bug Fixes
-
-* merge Simon's PR ([397d802](https://github.com/Torwent/WaspLib/commit/397d802f81fd2296d2fb5a32ca2db5f21cc7acdf)), closes [#67](https://github.com/Torwent/WaspLib/issues/67)
 
 
 

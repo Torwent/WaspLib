@@ -1,3 +1,12 @@
+## [14.2.7](https://github.com/Torwent/WaspLib/compare/v14.2.6...v14.2.7) (2023-07-18)
+
+
+### Bug Fixes
+
+* **Consumables:** minor tweaks and failsafes to withdrawing consumables ([68e41d0](https://github.com/Torwent/WaspLib/commit/68e41d02ada4cd71b8a6cb6052b31c5bd848ec5c))
+
+
+
 ## [14.2.6](https://github.com/Torwent/WaspLib/compare/v14.2.5...v14.2.6) (2023-07-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * renamed ItemFinderInterface to ItemInterface ([d5c3bb1](https://github.com/Torwent/WaspLib/commit/d5c3bb18f888d99d7ef5833c6927092b8220e081))
-
-
-
-## [14.2.2](https://github.com/Torwent/WaspLib/compare/v14.2.1...v14.2.2) (2023-07-13)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** fixed withdrawing ([ef230c0](https://github.com/Torwent/WaspLib/commit/ef230c0ac0ffef8f3450435b8e693331a6e2a7cb))
 
 
 

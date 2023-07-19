@@ -1,3 +1,12 @@
+## [14.2.9](https://github.com/Torwent/WaspLib/compare/v14.2.8...v14.2.9) (2023-07-19)
+
+
+### Bug Fixes
+
+* **craftscreen:** fix SetCraftItem for amulets ([806efc9](https://github.com/Torwent/WaspLib/commit/806efc9e65e356a102bd13928a093cd11c6587e9))
+
+
+
 ## [14.2.8](https://github.com/Torwent/WaspLib/compare/v14.2.7...v14.2.8) (2023-07-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** Better AIO deposit item ([abf107b](https://github.com/Torwent/WaspLib/commit/abf107b1ed4cd97a2218088445c38117614a19ec))
-
-
-
-## [14.2.4](https://github.com/Torwent/WaspLib/compare/v14.2.3...v14.2.4) (2023-07-16)
-
-
-### Bug Fixes
-
-* **walker:** read notes ([aed0bdc](https://github.com/Torwent/WaspLib/commit/aed0bdc6fb42d44a46e72b373eee1c42751d946b))
 
 
 

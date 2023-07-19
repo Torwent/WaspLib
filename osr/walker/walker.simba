@@ -15,7 +15,6 @@ const
   WL_WALKER_DIR = {$MACRO CURRENT_DIRECTORY};
   WL_WALKER_MAP = {$MACRO CURRENT_DIRECTORY} + 'map.png';
   WL_WALKER_MAPS = {$MACRO CURRENT_DIRECTORY} + 'maps' + DirectorySeparator;
-  WL_WALKER_MAP_VERSION = '10'; //Increment when maps are updated to force recaching.
 
 var
   ScriptWalker: PRSWalker;
@@ -86,27 +85,28 @@ Overrides SRL's TRSWalkerMap.InternalCacheMap() so maps cached files can be vers
 Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
 This is an internal TRSWalkerMap method and you should probably not use it directly.
 *)
-function TRSWalkerMap.InternalCacheMap(FileName: String): String; static; override;
+function TRSWalkerMap.InternalCacheMap(fileName: String): String; static; override;
 var
-  Bitmap: TMufasaBitmap;
+  bitmap: TMufasaBitmap;
+  path: String;
 begin
-  if ExtractFileExt(FileName) <> '.bmp' then
+  if ExtractFileExt(fileName) = '.bmp' then
+    Exit(fileName);
+
+  path := DATAPATH + 'RSWalker' + DirectorySeparator + SHA1File(WL_WALKER_MAP);
+  Result := path + DirectorySeparator + ExtractFileName(fileName.FileName()) + '.bmp';
+
+  if not FileExists(Result) then
   begin
-    Result := DATAPATH + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1File(FileName) + '.bmp';
-    if not FileExists(Result) then
-    begin
-      if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
-        TerminateScript('Failed to create TRSWalker cache directories.');
+    if not ForceDirectories(path) then
+      TerminateScript('Failed to create TRSWalker cache directories.');
+    WriteLn('Caching ' + ExtractFileName(fileName) + ' this can take ~10 seconds.');
 
-      WriteLn('Caching ' + ExtractFileName(FileName) + ' this can take ~10 seconds.');
-
-      Bitmap.Init();
-      Bitmap.LoadFromFile(FileName);
-      Bitmap.SaveToFile(Result);
-      Bitmap.Free();
-    end;
-  end else
-    Result := FileName;
+    bitmap.Init();
+    bitmap.LoadFromFile(fileName);
+    bitmap.SaveToFile(Result);
+    bitmap.Free();
+  end;
 end;
 
 (*
@@ -118,40 +118,39 @@ Overrides SRL's TRSWalkerMap.InternalLoadMap() so maps cached files can be versi
 Otherwise if you update your map the cache won't change and users will keep using the old image until they delete it.
 This is an internal TRSWalkerMap method and you should probably not use it directly.
 *)
-function TRSWalkerMap.InternalLoadMap(fileName: String; Region: TBox = []): TMufasaBitmap; static; override;
+function TRSWalkerMap.InternalLoadMap(fileName: String; region: TBox = []): TMufasaBitmap; static; override;
 var
-  cacheFileName: String;
+  path, cacheName: String;
 begin
   if ExtractFileExt(fileName) <> '.bmp' then
   begin
-    cacheFileName := DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION + DirectorySeparator + 'map_' + SHA1String(FileName) + '.bmp';
-    if not FileExists(cacheFileName) then
+    path := DATAPATH + 'RSWalker' + DirectorySeparator + SHA1File(WL_WALKER_MAP);
+    cacheName := path + DirectorySeparator + ExtractFileName(fileName.FileName()) + '.bmp';
+    if not FileExists(cacheName) then
     begin
-      if not ForceDirectories(DataPath + 'RSWalker' + DirectorySeparator + WL_WALKER_MAP_VERSION) then
+      if not ForceDirectories(path) then
         TerminateScript('Failed to create TRSWalker cache directories.');
 
       WriteLn('Caching ' + ExtractFileName(fileName) + ' this can take ~10 seconds.');
 
       Result.Init();
       Result.LoadFromFile(TRSWalkerMap.FindMap(fileName));
-      Result.SaveToFile(cacheFileName);
-      if (Region <> []) then
-        Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
+      Result.SaveToFile(cacheName);
+
+      if (region <> []) then
+        Result.Crop(region.X1, region.Y1, region.X2, region.Y2);
 
       Exit;
     end;
 
-    fileName := cacheFileName;
+    fileName := cacheName;
   end;
 
   Result.Init();
+  Result.LoadFromFile(fileName);
 
-  if (Region <> []) then
-  begin
-    Result.LoadFromFile(fileName);
-    Result.Crop(Region.X1, Region.Y1, Region.X2, Region.Y2);
-  end else
-    Result.LoadFromFile(fileName);
+  if (region <> []) then
+    Result.Crop(region.X1, region.Y1, region.X2, region.Y2);
 end;
 
 (*
@@ -314,7 +313,7 @@ begin
 
   fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
 
-  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(fileName);
+  hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
   RSHeightMap.Disabled := RSHeightMap.Disabled or
                          (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
 
@@ -325,7 +324,7 @@ begin
 
   Self.RegionOffsets[hi] := TPoint.Create(ARegion.X1, ARegion.Y1);
 
-  bitmap := Self.InternalLoadMap(FileName, ARegion);
+  bitmap := Self.InternalLoadMap(fileName, ARegion);
   if not RSHeightMap.Disabled then
     hBitmap := Self.InternalLoadMap(hFileName, ARegion);
 
@@ -367,8 +366,6 @@ begin
     for I := 0 to High(hBitmaps) do
       hBitmaps[I].Free();
 end;
-
-
 
 
 (*

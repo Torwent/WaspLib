@@ -1,3 +1,12 @@
+## [14.2.8](https://github.com/Torwent/WaspLib/compare/v14.2.7...v14.2.8) (2023-07-19)
+
+
+### Bug Fixes
+
+* **walker:** read notes ([93e5496](https://github.com/Torwent/WaspLib/commit/93e549642d0cab5373ef2b927126362cf9a306d2))
+
+
+
 ## [14.2.7](https://github.com/Torwent/WaspLib/compare/v14.2.6...v14.2.7) (2023-07-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walker:** read notes ([aed0bdc](https://github.com/Torwent/WaspLib/commit/aed0bdc6fb42d44a46e72b373eee1c42751d946b))
-
-
-
-## [14.2.3](https://github.com/Torwent/WaspLib/compare/v14.2.2...v14.2.3) (2023-07-15)
-
-
-### Bug Fixes
-
-* renamed ItemFinderInterface to ItemInterface ([d5c3bb1](https://github.com/Torwent/WaspLib/commit/d5c3bb18f888d99d7ef5833c6927092b8220e081))
 
 
 

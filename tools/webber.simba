@@ -36,10 +36,11 @@ type
     ImageBox: TSimbaImageBox;
     Graph: TWebGraph;
     SelectedNode: Int32;
-    Dragging: Boolean;
+    Dragging, DragMode, DraggingBox: Boolean;
     Path: TIntegerArray;
-    Map: String;
-    Name: String;
+    Map, Name: String;
+    SelectBox: TBox;
+    ClickPoint, BoxAnchor: TPoint;
   end;
 
 var
@@ -54,12 +55,44 @@ begin
   Webber.Graph := WaspWeb;
 end;
 
+function TWebberForm.BoxIsValid(): Boolean;
+begin
+  if SelectBox.X1 <= -1 then
+    Exit;
+  if SelectBox.Y1 <= -1 then
+    Exit;
+  if SelectBox.X2 <= -1 then
+    Exit;
+  if SelectBox.Y2 <= -1 then
+    Exit;
+
+  Result := True;
+end;
+
 procedure TWebberForm.OnMouseMove(Sender: TObject; Shift: TShiftState; X, Y: Int32);
 var
   I: Int32;
   best, bestIndex: Int32;
+  off: TPoint;
 begin
-  if Dragging and (Self.SelectedNode > -1) then
+  if Self.Dragging and Self.DragMode then
+  begin
+    if Self.DraggingBox then
+    begin
+      off := [X - Self.ClickPoint.X, Y - Self.ClickPoint.Y];
+      Self.SelectBox := Self.SelectBox.Offset(off);
+    end
+    else
+    begin
+      Self.SelectBox.X2 := X;
+      Self.SelectBox.Y2 := Y;
+    end;
+
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  if Self.Dragging and (Self.SelectedNode > -1) then
   begin
     Self.Graph.Nodes[Self.SelectedNode].X := X;
     Self.Graph.Nodes[Self.SelectedNode].Y := Y;
@@ -91,6 +124,7 @@ begin
   end;
 end;
 
+
 procedure TWebberForm.ConnectNodes(a,b: Int32);
 begin
   if not Graph.ConnectNodes(a,b) then
@@ -120,6 +154,7 @@ begin
   Self.ImageBox.Update();
 end;
 
+
 procedure TWebberForm.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 var
   I: Int32;
@@ -127,6 +162,25 @@ var
 begin
   if Button = mbLeft then
   begin
+    if Self.DragMode then
+    begin
+      Self.Dragging := True;
+      if Self.BoxIsValid() and Self.SelectBox.Contains([X, Y]) then
+      begin
+        Self.DraggingBox := True;
+        Self.ClickPoint := [X, Y];
+        Exit;
+      end;
+
+      Self.SelectBox.X1 := X;
+      Self.SelectBox.Y1 := Y;
+      Self.SelectBox.X2 := X;
+      Self.SelectBox.Y2 := Y;
+
+      Self.ImageBox.Update();
+      Exit;
+    end;
+
     if (ssShift in Shift) then
     begin
       if Self.SelectedNode = -1 then
@@ -161,8 +215,14 @@ end;
 procedure TWebberForm.OnMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 begin
   if Button = mbLeft then
-    Dragging := False;
+  begin
+    Self.Dragging := False;
+    Self.DraggingBox := False;
+    if Self.DragMode then
+      Self.SelectBox := Self.SelectBox.ToRectangle().FixOrder().Bounds();
+  end;
 end;
+
 
 procedure TWebberForm.DeleteNode(node: Int32);
 var
@@ -201,6 +261,7 @@ begin
   Self.SelectedNode := Self.Graph.FindNearestNode(p);
   Self.ImageBox.Update();
 end;
+
 
 procedure TWebberForm.OnKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 begin
@@ -297,14 +358,59 @@ begin
   Canvas.GetPen().setWidth(1);
 end;
 
-procedure TWebberForm.PaintArea(Sender: TObject; Canvas: TCanvas; R: TRect);
+procedure TWebberForm.DrawBox(area: TBox);
+var
+  i,j,W,H: Int32;
+  p,q: TPoint;
+  corners: TPointArray;
+  canvas: TCanvas;
+  TPA: TPointArray;
 begin
-  DrawWeb([R.Left, R.Top, R.Right, R.Bottom]);
-  if Self.Path <> [] then
-    DrawPath([R.Left, R.Top, R.Right, R.Bottom]);
+  corners := Self.SelectBox.ToRectangle().ToTPA();
+
+  canvas := Self.ImageBox.GetOverlay.GetCanvas();
+  canvas.GetPen().SetColor(clOrange);
+  canvas.GetPen().setWidth(2);
+
+  for i := 0 to High(corners) - 1 do
+  begin
+    p := corners[i];
+    q := corners[i+1];
+
+    if p.InBox(area) or q.InBox(area) then
+    begin
+      canvas.MoveTo(p.x, p.y);
+      canvas.LineTo(q.x, q.y);
+    end;
+  end;
+
+  canvas.MoveTo(q.x, q.y);
+  canvas.LineTo(corners[0].x, corners[0].y);
+
+  canvas.GetPen().setWidth(1);
 end;
 
-procedure TWebberForm.OnNameSelectedNode(Sender: TObject);
+procedure TWebberForm.PaintArea(sender: TObject; Canvas: TCanvas; R: TRect);
+begin
+  Self.DrawWeb([R.Left, R.Top, R.Right, R.Bottom]);
+  if Self.Path <> [] then
+    Self.DrawPath([R.Left, R.Top, R.Right, R.Bottom]);
+
+  if Self.DragMode and Self.BoxIsValid() then
+    Self.DrawBox([R.Left, R.Top, R.Right, R.Bottom]);
+end;
+
+
+procedure TWebberForm.DragOnChange(sender: TObject);
+begin
+  Self.DragMode := TCheckBox(sender).IsChecked();
+
+  if not Self.DragMode then
+    Self.SelectBox := [-1, -1, -1, -1];
+end;
+
+
+procedure TWebberForm.OnNameSelectedNode(sender: TObject);
 var
   Value: String;
 begin
@@ -320,10 +426,80 @@ begin
   end;
 end;
 
-procedure TWebberForm.OnUnSelectNode(Sender: TObject);
+procedure TWebberForm.OnUnSelectNode(sender: TObject);
 begin
   Self.SelectedNode := -1;
   Self.ImageBox.Update();
+end;
+
+
+function TWebberForm.GetFileString(name: String = GraphName): String;
+var
+  i, j: Int32;
+  locations: TStringArray;
+  points: TPointArray;
+begin
+  for i := 0 to High(Self.Graph.Names) do
+  begin
+    Self.Graph.Nodes[i] := Self.Graph.Nodes[i].Offset(OFFSET_POINT);
+    if Self.Graph.Names[i] <> '' then
+    begin
+      locations += UpperCase('LOCATION_' + Self.Graph.Names[i]).Replace(' ', '_');
+      points += Self.Graph.Nodes[i];
+    end;
+  end;
+
+  for i := 0 to High(locations) do
+    for j := 0 to High(locations) do
+      if (locations[i] < locations[j]) then
+      begin
+        Swap(locations[i], locations[j]);
+        Swap(points[i], points[j]);
+      end;
+
+  Result := 'type' + LineEnding;
+  Result += '  ' + name + ' = record(TWebGraph)' + LineEnding;
+  for i := 0 to High(locations) do
+    Result += '    ' + locations[i] + ': TPoint;' + LineEnding;
+  Result += '  end;' + LineEnding;
+
+  Result += '' + LineEnding;
+  Result += 'var' + LineEnding;
+  Result += '  ' + name.After('T') + ': ' + name + ';' + LineEnding;
+
+  Result += '' + LineEnding;
+  Result += 'procedure ' + name + '.Load;' + LineEnding;
+  Result += 'begin' + LineEnding;
+  Result += '  Self.LoadNodesFromString(' + #39 + Graph.NodesToString() + #39 + ');' + LineEnding;
+  Result += '  Self.LoadPathsFromString(' + #39 + Graph.PathsToString() + #39 + ');' + LineEnding;
+  Result += '  Self.LoadNamesFromString(' + #39 + Graph.NamesToString() + #39 + ');' + LineEnding;
+  Result += '' + LineEnding;
+  for I := 0 to High(locations) do
+    Result += '  Self.' + locations[I] + ' := ' + '[' + ToString(points[I].X) + ', ' + ToString(points[I].Y) + '];' + LineEnding;
+  Result += 'end;' + LineEnding;
+
+  Result += '' + LineEnding;
+  Result += 'operator := (var Left: TWebGraph; var Right: ' + name + '): TWebGraph;' + LineEnding;
+  Result += 'begin' + LineEnding;
+  Result += '  Right.Load();' + LineEnding;
+  Result += '' + LineEnding;
+  Result += '  Left.Nodes := Right.Nodes;' + LineEnding;
+  Result += '  Left.Paths := Right.Paths;' + LineEnding;
+  Result += '  Left.Names := Right.Names;' + LineEnding;
+  Result += '' + LineEnding;
+  Result += '  Result.Nodes := Right.Nodes;' + LineEnding;
+  Result += '  Result.Paths := Right.Paths;' + LineEnding;
+  Result += '  Result.Names := Right.Names;' + LineEnding;
+  Result += 'end;' + LineEnding;
+end;
+
+
+procedure TWebberForm.OnRewrite(sender: TObject);
+begin
+  if MessageDlg('Webber', 'Are you sure you want to overwrite the waspweb.graph file?', mtWarning,[mbYes, mbAbort]) = 4 then
+    Exit;
+
+  WriteFileContents(WL_WALKER_DIR + 'waspweb.graph', GetFileString(), False);
 end;
 
 procedure TWebberForm.OnPrintGraph(Sender: TObject);
@@ -333,65 +509,12 @@ var
   Points: TPointArray;
   Name: String;
 begin
-  Name := GraphName;
-  if not InputQuery('Webber', 'Web name?', Name) then
+  name := GraphName;
+  if not InputQuery('Webber', 'Web name?', name) then
     Exit;
 
   ClearDebug();
-
-  for I := 0 to High(Graph.Nodes) do
-    Graph.Nodes[I] := Graph.Nodes[I].Offset(OFFSET_POINT);
-
-  for I := 0 to High(Graph.Names) do
-    if Graph.Names[I] <> '' then
-    begin
-      Locations += UpperCase('LOCATION_' + Graph.Names[I]).Replace(' ', '_');
-      Points += Graph.Nodes[I];
-    end;
-
-  for I := 0 to High(Locations) do
-    for J := 0 to High(Locations) do
-      if (Locations[I] < Locations[J]) then
-      begin
-        Swap(Locations[I], Locations[J]);
-        Swap(Points[I], Points[J]);
-      end;
-
-  WriteLn('type');
-  WriteLn('  ', Name, ' = record(TWebGraph)');
-  for I := 0 to High(Locations) do
-    WriteLn('    ', Locations[I], ': TPoint;');
-  WriteLn('  end;');
-
-  WriteLn('');
-  WriteLn('var');
-  WriteLn('  ', Name.After('T'), ': ', Name, ';');
-
-  WriteLn('');
-  WriteLn('procedure ', Name, '.Load;');
-  WriteLn('begin');
-  WriteLn('  Self.LoadNodesFromString(' + #39 + Graph.NodesToString() + #39 + ');');
-  WriteLn('  Self.LoadPathsFromString(' + #39 + Graph.PathsToString() + #39 + ');');
-  WriteLn('  Self.LoadNamesFromString(' + #39 + Graph.NamesToString() + #39 + ');');
-  WriteLn('');
-  for I := 0 to High(Locations) do
-    WriteLn('  Self.', Locations[I], ' := ', '[', Points[I].X, ', ', Points[I].Y, '];');
-  WriteLn('end;');
-
-  WriteLn('');
-  WriteLn('operator := (var Left: TWebGraph; var Right: ', Name, '): TWebGraph;');
-  WriteLn('begin');
-  WriteLn('  Right.Load();');
-  WriteLn('');
-  WriteLn('  Left.Nodes := Right.Nodes;');
-  WriteLn('  Left.Paths := Right.Paths;');
-  WriteLn('  Left.Names := Right.Names;');
-  WriteLn('');
-  WriteLn('  Result.Nodes := Right.Nodes;');
-  WriteLn('  Result.Paths := Right.Paths;');
-  WriteLn('  Result.Names := Right.Names;');
-  WriteLn('end;');
-  WriteLn('');
+  WriteLn(Self.GetFileString(name));
 end;
 
 procedure TWebberForm.OnFormShow(Sender: TObject);
@@ -407,10 +530,11 @@ begin
   Self.OnPrintGraph(nil);
 end;
 
-procedure TWebberForm.Run;
+procedure TWebberForm.Run();
 var
-  Panel: TPanel;
-  Button: TButton;
+  panel: TPanel;
+  button: TButton;
+  check: TLabeledCheckBox;
 begin
   try
     Self.Name := 'Graph';
@@ -418,40 +542,51 @@ begin
     Self.Form.Init(nil);
     Self.Form.SetPosition(poScreenCenter);
     Self.Form.SetCaption('Webber');
-    Self.Form.SetWidth(1000);
-    Self.Form.SetHeight(1000);
+    Self.Form.SetWidth(TControl.AdjustToDPI(1200));
+    Self.Form.SetHeight(TControl.AdjustToDPI(900));
     Self.Form.GetFont().SetSize(10);
     Self.Form.SetOnShow(@Self.OnFormShow);
     Self.Form.SetOnClose(@Self.OnFormClose);
 
-    Panel.Init(Self.Form);
-    Panel.SetParent(Self.Form);
-    Panel.SetAutoSize(True);
-    Panel.SetAlign(alTop);
+    panel.Init(Self.Form);
+    panel.SetParent(Self.Form);
+    panel.SetAutoSize(True);
+    panel.SetAlign(alTop);
 
-    Button.Init(Panel);
-    Button.SetParent(Panel);
-    Button.SetAutoSize(True);
-    Button.SetCaption('Name Node');
-    Button.SetOnClick(@Self.OnNameSelectedNode);
-    Button.SetAlign(alLeft);
+    check.Create(panel);
+    check.SetCaption('Drag mode');
+    check.SetAlign(alLeft);
+    check.CheckBox.setOnChange(@Self.DragOnChange);
 
-    Button.Init(Panel);
-    Button.SetParent(Panel);
-    Button.SetAutoSize(True);
-    Button.SetCaption('UnSelect node');
-    Button.SetOnClick(@Self.OnUnSelectNode);
-    Button.SetAlign(alLeft);
+    button.Create(Panel);
+    button.SetAutoSize(True);
+    button.SetCaption('Name Node');
+    button.SetOnClick(@Self.OnNameSelectedNode);
+    button.SetAlign(alLeft);
 
-    Button.Init(Panel);
-    Button.SetParent(Panel);
-    Button.SetAutoSize(True);
-    Button.SetCaption('Print Graph');
-    Button.SetOnClick(@Self.OnPrintGraph);
-    Button.setAlign(alLeft);
+    button.Init(panel);
+    button.SetParent(panel);
+    button.SetAutoSize(True);
+    button.SetCaption('UnSelect node');
+    button.SetOnClick(@Self.OnUnSelectNode);
+    button.SetAlign(alLeft);
 
-    Self.ImageBox.Init(Form);
-    Self.ImageBox.SetParent(Form);
+    button.Init(panel);
+    button.SetParent(panel);
+    button.SetAutoSize(True);
+    button.SetCaption('Rewrite file');
+    button.SetOnClick(@Self.OnRewrite);
+    button.setAlign(alLeft);
+
+    button.Init(panel);
+    button.SetParent(panel);
+    button.SetAutoSize(True);
+    button.SetCaption('Print Graph');
+    button.SetOnClick(@Self.OnPrintGraph);
+    button.setAlign(alLeft);
+
+    Self.ImageBox.Init(Self.Form);
+    Self.ImageBox.SetParent(Self.Form);
     Self.ImageBox.SetAlign(alClient);
     Self.ImageBox.SetOnPaintArea(@Self.PaintArea);
     Self.ImageBox.SetOnMouseMove(@Self.OnMouseMove);
@@ -469,8 +604,8 @@ begin
             'Right Click + Drag:   Move around'           + LineEnding +
             'Ctrl + Mouse Wheel:   Zoom');
 
-    Form.ShowModal();
-    Form.Free();
+    Self.Form.ShowModal();
+    Self.Form.Free();
   except
     Writeln GetExceptionMessage();
   end;

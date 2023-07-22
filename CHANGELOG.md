@@ -1,3 +1,12 @@
+## [14.2.11](https://github.com/Torwent/WaspLib/compare/v14.2.10...v14.2.11) (2023-07-22)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** made some tweaks to TBaseBankScript.DepositItem() ([6b32011](https://github.com/Torwent/WaspLib/commit/6b32011309c8a906bb8697ec143a24df56de6cb8))
+
+
+
 ## [14.2.10](https://github.com/Torwent/WaspLib/compare/v14.2.9...v14.2.10) (2023-07-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Consumables:** minor tweaks and failsafes to withdrawing consumables ([68e41d0](https://github.com/Torwent/WaspLib/commit/68e41d02ada4cd71b8a6cb6052b31c5bd848ec5c))
-
-
-
-## [14.2.6](https://github.com/Torwent/WaspLib/compare/v14.2.5...v14.2.6) (2023-07-17)
-
-
-### Bug Fixes
-
-* TRSItemArray.Find() moved to SRLT ([03ed9ba](https://github.com/Torwent/WaspLib/commit/03ed9ba556c95e5b5583e7c6b7c13342fd819c7e))
 
 
 

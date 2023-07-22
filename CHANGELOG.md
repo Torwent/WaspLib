@@ -1,3 +1,12 @@
+## [14.2.12](https://github.com/Torwent/WaspLib/compare/v14.2.11...v14.2.12) (2023-07-22)
+
+
+### Bug Fixes
+
+* **inventory:** move use slot on slot override to SRLT ([c607712](https://github.com/Torwent/WaspLib/commit/c6077120680950b41c203a5241fe370551b20a1e))
+
+
+
 ## [14.2.11](https://github.com/Torwent/WaspLib/compare/v14.2.10...v14.2.11) (2023-07-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walker:** read notes ([93e5496](https://github.com/Torwent/WaspLib/commit/93e549642d0cab5373ef2b927126362cf9a306d2))
-
-
-
-## [14.2.7](https://github.com/Torwent/WaspLib/compare/v14.2.6...v14.2.7) (2023-07-18)
-
-
-### Bug Fixes
-
-* **Consumables:** minor tweaks and failsafes to withdrawing consumables ([68e41d0](https://github.com/Torwent/WaspLib/commit/68e41d02ada4cd71b8a6cb6052b31c5bd848ec5c))
 
 
 

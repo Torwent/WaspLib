@@ -1,3 +1,12 @@
+# [14.3.0](https://github.com/Torwent/WaspLib/compare/v14.2.12...v14.3.0) (2023-07-24)
+
+
+### Features
+
+* **alch handler:** added the new alch handler ([996823a](https://github.com/Torwent/WaspLib/commit/996823aefabbfb8a4e08a09fee46690e376727e2))
+
+
+
 ## [14.2.12](https://github.com/Torwent/WaspLib/compare/v14.2.11...v14.2.12) (2023-07-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **craftscreen:** fix SetCraftItem for amulets ([806efc9](https://github.com/Torwent/WaspLib/commit/806efc9e65e356a102bd13928a093cd11c6587e9))
-
-
-
-## [14.2.8](https://github.com/Torwent/WaspLib/compare/v14.2.7...v14.2.8) (2023-07-19)
-
-
-### Bug Fixes
-
-* **walker:** read notes ([93e5496](https://github.com/Torwent/WaspLib/commit/93e549642d0cab5373ef2b927126362cf9a306d2))
 
 
 

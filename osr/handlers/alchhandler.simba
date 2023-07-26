@@ -5,7 +5,20 @@
 {$ENDIF}
 
 type RSAlchHandler = record(TSRLBaseRecord) class var
+  Item: TRSItem;
   ItemArray: TRSItemArray;
+  Timer: TCountDown;
+  LowProfit, HighProfit, TotalProfit: Int32;
+end;
+
+procedure RSAlchHandler.DebugLn(text: String); constref; override;
+begin
+  WriteLn SRL.TimeStamp() + ':[RSAlchHandler]: ' + text;
+end;
+
+procedure TSRLBaseRecord.Fatal(text: String); constref; override;
+begin
+  TerminateScript(SRL.TimeStamp() + ':[RSAlchHandler]:[Fatal]: ' + text);
 end;
 
 {$IFHASFILE Data/WaspLib/configs/alch_handler.simba}
@@ -251,19 +264,230 @@ begin
   end;
 end;
 
+function RSAlchHandler.GetAlchItem(): TRSItem; static;
+var
+  match: TRSItemFinderMatch;
+  itemStr: String;
+begin
+  if not Inventory.Open() and not Inventory.SetSelectedSlot(-1) then
+    Exit;
+
+  if not ItemFinder.Find(RSAlchHandler.ItemArray, Inventory.GetSlotBoxes(), match) then
+    RSAlchHandler.Fatal('No items in the alch list were found!');
+
+  Result := match.Item;
+  itemStr := Result;
+
+  RSAlchHandler.DebugLn('Found item: ' + itemStr);
+
+  itemStr := itemStr.After('noted ');
+  RSAlchHandler.LowProfit  := ItemData.GetLowAlchProfit(itemStr);
+  RSAlchHandler.HighProfit := ItemData.GetHighAlchProfit(itemStr);
+end;
+
+procedure RSAlchHandler.AddProfit(hi: Boolean = True); static;
+begin
+  if hi then
+    RSAlchHandler.TotalProfit += RSAlchHandler.HighProfit
+  else
+    RSAlchHandler.TotalProfit += RSAlchHandler.LowProfit;
+end;
+
+function RSAlchHandler.ClickEmptySlot(slot: Int32 = -1): Boolean; static;
+var
+  slots: TIntegerArray;
+begin
+  slots := Inventory.GetEmptySlots();
+  Result := slots <> [];
+
+  if Result then
+  begin
+    if slot = -1 then
+      slot := Inventory.ItemInterface.PointToSlot(Mouse.Position());
+
+    if slot = -1 then
+      Inventory.ItemInterface.MouseRandomSlot(slots)
+    else
+    begin
+      if (slots.Find(slot) = -1) or Antiban.BioDice(50) then
+        slot := Inventory.RandomSlotNearby(slot, slots);
+      Inventory.MouseSlot(slot);
+    end;
+    Mouse.Click(MOUSE_LEFT);
+  end;
+end;
+
+function RSAlchHandler.DisableCast(): Boolean; static;
+var
+  i, attempt: Int32;
+begin
+  if Inventory.Count() < 28 then
+    i := RandomLeft(0, 5)
+  else
+    i := RandomLeft(3, 5);
+
+  repeat
+    if Inc(attempt) > 10 then
+      RSAlchHandler.Fatal('Cannot disable the alchemy spell!');
+
+    case i of
+      0..2: RSAlchHandler.ClickEmptySlot();
+      3: Mouse.Click(MainScreen.Bounds(), MOUSE_LEFT);
+      4: Mouse.Click(Chat.Bounds(), MOUSE_LEFT);
+      5: ChooseOption.Select('Cancel');
+    end;
+  until not MainScreen.IsUpText('Alchemy -');
+  Result := True;
+end;
+
+function RSAlchHandler.CastAlchemy(hi: Boolean = True): Boolean; static;
+var
+  spell: ERSSpell;
+  spellStr: String;
+  fullAttempt, attempt, slot, spellSlot: Int32;
+begin
+  if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
+    Exit;
+
+  XPBar.EarnedXP(); //Update cached XP.
+
+  if hi then
+  begin
+    spell := ERSSpell.HIGH_LEVEL_ALCHEMY;
+    RSAlchHandler.Timer.Length := 5 * 600;
+    spellStr := 'h Level Alchemy -';
+    spellSlot := 11;
+  end
+  else
+  begin
+    spell := ERSSpell.LOW_LEVEL_ALCHEMY;
+    RSAlchHandler.Timer.Length := 3 * 600;
+    spellStr := 'w Level Alchemy -';
+    spellSlot := 3;
+  end;
+
+  for fullAttempt := 0 to 2 do
+  begin
+    while not MainScreen.IsUpText(spellStr) or not Inventory.IsOpen() do
+    begin
+      if Inc(attempt) > 2 then
+        Exit;
+      Magic.CastSpell(spell);
+    end;
+
+    for attempt := 0 to 2 do
+    begin
+      if RSAlchHandler.Item.IsNull() then
+        RSAlchHandler.Item := RSAlchHandler.GetAlchItem();
+
+      if Inventory.FindItem(RSAlchHandler.Item, slot) then
+      begin
+        if (slot <> spellSlot) and (Inventory.ItemInterface.CountStack(slot) > 0) then
+        begin
+          RSAlchHandler.DisableCast();
+          if Inventory.ItemInterface.Move(slot, spellSlot) then
+            Break(2);
+          Break;
+        end;
+
+        if SRL.Dice(99.5) then
+        begin
+          if Inventory.ClickSlot(slot, '>') then
+          begin
+            Result := WaitUntil(Magic.IsOpen() or XPBar.EarnedXP(), 50, 2000);
+            if Result then
+            begin
+              RSAlchHandler.Timer.Restart();
+              RSAlchHandler.AddProfit(hi);
+              Exit;
+            end;
+          end;
+        end;
+
+        Inventory.ClickSlot(Inventory.RandomSlotNearby(slot, Inventory.GetEmptySlots()), '>');
+        Break(2);
+      end;
+
+      RSAlchHandler.Item := '';
+    end;
+    Exit;
+  end;
+end;
+
 begin
   RSAlchHandler.Setup();
 end;
 
 function TScriptForm.CreateAlchemyPanel(): TTabSheet;
+  type TListBox = TListBox;
+  procedure TListBox._AddSorted(str: String);
+  var
+    i, count: Int32;
+  begin
+    count := Self.GetCount();
+    for i := 0 to count do
+    begin
+      if i < count - 1 then
+      begin
+        if str > Self.GetItems().GetStrings(i) then
+          Continue;
+
+        Self.GetItems().Insert(i, str);
+        Exit;
+      end;
+    end;
+
+    Self.GetItems().Add(str);
+  end;
+
+  procedure TListBox._Delete(i: Int32; setIndex: Boolean = True);
+  var
+    count: Int32;
+  begin
+    Self.GetItems().Delete(i);
+
+    if not setIndex then
+      Exit;
+
+    count := Self.GetCount() - 1;
+    if i > count then
+      Self.SetItemIndex(count)
+    else
+      Self.SetItemIndex(i);
+  end;
+
+  procedure TListBox._ReWriteAlchConfig();
+  var
+    i, count: Int32;
+    str: String;
+    settings: TStringArray;
+  begin
+    RSAlchHandler.ItemArray := [];
+    settings += 'RSAlchHandler.ItemArray := [';
+    count := Self.GetCount() - 1;
+    for i := 0 to count do
+    begin
+      RSAlchHandler.ItemArray += Self.getItems().GetStrings(i);
+      str := ToStr(RSAlchHandler.ItemArray[i]);
+      str := "    '" + str.Replace("'", "''") + "'";
+      if i < count then
+        str += ',';
+      settings += str;
+    end;
+    settings += '];';
+    WriteConfigFile('alch_handler', settings);
+  end;
+
   type TScriptForm = TScriptForm;
-  procedure TScriptForm._AddAlchList({$H-}sender: TObject);{$H+}
+  procedure TScriptForm._AddAlchList(sender: TObject);
   var
     itemList, alchList: TListBox;
     i: Int32;
     str, tmp: String;
-    settings: TStringArray;
   begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
     itemList := TScriptForm.Form.GetChild('item_list_listbox');
     alchList := TScriptForm.Form.GetChild('alch_list_listbox');
 
@@ -272,49 +496,61 @@ function TScriptForm.CreateAlchemyPanel(): TTabSheet;
       Exit;
 
     str := itemList.GetSelectedText();
-    itemList.GetItems().Delete(i);
-    if i > itemList.getCount()-1 then
-      itemList.setItemIndex(itemList.getCount()-1)
-    else
-      itemList.setItemIndex(i);
+    itemList._Delete(i);
+    alchList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
 
-    for i := 0 to alchList.getCount() do
-    begin
-      if i < alchList.getCount() -1 then
-      begin
-        tmp := alchList.GetItems().getStrings(i);
-
-        if str > tmp then
-          Continue;
-
-        alchList.getItems().Insert(i, str);
-        Break;
-      end
-      else
-        alchList.getItems().Add(str);
-    end;
-
-    RSAlchHandler.ItemArray := [];
-    settings += 'RSAlchHandler.ItemArray := [';
-    for i := 0 to alchList.getCount()-1 do
-    begin
-      RSAlchHandler.ItemArray += alchList.getItems().getStrings(i);
-      str := "    '" + ToString(RSAlchHandler.ItemArray[i]).Replace("'", "''") + "'";
-      if i < alchList.getCount()-1 then
-        str += ',';
-      settings += str;
-    end;
-    settings += '];';
-    WriteConfigFile('alch_handler', settings);
+    TButton(sender).setCaption(tmp);
   end;
 
-  procedure TScriptForm._RemoveAlchList({$H-}sender: TObject);{$H+}
+  procedure TScriptForm._AddBothAlchList(sender: TObject);
   var
     itemList, alchList: TListBox;
     i: Int32;
     str, tmp: String;
-    settings: TStringArray;
   begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    i := itemList.getItemIndex();
+    if i = -1 then
+      Exit;
+
+    str := itemList.GetSelectedText();
+    itemList._Delete(i);
+    alchList._AddSorted(str);
+
+    if str.Contains('noted ') then
+      str := str.After('noted ')
+    else
+      str := 'noted ' + str;
+
+    i := itemList.getItems().IndexOf(str);
+    if i = -1 then
+    begin
+      alchList._ReWriteAlchConfig();
+      Exit;
+    end;
+
+    itemList._Delete(i, False);
+    alchList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+
+    TButton(sender).setCaption(tmp);
+  end;
+
+
+  procedure TScriptForm._RemoveAlchList(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
     itemList := TScriptForm.Form.GetChild('item_list_listbox');
     alchList := TScriptForm.Form.GetChild('alch_list_listbox');
 
@@ -323,47 +559,59 @@ function TScriptForm.CreateAlchemyPanel(): TTabSheet;
       Exit;
 
     str := alchList.GetSelectedText();
-    alchList.GetItems().Delete(i);
-    if i > alchList.getCount()-1 then
-      alchList.setItemIndex(alchList.getCount()-1)
-    else
-      alchList.setItemIndex(i);
-
-    for i := 0 to itemList.getCount() do
-    begin
-      if i < itemList.getCount() -1 then
-      begin
-        tmp := itemList.GetItems().getStrings(i);
-
-        if str > tmp then
-          Continue;
-
-        itemList.getItems().Insert(i, str);
-        Break;
-      end
-      else
-        itemList.getItems().Add(str);
-    end;
-
-    RSAlchHandler.ItemArray := [];
-    settings += 'RSAlchHandler.ItemArray := [';
-    for i := 0 to alchList.getCount()-1 do
-    begin
-      RSAlchHandler.ItemArray += alchList.getItems().getStrings(i);
-      str := "    '" + ToString(RSAlchHandler.ItemArray[i]).Replace("'", "''") + "'";
-      if i < alchList.getCount()-1 then
-        str += ',';
-      settings += str;
-    end;
-    settings += '];';
-    WriteConfigFile('alch_handler', settings);
+    alchList._Delete(i);
+    itemList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+    TButton(sender).setCaption(tmp);
   end;
+
+  procedure TScriptForm._RemoveBothAlchList(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    i := alchList.getItemIndex();
+    if i = -1 then
+      Exit;
+
+    str := alchList.GetSelectedText();
+    alchList._Delete(i);
+    itemList._AddSorted(str);
+
+    if str.Contains('noted ') then
+      str := str.After('noted ')
+    else
+      str := 'noted ' + str;
+
+    i := alchList.getItems().IndexOf(str);
+    if i = -1 then
+    begin
+      alchList._ReWriteAlchConfig();
+      Exit;
+    end;
+
+    alchList._Delete(i, False);
+    itemList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+
+    TButton(sender).setCaption(tmp);
+  end;
+
 
   procedure TScriptForm._OnItemListSelected({$H-}sender: TObject);{$H+}
   var
     btn: TButton;
   begin
-    btn := TScriptForm.Form.GetChild('add_alchlist_button');
+    btn := TScriptForm.Form.GetChild('add_alch_button');
+    btn.setEnabled(True);
+    btn := TScriptForm.Form.GetChild('add_both_alch_button');
     btn.setEnabled(True);
   end;
 
@@ -371,8 +619,42 @@ function TScriptForm.CreateAlchemyPanel(): TTabSheet;
   var
     btn: TButton;
   begin
-    btn := TScriptForm.Form.GetChild('remove_alchlist_button');
+    btn := TScriptForm.Form.GetChild('remove_alch_button');
     btn.setEnabled(True);
+    btn := TScriptForm.Form.GetChild('remove_both_alch_button');
+    btn.setEnabled(True);
+  end;
+
+  procedure TScriptForm._OnAlchListClear(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    itemNames: TStringList;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    alchList.Clear();
+    alchList._ReWriteAlchConfig();
+
+    itemNames.Init();
+    itemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
+    itemNames.setSorted(True);
+
+    itemList.Clear();
+    for i := 0 to itemNames.getCount()-1 do
+    begin
+      if str = itemNames.getStrings(i).Before('=') then
+        Continue; //skip duplicates
+      str := itemNames.getStrings(i).Before('=');
+      itemList.GetItems().Add(str);
+    end;
+    itemNames.Free();
+    TButton(sender).setCaption(tmp);
   end;
 
 var
@@ -380,19 +662,20 @@ var
   itemNames: TStringList;
   fullWidth, space, y, i: Int32;
   str:String;
-  addAlchList, removeAlchList: TButton;
+  button: TButton;
 begin
   Self.AddTab('Alchemy Settings');
   Result := Self.Tabs[High(Self.Tabs)];
 
   fullWidth := Floor(Self.Size.X/3);
-  space := Floor(fullWidth * 0.1);
+  space := Floor(fullWidth * 0.09);
   y := Floor(Self.Size.Y/10);
 
   with itemList do
   begin
     Create(Result);
-    SetCaption('Item list: ');
+    SetCaption('Item list:');
+    SetTooltip('List of all items on osrs currently supported.');
     SetName('item_list');
     SetLeft(space);
     SetTop(y);
@@ -405,7 +688,7 @@ begin
     for i := 0 to itemNames.getCount()-1 do
     begin
       if str = itemNames.getStrings(i).Before('=') then
-        Continue;
+        Continue; //skip duplicates
       str := itemNames.getStrings(i).Before('=');
       if not RSAlchHandler.ItemArray.Contains(str) then
         AddItem(str);
@@ -417,7 +700,8 @@ begin
   with alchList do
   begin
     Create(Result);
-    SetCaption('Alch list: ');
+    SetCaption('Alch list:');
+    SetTooltip('List of all items that will be looked for when WaspLib alch handler is used. For performance, keep the list short.');
     SetName('alch_list');
     SetLeft(Self.Size.X - space - fullWidth);
     SetTop(itemList.GetTop());
@@ -429,30 +713,71 @@ begin
     ListBox.setOnClick(@Self._OnAlchListSelected);
   end;
 
-  with addAlchList do
+
+  with button do
   begin
     Create(Result);
-    setCaption('Add Alch List >>>');
-    SetName('add_alchlist_button');
+    setCaption('Add Item >>>');
+    SetName('add_alch_button');
     SetLeft(itemList.GetRight() + space);
     SetTop(y*2);
-    setWidth(space*6);
+    setWidth(space*7);
     SetHeight(TControl.AdjustToDPI(30));
     setOnClick(@Self._AddAlchList);
     setEnabled(False);
   end;
 
-  with removeAlchList do
+  with button do
   begin
     Create(Result);
-    setCaption('<<< Remove Alch List');
-    SetName('remove_alchlist_button');
+    setCaption('Add Noted/Unnoted >>');
+    SetName('add_both_alch_button');
     SetLeft(itemList.GetRight() + space);
-    SetTop(y*4);
-    setWidth(space*6);
+    SetTop(y*3);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._AddBothAlchList);
+    setEnabled(False);
+  end;
+
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('<< Remove Noted/Unnoted');
+    SetName('remove_both_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*5);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._RemoveBothAlchList);
+    setEnabled(False);
+  end;
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('<<< Remove Item');
+    SetName('remove_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*6);
+    setWidth(space*7);
     SetHeight(TControl.AdjustToDPI(30));
     setOnClick(@Self._RemoveAlchList);
     setEnabled(False);
   end;
-end;
 
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Clear list');
+    SetTooltip('Clear the alch list. If it''s empty, restarting the script will re-add the default one.');
+    SetName('clear_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*8);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._OnAlchListClear);
+  end;
+end;

@@ -1,3 +1,12 @@
+## [14.3.1](https://github.com/Torwent/WaspLib/compare/v14.3.0...v14.3.1) (2023-07-26)
+
+
+### Bug Fixes
+
+* typo, missing closing `end` ([680b98a](https://github.com/Torwent/WaspLib/commit/680b98a9c54b279c35793fb357dab5edb1ba40b9))
+
+
+
 # [14.3.0](https://github.com/Torwent/WaspLib/compare/v14.2.12...v14.3.0) (2023-07-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **webber:** read notes ([ca943b9](https://github.com/Torwent/WaspLib/commit/ca943b92fb13e45df148c828e4aa5b89e9d9a0c7))
-
-
-
-## [14.2.9](https://github.com/Torwent/WaspLib/compare/v14.2.8...v14.2.9) (2023-07-19)
-
-
-### Bug Fixes
-
-* **craftscreen:** fix SetCraftItem for amulets ([806efc9](https://github.com/Torwent/WaspLib/commit/806efc9e65e356a102bd13928a093cd11c6587e9))
 
 
 

@@ -1,3 +1,12 @@
+# [14.4.0](https://github.com/Torwent/WaspLib/compare/v14.3.2...v14.4.0) (2023-07-26)
+
+
+### Features
+
+* finished RSAlchHandler ([9955d55](https://github.com/Torwent/WaspLib/commit/9955d55f6b1a1b6405614eb61aa3320dbc11d3ef))
+
+
+
 ## [14.3.2](https://github.com/Torwent/WaspLib/compare/v14.3.1...v14.3.2) (2023-07-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **inventory:** move use slot on slot override to SRLT ([c607712](https://github.com/Torwent/WaspLib/commit/c6077120680950b41c203a5241fe370551b20a1e))
-
-
-
-## [14.2.11](https://github.com/Torwent/WaspLib/compare/v14.2.10...v14.2.11) (2023-07-22)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** made some tweaks to TBaseBankScript.DepositItem() ([6b32011](https://github.com/Torwent/WaspLib/commit/6b32011309c8a906bb8697ec143a24df56de6cb8))
 
 
 

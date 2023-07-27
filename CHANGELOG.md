@@ -1,3 +1,12 @@
+## [14.4.1](https://github.com/Torwent/WaspLib/compare/v14.4.0...v14.4.1) (2023-07-27)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** read notes ([694b7ce](https://github.com/Torwent/WaspLib/commit/694b7ceb209f19402854cc7b00a370bdc6b394c7))
+
+
+
 # [14.4.0](https://github.com/Torwent/WaspLib/compare/v14.3.2...v14.4.0) (2023-07-26)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **alch handler:** added the new alch handler ([996823a](https://github.com/Torwent/WaspLib/commit/996823aefabbfb8a4e08a09fee46690e376727e2))
-
-
-
-## [14.2.12](https://github.com/Torwent/WaspLib/compare/v14.2.11...v14.2.12) (2023-07-22)
-
-
-### Bug Fixes
-
-* **inventory:** move use slot on slot override to SRLT ([c607712](https://github.com/Torwent/WaspLib/commit/c6077120680950b41c203a5241fe370551b20a1e))
 
 
 

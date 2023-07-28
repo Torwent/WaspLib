@@ -1,3 +1,12 @@
+## [14.4.3](https://github.com/Torwent/WaspLib/compare/v14.4.2...v14.4.3) (2023-07-28)
+
+
+### Bug Fixes
+
+* tweaks to RSAlchHandler ([2c14c35](https://github.com/Torwent/WaspLib/commit/2c14c35a099cbe4c6fd68e9cb1c9ad1603fc16f6))
+
+
+
 ## [14.4.2](https://github.com/Torwent/WaspLib/compare/v14.4.1...v14.4.2) (2023-07-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * removed override that is now part of SRL-T ([53fd409](https://github.com/Torwent/WaspLib/commit/53fd409907e264a98b6cd647bdec3e09b6460f67))
-
-
-
-## [14.3.1](https://github.com/Torwent/WaspLib/compare/v14.3.0...v14.3.1) (2023-07-26)
-
-
-### Bug Fixes
-
-* typo, missing closing `end` ([680b98a](https://github.com/Torwent/WaspLib/commit/680b98a9c54b279c35793fb357dab5edb1ba40b9))
 
 
 

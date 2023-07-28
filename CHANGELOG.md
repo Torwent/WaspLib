@@ -1,3 +1,12 @@
+## [14.4.2](https://github.com/Torwent/WaspLib/compare/v14.4.1...v14.4.2) (2023-07-28)
+
+
+### Bug Fixes
+
+* **RSAlchHandler:** will now unequip items that could have been equipped accidentally while alching ([4b686f8](https://github.com/Torwent/WaspLib/commit/4b686f88db90b23314697c8868aeca65194bb097))
+
+
+
 ## [14.4.1](https://github.com/Torwent/WaspLib/compare/v14.4.0...v14.4.1) (2023-07-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * typo, missing closing `end` ([680b98a](https://github.com/Torwent/WaspLib/commit/680b98a9c54b279c35793fb357dab5edb1ba40b9))
-
-
-
-# [14.3.0](https://github.com/Torwent/WaspLib/compare/v14.2.12...v14.3.0) (2023-07-24)
-
-
-### Features
-
-* **alch handler:** added the new alch handler ([996823a](https://github.com/Torwent/WaspLib/commit/996823aefabbfb8a4e08a09fee46690e376727e2))
 
 
 

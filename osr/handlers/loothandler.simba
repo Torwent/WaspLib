@@ -9,10 +9,49 @@ LootHandler is a record made to handle looting.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-const
-  LOOT_ITEM_ARRAY: TStringArray = [
-    'Clue scroll (easy)', 'Clue scroll (medium)',
-    'Clue scroll (hard)', 'Clue scroll (elite)',
+type
+  TRSLootHandler = record(TSRLBaseRecord)
+    PriorityArray: TStringArray;
+    Loot: TRSGroundItem;
+    Drops: TRSMonsterDropArray;
+    ValueThreshold: Int32;
+    CheckedLoot: Boolean;
+    IsSetup: Boolean;
+  end;
+
+function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
+var
+  value: Int32;
+begin
+  if Self.PriorityArray.Contains(drop.Item) then
+    Exit(True);
+
+  value := ItemData.GetAverage(drop.ID);
+
+  Result := value >= Self.ValueThreshold;
+  if Result then
+    Exit;
+
+  value := value * drop.Quantity;
+  Result := drop.Stackable and (value >= (Self.ValueThreshold / 5));
+  if Result then
+    Exit;
+
+  Result := ItemData.GetHighAlch(drop.ID) > Self.ValueThreshold;
+  if Result then
+    RSAlchHandler.ItemArray += drop.Item;
+end;
+
+procedure TRSLootHandler.Setup(monster: TRSMonster; value: Int32 = 5000);
+var
+  i: Int32;
+  tmpDrops: TRSMonsterDropArray;
+begin
+  if (monster.Name = '') or (value <= 0) then
+    Exit;
+
+  Self.PriorityArray := [
+    'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
     'Clue scroll (master)',
     'Dark totem base', 'Dark totem middle', 'Dark totem top',
     'Dark totem', 'Ancient shard', 'Brimstone key',
@@ -27,7 +66,13 @@ const
     'Giant key', 'Mossy key'
   ];
 
-  LOOT_ITEM_COLORS: array of TCTS2Color = [
+  Self.ValueThreshold := value;
+  Self.Loot._Setup();
+
+  if monster.Coordinates <> [] then
+    Self.Loot.Setup(monster.DotFilter[0].Circle.Radius, 0, monster.Coordinates);
+
+  Self.Loot.Finder.Colors := [
     [6579858, 9, 0.09, 0.33],   //vile and malicious ashes
     [13422033, 18, 0.20, 0.30], //dragon bones (this matches a lot with proselyte. might need to be removed)
     [7760980, 9, 0.06, 0.14],   //rune items (this might need better colors but this one doesn't match in CoK background,
@@ -45,54 +90,6 @@ const
     [7311001, 7, 0.08, 0.21],   //noted drops
     [680832, 11, 0.04, 1.43]    //battlestaff
   ];
-
-type
-  TRSLootHandler = record(TSRLBaseRecord)
-    Loot: TRSGroundItem;
-    Drops: TRSMonsterDropArray;
-    ValueThreshold: Int32;
-    CheckedLoot: Boolean;
-    IsSetup: Boolean;
-  end;
-
-function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
-var
-  value: Int32;
-begin
-  if LOOT_ITEM_ARRAY.Contains(drop.Item) then
-    Exit(True);
-
-  value := ItemData.GetAverage(drop.ID);
-
-  Result := value >= Self.ValueThreshold;
-  if Result then
-    Exit;
-
-  value := value * drop.Quantity;
-  Result := drop.Stackable and (value >= (Self.ValueThreshold / 5));
-  if Result then
-    Exit;
-
-  Result := ItemData.GetHighAlch(drop.ID) > Self.ValueThreshold;
-  if Result then
-    AlchItemArray += drop.Item;
-end;
-
-procedure TRSLootHandler.Setup(monster: TRSMonster; value: Int32 = 5000);
-var
-  i: Int32;
-  tmpDrops: TRSMonsterDropArray;
-begin
-  if (monster.Name = '') or (value <= 0) then
-    Exit;
-
-  Self.ValueThreshold := value;
-  Self.Loot._Setup();
-
-  if monster.Coordinates <> [] then
-    Self.Loot.Setup(monster.DotFilter[0].Circle.Radius, 0, monster.Coordinates);
-
-  Self.Loot.Finder.Colors := LOOT_ITEM_COLORS;
   Self.Loot.Filter.UpText := False;
 
   Self.Loot.Finder.ClusterDistance := 3;
@@ -114,7 +111,7 @@ begin
     end;
   end;
 
-  Self.IsSetup:= Self.Loot <> [];
+  Self.IsSetup := True;
 end;
 
 function TRSLootHandler.HasSpace(drop: TRSMonsterDrop): Boolean;

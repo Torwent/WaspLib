@@ -340,88 +340,109 @@ begin
   Result := True;
 end;
 
-function RSAlchHandler.CastAlchemy(hi: Boolean = True): Boolean; static;
+
+function RSAlchHandler.SelectSpell(hi: Boolean = True): Boolean; static;
 var
-  spell: ERSSpell;
+  attempt: Int32;
   spellStr: String;
-  fullAttempt, attempt, slot, spellSlot: Int32;
-  box: TBox;
+  spell: ERSSpell;
 begin
-  if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
-    Exit;
-
-  XPBar.EarnedXP(); //Update cached XP.
-
   if hi then
   begin
     spell := ERSSpell.HIGH_LEVEL_ALCHEMY;
     RSAlchHandler.Timer.Length := 5 * 600;
     spellStr := 'h Level Alchemy -';
-    spellSlot := 11;
   end
   else
   begin
     spell := ERSSpell.LOW_LEVEL_ALCHEMY;
-    RSAlchHandler.Timer.Length := 3 * 600;
     spellStr := 'w Level Alchemy -';
+  end;
+
+  while not MainScreen.IsUpText(spellStr) or not Inventory.IsOpen() do
+  begin
+    if Inc(attempt) > 3 then
+      Exit;
+    Magic.CastSpell(spell);
+  end;
+  Result := True;
+end;
+
+function RSAlchHandler.SelectItem(hi: Boolean = True): Boolean; static;
+var
+  attempt, slot, spellSlot: Int32;
+  box: TBox;
+begin
+  if hi then
+  begin
+    RSAlchHandler.Timer.Length := 5 * 600;
+    spellSlot := 11;
+  end
+  else
+  begin
+    RSAlchHandler.Timer.Length := 3 * 600;
     spellSlot := 3;
   end;
 
-  for fullAttempt := 0 to 2 do
+  for attempt := 0 to 2 do
   begin
-    while not MainScreen.IsUpText(spellStr) or not Inventory.IsOpen() do
+    if RSAlchHandler.Item.IsNull() then
+      RSAlchHandler.Item := RSAlchHandler.GetAlchItem();
+
+    if Inventory.FindItem(RSAlchHandler.Item, slot) then
     begin
-      if Inc(attempt) > 2 then
-        Exit;
-      Magic.CastSpell(spell);
-    end;
-
-    for attempt := 0 to 2 do
-    begin
-      if RSAlchHandler.Item.IsNull() then
-        RSAlchHandler.Item := RSAlchHandler.GetAlchItem();
-
-      if Inventory.FindItem(RSAlchHandler.Item, slot) then
-      begin
-        if (slot <> spellSlot) and (Inventory.ItemInterface.CountStack(slot) > 0) then
-        begin
-          RSAlchHandler.DisableCast();
-          if Inventory.ItemInterface.Move(slot, spellSlot) then
-            Break(2);
-          Break;
-        end;
-
-        if SRL.Dice(99.5) then
-        begin
-          if Inventory.ClickSlot(slot, '>') then
-          begin
-            Result := WaitUntil(Magic.IsOpen() or XPBar.EarnedXP(), 50, 2000);
-            if Result then
-            begin
-              RSAlchHandler.Timer.Restart();
-              RSAlchHandler.AddProfit(hi);
-              Exit;
-            end;
-          end;
-        end;
-
-        Inventory.ClickSlot(Inventory.RandomSlotNearby(slot, Inventory.GetEmptySlots()), '>');
-        Break(2);
-      end
-      else if ItemData.GetOSRSBoxBoolean(RSAlchHandler.Item, 'equipable') then
+      if (slot <> spellSlot) and (Inventory.ItemInterface.CountStack(slot) > 0) then
       begin
         RSAlchHandler.DisableCast();
-        if Equipment.FindItem(RSAlchHandler.Item, box) then
-        begin
-          Mouse.Click(box, MOUSE_LEFT);
-          Break(2);
-        end;
+        if Inventory.ItemInterface.Move(slot, spellSlot) then
+          Exit;
+        Break;
       end;
 
-      RSAlchHandler.Item := '';
+      if SRL.Dice(99.5) and Inventory.ClickSlot(slot, '>') and XPBar.WaitXP(2000) then
+      begin
+        RSAlchHandler.Timer.Restart();
+        RSAlchHandler.AddProfit(hi);
+        Exit(True);
+      end;
+
+      Inventory.ClickSlot(Inventory.RandomSlotNearby(slot, Inventory.GetEmptySlots()), '>');
+      Exit;
+    end
+    else if ItemData.GetOSRSBoxBoolean(RSAlchHandler.Item, 'equipable') then
+    begin
+      RSAlchHandler.DisableCast();
+      if Equipment.FindItem(RSAlchHandler.Item, box) then
+      begin
+        Mouse.Click(box, MOUSE_LEFT);
+        Exit;
+      end;
     end;
-    Exit;
+
+    RSAlchHandler.Item := '';
   end;
+end;
+
+
+function RSAlchHandler.CastAlchemy(hi: Boolean = True; waitTimer: Boolean = False): Boolean; static;
+var
+  attempt: Int32;
+begin
+  if not waitTimer then
+  begin
+    if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
+      Exit;
+  end else
+    WaitUntil(RSAlchHandler.Timer.IsFinished(), 50, 3100);
+
+  XPBar.EarnedXP(); //Update cached XP.
+
+  repeat
+    if not RSAlchHandler.SelectSpell(hi) then
+      Exit;
+    Result := RSAlchHandler.SelectItem(hi);
+    TRSWalkerObject.RedClicked := False; //Integration with other wasplib components.
+  until Result or (Inc(attempt) > 2);
 end;
 
 begin

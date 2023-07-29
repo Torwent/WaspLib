@@ -1,3 +1,12 @@
+## [14.4.5](https://github.com/Torwent/WaspLib/compare/v14.4.4...v14.4.5) (2023-07-29)
+
+
+### Bug Fixes
+
+* **webgraph:** improved pathing around soul rune altar ([462f9b0](https://github.com/Torwent/WaspLib/commit/462f9b006728ed888f8a8e13b8b2067763f8c80f))
+
+
+
 ## [14.4.4](https://github.com/Torwent/WaspLib/compare/v14.4.3...v14.4.4) (2023-07-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** read notes ([694b7ce](https://github.com/Torwent/WaspLib/commit/694b7ceb209f19402854cc7b00a370bdc6b394c7))
-
-
-
-# [14.4.0](https://github.com/Torwent/WaspLib/compare/v14.3.2...v14.4.0) (2023-07-26)
-
-
-### Features
-
-* finished RSAlchHandler ([9955d55](https://github.com/Torwent/WaspLib/commit/9955d55f6b1a1b6405614eb61aa3320dbc11d3ef))
 
 
 

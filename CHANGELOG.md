@@ -1,3 +1,12 @@
+## [14.4.6](https://github.com/Torwent/WaspLib/compare/v14.4.5...v14.4.6) (2023-07-30)
+
+
+### Bug Fixes
+
+* **rsalchhandler:** minor fix to item not being setup ([fcdaebb](https://github.com/Torwent/WaspLib/commit/fcdaebb908243d3a6b8cf6caf67cc7f9349f3faa))
+
+
+
 ## [14.4.5](https://github.com/Torwent/WaspLib/compare/v14.4.4...v14.4.5) (2023-07-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSAlchHandler:** will now unequip items that could have been equipped accidentally while alching ([4b686f8](https://github.com/Torwent/WaspLib/commit/4b686f88db90b23314697c8868aeca65194bb097))
-
-
-
-## [14.4.1](https://github.com/Torwent/WaspLib/compare/v14.4.0...v14.4.1) (2023-07-27)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** read notes ([694b7ce](https://github.com/Torwent/WaspLib/commit/694b7ceb209f19402854cc7b00a370bdc6b394c7))
 
 
 

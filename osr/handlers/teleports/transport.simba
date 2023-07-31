@@ -162,8 +162,6 @@ begin
   try
     if didTeleport then
     begin
-      //TODO: Need to add some kind of check if the map is already loaded before adding it with the next line.
-      //ScriptWalker^.AddRegion(self.getRegionBetween(ScriptWalker^.GetMyPos(), destination));
       ScriptWalker^.WebWalk(destination, 20);
     end;
   except
@@ -447,6 +445,8 @@ var
   codeFindAttempt: Int32;
   fairyTeleportStaff: TRSItem;
   bankItem: TRSBankItem;
+  fairyRingChooseOption: TRSChooseOption_Option;
+  selectedPreviousRing: Boolean;
 begin
   // make sure dramen is equipped
   Self.DebugLn('Searching for dramen staff');
@@ -500,7 +500,6 @@ begin
   if (walkableFairyRing.worldPoint = [0,0]) then
     raise 'Fairy ring ' + walkableFairyRing.destination + ' is not configured properly';
 
-  ScriptWalker^.AddRegion(self.getRegionBetween(ScriptWalker^.GetMyPos(), walkableFairyRing.worldPoint));
   Self.DebugLn('We are going to walk to ' + ToString(walkableFairyRing.worldPoint));
   ScriptWalker^.WebWalk(walkableFairyRing.worldPoint, 40);
 
@@ -510,40 +509,49 @@ begin
     repeat Mouse.Move(findFairyRingMiddle(walkableFairyRing))
     until MainScreen.IsUpText("y ring");
     Mouse.click(MOUSE_RIGHT);
-    Self.DebugLn('Selecting configure');
-    ChooseOption.Select('Configure', MOUSE_LEFT);
+    Self.DebugLn('Selecting configure or previous ring');
+    for fairyRingChooseOption in ChooseOption.GetOptions() do
+      if Between('(',')', fairyRingChooseOption.Text) = teleportLocation.destination.Replace(' ', '') then
+        selectedPreviousRing := ChooseOption.Select(fairyRingChooseOption.Text);
+
+    if not selectedPreviousRing then
+      ChooseOption.Select('Configure', MOUSE_LEFT);
+
     Wait(SRL.TruncatedGauss(3000, 4500));
     travelLogOpen := (SRL.FindColors(redTextPoints, redTextColors, travelLog) > 1);
-  until travelLogOpen;
+  until travelLogOpen or selectedPreviousRing;
 
-  Self.DebugLn('Scrolling to top of fairy rings');
-  // scroll to top of fairy rings
-  Mouse.move(travelLog, True);
-  Mouse.scroll(SRL.TruncatedGauss(30, 50), False);
-  repeat
-    // look for given teleport in travel log
-    OCR.LocateText(travelLog, teleportLocation.destination, RS_FONT_PLAIN_12, TOCRColorFilter.Create([4145151, 8355839]), fairyCodeTextBox);
-    foundCode := (fairyCodeTextBox.Area() > 5);
-    if not foundCode then
-    begin
-      Self.DebugLn('Scrolling down fairy rings');
-      Mouse.move(travelLog, True);
-      Mouse.scroll(Random(1, 3), True);
-    end
-    else
+  if not selectedPreviousRing then
+  begin
+    Self.DebugLn('Scrolling to top of fairy rings');
+    // scroll to top of fairy rings
+    Mouse.move(travelLog, True);
+    Mouse.scroll(SRL.TruncatedGauss(30, 50), False);
     repeat
-      codeFindAttempt += 1;
-      Mouse.move(fairyCodeTextBox);
-    until MainScreen.IsUpText(teleportLocation.destination) or (codeFindAttempt > 3);
-  until foundCode;
+      // look for given teleport in travel log
+      OCR.LocateText(travelLog, teleportLocation.destination, RS_FONT_PLAIN_12, TOCRColorFilter.Create([4145151, 8355839]), fairyCodeTextBox);
+      foundCode := (fairyCodeTextBox.Area() > 5);
+      if not foundCode then
+      begin
+        Self.DebugLn('Scrolling down fairy rings');
+        Mouse.move(travelLog, True);
+        Mouse.scroll(Random(1, 3), True);
+      end
+      else
+      repeat
+        codeFindAttempt += 1;
+        Mouse.move(fairyCodeTextBox);
+      until MainScreen.IsUpText(teleportLocation.destination) or (codeFindAttempt > 3);
+    until foundCode;
 
-  // click the given teleport in travel log
-  Mouse.click(fairyCodeTextBox, MOUSE_LEFT);
+    // click the given teleport in travel log
+    Mouse.click(fairyCodeTextBox, MOUSE_LEFT);
 
-  // click the confirm teleport in middle of screen
-  Mouse.move(self.getFairyDialTeleportBox());
-  WaitUntil(MainScreen.IsUpText("Confirm"), 200, 5000);
-  Mouse.click(MOUSE_LEFT);
+    // click the confirm teleport in middle of screen
+    Mouse.move(self.getFairyDialTeleportBox());
+    WaitUntil(MainScreen.IsUpText("Confirm"), 200, 5000);
+    Mouse.click(MOUSE_LEFT);
+  end;
   Exit(True);
 end;
 
@@ -558,7 +566,6 @@ function TUniversalTransport.goToGE(): Boolean;
 begin
   if self.nearGE() then
   begin
-    ScriptWalker^.AddRegion(self.getRegionBetween(ScriptWalker^.GetMyPos(), RSTeleports.GRAND_EXCHANGE.worldPoint));
     Result := ScriptWalker^.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
   end
   else
@@ -587,7 +594,6 @@ var
   closestBanker: TRSObject := RSObjects.Banks.GetClosest();
   closestBankPoint: TPoint := closestBanker.Coordinates.First();
   myPos: TPoint := ScriptWalker^.GetMyPos();
-  pathRegion: TBox := self.getRegionBetween(myPos, closestBankPoint);
   pathDistance: Int32 := self.pathLength(closestBankPoint, myPos);
   walkableBank: TRSObject;
 begin
@@ -596,10 +602,6 @@ begin
   Self.DebugLn('Distance to bank from current ' + ToString(pathDistance));
   if pathDistance < maxDistance then
   begin
-    ScriptWalker^.AddRegion(pathRegion);
-    ScriptWalker^.AddRegion(Box(ScriptWalker^.GetMyPos(), 100, 100));
-    Self.DebugLn(ToString(pathRegion));
-    Self.DebugLn(ToString(myPos));
     Bank.WalkOpen(closestBanker);
     if Bank.IsOpen(5000, 200) then
       Exit(true);
@@ -616,9 +618,6 @@ begin
     WaitUntil(ScriptWalker^.GetMyPos().InBox(Box(RSTeleports.CIS_NORTH_OF_THE_ARCEUUS_LIBRARY.worldPoint, 500, 500)), 200, 15000)
   else raise "Couldn't go home!";
 
-  // load path between current and bank and then walk
-  pathRegion := self.getRegionBetween(walkableBank.Coordinates.first(), ScriptWalker^.GetMyPos);
-  ScriptWalker^.AddRegion(pathRegion);
   walkableBank := self.getConnectingBank(ScriptWalker^.GetMyPos())^;
   Bank.WalkOpen(walkableBank);
 end;
@@ -627,10 +626,12 @@ end;
 // example usage/test
 //
 //var
+//  rsw: TRSWalker;
 //  Transport: TUniversalTransport;
 //  teleportLocation: TTeleportLocation := RSTeleports.GRAND_EXCHANGE;
 //begin
 //  try
+//    rsw.Setup();
 //    Transport.Init(EFairyTeleportItem.DRAMEN, 'ardougne cloak 2');
 //    if not Transport.run(teleportLocation) then
 //    begin

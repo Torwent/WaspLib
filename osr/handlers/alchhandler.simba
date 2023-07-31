@@ -16,7 +16,7 @@ begin
   WriteLn SRL.TimeStamp() + ':[RSAlchHandler]: ' + text;
 end;
 
-procedure TSRLBaseRecord.Fatal(text: String); constref; override;
+procedure RSAlchHandler.Fatal(text: String); constref; override;
 begin
   TerminateScript(SRL.TimeStamp() + ':[RSAlchHandler]:[Fatal]: ' + text);
 end;
@@ -350,7 +350,6 @@ begin
   if hi then
   begin
     spell := ERSSpell.HIGH_LEVEL_ALCHEMY;
-    RSAlchHandler.Timer.Length := 5 * 600;
     spellStr := 'h Level Alchemy -';
   end
   else
@@ -359,19 +358,21 @@ begin
     spellStr := 'w Level Alchemy -';
   end;
 
-  while not MainScreen.IsUpText(spellStr) or not Inventory.IsOpen() do
-  begin
-    if Inc(attempt) > 3 then
-      Exit;
-    Magic.CastSpell(spell);
-  end;
-  Result := True;
+  repeat
+    if not Magic.IsSpellSelected(spell) or
+       not GameTabs.FKeyOpen(ERSGameTab.INVENTORY)
+    then
+      Magic.CastSpell(spell);
+
+    Result := MainScreen.IsUpText(spellStr) or Inventory.IsOpen();
+  until Result or (Inc(attempt) > 3);
 end;
 
 function RSAlchHandler.SelectItem(hi: Boolean = True): Boolean; static;
 var
   attempt, slot, spellSlot: Int32;
   box: TBox;
+  slots: TIntegerArray;
 begin
   if hi then
   begin
@@ -409,7 +410,12 @@ begin
         Exit(True);
       end;
 
-      Inventory.ClickSlot(Inventory.RandomSlotNearby(slot, Inventory.GetEmptySlots()), '>');
+      slots := Inventory.GetEmptySlots();
+      if slots <> [] then
+      begin
+        slot := Inventory.RandomSlotNearby(slot, slots);
+        Inventory.ClickSlot(slot, '>');
+      end;
       Exit;
     end
     else if ItemData.GetOSRSBoxBoolean(RSAlchHandler.Item, 'equipable') then

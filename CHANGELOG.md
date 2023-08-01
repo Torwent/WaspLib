@@ -1,3 +1,12 @@
+## [14.4.8](https://github.com/Torwent/WaspLib/compare/v14.4.7...v14.4.8) (2023-08-01)
+
+
+### Bug Fixes
+
+* **CombatHandler:** fix for any monster ([419b775](https://github.com/Torwent/WaspLib/commit/419b77550aac479361b46f2375d8b8abc289550d))
+
+
+
 ## [14.4.7](https://github.com/Torwent/WaspLib/compare/v14.4.6...v14.4.7) (2023-07-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * rsaction removed. ([d18e693](https://github.com/Torwent/WaspLib/commit/d18e69330e6747f9e1328bbc73384db723cb286b))
-
-
-
-## [14.4.3](https://github.com/Torwent/WaspLib/compare/v14.4.2...v14.4.3) (2023-07-28)
-
-
-### Bug Fixes
-
-* tweaks to RSAlchHandler ([2c14c35](https://github.com/Torwent/WaspLib/commit/2c14c35a099cbe4c6fd68e9cb1c9ad1603fc16f6))
 
 
 

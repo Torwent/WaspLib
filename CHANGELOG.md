@@ -1,3 +1,12 @@
+## [14.4.9](https://github.com/Torwent/WaspLib/compare/v14.4.8...v14.4.9) (2023-08-04)
+
+
+### Bug Fixes
+
+* **README:** removed some outdated concepts from the readme ([6807edb](https://github.com/Torwent/WaspLib/commit/6807edb523b2d890135d472bba5a3f432ac490d7))
+
+
+
 ## [14.4.8](https://github.com/Torwent/WaspLib/compare/v14.4.7...v14.4.8) (2023-08-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **webgraph:** improved pathing around soul rune altar ([462f9b0](https://github.com/Torwent/WaspLib/commit/462f9b006728ed888f8a8e13b8b2067763f8c80f))
-
-
-
-## [14.4.4](https://github.com/Torwent/WaspLib/compare/v14.4.3...v14.4.4) (2023-07-28)
-
-
-### Bug Fixes
-
-* rsaction removed. ([d18e693](https://github.com/Torwent/WaspLib/commit/d18e69330e6747f9e1328bbc73384db723cb286b))
 
 
 

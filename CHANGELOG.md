@@ -1,3 +1,12 @@
+## [14.4.10](https://github.com/Torwent/WaspLib/compare/v14.4.9...v14.4.10) (2023-08-05)
+
+
+### Bug Fixes
+
+* force bump for skunk's changes ([c7a85d1](https://github.com/Torwent/WaspLib/commit/c7a85d130b3ec272070c16745c5da61306391816))
+
+
+
 ## [14.4.9](https://github.com/Torwent/WaspLib/compare/v14.4.8...v14.4.9) (2023-08-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsalchhandler:** minor fix to item not being setup ([fcdaebb](https://github.com/Torwent/WaspLib/commit/fcdaebb908243d3a6b8cf6caf67cc7f9349f3faa))
-
-
-
-## [14.4.5](https://github.com/Torwent/WaspLib/compare/v14.4.4...v14.4.5) (2023-07-29)
-
-
-### Bug Fixes
-
-* **webgraph:** improved pathing around soul rune altar ([462f9b0](https://github.com/Torwent/WaspLib/commit/462f9b006728ed888f8a8e13b8b2067763f8c80f))
 
 
 

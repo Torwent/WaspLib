@@ -32,15 +32,6 @@
  - Much much more
 
  ![Image of WaspLib Map](https://github.com/Torwent/WaspLib/raw/master/osr/walker/map.png)
- 
- ## WalkActions
- WaspLib also has a way of doing actions while walking.
- A lot of things can be done with it but some of the best uses for this are:
- - [x] Walk alching
- - [ ] Walk magic imbue
- - [x] Walk drop
- - [ ] Walk fletch
- - [ ] Walk crush dark essence
 
  ## Tile accurate object, npc and ground item detection
  WaspLib also provides tile accurate object and npc detection framework.

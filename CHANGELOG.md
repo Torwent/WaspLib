@@ -1,3 +1,12 @@
+# [14.5.0](https://github.com/Torwent/WaspLib/compare/v14.4.10...v14.5.0) (2023-08-07)
+
+
+### Bug Fixes
+
+* **rsobjects:** remove some unspecified banks that are closed booths ([0e40f67](https://github.com/Torwent/WaspLib/commit/0e40f67aa445bc6e633e98873028bb54b03d07b9))
+
+
+
 ## [14.4.10](https://github.com/Torwent/WaspLib/compare/v14.4.9...v14.4.10) (2023-08-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([c40dbe5](https://github.com/Torwent/WaspLib/commit/c40dbe5474ef258ec08a3f23422d437bbbd1d130))
-
-
-
-## [14.4.6](https://github.com/Torwent/WaspLib/compare/v14.4.5...v14.4.6) (2023-07-30)
-
-
-### Bug Fixes
-
-* **rsalchhandler:** minor fix to item not being setup ([fcdaebb](https://github.com/Torwent/WaspLib/commit/fcdaebb908243d3a6b8cf6caf67cc7f9349f3faa))
 
 
 

@@ -1,3 +1,13 @@
+## [14.5.1](https://github.com/Torwent/WaspLib/compare/v14.5.0...v14.5.1) (2023-08-08)
+
+
+### Bug Fixes
+
+* forgot this in the previous commit ([7f01341](https://github.com/Torwent/WaspLib/commit/7f013414d0a8e86d52c5d9eee11bf6460a0c39a8))
+* **TScriptForm:** read notes ([3d99b12](https://github.com/Torwent/WaspLib/commit/3d99b1295c407a7b194813f7ca0da910d40e5310))
+
+
+
 # [14.5.0](https://github.com/Torwent/WaspLib/compare/v14.4.10...v14.5.0) (2023-08-07)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * **CombatHandler:** fix for any monster ([419b775](https://github.com/Torwent/WaspLib/commit/419b77550aac479361b46f2375d8b8abc289550d))
-
-
-
-## [14.4.7](https://github.com/Torwent/WaspLib/compare/v14.4.6...v14.4.7) (2023-07-31)
-
-
-### Bug Fixes
-
-* read notes ([c40dbe5](https://github.com/Torwent/WaspLib/commit/c40dbe5474ef258ec08a3f23422d437bbbd1d130))
 
 
 

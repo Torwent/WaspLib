@@ -1,3 +1,12 @@
+## [14.5.4](https://github.com/Torwent/WaspLib/compare/v14.5.3...v14.5.4) (2023-08-10)
+
+
+### Bug Fixes
+
+* added more points to student's webgraph changes ([50af1e7](https://github.com/Torwent/WaspLib/commit/50af1e7eaf72ac2fae0caf72906a08b0612c3c3e))
+
+
+
 ## [14.5.3](https://github.com/Torwent/WaspLib/compare/v14.5.2...v14.5.3) (2023-08-10)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **rsobjects:** remove some unspecified banks that are closed booths ([0e40f67](https://github.com/Torwent/WaspLib/commit/0e40f67aa445bc6e633e98873028bb54b03d07b9))
-
-
-
-## [14.4.10](https://github.com/Torwent/WaspLib/compare/v14.4.9...v14.4.10) (2023-08-05)
-
-
-### Bug Fixes
-
-* force bump for skunk's changes ([c7a85d1](https://github.com/Torwent/WaspLib/commit/c7a85d130b3ec272070c16745c5da61306391816))
 
 
 

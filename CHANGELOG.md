@@ -1,3 +1,12 @@
+## [14.5.3](https://github.com/Torwent/WaspLib/compare/v14.5.2...v14.5.3) (2023-08-10)
+
+
+### Bug Fixes
+
+* Squashed commit of the following: ([3cf8659](https://github.com/Torwent/WaspLib/commit/3cf86597a54d840b81ed1f94b355ccdc9f63cc45))
+
+
+
 ## [14.5.2](https://github.com/Torwent/WaspLib/compare/v14.5.1...v14.5.2) (2023-08-10)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * force bump for skunk's changes ([c7a85d1](https://github.com/Torwent/WaspLib/commit/c7a85d130b3ec272070c16745c5da61306391816))
-
-
-
-## [14.4.9](https://github.com/Torwent/WaspLib/compare/v14.4.8...v14.4.9) (2023-08-04)
-
-
-### Bug Fixes
-
-* **README:** removed some outdated concepts from the readme ([6807edb](https://github.com/Torwent/WaspLib/commit/6807edb523b2d890135d472bba5a3f432ac490d7))
 
 
 

@@ -1,3 +1,12 @@
+## [14.5.2](https://github.com/Torwent/WaspLib/compare/v14.5.1...v14.5.2) (2023-08-10)
+
+
+### Bug Fixes
+
+* remove the auto-import of annettesnets interface ([9da914c](https://github.com/Torwent/WaspLib/commit/9da914ce34f1f76e68e6e71a19674a450d6f095d))
+
+
+
 ## [14.5.1](https://github.com/Torwent/WaspLib/compare/v14.5.0...v14.5.1) (2023-08-08)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **README:** removed some outdated concepts from the readme ([6807edb](https://github.com/Torwent/WaspLib/commit/6807edb523b2d890135d472bba5a3f432ac490d7))
-
-
-
-## [14.4.8](https://github.com/Torwent/WaspLib/compare/v14.4.7...v14.4.8) (2023-08-01)
-
-
-### Bug Fixes
-
-* **CombatHandler:** fix for any monster ([419b775](https://github.com/Torwent/WaspLib/commit/419b77550aac479361b46f2375d8b8abc289550d))
 
 
 

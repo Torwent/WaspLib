@@ -1,3 +1,12 @@
+## [14.5.5](https://github.com/Torwent/WaspLib/compare/v14.5.4...v14.5.5) (2023-08-11)
+
+
+### Bug Fixes
+
+* remove personal development files ([5a653a2](https://github.com/Torwent/WaspLib/commit/5a653a222b117e02209d981e8fd2c27c610b7200))
+
+
+
 ## [14.5.4](https://github.com/Torwent/WaspLib/compare/v14.5.3...v14.5.4) (2023-08-10)
 
 
@@ -32,15 +41,6 @@
 
 * forgot this in the previous commit ([7f01341](https://github.com/Torwent/WaspLib/commit/7f013414d0a8e86d52c5d9eee11bf6460a0c39a8))
 * **TScriptForm:** read notes ([3d99b12](https://github.com/Torwent/WaspLib/commit/3d99b1295c407a7b194813f7ca0da910d40e5310))
-
-
-
-# [14.5.0](https://github.com/Torwent/WaspLib/compare/v14.4.10...v14.5.0) (2023-08-07)
-
-
-### Bug Fixes
-
-* **rsobjects:** remove some unspecified banks that are closed booths ([0e40f67](https://github.com/Torwent/WaspLib/commit/0e40f67aa445bc6e633e98873028bb54b03d07b9))
 
 
 

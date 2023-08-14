@@ -12,6 +12,9 @@ for general purpose combat this should be enough!
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
+{$IFNDEF WL_LOOTHANDLER_INCLUDED}
+  {$I WaspLib/osr/handlers/loothandler.simba}
+{$ENDIF}
 
 const
   WEAPONS: TRSItemArray = [
@@ -340,11 +343,15 @@ begin
   if Result := CombatHandler.LootHandler.CheckLoot() then
   begin
     Wait(400, 600);
-    match := Inventory.ItemInterface.FindAny(RSAlchHandler.ItemArray);
-    if match <> [] then
+
+    if not RSAlchHandler.Disabled then
     begin
-      RSAlchHandler.Item := match.Item;
-      RSAlchHandler.CastAlchemy();
+      match := Inventory.ItemInterface.FindAny(RSAlchHandler.ItemArray);
+      if match <> [] then
+      begin
+        RSAlchHandler.Item := match.Item;
+        RSAlchHandler.CastAlchemy();
+      end;
     end;
 
     if not CombatHandler.AutoRetaliateEnabled then
@@ -706,4 +713,134 @@ function TRSMainScreen.InCombat(): Boolean; override;
 begin
   Result := (CombatHandler.IsSetup and not CombatHandler.InCombatTimer.IsFinished())
             or XPBar.EarnedXP() or (Self.FindHitsplats() <> []);
+end;
+
+
+
+//TODO: NEED TO REVIEW EVERYTHING BELOW. This is probably all useless or not used.
+function TRSPrayer.HasProperPrayers(): Boolean;
+var
+  prayer: ERSPrayer;
+  activePrayers: ERSPrayerArray;
+begin
+  if CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatHandler.CombatStyle.GetCombatType;
+
+  activePrayers := Self.GetActivePrayers();
+
+  case CombatHandler.CombatStyle.CombatType of
+    COMBAT_RANGED:
+      for prayer in RANGED_PRAYERS do
+         if activePrayers.Find(prayer) > -1 then
+           Exit(True);
+
+    COMBAT_MELEE:
+      for prayer in MELEE_PRAYERS do
+         if activePrayers.Find(prayer) > -1 then
+           Exit(True);
+
+    COMBAT_MAGIC:
+      for prayer in MAGIC_PRAYERS do
+         if activePrayers.Find(prayer) > -1 then
+           Exit(True);
+  end;
+end;
+
+function TRSPrayer.FixPrayers(): Boolean;
+var
+  i: Int32;
+begin
+  if CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatHandler.CombatStyle.GetCombatType();
+
+  case CombatHandler.CombatStyle.CombatType of
+    COMBAT_RANGED:
+      for i := 0 to Ord(High(RANGED_PRAYERS)) do
+        if Self.ActivatePrayer(RANGED_PRAYERS[i]) then
+          Exit(True);
+
+    COMBAT_MELEE:
+        for i := 0 to Ord(High(MELEE_PRAYERS)) do
+        begin
+          if i > 1 then
+          begin
+            if Self.ActivatePrayer([MELEE_PRAYERS[i], MELEE_PRAYERS[i + 1]]) then
+              Exit(True);
+
+            i += 1;
+          end
+          else if Self.ActivatePrayer(MELEE_PRAYERS[i]) then
+            Exit(True);
+        end;
+
+    COMBAT_MAGIC:
+      for i := 0 to Ord(High(MAGIC_PRAYERS)) do
+        if Self.ActivatePrayer(MAGIC_PRAYERS[i]) then
+          Exit(True);
+  end;
+end;
+
+
+function TRSQuickPrayer.SelectBestPrayers(): Boolean;
+var
+  i: Int32;
+begin
+  if CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN then
+    CombatHandler.CombatStyle.GetCombatType();
+
+  if not Self.Open() then
+    Exit;
+
+  case CombatHandler.CombatStyle.CombatType of
+    COMBAT_RANGED:
+      for i := 0 to High(RANGED_PRAYERS) do
+        if Result := Self.SelectPrayer(RANGED_PRAYERS[i]) then
+          Break;
+
+    COMBAT_MELEE:
+        for i := 0 to High(MELEE_PRAYERS) do
+        begin
+          if i > 1 then
+          begin
+            if Result := Self.SelectPrayer([MELEE_PRAYERS[i], MELEE_PRAYERS[i + 1]]) then
+              Break;
+
+            i += 1;
+          end
+          else if Result := Self.SelectPrayer(MELEE_PRAYERS[i]) then
+            Break;
+        end;
+
+    COMBAT_MAGIC:
+      for i := 0 to High(MAGIC_PRAYERS) do
+        if Result := Self.SelectPrayer(MAGIC_PRAYERS[i]) then
+          Break;
+  end;
+
+  Self.Close();
+end;
+
+
+function TRSMinimap.EnablePrayer(checkPrayers: Boolean): Boolean; overload;
+begin
+  if checkPrayers and (CombatHandler.CombatStyle.CombatType = ERSCombatType.COMBAT_UNKNOWN) then
+    CombatHandler.CombatStyle.GetCombatType();
+
+  Result := Self.EnablePrayer();
+
+  if Result and checkPrayers then
+  begin
+    if CombatHandler.QuickPrayerIsSetup or not Prayer.Open() then
+      Exit;
+
+    if Prayer.HasProperPrayers() then
+    begin
+      CombatHandler.QuickPrayerIsSetup := True;
+      Exit;
+    end;
+
+    Prayer.FixPrayers();
+
+    CombatHandler.QuickPrayerIsSetup := QuickPrayer.SelectBestPrayers();
+  end;
 end;

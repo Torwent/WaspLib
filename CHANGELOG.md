@@ -1,3 +1,12 @@
+## [14.5.7](https://github.com/Torwent/WaspLib/compare/v14.5.6...v14.5.7) (2023-08-14)
+
+
+### Bug Fixes
+
+* read notes ([ac8bf9b](https://github.com/Torwent/WaspLib/commit/ac8bf9b06cd193ec4b458b38facda3a87b9ab672))
+
+
+
 ## [14.5.6](https://github.com/Torwent/WaspLib/compare/v14.5.5...v14.5.6) (2023-08-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Squashed commit of the following: ([3cf8659](https://github.com/Torwent/WaspLib/commit/3cf86597a54d840b81ed1f94b355ccdc9f63cc45))
-
-
-
-## [14.5.2](https://github.com/Torwent/WaspLib/compare/v14.5.1...v14.5.2) (2023-08-10)
-
-
-### Bug Fixes
-
-* remove the auto-import of annettesnets interface ([9da914c](https://github.com/Torwent/WaspLib/commit/9da914ce34f1f76e68e6e71a19674a450d6f095d))
 
 
 

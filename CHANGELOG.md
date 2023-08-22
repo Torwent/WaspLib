@@ -1,45 +1,45 @@
-## [14.4.10](https://github.com/Torwent/WaspLib/compare/v14.4.9...v14.4.10) (2023-08-05)
+## [14.5.7](https://github.com/Torwent/WaspLib/compare/v14.5.6...v14.5.7) (2023-08-14)
 
 
 ### Bug Fixes
 
-* force bump for skunk's changes ([c7a85d1](https://github.com/Torwent/WaspLib/commit/c7a85d130b3ec272070c16745c5da61306391816))
+* read notes ([ac8bf9b](https://github.com/Torwent/WaspLib/commit/ac8bf9b06cd193ec4b458b38facda3a87b9ab672))
 
 
 
-## [14.4.9](https://github.com/Torwent/WaspLib/compare/v14.4.8...v14.4.9) (2023-08-04)
-
-
-### Bug Fixes
-
-* **README:** removed some outdated concepts from the readme ([6807edb](https://github.com/Torwent/WaspLib/commit/6807edb523b2d890135d472bba5a3f432ac490d7))
-
-
-
-## [14.4.8](https://github.com/Torwent/WaspLib/compare/v14.4.7...v14.4.8) (2023-08-01)
+## [14.5.6](https://github.com/Torwent/WaspLib/compare/v14.5.5...v14.5.6) (2023-08-13)
 
 
 ### Bug Fixes
 
-* **CombatHandler:** fix for any monster ([419b775](https://github.com/Torwent/WaspLib/commit/419b77550aac479361b46f2375d8b8abc289550d))
+* **recorder:** update ffmpeg.exe location ([62700d3](https://github.com/Torwent/WaspLib/commit/62700d3aed2e62f303ec4fcbc7dc5cb187481d01))
 
 
 
-## [14.4.7](https://github.com/Torwent/WaspLib/compare/v14.4.6...v14.4.7) (2023-07-31)
-
-
-### Bug Fixes
-
-* read notes ([c40dbe5](https://github.com/Torwent/WaspLib/commit/c40dbe5474ef258ec08a3f23422d437bbbd1d130))
-
-
-
-## [14.4.6](https://github.com/Torwent/WaspLib/compare/v14.4.5...v14.4.6) (2023-07-30)
+## [14.5.5](https://github.com/Torwent/WaspLib/compare/v14.5.4...v14.5.5) (2023-08-11)
 
 
 ### Bug Fixes
 
-* **rsalchhandler:** minor fix to item not being setup ([fcdaebb](https://github.com/Torwent/WaspLib/commit/fcdaebb908243d3a6b8cf6caf67cc7f9349f3faa))
+* remove personal development files ([5a653a2](https://github.com/Torwent/WaspLib/commit/5a653a222b117e02209d981e8fd2c27c610b7200))
+
+
+
+## [14.5.4](https://github.com/Torwent/WaspLib/compare/v14.5.3...v14.5.4) (2023-08-10)
+
+
+### Bug Fixes
+
+* added more points to student's webgraph changes ([50af1e7](https://github.com/Torwent/WaspLib/commit/50af1e7eaf72ac2fae0caf72906a08b0612c3c3e))
+
+
+
+## [14.5.3](https://github.com/Torwent/WaspLib/compare/v14.5.2...v14.5.3) (2023-08-10)
+
+
+### Bug Fixes
+
+* Squashed commit of the following: ([3cf8659](https://github.com/Torwent/WaspLib/commit/3cf86597a54d840b81ed1f94b355ccdc9f63cc45))
 
 
 

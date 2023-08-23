@@ -1,3 +1,12 @@
+## [14.5.8](https://github.com/Torwent/WaspLib/compare/v14.5.7...v14.5.8) (2023-08-23)
+
+
+### Bug Fixes
+
+* **transport:** read notes ([35bd499](https://github.com/Torwent/WaspLib/commit/35bd49984d431b36b8e8cb7b714f141c38c9e081))
+
+
+
 ## [14.5.7](https://github.com/Torwent/WaspLib/compare/v14.5.6...v14.5.7) (2023-08-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added more points to student's webgraph changes ([50af1e7](https://github.com/Torwent/WaspLib/commit/50af1e7eaf72ac2fae0caf72906a08b0612c3c3e))
-
-
-
-## [14.5.3](https://github.com/Torwent/WaspLib/compare/v14.5.2...v14.5.3) (2023-08-10)
-
-
-### Bug Fixes
-
-* Squashed commit of the following: ([3cf8659](https://github.com/Torwent/WaspLib/commit/3cf86597a54d840b81ed1f94b355ccdc9f63cc45))
 
 
 

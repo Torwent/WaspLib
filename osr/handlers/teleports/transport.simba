@@ -15,6 +15,7 @@ type
 
 procedure TUniversalTransport.Init(fairyTeleportItem: EFairyTeleportItem; ardougneCape: TRSItem); overload;
 begin
+  Self.Name := 'UniversalTransport';
   self.fairyTeleportItem := fairyTeleportItem;
   self.ardougneCape := ardougneCape;
 end;
@@ -122,61 +123,6 @@ var
   path: TPointArray := WaspWeb.PathBetween(point1, point2, 1);
 begin
   Exit(self.getPathRegion(path));
-end;
-
-function TUniversalTransport.run(teleportLocation: TTeleportLocation): Boolean; overload;
-var
-  didTeleport: Boolean;
-begin
-  Self.DebugLn('Trying to teleport to: ' + ToString(teleportLocation));
-
-  case teleportLocation.teleportType of
-    ETeleportType.JEWELLERY: didTeleport := self.handleJewelleryTeleport(teleportLocation);
-    ETeleportType.ANCIENT_MAGICKS,
-    ETeleportType.ARCEUUS_MAGIC,
-    ETeleportType.LUNAR_MAGIC,
-    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
-    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
-    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
-    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
-  end;
-
-  Exit(didTeleport);
-end;
-
-function TUniversalTransport.run(destination: TPoint): Boolean; overload;
-var
-  teleportLocation: TTeleportLocation;
-  didTeleport: Boolean;
-  attempt: Int32;
-begin
-  teleportLocation := self.getIdealTeleport(destination, RSTeleports.RSTeleportsArray);
-  Self.DebugLn('Ideal teleport found to be: ' + ToString(teleportLocation));
-
-  case teleportLocation.teleportType of
-    ETeleportType.JEWELLERY: didTeleport := self.handleJewelleryTeleport(teleportLocation);
-    ETeleportType.ANCIENT_MAGICKS,
-    ETeleportType.ARCEUUS_MAGIC,
-    ETeleportType.LUNAR_MAGIC,
-    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
-    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
-    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
-    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
-  end;
-
-  for attempt in [0..5] do
-  try
-    if didTeleport then
-    begin
-      ScriptWalker^.WebWalk(destination, 20);
-    end;
-  except
-    WaitUntil(RSNamedRegionsArray.Find(destination).Bounds.Contains(ScriptWalker^.GetMyPos()), 200, 5000);
-
-  if attempt = 5 then raise 'Bomba - rsw cannae connect lassie';
-  end;
-
-  Exit(didTeleport);
 end;
 
 function TUniversalTransport.genericJewelleryBankTeleport(): Boolean;
@@ -292,6 +238,7 @@ var
   didTeleport: Boolean;
   teleportItem: TRSItem := teleportLocation.item;
   teleportDestination: String := teleportLocation.destination;
+  startPosition: TPoint := ScriptWalker^.GetMyPos();
 begin
   if Inventory.Open() and Inventory.ContainsItem(teleportItem) then
   begin
@@ -305,9 +252,9 @@ begin
     Self.DebugLn("Clicking " + ToString(teleportItem) + " " + teleportLocation.destination);
     didTeleport := WaitUntil(Equipment.ClickItem(teleportItem, teleportLocation.destination), 200, 5000);
   end;
-  if didTeleport then 
-    Wait(SRL.TruncatedGauss(4500, 5500));
-  Exit(didTeleport);
+
+  if didTeleport then
+    Result := WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 300, 5000);
 end;
 
 function TUniversalTransport.handleDiaryTeleport(teleportLocation: TTeleportLocation): Boolean;
@@ -654,6 +601,61 @@ begin
   Bank.WalkOpen(walkableBank);
 end;
 
+
+function TUniversalTransport.run(teleportLocation: TTeleportLocation): Boolean; overload;
+var
+  didTeleport: Boolean;
+begin
+  Self.DebugLn('Trying to teleport to: ' + ToString(teleportLocation));
+
+  case teleportLocation.teleportType of
+    ETeleportType.JEWELLERY: didTeleport := self.handleJewelleryTeleport(teleportLocation);
+    ETeleportType.ANCIENT_MAGICKS,
+    ETeleportType.ARCEUUS_MAGIC,
+    ETeleportType.LUNAR_MAGIC,
+    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
+    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
+    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
+  end;
+
+  Exit(didTeleport);
+end;
+
+function TUniversalTransport.run(destination: TPoint): Boolean; overload;
+var
+  teleportLocation: TTeleportLocation;
+  didTeleport: Boolean;
+  attempt: Int32;
+begin
+  teleportLocation := self.getIdealTeleport(destination, RSTeleports.RSTeleportsArray);
+  Self.DebugLn('Ideal teleport found to be: ' + ToString(teleportLocation));
+
+  case teleportLocation.teleportType of
+    ETeleportType.JEWELLERY: didTeleport := self.handleJewelleryTeleport(teleportLocation);
+    ETeleportType.ANCIENT_MAGICKS,
+    ETeleportType.ARCEUUS_MAGIC,
+    ETeleportType.LUNAR_MAGIC,
+    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
+    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
+    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
+  end;
+
+  for attempt in [0..5] do
+  try
+    if didTeleport then
+    begin
+      ScriptWalker^.WebWalk(destination, 20);
+    end;
+  except
+    WaitUntil(RSNamedRegionsArray.Find(destination).Bounds.Contains(ScriptWalker^.GetMyPos()), 200, 5000);
+
+  if attempt = 5 then raise 'Bomba - rsw cannae connect lassie';
+  end;
+
+  Exit(didTeleport);
+end;
 
 // example usage/test
 //

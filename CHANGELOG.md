@@ -1,3 +1,12 @@
+## [14.5.9](https://github.com/Torwent/WaspLib/compare/v14.5.8...v14.5.9) (2023-08-24)
+
+
+### Bug Fixes
+
+* didTeleport served no purpose ([cfc4fc1](https://github.com/Torwent/WaspLib/commit/cfc4fc16a5a9edc39f434b893600fa51b5a33ff6))
+
+
+
 ## [14.5.8](https://github.com/Torwent/WaspLib/compare/v14.5.7...v14.5.8) (2023-08-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * remove personal development files ([5a653a2](https://github.com/Torwent/WaspLib/commit/5a653a222b117e02209d981e8fd2c27c610b7200))
-
-
-
-## [14.5.4](https://github.com/Torwent/WaspLib/compare/v14.5.3...v14.5.4) (2023-08-10)
-
-
-### Bug Fixes
-
-* added more points to student's webgraph changes ([50af1e7](https://github.com/Torwent/WaspLib/commit/50af1e7eaf72ac2fae0caf72906a08b0612c3c3e))
 
 
 

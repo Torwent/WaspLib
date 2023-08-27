@@ -1,3 +1,12 @@
+## [14.5.10](https://github.com/Torwent/WaspLib/compare/v14.5.9...v14.5.10) (2023-08-27)
+
+
+### Bug Fixes
+
+* added abhorrent spectre colors ([1a402b5](https://github.com/Torwent/WaspLib/commit/1a402b553f287015a4079122d04d5642cd88d562))
+
+
+
 ## [14.5.9](https://github.com/Torwent/WaspLib/compare/v14.5.8...v14.5.9) (2023-08-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **recorder:** update ffmpeg.exe location ([62700d3](https://github.com/Torwent/WaspLib/commit/62700d3aed2e62f303ec4fcbc7dc5cb187481d01))
-
-
-
-## [14.5.5](https://github.com/Torwent/WaspLib/compare/v14.5.4...v14.5.5) (2023-08-11)
-
-
-### Bug Fixes
-
-* remove personal development files ([5a653a2](https://github.com/Torwent/WaspLib/commit/5a653a222b117e02209d981e8fd2c27c610b7200))
 
 
 

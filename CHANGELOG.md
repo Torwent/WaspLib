@@ -1,3 +1,12 @@
+## [14.5.11](https://github.com/Torwent/WaspLib/compare/v14.5.10...v14.5.11) (2023-08-29)
+
+
+### Bug Fixes
+
+* moved the scroll fixes WL had to SRL-T ([be6a07a](https://github.com/Torwent/WaspLib/commit/be6a07ab6c13e7c262413678c2996c1d9c7ed8a1))
+
+
+
 ## [14.5.10](https://github.com/Torwent/WaspLib/compare/v14.5.9...v14.5.10) (2023-08-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([ac8bf9b](https://github.com/Torwent/WaspLib/commit/ac8bf9b06cd193ec4b458b38facda3a87b9ab672))
-
-
-
-## [14.5.6](https://github.com/Torwent/WaspLib/compare/v14.5.5...v14.5.6) (2023-08-13)
-
-
-### Bug Fixes
-
-* **recorder:** update ffmpeg.exe location ([62700d3](https://github.com/Torwent/WaspLib/commit/62700d3aed2e62f303ec4fcbc7dc5cb187481d01))
 
 
 

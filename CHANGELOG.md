@@ -1,3 +1,12 @@
+## [14.5.12](https://github.com/Torwent/WaspLib/compare/v14.5.11...v14.5.12) (2023-09-01)
+
+
+### Bug Fixes
+
+* **rsmonsters:** add choke devil colors ([252989a](https://github.com/Torwent/WaspLib/commit/252989ad6df0493e9698ecc487b340f5471eb221))
+
+
+
 ## [14.5.11](https://github.com/Torwent/WaspLib/compare/v14.5.10...v14.5.11) (2023-08-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **transport:** read notes ([35bd499](https://github.com/Torwent/WaspLib/commit/35bd49984d431b36b8e8cb7b714f141c38c9e081))
-
-
-
-## [14.5.7](https://github.com/Torwent/WaspLib/compare/v14.5.6...v14.5.7) (2023-08-14)
-
-
-### Bug Fixes
-
-* read notes ([ac8bf9b](https://github.com/Torwent/WaspLib/commit/ac8bf9b06cd193ec4b458b38facda3a87b9ab672))
 
 
 

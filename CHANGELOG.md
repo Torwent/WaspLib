@@ -1,3 +1,12 @@
+## [14.5.13](https://github.com/Torwent/WaspLib/compare/v14.5.12...v14.5.13) (2023-09-02)
+
+
+### Bug Fixes
+
+* solved an issue with the alch handler that caused it to spam click items often ([75919fc](https://github.com/Torwent/WaspLib/commit/75919fce9fda950ba7e8faeac4cb0a2d2961a478))
+
+
+
 ## [14.5.12](https://github.com/Torwent/WaspLib/compare/v14.5.11...v14.5.12) (2023-09-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * didTeleport served no purpose ([cfc4fc1](https://github.com/Torwent/WaspLib/commit/cfc4fc16a5a9edc39f434b893600fa51b5a33ff6))
-
-
-
-## [14.5.8](https://github.com/Torwent/WaspLib/compare/v14.5.7...v14.5.8) (2023-08-23)
-
-
-### Bug Fixes
-
-* **transport:** read notes ([35bd499](https://github.com/Torwent/WaspLib/commit/35bd49984d431b36b8e8cb7b714f141c38c9e081))
 
 
 

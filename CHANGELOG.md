@@ -1,3 +1,12 @@
+## [14.5.14](https://github.com/Torwent/WaspLib/compare/v14.5.13...v14.5.14) (2023-09-05)
+
+
+### Bug Fixes
+
+* **TRSWalkerObjects:** performance improvements ([ae20a15](https://github.com/Torwent/WaspLib/commit/ae20a15f2626aeae5a84e2c1919605bf7b33405c))
+
+
+
 ## [14.5.13](https://github.com/Torwent/WaspLib/compare/v14.5.12...v14.5.13) (2023-09-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added abhorrent spectre colors ([1a402b5](https://github.com/Torwent/WaspLib/commit/1a402b553f287015a4079122d04d5642cd88d562))
-
-
-
-## [14.5.9](https://github.com/Torwent/WaspLib/compare/v14.5.8...v14.5.9) (2023-08-24)
-
-
-### Bug Fixes
-
-* didTeleport served no purpose ([cfc4fc1](https://github.com/Torwent/WaspLib/commit/cfc4fc16a5a9edc39f434b893600fa51b5a33ff6))
 
 
 

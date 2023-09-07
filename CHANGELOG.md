@@ -1,3 +1,12 @@
+## [14.5.15](https://github.com/Torwent/WaspLib/compare/v14.5.14...v14.5.15) (2023-09-07)
+
+
+### Bug Fixes
+
+* read notes ([8e38d73](https://github.com/Torwent/WaspLib/commit/8e38d73fd0a564e85578369ed1ae873f86edd2bc))
+
+
+
 ## [14.5.14](https://github.com/Torwent/WaspLib/compare/v14.5.13...v14.5.14) (2023-09-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * moved the scroll fixes WL had to SRL-T ([be6a07a](https://github.com/Torwent/WaspLib/commit/be6a07ab6c13e7c262413678c2996c1d9c7ed8a1))
-
-
-
-## [14.5.10](https://github.com/Torwent/WaspLib/compare/v14.5.9...v14.5.10) (2023-08-27)
-
-
-### Bug Fixes
-
-* added abhorrent spectre colors ([1a402b5](https://github.com/Torwent/WaspLib/commit/1a402b553f287015a4079122d04d5642cd88d562))
 
 
 

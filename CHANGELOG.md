@@ -1,3 +1,12 @@
+# [14.6.0](https://github.com/Torwent/WaspLib/compare/v14.5.15...v14.6.0) (2023-09-10)
+
+
+### Features
+
+* **data:** add dragon thrownaxe to weapons.json ([e12bffa](https://github.com/Torwent/WaspLib/commit/e12bffa6bf4f016feba5960f0218d4748e52a182))
+
+
+
 ## [14.5.15](https://github.com/Torwent/WaspLib/compare/v14.5.14...v14.5.15) (2023-09-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsmonsters:** add choke devil colors ([252989a](https://github.com/Torwent/WaspLib/commit/252989ad6df0493e9698ecc487b340f5471eb221))
-
-
-
-## [14.5.11](https://github.com/Torwent/WaspLib/compare/v14.5.10...v14.5.11) (2023-08-29)
-
-
-### Bug Fixes
-
-* moved the scroll fixes WL had to SRL-T ([be6a07a](https://github.com/Torwent/WaspLib/commit/be6a07ab6c13e7c262413678c2996c1d9c7ed8a1))
 
 
 

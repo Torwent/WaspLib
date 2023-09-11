@@ -1,3 +1,12 @@
+## [14.7.1](https://github.com/Torwent/WaspLib/compare/v14.7.0...v14.7.1) (2023-09-11)
+
+
+### Bug Fixes
+
+* read notes ([0cb4089](https://github.com/Torwent/WaspLib/commit/0cb4089be97a6da561a0b057eee0a597363f9956))
+
+
+
 # [14.7.0](https://github.com/Torwent/WaspLib/compare/v14.6.0...v14.7.0) (2023-09-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSWalkerObjects:** performance improvements ([ae20a15](https://github.com/Torwent/WaspLib/commit/ae20a15f2626aeae5a84e2c1919605bf7b33405c))
-
-
-
-## [14.5.13](https://github.com/Torwent/WaspLib/compare/v14.5.12...v14.5.13) (2023-09-02)
-
-
-### Bug Fixes
-
-* solved an issue with the alch handler that caused it to spam click items often ([75919fc](https://github.com/Torwent/WaspLib/commit/75919fce9fda950ba7e8faeac4cb0a2d2961a478))
 
 
 

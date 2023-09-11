@@ -54,6 +54,8 @@ begin
   if (monster.Name = '') or (value <= 0) then
     Exit;
 
+  Self.Name := 'LootHandler';
+
   Self.PriorityArray := [
     'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
     'Clue scroll (master)',
@@ -196,8 +198,39 @@ end;
 function TRSLootHandler.CheckLoot(b: TBox): Boolean; overload;
 begin
   Mouse.Move(b);
-
   Result := Self.HandleLooting();
+end;
+
+function TRSLootHandler.CheckLoot(cuboid: TCuboidEx): Boolean; overload;
+var
+  p: TPoint;
+  mmTile, dots, filteredDots, tmp: TPointArray;
+  angle: Double;
+begin
+  for p in cuboid.Bottom.ToTPA() do
+    mmTile += Mainscreen.PointToMM(p, 0).ToPoint();
+
+  dots := Minimap.GetDots(ERSMinimapDot.ITEM, mmTile.Bounds());
+
+  if dots = [] then
+    Exit;
+
+  for p in dots do
+    if SRL.PointInPoly(p, mmTile) then
+      filteredDots += p;
+
+  if filteredDots = [] then
+    Exit;
+
+  angle := Minimap.GetCompassAngle(False);
+
+  tmp := filteredDots.Rotate(-angle, Minimap.Center());
+  p := tmp.NearestPoint([Minimap.Bounds().X1, Minimap.Bounds().Y2]);
+  p := p.Rotate(angle, Minimap.Center());
+
+  p := Minimap.PointToMsRect(filteredDots.NearestPoint(p), 1, 1, angle).Mean();
+
+  Result := Self.CheckLoot(p);
 end;
 
 function TRSLootHandler.CheckLoot(): Boolean; overload;

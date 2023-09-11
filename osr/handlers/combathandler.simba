@@ -79,6 +79,7 @@ const
 type CombatHandler = record(TSRLBaseRecord) class var
     State: String;
     Monster: TRSMonster;
+    MonsterWalkerCoord: TPoint;
 
     BraceletTimer, InCombatTimer: TCountDown;
 
@@ -92,7 +93,7 @@ type CombatHandler = record(TSRLBaseRecord) class var
     HandleHealth, HandlePrayer, HandlePoison, HandleVenom, HandleAntifire,
     HandleBoosts, HandleCannon, CannonIsSetup, DoingSpec,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
-    IsSetup: Boolean;
+    IsFighting, FinishedCombat, IsSetup: Boolean;
 
     LootHandler: TRSLootHandler;
   end;
@@ -193,7 +194,7 @@ begin
                  (CombatHandler.SpecWeapon <> 'Null') or (CombatHandler.Bracelet <> 'Null');
 end;
 
-procedure CombatHandler.Setup(rsMonster: TRSMonster; timer: Int64 = 4000); static;
+procedure CombatHandler.Setup(rsMonster: TRSMonster; timer: Int64 = 12000); static;
 begin
   if CombatHandler.IsSetup then
     Exit;
@@ -281,17 +282,20 @@ begin
   DebugMonsterArray += rsMonster;
 end;
 
-
-procedure CombatHandler.MarkCurrentEnemy(); static;
-begin
-
-end;
-
-
 function CombatHandler.AttackMonster(): Boolean; static;
+var
+  splats: TRSHitsplatArray;
 begin
+  splats := MainScreen.FindHitsplats();
+  if splats <> [] then
+  begin
+    CombatHandler.MonsterWalkerCoord := ScriptWalker^.MSToWorld(splats[0].Position, Round(CombatHandler.Monster.ShapeArray[0].Tile.Z/2));
+    Result := MainScreen.WaitInCombat(CombatHandler.AttackMonsterDelay);
+  end;
+
   if CombatHandler.Monster.SelectOption(['Attack'], 3) then
   begin
+    CombatHandler.MonsterWalkerCoord := ScriptWalker^.MSToWorld(Mouse.Position(), Round(CombatHandler.Monster.ShapeArray[0].Tile.Z/2));
     Minimap.WaitMoving();
     Result := MainScreen.WaitInCombat(CombatHandler.AttackMonsterDelay);
   end;
@@ -311,6 +315,7 @@ begin
 
   if CombatHandler.Monster.WalkSelectOption(['Attack'], 3) then
   begin
+    CombatHandler.MonsterWalkerCoord := ScriptWalker^.MSToWorld(Mouse.Position(), Round(CombatHandler.Monster.ShapeArray[0].Tile.Z/2));
     Minimap.WaitMoving();
     Result := MainScreen.WaitInCombat(CombatHandler.AttackMonsterDelay);
   end;
@@ -324,12 +329,24 @@ begin
 end;
 
 
+function CombatHandler.FightingMonster(): Boolean; static;
+var
+  cuboid: TCuboidEx;
+begin
+  cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
+  Result := MainScreen.FindHPBars(cuboid.Bounds()) <> [];
+end;
+
+
 function CombatHandler.Loot(): Boolean; static;
 var
   match: TRSItemFinderMatch;
+  cuboid: TCuboidEx;
 begin
-  if Result := CombatHandler.LootHandler.CheckLoot() then
+  cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
+  if Result := CombatHandler.LootHandler.CheckLoot(cuboid) then
   begin
+    CombatHandler.FinishedCombat := False;
     Wait(400, 600);
 
     if not RSAlchHandler.Disabled then
@@ -341,9 +358,6 @@ begin
         RSAlchHandler.CastAlchemy();
       end;
     end;
-
-    if not CombatHandler.AutoRetaliateEnabled then
-      CombatHandler.InCombatTimer.Timeout := GetTickCount();
   end;
 end;
 
@@ -626,21 +640,24 @@ begin
   if CombatHandler.BuryBones and Inventory.ContainsAny(REMAINS) then
     Exit('BURY_BONES');
 
-  if not MainScreen.InCombat() then
-    Exit('ATTACK_MONSTER');
+  if CombatHandler.IsFighting then
+    Exit('WAIT_IN_COMBAT');
 
-  Result := 'WAIT_IN_COMBAT';
+  if CombatHandler.LootEnabled and CombatHandler.FinishedCombat then
+    Exit('DO_LOOT');
+
+  Result := 'ATTACK_MONSTER';
 end;
 
 
 //Check for pending action combat handler is taking care of and do them.
-procedure CombatHandler.DoActions(HandlerState: String = ''); static;
+procedure CombatHandler.DoActions(handlerState: String = ''); static;
 begin
-  if HandlerState = '' then
-    HandlerState := CombatHandler.GetState();
-  CombatHandler.State := HandlerState;
+  if handlerState = '' then
+    handlerState := CombatHandler.GetState();
+  CombatHandler.State := handlerState;
 
-  case HandlerState of
+  case handlerState of
     'EAT_FOOD':         Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE);
     'DRINK_PRAYER':     Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
     'DRINK_ANTIFIRE':   Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
@@ -654,20 +671,13 @@ begin
     'REEQUIP_GEAR':     CombatHandler.ReGear();
     'BURY_BONES':       CombatHandler.DoBuryBones();
     'ATTACK_MONSTER':   CombatHandler.WalkAttackMonster();
-    'WAIT_IN_COMBAT':   MainScreen.WaitInCombat(CombatHandler.InCombatTimer.Length);
+    'WAIT_IN_COMBAT':   CombatHandler.FinishedCombat := MainScreen.WaitNotInCombat(CombatHandler.InCombatTimer.Length);
+    'DO_LOOT':          CombatHandler.Loot();
     'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
-      CombatHandler.Terminate;
+      CombatHandler.Terminate();
   else
     raise 'CombatHandler.DoActions received non-registered HandlerState: ' + HandlerState;
   end;
-
-  if CombatHandler.LootEnabled and not CombatHandler.DoingSpec then
-    case HandlerState of
-      'EAT_FOOD', 'DRINK_PRAYER', 'DRINK_ANTIFIRE', 'DRINK_ANTIVENOM',
-      'DRINK_ANTIPOISON', 'DRINK_BOOST', 'ENABLE_QPRAY', 'NEED_BRACELET',
-      'BURY_BONES', 'ATTACK_MONSTER', 'WAIT_IN_COMBAT':
-      CombatHandler.Loot();
-    end;
 end;
 
 
@@ -701,6 +711,27 @@ function TRSMainScreen.InCombat(): Boolean; override;
 begin
   Result := (CombatHandler.IsSetup and not CombatHandler.InCombatTimer.IsFinished())
             or XPBar.EarnedXP() or (Self.FindHitsplats() <> []);
+end;
+
+function TRSMainScreen.InCombat(): Boolean; override;
+var
+  gotXP, hasSplats: Boolean;
+begin
+  if CombatHandler.InCombatTimer.IsFinished() and not XPBar.EarnedXP() then
+  begin
+    CombatHandler.IsFighting := False;
+    Exit;
+  end;
+
+  gotXP := XPBar.EarnedXP();
+  hasSplats := Self.FindHitsplats() <> [];
+  Result := gotXP or hasSplats or CombatHandler.FightingMonster();
+  CombatHandler.IsFighting := Result;
+  if Result then
+    WL.Activity.Restart();
+
+  if gotXP or hasSplats then
+    CombatHandler.InCombatTimer.Restart();
 end;
 
 

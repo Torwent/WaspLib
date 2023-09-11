@@ -58,7 +58,7 @@ Example
 
   Writeln MainScreen.IsVisible(P);
 *)
-function TRSMainScreen.IsVisible(P: TPoint): Boolean; override;
+function TRSMainScreen.IsVisible(p: TPoint): Boolean; override;
 begin
   Result := Self.Bounds.Expand(-10).Contains(P);
 
@@ -83,11 +83,16 @@ begin
   end;
 end;
 
-function TRSMainScreen.IsVisible(tpa: TPointArray): Boolean; overload;
+function TRSMainScreen.IsVisible(tpa: TPointArray; useHull: Boolean = True): Boolean; overload;
 begin
-  Result := Self.Bounds.Expand(-10).Contains(tpa.Mean());
+  if useHull then
+    tpa := tpa.ConvexHull();
+  Result := Self.Bounds().Expand(-10).Contains(tpa);
 
-  if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
+  if not Result then
+    Exit;
+
+  if RSClient.Mode <> ERSClientMode.FIXED then
   begin
     if Self.HasInterface() then
     begin
@@ -108,45 +113,47 @@ begin
   end;
 end;
 
-function TRSMainScreen.IsVisible(B: TBox): Boolean; overload;
+function TRSMainScreen.IsVisible(box: TBox): Boolean; overload;
 begin
-  Result := Self.Bounds().Expand(-10).Contains(B.ToRectangle.ToTPA.FilterBox(Self.Bounds));
+  Result := Self.Bounds().Expand(-10).Contains(TBox.ToRectangle().ToTPA().FilterBox(Self.Bounds()));
 
   if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
   begin
-    if Self.HasInterface then
+    if Self.HasInterface() then
     begin
-      if Bank.Bounds.Expand(5).Contains(B) and Bank.IsOpen then
+      if Bank.Bounds().Expand(5).Contains(box) and Bank.IsOpen() then
         Exit(False);
-      if Anvil.Bounds.Expand(5).Contains(B) and Anvil.IsOpen then
+      if Anvil.Bounds().Expand(5).Contains(box) and Anvil.IsOpen() then
         Exit(False);
     end;
 
-    if Chat.Bounds.Expand(5).Contains(B) and Chat.IsOpen then
+    if Chat.Bounds.Expand(5).Contains(box) and Chat.IsOpen() then
       Exit(False);
-    if ChatButtons.Bounds.Expand(5).Contains(B) then
+    if ChatButtons.Bounds.Expand(5).Contains(box) then
       Exit(False);
-    if Minimap.Bounds.Expand(55).Contains(B) then
+    if Minimap.Bounds.Expand(55).Contains(box) then
       Exit(False);
-    if GameTabs.Bounds.Expand(5).Contains(B) then
+    if GameTabs.Bounds.Expand(5).Contains(box) then
       Exit(False);
   end;
 end;
 
-function TRSMainScreen.IsVisible(Rect: TRectangle): Boolean; overload;
+function TRSMainScreen.IsVisible(rect: TRectangle): Boolean; overload;
 var
-  TPA: TPointArray := Rect.ToTPA;
+  TPA: TPointArray;
+  b: TBox;
 begin
-  TPA := TPA.FilterBox(Self.Bounds.Expand(-10));
+  b := Self.Bounds.Expand(-10);
+  tpa := rect.ToTPA().FilterBox(b);
 
-  if TPA = [] then
+  if tpa = [] then
     Exit;
 
-  Result := Self.Bounds.Expand(-10).Contains(TPA.FilterBox(Self.Bounds.Expand(-10)));
+  Result := b.Contains(tpa.FilterBox(b));
 
   if Result and (RSClient.Mode <> ERSClientMode.FIXED) then
   begin
-    if Self.HasInterface then
+    if Self.HasInterface() then
     begin
       if Bank.Bounds.Expand(5).Contains(Rect) and Bank.IsOpen then
         Exit(False);
@@ -163,6 +170,11 @@ begin
     if GameTabs.Bounds.Expand(5).Contains(Rect) then
       Exit(False);
   end;
+end;
+
+function TRSMainScreen.IsVisible(cuboid: TCuboidEx): Boolean; overload;
+begin
+  Result := Self.IsVisible(cuboid.ConvexHull(), False);
 end;
 
 
@@ -206,30 +218,31 @@ begin
   Result := Result.Difference(tpa);
 end;
 
-function TRSMainScreen.Filter(boxArray: TBoxArray): TBoxArray; overload;
+function TRSMainScreen.Filter(arr: TBoxArray): TBoxArray; overload;
 var
-  b: TBox;
+  i: Int32;
 begin
-  for b in BoxArray do
-    if Self.IsVisible(B) then
-      Result += B;
+  for i := 0 to High(arr) do
+    if Self.IsVisible(arr[i]) then
+      Result += arr[i];
 end;
 
-function TRSMainScreen.Filter(rectArray: TRectArray): TRectArray; overload;
+function TRSMainScreen.Filter(arr: TRectArray): TRectArray; overload;
 var
-  Rect: TRectangle;
+  i: Int32;
 begin
-  for Rect in RectArray do
-    if Self.IsVisible(Rect) then
-      Result += Rect;
+  for i := 0 to High(arr) do
+    if Self.IsVisible(arr[i]) then
+      Result += arr[i];
 end;
 
-function TRSMainScreen.Filter(cuboidArray: TCuboidArray): TCuboidArray; overload;
+function TRSMainScreen.Filter(arr: TCuboidExArray): TCuboidExArray; overload;
 var
-  cuboid: TCuboid;
+  i: Int32;
 begin
-  for cuboid in cuboidArray do
-    Result += Self.Filter(cuboid);
+  for i := 0 to High(arr) do
+    if Self.IsVisible(arr[i]) then
+      Result += arr[i];
 end;
 
 
@@ -462,6 +475,47 @@ begin
   end;
 end;
 
+
+(*
+MainScreen.FindEnemyHitsplats
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMainScreen.FindEnemyHitsplats(): Boolean;
+
+Returns the hitsplats on screen that don't belong to the player.
+
+Example
+-------
+
+  Debug(MainScreen.FindEnemyHitsplats());
+*)
+function TRSMainScreen.FindEnemyHitsplats(waitTime: Int32): TRSHitsplatArray;
+var
+  t: UInt64;
+  l:Int32;
+  tmp, splats: TRSHitsplatArray;
+  b: TBox;
+  splat: TRSHitsplat;
+begin
+  t := GetTickCount() + waitTime;
+  repeat
+    tmp := Self.FindHitsplats();
+    if Length(tmp) > 0 then
+    begin
+      l := Length(splats);
+      SetLength(splats, Length(tmp) + l);
+      MemMove(tmp[0],splats[L],Length(tmp)*SizeOf(TRSHitsplat));
+    end;
+  until GetTickCount() >= t;
+
+  if splats = [] then
+    Exit;
+
+  b := Self.GetPlayerBox();
+  for splat in splats do
+    if not b.Contains(splat.Position) then
+      Result += splat;
+end;
+
 (*
 MainScreen.InCombat
 ~~~~~~~~~~~~~~~~~~~
@@ -477,28 +531,49 @@ Example
 *)
 function TRSMainScreen.InCombat(): Boolean;
 begin
-  Result := XPBar.EarnedXP or (Self.FindHitsplats <> []);
+  Result := XPBar.EarnedXP() or (Self.FindHitsplats() <> []);
 end;
 
 (*
 MainScreen.WaitInCombat
 ~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMainScreen.WaitInCombat(WaitTime: Int32; Interval: Int32 = -1): Boolean;
+.. pascal:: function TRSMainScreen.WaitInCombat(waitTime: Int32; interval: Int32 = -1): Boolean;
 
-Waits the specified **WaitTime** until we are in combat.
+Waits the specified **waitTime** until we are in combat.
 
 Example
 -------
 
   MainScreen.WaitInCombat(5000);
 *)
-function TRSMainScreen.WaitInCombat(WaitTime: Int32; Interval: Int32 = -1): Boolean;
+function TRSMainScreen.WaitInCombat(waitTime: Int32; interval: Int32 = -1): Boolean;
 begin
-  if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 1500);
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 300);
 
-  Result := WaitUntil(Self.InCombat, Interval, WaitTime);
+  Result := WaitUntil(Self.InCombat(), interval, waitTime);
 end;
+
+(*
+MainScreen.WaitNotInCombat
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSMainScreen.WaitNotInCombat(waitTime: Int32; interval: Int32 = -1): Boolean;
+
+Waits the specified **waitTime** until we are nto in combat.
+
+Example
+-------
+
+  MainScreen.WaitNotInCombat(5000);
+*)
+function TRSMainScreen.WaitNotInCombat(waitTime: Int32; interval: Int32 = -1): Boolean;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 300);
+
+  Result := WaitUntil(not Self.InCombat(), interval, waitTime);
+end;
+
 
 (*
 MainScreen.FindArrow

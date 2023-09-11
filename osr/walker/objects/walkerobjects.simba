@@ -313,7 +313,7 @@ Internal TRSWalkerObject method responsible for returning a TCuboidArray of our 
 You will probably never need to use this directly.
 You can visually see this in action by using the `Debug()` methods, this is responsible for the white lines surounding the targets.
 *)
-function TRSWalkerObject.GetCuboidArrayEx(out floorTiles, roofTiles: TRectArray): TCuboidArray;
+function TRSWalkerObject.GetCuboidArrayEx(out floorTiles, roofTiles: TRectArray): TCuboidExArray;
 var
   me: TPoint;
 begin
@@ -330,7 +330,7 @@ begin
   Result := floorTiles.GetCuboids();
 end;
 
-function TRSWalkerObject.GetCuboidArray(): TCuboidArray;
+function TRSWalkerObject.GetCuboidArray(): TCuboidExArray;
 var
   me: TPoint;
   coordinates: TPointArray;
@@ -353,7 +353,7 @@ Internal TRSWalkerObject method responsible for filtering a TCuboidArray by what
 This is meant to filter TRSWalkerObject.GetCuboidArray() so targets that are outside of the mainscreen are filtered out.
 You will probably never need to use this directly.
 *)
-function TRSWalkerObject.FindOnMainScreen(cuboidArray: TCuboidArray): T2DPointArray;
+function TRSWalkerObject.FindOnMainScreen(cuboidArray: TCuboidExArray): T2DPointArray;
 var
   i: Int32;
   tpa: TPointArray;
@@ -378,7 +378,7 @@ begin
       Continue;
     end;
 
-    tpa := cuboidArray[i].Connect().ShapeFill();
+    tpa := cuboidArray[i].ShapeFill();
     if tpa <> [] then
       Result += tpa;
   end;
@@ -392,7 +392,7 @@ TRSWalkerObject.OnMainScreen
 Internal TRSWalkerObject method that returns true or false if we have TCuboids visible on the mainscreen.
 You probably don't need to use this directly.
 *)
-function TRSWalkerObject.OnMainScreen(cuboidArray: TCuboidArray): Boolean;
+function TRSWalkerObject.OnMainScreen(cuboidArray: TCuboidExArray): Boolean;
 var
   i: Int32;
   tempFinder: TRSObjectFinder;
@@ -406,7 +406,7 @@ begin
     if not Self.Filter.Finder then
       Exit(True);
 
-    if MainScreen.FindObject(tempFinder, cuboidArray[i].Bounds) <> [] then
+    if MainScreen.FindObject(tempFinder, cuboidArray[i].Bounds()) <> [] then
       Exit(True);
   end;
 end;
@@ -697,7 +697,7 @@ This "extended" method in particular is only meant for debugging and should be a
 This is what is used when you call `Debug(TRSObject)`.
 
 *)
-function TRSObject.FindEx(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TRSObject.FindEx(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidExArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
@@ -734,7 +734,7 @@ Example
 *)
 function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
 var
-  cuboidArray: TCuboidArray;
+  cuboidArray: TCuboidExArray;
 begin
   MM2MS.SetupZoom();
 
@@ -758,7 +758,7 @@ end;
 
 function TRSObject.IsVisible(): Boolean; overload;
 var
-  cuboidArray: TCuboidArray;
+  cuboidArray: TCuboidExArray;
 begin
   MM2MS.SetupZoom();
 
@@ -795,7 +795,7 @@ Example
 procedure TRSObject.Draw(out bitmap: TMufasaBitmap);
 var
   floorTiles, roofTiles: TRectArray;
-  cuboidArray: TCuboidArray;
+  cuboidArray: TCuboidExArray;
   atpa: T2DPointArray;
   i: Int32;
 begin
@@ -809,7 +809,7 @@ begin
   begin
     bitmap.DrawRect(floorTiles[i], SRLColors.WHITE);
     bitmap.DrawRect(roofTiles[i], SRLColors.WHITE);
-    bitmap.DrawTPA(cuboidArray[i].Connect(), SRLColors.YELLOW);
+    bitmap.DrawTPA(cuboidArray[i].Edges(), SRLColors.YELLOW);
   end;
 end;
 
@@ -1407,7 +1407,7 @@ TRSMMDot._GetWMMPolys
 Internal helper TRSMMDot method used for debugging.
 You probably dont need to use this directly. You can see what this does in action by calling `Debug(TRSMMDot)`.
 *)
-function TRSMMDot._GetWMMPolys(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles, roofTiles: TRectArray): TCuboidArray;
+function TRSMMDot._GetWMMPolys(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles, roofTiles: TRectArray): TCuboidExArray;
 var
   me: TPoint;
   angle: Double;
@@ -1442,7 +1442,7 @@ Internal helper TRSMMDot method used for debugging.
 You probably dont need to use this directly. You can see what this does in action by calling `Debug(TRSMMDot)`.
 This is used instead of TRSMMDot._GetWMMPolys() when TRSMMDot.Filter.Walker is disabled.
 *)
-function TRSMMDot._GetMMPolys(out dots: TPointArray; out floorTiles, roofTiles: TRectArray): TCuboidArray;
+function TRSMMDot._GetMMPolys(out dots: TPointArray; out floorTiles, roofTiles: TRectArray): TCuboidExArray;
 var
   angle: Double;
 begin
@@ -1473,7 +1473,7 @@ This uses the previous 2 helper methods to do this.
 You will probably never need to use this directly.
 You can visually see this in action by using the `Debug()` methods, this is responsible for the white lines surounding the targets.
 *)
-function TRSMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray): TCuboidArray; overload;
+function TRSMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray): TCuboidExArray; overload;
 begin
   if Self.Filter.Walker and Self.Filter.MinimapDot then
     Exit(Self._GetWMMPolys(mmTPA, dots, dotFilters, floorTiles, roofTiles));
@@ -1485,7 +1485,7 @@ begin
     Exit(Self._GetMMPolys(dots, floorTiles, roofTiles));
 end;
 
-function TRSMMDot.GetCuboidArray(): TCuboidArray; override;
+function TRSMMDot.GetCuboidArray(): TCuboidExArray; override;
 var
   angle: Double;
   dots: TPointArray;
@@ -1533,7 +1533,7 @@ TRSMMDot methods used to find a TRSMMDot. If found returns true, if not returns 
 This "extended" method in particular is only meant for debugging and should be avoided outside of development/debugging.
 This is what is used when you call `Debug(TRSMMDot)`.
 *)
-function TRSMMDot.FindEx(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TRSMMDot.FindEx(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidExArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
@@ -1572,7 +1572,7 @@ Example
 *)
 function TRSMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
 var
-  cuboidArray: TCuboidArray;
+  cuboidArray: TCuboidExArray;
 begin
   MM2MS.SetupZoom();
 
@@ -1598,7 +1598,7 @@ end;
 
 function TRSMMDot.IsVisible(): Boolean; overload;
 var
-  cuboidArray: TCuboidArray;
+  cuboidArray: TCuboidExArray;
 begin
   MM2MS.SetupZoom();
 
@@ -1648,7 +1648,7 @@ var
   mmPoints, dots: TPointArray;
   dotFilters: TRSDotFilterArray;
   floorTiles, roofTiles: TRectArray;
-  cuboidArray: TCuboidArray;
+  cuboidArray: TCuboidExArray;
   atpa: T2DPointArray;
   i: Int32;
 begin
@@ -1689,7 +1689,7 @@ begin
     bitmap.DrawCrosshairs(dots[i], 2, SRLColors.GREEN_SPRING);
     bitmap.DrawRect(floorTiles[i], SRLColors.WHITE);
     bitmap.DrawRect(roofTiles[i], SRLColors.WHITE);
-    bitmap.DrawTPA(cuboidArray[i].Connect(), SRLColors.YELLOW);
+    bitmap.DrawTPA(cuboidArray[i].Edges(), SRLColors.YELLOW);
   end;
 end;
 

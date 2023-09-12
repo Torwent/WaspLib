@@ -1,3 +1,12 @@
+## [14.7.2](https://github.com/Torwent/WaspLib/compare/v14.7.1...v14.7.2) (2023-09-12)
+
+
+### Bug Fixes
+
+* read notes ([dedc730](https://github.com/Torwent/WaspLib/commit/dedc730f54ce2094fb2e796c89731d3f704a1fda))
+
+
+
 ## [14.7.1](https://github.com/Torwent/WaspLib/compare/v14.7.0...v14.7.1) (2023-09-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8e38d73](https://github.com/Torwent/WaspLib/commit/8e38d73fd0a564e85578369ed1ae873f86edd2bc))
-
-
-
-## [14.5.14](https://github.com/Torwent/WaspLib/compare/v14.5.13...v14.5.14) (2023-09-05)
-
-
-### Bug Fixes
-
-* **TRSWalkerObjects:** performance improvements ([ae20a15](https://github.com/Torwent/WaspLib/commit/ae20a15f2626aeae5a84e2c1919605bf7b33405c))
 
 
 

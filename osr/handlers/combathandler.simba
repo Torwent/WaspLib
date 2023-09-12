@@ -282,22 +282,42 @@ begin
   DebugMonsterArray += rsMonster;
 end;
 
-function CombatHandler.AttackMonster(): Boolean; static;
+function CombatHandler.WaitHitSplats(): Boolean; static;
 var
-  splats: TRSHitsplatArray;
+  t: UInt64;
+  i: Int32;
+  tmp, splats: TRSHitsplatArray;
+  b: TBox;
 begin
-  splats := MainScreen.FindHitsplats();
-  if splats <> [] then
+  t := GetTickCount() + 3000;
+  b := MainScreen.GetPlayerBox();
+  repeat
+    tmp := MainScreen.FindHitsplats();
+
+    for i := 0 to High(tmp) do
+      if not b.Contains(tmp[i].Position) then
+        splats += tmp[i];
+
+    Result := splats <> [];
+    if Result then
+      Break;
+  until GetTickCount() > t;
+
+  if Result then
   begin
     CombatHandler.MonsterWalkerCoord := ScriptWalker^.MSToWorld(splats[0].Position, Round(CombatHandler.Monster.ShapeArray[0].Tile.Z/2));
-    Result := MainScreen.WaitInCombat(CombatHandler.AttackMonsterDelay);
+    CombatHandler.IsFighting := True;
   end;
+end;
 
-  if CombatHandler.Monster.SelectOption(['Attack'], 3) then
+function CombatHandler.AttackMonster(): Boolean; static;
+begin
+  Result := CombatHandler.WaitHitSplats();
+
+  if not Result and CombatHandler.Monster.SelectOption(['Attack'], 3) then
   begin
-    CombatHandler.MonsterWalkerCoord := ScriptWalker^.MSToWorld(Mouse.Position(), Round(CombatHandler.Monster.ShapeArray[0].Tile.Z/2));
     Minimap.WaitMoving();
-    Result := MainScreen.WaitInCombat(CombatHandler.AttackMonsterDelay);
+    Result := CombatHandler.WaitHitSplats();
   end;
 
   if Result then
@@ -313,11 +333,12 @@ begin
   if not CombatHandler.Monster.Filter.Walker then
     Exit(CombatHandler.AttackMonster());
 
-  if CombatHandler.Monster.WalkSelectOption(['Attack'], 3) then
+  Result := CombatHandler.WaitHitSplats();
+
+  if not Result and CombatHandler.Monster.WalkSelectOption(['Attack'], 3) then
   begin
-    CombatHandler.MonsterWalkerCoord := ScriptWalker^.MSToWorld(Mouse.Position(), Round(CombatHandler.Monster.ShapeArray[0].Tile.Z/2));
     Minimap.WaitMoving();
-    Result := MainScreen.WaitInCombat(CombatHandler.AttackMonsterDelay);
+    Result := CombatHandler.WaitHitSplats();
   end;
 
   if Result then
@@ -343,10 +364,10 @@ var
   match: TRSItemFinderMatch;
   cuboid: TCuboidEx;
 begin
+  CombatHandler.FinishedCombat := False;
   cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
   if Result := CombatHandler.LootHandler.CheckLoot(cuboid) then
   begin
-    CombatHandler.FinishedCombat := False;
     Wait(400, 600);
 
     if not RSAlchHandler.Disabled then
@@ -562,6 +583,14 @@ begin
     CombatHandler.SlayerTaskFinished := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
 end;
 
+
+function CombatHandler.WaitCombatEnd(): Boolean; static;
+begin
+  Result := MainScreen.WaitNotInCombat(3000);
+  CombatHandler.FinishedCombat := Result;
+end;
+
+
 //Check for pending action combat handler is taking care of.
 function CombatHandler.GetConsumableState(): String; static;
 var
@@ -671,7 +700,7 @@ begin
     'REEQUIP_GEAR':     CombatHandler.ReGear();
     'BURY_BONES':       CombatHandler.DoBuryBones();
     'ATTACK_MONSTER':   CombatHandler.WalkAttackMonster();
-    'WAIT_IN_COMBAT':   CombatHandler.FinishedCombat := MainScreen.WaitNotInCombat(CombatHandler.InCombatTimer.Length);
+    'WAIT_IN_COMBAT':   CombatHandler.WaitCombatEnd();
     'DO_LOOT':          CombatHandler.Loot();
     'LOW_HEALTH', 'LOW_PRAYER', 'NO_ANTIFIRE', 'PLAYER_DEAD':
       CombatHandler.Terminate();
@@ -708,12 +737,6 @@ begin
 end;
 
 function TRSMainScreen.InCombat(): Boolean; override;
-begin
-  Result := (CombatHandler.IsSetup and not CombatHandler.InCombatTimer.IsFinished())
-            or XPBar.EarnedXP() or (Self.FindHitsplats() <> []);
-end;
-
-function TRSMainScreen.InCombat(): Boolean; override;
 var
   gotXP, hasSplats: Boolean;
 begin
@@ -725,7 +748,9 @@ begin
 
   gotXP := XPBar.EarnedXP();
   hasSplats := Self.FindHitsplats() <> [];
+
   Result := gotXP or hasSplats or CombatHandler.FightingMonster();
+
   CombatHandler.IsFighting := Result;
   if Result then
     WL.Activity.Restart();

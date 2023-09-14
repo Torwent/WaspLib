@@ -204,13 +204,13 @@ end;
 function TRSLootHandler.CheckLoot(cuboid: TCuboidEx; attempt: Int32 = 0): Boolean; overload;
 var
   p: TPoint;
-  mmTile, dots, filteredDots, tmp: TPointArray;
+  mmTile, dots: TPointArray;
   angle: Double;
 begin
-  for p in cuboid.Bottom.ToTPA() do
-    mmTile += Mainscreen.PointToMM(p, 0).ToPoint();
+  for p in cuboid.ConvexHull() do
+    mmTile += Mainscreen.PointToMM(p).ToPoint();
 
-  dots := Minimap.GetDots(ERSMinimapDot.ITEM, mmTile.Bounds());
+  dots := Minimap.GetDots(ERSMinimapDot.ITEM, mmTile.Bounds().Expand(4));
 
   if dots = [] then
   begin
@@ -223,22 +223,15 @@ begin
     Exit;
   end;
 
-  for p in dots do
-    if SRL.PointInPoly(p, mmTile) then
-      filteredDots += p;
-
-  if filteredDots = [] then
-    Exit;
-
   angle := Minimap.GetCompassAngle(False);
+  for p in dots do
+  begin
+    p := Minimap.PointToMsRect(dots.NearestPoint(p.Offset(2,2)), 1, 1, angle).Mean();
 
-  tmp := filteredDots.Rotate(-angle, Minimap.Center());
-  p := tmp.NearestPoint([Minimap.Bounds().X1, Minimap.Bounds().Y2]);
-  p := p.Rotate(angle, Minimap.Center());
-
-  p := Minimap.PointToMsRect(filteredDots.NearestPoint(p), 1, 1, angle).Mean();
-
-  Result := Self.CheckLoot(p);
+    Result := Self.CheckLoot(p);
+    if Result then
+      Break;
+  end;
 end;
 
 function TRSLootHandler.CheckLoot(): Boolean; overload;

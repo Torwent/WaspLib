@@ -93,7 +93,7 @@ type CombatHandler = record(TSRLBaseRecord) class var
     HandleHealth, HandlePrayer, HandlePoison, HandleVenom, HandleAntifire,
     HandleBoosts, HandleCannon, CannonIsSetup, DoingSpec,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
-    IsFighting, FinishedCombat, IsSetup: Boolean;
+    IsFighting, Looted, IsSetup: Boolean;
 
     LootHandler: TRSLootHandler;
   end;
@@ -364,7 +364,8 @@ var
   match: TRSItemFinderMatch;
   cuboid: TCuboidEx;
 begin
-  CombatHandler.FinishedCombat := False;
+  CombatHandler.Looted := True;
+  CombatHandler.IsFighting := False;
   cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
   if Result := CombatHandler.LootHandler.CheckLoot(cuboid) then
   begin
@@ -586,7 +587,8 @@ end;
 function CombatHandler.WaitCombatEnd(): Boolean; static;
 begin
   Result := MainScreen.WaitNotInCombat(3000);
-  CombatHandler.FinishedCombat := Result;
+  CombatHandler.IsFighting := not Result;
+  CombatHandler.Looted := False;
 end;
 
 
@@ -671,7 +673,7 @@ begin
   if CombatHandler.IsFighting then
     Exit('WAIT_IN_COMBAT');
 
-  if CombatHandler.LootEnabled and CombatHandler.FinishedCombat then
+  if CombatHandler.LootEnabled and not CombatHandler.Looted then
     Exit('DO_LOOT');
 
   Result := 'ATTACK_MONSTER';

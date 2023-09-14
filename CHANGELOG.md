@@ -1,3 +1,12 @@
+## [14.7.4](https://github.com/Torwent/WaspLib/compare/v14.7.3...v14.7.4) (2023-09-14)
+
+
+### Bug Fixes
+
+* read notes ([faecf67](https://github.com/Torwent/WaspLib/commit/faecf67137558246028d1a613daf2da57c02a24c))
+
+
+
 ## [14.7.3](https://github.com/Torwent/WaspLib/compare/v14.7.2...v14.7.3) (2023-09-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **combathandler:** add dragon thrownaxe to spec weapons ([34bc560](https://github.com/Torwent/WaspLib/commit/34bc5603b81b3bdf710fe32266c533aa01eb2e23))
-
-
-
-# [14.6.0](https://github.com/Torwent/WaspLib/compare/v14.5.15...v14.6.0) (2023-09-10)
-
-
-### Features
-
-* **data:** add dragon thrownaxe to weapons.json ([e12bffa](https://github.com/Torwent/WaspLib/commit/e12bffa6bf4f016feba5960f0218d4748e52a182))
 
 
 

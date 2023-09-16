@@ -201,32 +201,27 @@ begin
   Result := Self.HandleLooting();
 end;
 
-function TRSLootHandler.CheckLoot(cuboid: TCuboidEx; attempt: Int32 = 0): Boolean; overload;
+function TRSLootHandler.CheckLoot(dots: TPointArray): Boolean; overload;
 var
   p: TPoint;
-  mmTile, dots: TPointArray;
   angle: Double;
+  tile: TRectangle;
+  tpa, finalTPA: TPointArray;
+  color: TCTS2Color;
 begin
-  for p in cuboid.ConvexHull() do
-    mmTile += Mainscreen.PointToMM(p).ToPoint();
-
-  dots := Minimap.GetDots(ERSMinimapDot.ITEM, mmTile.Bounds().Expand(4));
-
-  if dots = [] then
-  begin
-    if attempt < 2 then
-    begin
-      Wait(600);
-      Exit(Self.CheckLoot(cuboid, attempt+1));
-    end;
-
-    Exit;
-  end;
-
   angle := Minimap.GetCompassAngle(False);
   for p in dots do
   begin
-    p := Minimap.PointToMsRect(dots.NearestPoint(p.Offset(2,2)), 1, 1, angle).Mean();
+    tile := Minimap.GetTileMS(p, [1,1,0], [-2,-2], angle);
+
+    for color in Self.Loot.Finder.Colors do
+      if SRL.FindColors(tpa, color, tile.Bounds()) > 0 then
+        finalTPA += tpa;
+
+    if tpa = [] then
+      p := tile.Mean()
+    else
+      p := tpa.RandomValue();
 
     Result := Self.CheckLoot(p);
     if Result then

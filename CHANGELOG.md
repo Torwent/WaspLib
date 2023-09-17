@@ -1,3 +1,12 @@
+## [14.7.8](https://github.com/Torwent/WaspLib/compare/v14.7.7...v14.7.8) (2023-09-17)
+
+
+### Bug Fixes
+
+* **walkerobjects:** read notes ([bd7c06b](https://github.com/Torwent/WaspLib/commit/bd7c06b0b6e8a2f8220524322be3a41e3fb4c863))
+
+
+
 ## [14.7.7](https://github.com/Torwent/WaspLib/compare/v14.7.6...v14.7.7) (2023-09-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([faecf67](https://github.com/Torwent/WaspLib/commit/faecf67137558246028d1a613daf2da57c02a24c))
-
-
-
-## [14.7.3](https://github.com/Torwent/WaspLib/compare/v14.7.2...v14.7.3) (2023-09-14)
-
-
-### Bug Fixes
-
-* read notes ([d67b36e](https://github.com/Torwent/WaspLib/commit/d67b36e07ed4774084ab88403851dabd7614ff39))
 
 
 

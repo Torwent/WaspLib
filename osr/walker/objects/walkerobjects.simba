@@ -45,7 +45,7 @@ This is the default behavior but TRSWalkerObjects are very customizable and func
 {$ENDIF}
 
 const
-  USE_ASYNC_HOVER: Boolean = False;
+  TRACK_TARGET: Boolean = False;
 
 type
 (*
@@ -848,99 +848,46 @@ end;
 
 
 (*
-TRSObject._AsyncHoverHelper
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal::
-  function TRSObject._AsyncHoverHelper(): Boolean;
-  function TRSObject._AsyncHoverHelper(attempts: Int32): Boolean; overload;
+TRSObject._UpdateTarget
+~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSObject._UpdateTarget(sender: PMouse; var x, y: Double; var done: Boolean);
 
-Internal helper methods used to hover a TRSObject target asynchronously.
-You should not use this directly.
+Internal helper method of TMouseMovingEventEx type used to update the target position while the mouse is moving.
+You should probably not touch this if you don't understand it.
 *)
-function TRSObject._AsyncHoverHelper(): Boolean;
+procedure TRSObject._UpdateTarget({$H-}sender: PMouse;{$H+} var x, y: Double; var done: Boolean);
 var
-  shouldExit: Boolean;
+  i: Int32;
   atpa: T2DPointArray;
+  p: TPoint;
 begin
-  Result := Self._UpTextCheck(shouldExit);
-  if shouldExit then
+  if Self._UpTextCheck(done) then
     Exit;
 
-  if Self.Find(atpa) then
-  begin
-    ASyncMouse.Move(atpa[0].RandomValue());
-    Result := True;
-  end;
-end;
-
-function TRSObject._AsyncHoverHelper(attempts: Int32): Boolean; overload;
-  function GetDestination(attempt: Int32; atpa: T2DPointArray): TPointArray;
-  begin
-    if attempt < 2 then
-      Exit(atpa[0]); // 0 for the closest one.
-
-    if Length(atpa) > (attempt - 2) then
-      Exit(atpa[attempt - 2]);
-
-    Result := atpa.RandomValue();
-  end;
-
-var
-  shouldExit: Boolean;
-  attempt: Int32;
-  atpa: T2DPointArray;
-  tpa: TPointArray;
-  angle: Double;
-begin
-  Result := Self._UpTextCheck(shouldExit);
-  if shouldExit then
+  done := not Self.Find(atpa);
+  if done then
     Exit;
 
-  for attempt := 0 to attempts do
+  for i := 0 to High(atpa) do
   begin
-    if Self.Find(atpa) then
-    begin
-      tpa := GetDestination(attempt, atpa);
-      ASyncMouse.Move(tpa.RandomValue());
-
-      while AsyncMouse.IsMoving() or tpa.Contains(AsyncMouse.Position()) do
-      begin
-        if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-          Exit(True);
-
-        if not Self.Find(atpa) then
-          Continue;
-
-        tpa := GetDestination(attempt, atpa);
-        AsyncMouse.ChangeDestination(tpa.RandomValue());
-        //Wait(100); //Delay for less CPU usage??? Have to think about it.
-      end;
-
-      if not Self.Filter.UpText then
-        Exit(True);
-    end;
-
-    if MainScreen.IsUpText(Self.UpText) then
-      Exit(True);
-
-    //will rotate the screen for the last attempt if hasn't hovered properly yet
-    if attempt = (attempts - 1) then
-    begin
-      angle := Minimap.GetCompassAngle() + Random(-50, 50);
-      Minimap.SetCompassAngle(angle, 10);
-    end;
+    if atpa[i].Contains([Round(x), Round(y)]) then
+      Exit;
   end;
+
+  p := atpa[0].RandomValue();
+  x := p.X;
+  y := p.Y;
 end;
 
 (*
 TRSObject._HoverHelper
 ~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSObject._HoverHelper(attempts: Int32): Boolean;
+.. pascal:: function TRSObject._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 
 Internal helper method used to hover a TRSObject target.
 You should not use this directly.
 *)
-function TRSObject._HoverHelper(attempts: Int32): Boolean;
+function TRSObject._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 var
   shouldExit: Boolean;
   attempt: Int32;
@@ -963,7 +910,14 @@ begin
       else
         tpa := atpa[Random(0, High(atpa))];
 
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+
       Mouse.Move(tpa[Random(0, High(tpa))]);
+
+      if trackTarget then
+        Mouse.OnMovingEx := nil;
+
       if not Self.Filter.UpText then
         Exit(True);
     end;
@@ -981,100 +935,16 @@ begin
 end;
 
 (*
-TRSObject._AsyncWalkHoverHelper
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSObject._AsyncWalkHoverHelper(attempts: Int32): Boolean;
-
-Internal helper method used to walk and hover a TRSObject target asynchronously.
-You should not use this directly.
-
-This is responsible for deciding wether we should walk to a TRSObject target or not before attempting to hover it asynchronously.
-*)
-function TRSObject._AsyncWalkHoverHelper(attempts: Int32): Boolean;
-  function GetDestination(attempt: Int32; atpa: T2DPointArray): TPointArray;
-  begin
-    if attempt < 2 then
-      Exit(atpa[0]); // 0 for the closest one.
-
-    if Length(atpa) > (attempt - 2) then
-      Exit(atpa[attempt - 2]);
-
-    Result := atpa.RandomValue();
-  end;
-var
-  shouldExit: Boolean;
-  attempt: Int32;
-  atpa: T2DPointArray;
-  tpa: TPointArray;
-  angle: Double;
-  closestWO: TPoint;
-begin
-  if not Self.Filter.Walker then
-    Exit(Self._HoverHelper(attempts));
-
-  Result := Self._WalkUpTextCheck(shouldExit);
-  if shouldExit then
-    Exit;
-
-  for attempt := 0 to attempts do
-  begin
-    if Self.Find(atpa) then
-    begin
-      tpa := GetDestination(attempt, atpa);
-
-      ASyncMouse.Move(tpa);
-
-      while AsyncMouse.IsMoving() or tpa.Contains(AsyncMouse.Position()) do
-      begin
-        if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-          Exit(True);
-
-        if not Self.Find(atpa) then
-          Continue;
-        tpa := GetDestination(attempt, atpa);
-        AsyncMouse.ChangeDestination(tpa.RandomValue());
-        //Wait(100); //Delay for less CPU usage??? Have to think about it.
-      end;
-
-      if not Self.Filter.UpText then
-        Exit(True);
-    end;
-
-    if MainScreen.IsUpText(Self.UpText) then
-      Exit(True);
-
-    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
-    if not ScriptWalker^.AtTile(closestWO, 50) then
-    begin
-      ScriptWalker^.WebWalk(closestWO, 30, 0.15);
-      Continue;
-    end;
-
-    if attempt = (attempts - 1) then
-    begin
-      if not ScriptWalker^.AtTile(closestWO, 25) then
-      begin
-        ScriptWalker^.WebWalk(closestWO, 25, 0.15);
-        Continue;
-      end;
-
-      angle := Minimap.GetCompassAngle() + Random(-50, 50);
-      Minimap.SetCompassAngle(angle, 10);
-    end;
-  end;
-end;
-
-(*
 TRSObject._WalkHoverHelper
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSObject._WalkHoverHelper(attempts: Int32): Boolean;
+.. pascal:: function TRSObject._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 
 Internal helper method used to walk and hover a TRSObject target.
 You should not use this directly.
 
 This is responsible for deciding wether we should walk to a TRSObject target or not before attempting to hover it.
 *)
-function TRSObject._WalkHoverHelper(attempts: Int32): Boolean;
+function TRSObject._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 var
   shouldExit: Boolean;
   attempt: Int32;
@@ -1084,7 +954,7 @@ var
   closestWO: TPoint;
 begin
   if not Self.Filter.Walker then
-    Exit(Self._HoverHelper(attempts));
+    Exit(Self._HoverHelper(attempts, trackTarget));
 
   Result := Self._WalkUpTextCheck(shouldExit);
   if shouldExit then
@@ -1101,7 +971,14 @@ begin
       else
         tpa := atpa.RandomValue();
 
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+
       Mouse.Move(tpa.RandomValue());
+
+      if trackTarget then
+        Mouse.OnMovingEx := nil;
+
       if not Self.Filter.UpText then
         Exit(True);
     end;
@@ -1132,50 +1009,20 @@ end;
 
 
 (*
-TRSObject.AsyncHover
-~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSObject.AsyncHover(): Boolean;
-
-Method used to asynchronously hover a TRSObject target if it's found on the mainscreen.
-AsyncMouse is very powerful but you shouldn't use it without a good reason for it.
-
-Example
--------
-
-  RSObjects.GEBank.AsyncHover(); //Be in GE with a walker setup there.
-  repeat
-    WriteLn 'This will print while the mouse is moving because it's asynchronously!';
-  until MainScreen.IsUpText('Exch');
-*)
-function TRSObject.AsyncHover(): Boolean;
-begin
-  Result := Self._AsyncHoverHelper();
-end;
-
-(*
 TRSObject.Hover
 ~~~~~~~~~~~~~~~
-.. pascal:: function TRSObject.Hover(attempts: Int32 = 2; async: Boolean = True): Boolean;
+.. pascal:: function TRSObject.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 
 Method used to hover a TRSObject target if it's found on the mainscreen.
-It can hover synchronously and asynchronously.
+It can update the target position while the mouse moves with **trackTarget**.
 
 Example
 -------
 
-  RSObjects.GEBank.Hover(2, true); //Be in GE with a walker setup there.
-  repeat
-    WriteLn 'This will print while the mouse is moving because it's asynchronously!';
-  until MainScreen.IsUpText('Exch');
-
-  Mouse.Move(Inventory.Bounds());
-
-  RSObjects.GEBank.Hover(2, False);
-  repeat
-    WriteLn 'This will only print after the mouse has finished moving because it's not asynchronous!';
-  until MainScreen.IsUpText('Exch');
+  RSW.WebWalk(WaspWeb.LOCATION_VARROCK);
+  RSObjects.GEBank.Hover(); //Be in GE with a walker setup there.
 *)
-function TRSObject.Hover(attempts: Int32 = 2; async: Boolean = USE_ASYNC_HOVER): Boolean;
+function TRSObject.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 begin
   if ChooseOption.IsOpen() then
   begin
@@ -1187,38 +1034,25 @@ begin
   if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
     Exit;
 
-  Result := (async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
+  Result := Self._HoverHelper(attempts, trackTarget);
 end;
 
 (*
 TRSObject.WalkHover
 ~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSObject.WalkHover(attempts: Int32 = 2; async: Boolean = True): Boolean;
+.. pascal:: function TRSObject.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 
 Method used to walk and hover a TRSObject target if it's found on the mainscreen after walking.
-It can hover synchronously and asynchronously.
-Keep in mind the walking portion is not made asynchronously, only the final moments of the method
-when it's time to hover the TRSObject target can be made asynchronously.
+It can update the target position while the mouse moves with **trackTarget**.
 
 Example
 -------
 
   //Be in varrock with a varrock map loaded.
-  rsw.WebWalk(WaspWeb.LOCATION_VARROCK);
-
-  RSObjects.GEBank.WalkHover(2, true); //keep in mind that walking is not async.
-  repeat
-    WriteLn 'This will print while the mouse is moving because it's asynchronously!';
-  until MainScreen.IsUpText('Exch');
-
-  rsw.WebWalk(WaspWeb.LOCATION_VARROCK);
-
-  RSObjects.GEBank.WalkHover(2, False);
-  repeat
-    WriteLn 'This will only print after the mouse has finished moving because it's not asynchronous!';
-  until MainScreen.IsUpText('Exch');
+  RSW.WebWalk(WaspWeb.LOCATION_VARROCK);
+  RSObjects.GEBank.WalkHover();
 *)
-function TRSObject.WalkHover(attempts: Int32 = 2; async: Boolean = USE_ASYNC_HOVER): Boolean;
+function TRSObject.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 var
   p: TPoint;
 begin
@@ -1240,7 +1074,7 @@ begin
      not ScriptWalker^.WebWalk(p, 30, 0.15) then
       Exit;
 
-  Result := (async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
+  Result := Self._WalkHoverHelper(attempts, trackTarget);
 end;
 
 
@@ -1250,7 +1084,6 @@ TRSObject.Click
 .. pascal:: function TRSObject.Click(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
 
 Method used to click a TRSObject target if it's found on the mainscreen.
-This hovers the TRSObject target asynchronously.
 
 Example
 -------
@@ -1270,7 +1103,6 @@ TRSObject.SelectOption
 .. pascal:: function TRSObject.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 
 Method used to select an option on a TRSObject target if it's found on the mainscreen.
-This hovers the TRSObject target asynchronously.
 
 Example
 -------
@@ -1291,7 +1123,6 @@ TRSObject.WalkClick
 .. pascal:: function TRSObject.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
 
 Method used to walk and click a TRSObject target if it's found on the mainscreen.
-This hovers the TRSObject target asynchronously.
 
 Example
 -------
@@ -1310,7 +1141,6 @@ TRSObject.WalkSelectOption
 .. pascal:: function TRSObject.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 
 Method used to walk and select an option on a TRSObject target if it's found on the mainscreen.
-This hovers the TRSObject target asynchronously.
 
 Example
 -------
@@ -1501,7 +1331,7 @@ begin
 
     dots := dots.SortFrom(Minimap.Center());
 
-    Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [-2, -2], angle));
+    Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2], angle));
   end;
 
   if Self.Filter.Walker then
@@ -1521,7 +1351,7 @@ begin
     if Self.ShapeArray = [] then
       Self.ShapeArray.SetShape([1, 1, 1]);
 
-    Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [-2, -2]));
+    Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2]));
   end;
 end;
 
@@ -1589,12 +1419,10 @@ begin
   end
 
   else if Self.Filter.Finder then
-  begin
     atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
-  end;
 
-  if Result := (atpa <> []) then
-    if ScriptWalker <> nil then
+  Result := atpa <> [];
+  if Result and (ScriptWalker <> nil) then
       Self.ClosestDot := ScriptWalker^.MSToWorld(ATPA[0].Mean());
 end;
 
@@ -1730,112 +1558,46 @@ end;
 
 
 (*
-TRSMMDot._AsyncHoverHelper
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal::
-  function TRSMMDot._AsyncHoverHelper(): Boolean;
-  function TRSMMDot._AsyncHoverHelper(attempts: Int32): Boolean; overload;
+TRSMMDot._UpdateTarget
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: procedure TRSMMDot._UpdateTarget(sender: PMouse; var x, y: Double; var done: Boolean);
 
-Internal helper methods used to hover a TRSMMDot target asynchronously.
-You should not use this directly.
+Internal helper method of TMouseMovingEventEx type used to update the target position while the mouse is moving.
+You should probably not touch this if you don't understand it.
 *)
-function TRSMMDot._AsyncHoverHelper(): Boolean;
+procedure TRSMMDot._UpdateTarget({$H-}sender: PMouse;{$H+} var x, y: Double; var done: Boolean);
 var
-  shouldExit: Boolean;
+  i: Int32;
   atpa: T2DPointArray;
+  p: TPoint;
 begin
-  if Self.Filter.MinimapDot and (Minimap.GetDots(Self.DotType) = []) then
+  if Self._UpTextCheck(done) then
     Exit;
 
-  Result := Self._UpTextCheck(shouldExit);
-  if shouldExit then
+  done := not Self.Find(atpa);
+  if done then
     Exit;
 
-  if Self.Find(atpa) then
+  for i := 0 to High(atpa) do
   begin
-    AsyncMouse.Move(ATPA[0].RandomValue());
-    Result := True;
+    if atpa[i].Contains([Round(x), Round(y)]) then
+      Exit;
   end;
+
+  p := atpa[0].RandomValue();
+  x := p.X;
+  y := p.Y;
 end;
-
-function TRSMMDot._AsyncHoverHelper(attempts: Int32): Boolean; overload;
-  function GetDestination(attempt: Int32; atpa: T2DPointArray): TPointArray;
-  begin
-    if attempt < 2 then
-      Exit(Result := atpa[0]); // 0 for the closest one.
-
-    if Length(atpa) > (attempt - 2) then
-      Exit(atpa[attempt - 2]);
-
-    Result := atpa.RandomValue();
-  end;
-var
-  shouldExit: Boolean;
-  attempt: Int32;
-  atpa: T2DPointArray;
-  tpa: TPointArray;
-  angle: Double;
-begin
-  if Self.Filter.MinimapDot and (Minimap.GetDots(Self.DotType) = []) then
-    Exit;
-
-  Result := Self._UpTextCheck(shouldExit);
-  if shouldExit then
-    Exit;
-
-  for attempt := 0 to attempts do
-  begin
-    if Self.Find(atpa) then
-    begin
-      tpa := GetDestination(attempt, atpa);
-
-      if Self.DotType = ERSMinimapDot.ITEM then
-        ASyncMouse.Move(tpa.Mean())
-      else
-        AsyncMouse.Move(tpa.RandomValue());
-
-      while AsyncMouse.IsMoving() or tpa.Contains(AsyncMouse.Position()) do
-      begin
-        if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-          Exit(True);
-
-        if not Self.Find(atpa) then
-          Continue;
-        tpa := GetDestination(attempt, atpa);
-
-        if Self.DotType = ERSMinimapDot.ITEM then
-          AsyncMouse.ChangeDestination(tpa.Mean())
-        else
-          AsyncMouse.ChangeDestination(tpa.RandomValue());
-        //Wait(100); //Delay for less CPU usage??? Have to think about it.
-      end;
-
-      if not Self.Filter.UpText then
-        Exit(True);
-    end;
-
-    if MainScreen.IsUpText(Self.UpText) then
-      Exit(True);
-
-    //will rotate the screen for the last attempt if hasn't hovered properly yet
-    if attempt = (attempts - 1) then
-    begin
-      angle := Minimap.GetCompassAngle() + Random(-50, 50);
-      Minimap.SetCompassAngle(angle, 10);
-    end;
-  end;
-end;
-
 
 (*
 TRSMMDot._HoverHelper
 ~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMMDot._HoverHelper(attempts: Int32): Boolean;
+.. pascal:: function TRSMMDot._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 
 Internal helper method used to hover a TRSMMDot target.
 You should not use this directly.
 *)
-function TRSMMDot._HoverHelper(attempts: Int32): Boolean;
+function TRSMMDot._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 var
   shouldExit: Boolean;
   attempt: Int32;
@@ -1861,10 +1623,16 @@ begin
       else
         tpa := atpa.RandomValue();
 
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+
       if Self.DotType = ERSMinimapDot.ITEM then
         Mouse.Move(tpa.Mean())
       else
         Mouse.Move(tpa.RandomValue());
+
+      if trackTarget then
+        Mouse.OnMovingEx := nil;
 
       if not Self.Filter.UpText then
         Exit(True);
@@ -1883,109 +1651,16 @@ begin
 end;
 
 (*
-TRSMMDot._AsyncWalkHoverHelper
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMMDot._AsyncWalkHoverHelper(attempts: Int32): Boolean;
-
-Internal helper method used to walk and hover a TRSMMDot target asynchronously.
-You should not use this directly.
-
-This is responsible for deciding wether we should walk to a TRSMMDot target or not before attempting to hover it asynchronously.
-*)
-function TRSMMDot._AsyncWalkHoverHelper(attempts: Int32): Boolean;
-  function GetDestination(attempt: Int32; atpa: T2DPointArray): TPointArray;
-  begin
-    if attempt < 2 then
-      Exit(atpa[0]); // 0 for the closest one.
-
-    if Length(atpa) > (attempt - 2) then
-      Exit(atpa[attempt - 2]);
-
-    Result := atpa.RandomValue();
-  end;
-var
-  shouldExit: Boolean;
-  attempt: Int32;
-  atpa: T2DPointArray;
-  tpa: TPointArray;
-  angle: Double;
-  closestWO: TPoint;
-begin
-  if not Self.Filter.Walker then
-    Exit(Self._HoverHelper(attempts));
-
-  Result := Self._WalkUpTextCheck(shouldExit);
-  if shouldExit then
-    Exit;
-
-  for attempt := 0 to attempts do
-  begin
-    if Self.Find(atpa) then
-    begin
-      tpa := GetDestination(attempt, atpa);
-
-      if Self.DotType = ERSMinimapDot.ITEM then
-        ASyncMouse.Move(tpa.Mean())
-      else
-        AsyncMouse.Move(tpa.RandomValue());
-
-      while AsyncMouse.IsMoving() or tpa.Contains(AsyncMouse.Position()) do
-      begin
-        if Self.Filter.UpText and MainScreen.IsUpText(Self.UpText) then
-          Exit(True);
-
-        if not Self.Find(atpa) then
-          Continue;
-        tpa := GetDestination(attempt, atpa);
-
-        if Self.DotType = ERSMinimapDot.ITEM then
-          AsyncMouse.ChangeDestination(tpa.Mean())
-        else
-          AsyncMouse.ChangeDestination(tpa.RandomValue());
-        //Wait(100); //Delay for less CPU usage??? Have to think about it.
-      end;
-
-      if not Self.Filter.UpText then
-        Exit(True);
-    end;
-
-    if MainScreen.IsUpText(Self.UpText) then
-      Exit(True);
-
-    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
-    if not ScriptWalker^.AtTile(closestWO, 50) then
-    begin
-      ScriptWalker^.WebWalk(closestWO, 30, 0.15);
-      Continue;
-    end;
-
-    if attempt = (attempts - 1) then
-    begin
-      if not ScriptWalker^.AtTile(closestWO, 25) then
-      begin
-        ScriptWalker^.WebWalk(closestWO, 25, 0.15);
-        Continue;
-      end;
-
-      angle := Minimap.GetCompassAngle() + Random(-50, 50);
-      Minimap.SetCompassAngle(angle, 10);
-    end;
-  end;
-end;
-
-
-
-(*
 TRSMMDot._WalkHoverHelper
 ~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMMDot._WalkHoverHelper(attempts: Int32): Boolean;
+.. pascal:: function TRSMMDot._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 
 Internal helper method used to walk and hover a TRSMMDot target.
 You should not use this directly.
 
 This is responsible for deciding wether we should walk to a TRSMMDot target or not before attempting to hover it.
 *)
-function TRSMMDot._WalkHoverHelper(attempts: Int32): Boolean;
+function TRSMMDot._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
 var
   shouldExit: Boolean;
   attempt: Int32;
@@ -1995,7 +1670,7 @@ var
   closestWO: TPoint;
 begin
   if not Self.Filter.Walker then
-    Exit(Self._HoverHelper(attempts));
+    Exit(Self._HoverHelper(attempts, trackTarget));
 
   Result := Self._WalkUpTextCheck(shouldExit);
   if shouldExit then
@@ -2012,10 +1687,16 @@ begin
       else
         tpa := atpa.RandomValue();
 
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+
       if Self.DotType = ERSMinimapDot.ITEM then
         Mouse.Move(tpa.Mean())
       else
         Mouse.Move(tpa.RandomValue());
+
+      if trackTarget then
+        Mouse.OnMovingEx := nil;
 
       if not Self.Filter.UpText then
         Exit(True);
@@ -2047,54 +1728,22 @@ end;
 
 
 (*
-TRSMMDot.AsyncHover
-~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMMDot.AsyncHover(): Boolean;
-
-Method used to asynchronously hover a TRSMMDot target if it's found on the mainscreen.
-AsyncMouse is very powerful but you shouldn't use it without a good reason for it.
-NPCs are a good reason because they often move while the mouse is moving towards them.
-
-Example
--------
-
-  //Be in Lumbridge castle with a walker setup there.
-  RSNPCs.LumbridgeCook.AsyncHover();
-  repeat
-    WriteLn 'This will print while the mouse is moving because it's asynchronously!';
-  until MainScreen.IsUpText('Exch');
-*)
-function TRSMMDot.AsyncHover(): Boolean;
-begin
-  Result := Self._AsyncHoverHelper();
-end;
-
-(*
 TRSMMDot.Hover
 ~~~~~~~~~~~~~~
-.. pascal:: function TRSMMDot.Hover(attempts: Int32 = 2; async: Boolean = True): Boolean;
+.. pascal:: function TRSMMDot.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 
 Method used to hover a TRSMMDot target if it's found on the mainscreen.
-It can hover synchronously and asynchronously.
-For NPCs that move, asynchronously is highly recommended.
+It can update the target position as the mouse moves with **trackTarget**.
+For NPCs that move, this is highly recommended.
 
 Example
 -------
 
-  //Be in Lumbridge castle with a walker setup there.
-  RSNPCs.LumbridgeCook.Hover(2, true);
-  repeat
-    WriteLn 'This will print while the mouse is moving because it's asynchronously!';
-  until MainScreen.IsUpText('ook');
-
-  Mouse.Move(Inventory.Bounds());
-
-  RSNPCs.LumbridgeCook.Hover(2, False);
-  repeat
-    WriteLn 'This will only print after the mouse has finished moving because it's not asynchronous!';
-  until MainScreen.IsUpText('ook');
+  //Be in Lumbridge castle
+  RSW.WebWalk(WaspWeb.LOCATION_LUMBRIDGE);
+  RSNPCs.LumbridgeCook.Hover();
 *)
-function TRSMMDot.Hover(attempts: Int32 = 2; Async: Boolean = USE_ASYNC_HOVER): Boolean; overload;
+function TRSMMDot.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean; overload;
 begin
   if ChooseOption.IsOpen() then
   begin
@@ -2109,40 +1758,26 @@ begin
   if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
     Exit;
 
-  Result := (Async and Self._AsyncHoverHelper(attempts)) or Self._HoverHelper(attempts);
+  Result := Self._HoverHelper(attempts, trackTarget);
 end;
 
 (*
 TRSMMDot.WalkHover
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMMDot.WalkHover(attempts: Int32 = 2; async: Boolean = True): Boolean;
+.. pascal:: function TRSMMDot.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 
 Method used to walk and hover a TRSMMDot target if it's found on the mainscreen after walking.
-It can hover synchronously and asynchronously.
-Keep in mind the walking portion is not made asynchronously, only the final moments of the method
-when it's time to hover the TRSMMDot target can be made asynchronously.
-
-For NPCs that move, asynchronously is highly recommended.
+It can update the target position as the mouse moves with **trackTarget**.
+For NPCs that move, this is highly recommended.
 
 Example
 -------
 
-  //Be in Lumbridge castle with a walker setup there.
-  rsw.WebWalk(WaspWeb.LOCATION_LUMBRIDGE);
-
-  RSNPCs.LumbridgeCook.WalkHover(2, true); //keep in mind that walking is not async.
-  repeat
-    WriteLn 'This will print while the mouse is moving because it's asynchronously!';
-  until MainScreen.IsUpText('ook');
-
-  rsw.WebWalk(WaspWeb.LOCATION_LUMBRIDGE);
-
-  RSNPCs.LumbridgeCook.WalkHover(2, False);
-  repeat
-    WriteLn 'This will only print after the mouse has finished moving because it's not asynchronous!';
-  until MainScreen.IsUpText('ook');
+  //Be in Lumbridge castle
+  RSW.WebWalk(WaspWeb.LOCATION_LUMBRIDGE);
+  RSNPCs.LumbridgeCook.WalkHover();
 *)
-function TRSMMDot.WalkHover(attempts: Int32 = 2; Async: Boolean = USE_ASYNC_HOVER): Boolean;
+function TRSMMDot.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
 var
   closestWO: TPoint;
 begin
@@ -2164,7 +1799,7 @@ begin
      not ScriptWalker^.WebWalk(closestWO, 30, 0.15) then
       Exit;
 
-  Result := (Async and Self._AsyncWalkHoverHelper(attempts)) or Self._WalkHoverHelper(attempts);
+  Result := Self._WalkHoverHelper(attempts, trackTarget);
 end;
 
 
@@ -2174,9 +1809,6 @@ TRSMMDot.Click
 .. pascal:: function TRSMMDot.Click(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
 
 Method used to click a TRSMMDot target if it's found on the mainscreen.
-This hovers the TRSMMDot target asynchronously.
-
-For NPCs that move, asynchronously is highly recommended.
 
 Example
 -------
@@ -2195,9 +1827,6 @@ TRSMMDot.SelectOption
 .. pascal:: function TRSMMDot.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 
 Method used to select an option on a TRSMMDot target if it's found on the mainscreen.
-This hovers the TRSMMDot target asynchronously.
-
-For NPCs that move, asynchronously is highly recommended.
 
 Example
 -------
@@ -2218,9 +1847,6 @@ TRSMMDot.WalkClick
 .. pascal:: function TRSMMDot.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
 
 Method used to walk and click a TRSMMDot target if it's found on the mainscreen.
-This hovers the TRSMMDot target asynchronously.
-
-For NPCs that move, asynchronously is highly recommended.
 
 Example
 -------
@@ -2239,7 +1865,6 @@ TRSMMDot.WalkSelectOption
 .. pascal:: function TRSMMDot.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 
 Method used to walk and select an option on a TRSMMDot target if it's found on the mainscreen.
-This hovers the TRSMMDot target asynchronously.
 
 Example
 -------

@@ -300,10 +300,13 @@ begin
   if dots = [] then
     Exit;
 
-  monster := dots[0];
-  me := ScriptWalker^.GetMyPos();
-  Result := me + (monster - Minimap.Center());
-  Result := Result.Rotate(-Minimap.GetCompassAngle(False), me);
+  Result := dots[0];
+  if Self.Monster.Filter.Walker then
+  begin
+    me := ScriptWalker^.GetMyPos();
+    Result := me + (monster - Minimap.Center());
+    Result := Result.Rotate(-Minimap.GetCompassAngle(False), me);
+  end;
 end;
 
 function TRSCombatHandler.WaitHitSplats(): Boolean;
@@ -376,10 +379,12 @@ begin
 
   Self.Looted := True;
   Self.IsFighting := False;
-  if (Self.MonsterWalkerCoord = []) or (Self.MonsterWalkerCoord = [0,0]) then
+  if not Self.Monster.Filter.Walker or
+    (Self.MonsterWalkerCoord = []) or (Self.MonsterWalkerCoord = [0,0]) then
     p := Minimap.Center()
   else
     p := ScriptWalker^.WorldToMM(Self.MonsterWalkerCoord);
+
   size := Self.Monster.ShapeArray[0].Tile.X;
 
   b := Box(p, Ceil(size), Ceil(size)).Expand(8);
@@ -756,7 +761,11 @@ begin
     Exit;
   end;
 
-  cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
+  if CombatHandler.Monster.Filter.Walker then
+    cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0], [2,2])
+  else
+    cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0], [2,2]);
+
   gotXP := XPBar.EarnedXP();
   hasSplats := Self.FindHitsplats(cuboid.Bounds()) <> [];
   Result := gotXP or hasSplats;

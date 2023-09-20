@@ -314,12 +314,12 @@ Method used to find already setup consumables in the inventory. Can be used dire
 *)
 function TRSInventory.FindConsumable(consumableType: ERSConsumable; out foundConsumables: TRSConsumableArray): TIntegerArray; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
 begin
-  if not ConsumableHandler^.IsSetup then
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  Result := Self.FindConsumable(ConsumableHandler^.ConsumableArray.Reversed(), foundConsumables);
+  Result := Self.FindConsumable(consumableHandler^.ConsumableArray.Reversed(), foundConsumables);
 end;
 
 function TRSInventory.FindConsumable(consumableType: ERSConsumable): TIntegerArray; overload;
@@ -523,13 +523,13 @@ end;
 
 function TRSInventory.CountPoints(consumableType: ERSConsumable): Int32; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
   Consumable: TRSConsumable;
 begin
-  if not ConsumableHandler^.IsSetup then
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  for Consumable in ConsumableHandler^.ConsumableArray do
+  for Consumable in consumableHandler^.ConsumableArray do
     Result += Self.CountPoints(Consumable);
 end;
 
@@ -579,29 +579,29 @@ end;
 
 function TRSBank.FindConsumable(ConsumableArray: TRSConsumableArray): Boolean; overload;
 var
-  Consumable: TRSConsumable;
+  consumable: TRSConsumable;
 begin
-  Result := Self.FindConsumable(ConsumableArray, Consumable);
+  Result := Self.FindConsumable(ConsumableArray, consumable);
 end;
 
-function TRSBank.FindConsumable(consumableType: ERSConsumable; out Consumable: TRSConsumable): Boolean; overload;
+function TRSBank.FindConsumable(consumableType: ERSConsumable; out consumable: TRSConsumable): Boolean; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
 begin
-  if not ConsumableHandler^.IsSetup then
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  Result := Self.FindConsumable(ConsumableHandler^.ConsumableArray, Consumable);
+  Result := Self.FindConsumable(consumableHandler^.ConsumableArray, consumable);
 end;
 
 function TRSBank.FindConsumable(consumableType: ERSConsumable): Boolean; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
 begin
-  if not ConsumableHandler^.IsSetup then
+  if not consumableHandler^.IsSetup then
     Exit;
 
-  Result := Self.FindConsumable(ConsumableHandler^.ConsumableArray);
+  Result := Self.FindConsumable(consumableHandler^.ConsumableArray);
 end;
 
 
@@ -643,14 +643,14 @@ var
   consumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
   consumable: TRSConsumable;
 begin
-  for Consumable in consumableHandler^.ConsumableArray do
+  for consumable in consumableHandler^.ConsumableArray do
   begin
     case consumableHandler^.Amount of
       -1: Result := -1;
       -2: Result := -2;
-      0: case ConsumableHandler^.MinInvPoints of
-           -1, -2: Result := ConsumableHandler^.MinInvPoints;
-           else Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(consumable));
+      0: case consumableHandler^.MinInvPoints of
+           -1, -2: Result := consumableHandler^.MinInvPoints;
+           else Result := Ceil((consumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(consumable));
          end;
       else Result := consumableHandler^.Amount;
     end;
@@ -662,16 +662,16 @@ end;
 
 function TRSBank.WithdrawConsumableAmount(consumableType: ERSConsumable; consumable: TRSConsumable): Int32; overload;
 var
-  ConsumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
+  consumableHandler: PConsumableHandler := TConsumableHandler.GetHandler(consumableType);
 begin
-  case ConsumableHandler^.Amount of
+  case consumableHandler^.Amount of
     -1: Result := -1;
     -2: Result := -2;
-    0: case ConsumableHandler^.MinInvPoints of
-         -1, -2: Result := ConsumableHandler^.MinInvPoints;
-         else Result := Ceil((ConsumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(consumable));
+    0: case consumableHandler^.MinInvPoints of
+         -1, -2: Result := consumableHandler^.MinInvPoints;
+         else Result := Ceil((consumableHandler^.MinInvPoints - Inventory.CountPoints(consumableType)) / Self.CountPoints(consumable));
        end;
-    else Result := ConsumableHandler^.Amount;
+    else Result := consumableHandler^.Amount;
   end;
 end;
 
@@ -689,7 +689,7 @@ Example
 
   Bank.WithdrawConsumable(FOOD_CONSUMABLE); //This will withdraw FOOD_CONSUMABLEs until we have 100 points value of food in our inventory.
 *)
-function TRSBank.WithdrawConsumable(consumableType: ERSConsumable): Boolean;
+function TRSBank.WithdrawConsumable(consumableType: ERSConsumable; attempt: Int32 = 0): Boolean;
 var
   consumableHandler: PConsumableHandler;
   withdrawAmount: Int32;
@@ -697,17 +697,32 @@ var
 begin
   consumableHandler := TConsumableHandler.GetHandler(consumableType);
   if not Self.FindConsumable(consumableType, consumable) then
-    Exit;
+  begin
+    if attempt > 1 then
+      Exit;
+    Exit(Self.WithdrawConsumable(consumableType, attempt + 1));
+  end;
 
   withdrawAmount := Self.WithdrawConsumableAmount(consumableType, consumable);
 
   if (withdrawAmount = 0) then
-    Exit(True); //We have enough food.
+    Exit(True); //We have enough.
 
   consumable.BankItem.Quantity := withdrawAmount;
-  Self.WithdrawItem(consumable.BankItem, False);
+  if Self.WithdrawItem(consumable.BankItem, False) then
+    Result := WaitUntil(Inventory.HasEnoughConsumable(consumableType), 300, 3000);
 
-  Result := WaitUntil(Inventory.HasEnoughConsumable(consumableType), 100, 3000);
+  if Result then
+    Exit;
+
+  Bank.UnHoverIncinerator();
+  if Bank.IsSearchOpen() then
+    Bank.CloseSearch();
+
+  if attempt < 2 then
+    Exit(Self.WithdrawConsumable(consumableType, attempt + 1))
+  else
+    SaveScreenshot('bankempty_consumable' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
 end;
 
 function TScriptForm.CreateConsumableSettings(consumableType: ERSConsumable): TTabSheet; override;

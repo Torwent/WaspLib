@@ -62,28 +62,15 @@ Example
 *)
 type
   TBaseScript = record(TSRLBaseRecord)
-    ID,
-    Revision,
-
-    Welcome: String;
+    ID, Revision, Welcome, Action, PreviousAction, ExtraInfo: String;
 
     TimeRunning: TStopwatch;
     ReportTimer: TTimer;
 
-    Action: String;
-    PreviousAction: String;
-
-    ExtraInfo: String;
-
-    ActionProfit: Int32;
-    TotalActions: Int32;
-    TotalProfit: Int32;
-
+    ActionProfit, TotalActions, TotalProfit, ActionLimit: Int32;
     TimeLimit: Int64;
-    ActionLimit: Int32;
 
-    OnAntiban: Boolean;
-    IsSetup: Boolean;
+    OnAntiban, IsSetup: Boolean;
   end;
 
 (*
@@ -663,7 +650,7 @@ var
   count, stack: Int32;
 begin
   stack := Inventory.CountItemStack(item.Item);
-  if Inventory.IsFull() and (stack = 0) then //item not stackable.
+  if Inventory.IsFull() and (stack < 1) then //item not stackable.
     Exit;
 
   count := Inventory.CountItem(item.Item);
@@ -679,6 +666,9 @@ begin
   Bank.UnHoverIncinerator();
   if Bank.IsSearchOpen() then
     Bank.CloseSearch();
+
+  if attempt = 1 then
+    Mouse.Move(Bank.GetSlotBoxes().Merge(), True);
 
   if attempt < 2 then
     Exit(Self.Withdraw(item, attempt + 1));
@@ -715,6 +705,8 @@ BaseBankScript.DepositItem
 Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
 *)
 function TBaseBankScript.DepositItem(out item: TRSBankItem; isBank, isDepositBox: Boolean = False): Boolean; static;
+var
+  count: Int32;
 begin
   if isBank and isDepositBox then
   begin
@@ -726,10 +718,17 @@ begin
     Exit;
 
   if not isDepositBox and (isBank or Bank.IsOpen()) then
-    Exit(Bank.DepositItem(item, True));
+  begin
+    count := Inventory.CountItem(item.Item);
+    Exit(Bank.DepositItem(item, True) and WaitUntil(count > Inventory.CountItem(item.Item), 300, 3000));
+  end;
 
   if isDepositBox or DepositBox.IsOpen() then
-    Result := DepositBox.DepositItem(item, True);
+  begin
+    count := DepositBox.CountItem(item.Item);
+    if DepositBox.DepositItem(item, True) then
+      Result := WaitUntil(count > DepositBox.CountItem(item.Item), 300, 3000);
+  end;
 end;
 
 function TBaseBankScript.DepositItem(item: TRSItem; isBank, isDepositBox: Boolean = False): Boolean; static; overload;
@@ -765,8 +764,10 @@ begin
     Exit;
 
   for item in items do
-    if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
-      Result := True;
+    if not TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Exit(False);
+
+  Result := True;
 end;
 
 function TBaseBankScript.DepositItems(items: TRSItemArray): Boolean; static; overload;
@@ -786,7 +787,9 @@ begin
 
   for item in items do
     if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
-      Result := True;
+      Exit(False);
+
+  Result := True;
 end;
 
 

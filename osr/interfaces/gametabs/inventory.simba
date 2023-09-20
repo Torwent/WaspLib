@@ -169,21 +169,21 @@ Example
 *)
 function TRSItem.GetSingle(lo: Boolean = True): TRSItem;
 var
-  Str: String;
+  str: String;
   i, j: Int32;
 begin
-  Str := ToStr(Self);
+  str := ToStr(Self);
 
-  if not Str.Contains('..') then
+  if not str.Contains('..') then
     Exit(Self);
 
-  i := StrToInt(Str.Before('..')[High(Str.Before('..'))]);
-  j :=  StrToInt(Str.After('..')[Low(Str.Before('..'))]);
+  i := StrToInt(str.Before('..')[High(str.Before('..'))]);
+  j :=  StrToInt(str.After('..')[Low(str.Before('..'))]);
 
   if (lo and (i > j)) or (not lo and (i < j)) then
-    Result := Str.Replace(ToStr(i) + '..' + ToStr(j), ToStr(j))
+    Result := str.Replace(ToStr(i) + '..' + ToStr(j), ToStr(j))
   else
-    Result := Str.Replace(ToStr(i) + '..' + ToStr(j), ToStr(i));
+    Result := str.Replace(ToStr(i) + '..' + ToStr(j), ToStr(i));
 end;
 
 
@@ -261,66 +261,24 @@ begin
 end;
 
 
-
-function TRSInventory.SetSelectedSlot(Slot: Int32): Boolean; override;
+function TRSInventory.SetSelectedItem(item: TRSItem): Boolean;
 var
-  Selected: Int32;
+  slot: Int32;
 begin
-  Selected := Self.GetSelectedSlot;
-  if (Selected = Slot) then
-    Exit(True);
-
-  if (Selected > -1) then
-    Mouse.Click(Self.GetSlotBox(Selected), MOUSE_LEFT);
-
-  if (Slot > -1) then
-  begin
-    Mouse.Move(Self.GetSlotBox(Slot), True);
-    if MainScreen.IsUpText('Use') then
-      Mouse.Click(MOUSE_LEFT)
-    else if ChooseOption.Open then
-      if not ChooseOption.Select('Use') then
-        Exit(False);
-  end
-  else
-    Mouse.Click(Self.GetSlotBox(Selected), MOUSE_LEFT);
-  
-  Result := WaitUntil(Self.GetSelectedSlot = Slot, 50, SRL.TruncatedGauss(1000, 2000));
+  if Inventory.FindItem(item, slot) then
+    Result := Self.SetSelectedSlot(slot);
 end;
 
-function TRSInventory.SetSelectedItem(Item: TRSItem): Boolean;
+function TRSInventory.Use(slot: Int32; item: TRSItem): Boolean; overload;
 var
-  Slot: Int32;
+  slots: TIntegerArray;
+  otherSlot: Int32;
 begin
-  Inventory.FindItem(Item, Slot);
-  Result := Self.SetSelectedSlot(Slot);
-end;
-
-
-function TRSInventory.Use(Slot, OtherSlot: Int32): Boolean; override;
-var
-  B: TBox := Self.GetSlotBox(OtherSlot);
-begin
-  if B = [] then
-    Exit;
-
-  if Result := Self.SetSelectedSlot(Slot) then
-  begin
-    Wait(0, 1000, wdLeft);
-    Mouse.Click(B, MOUSE_LEFT);
-  end;
-end;
-
-function TRSInventory.Use(Slot: Int32; Item: TRSItem): Boolean; overload;
-var
-  Slots: TIntegerArray;
-  OtherSlot: Int32;
-begin
-  Result := Self.IsSlotUsed(Slot) and Self.FindItem(Item, Slots);
+  Result := Self.IsSlotUsed(slot) and Self.FindItem(item, slots);
   if Result then
   begin
-    OtherSlot := Self.RandomSlotNearby(Slot, Slots);
-    Result := Self.Use(Slot, OtherSlot);
+    otherSlot := Self.RandomSlotNearby(slot, slots);
+    Result := Self.Use(slot, otherSlot);
   end;
 end;
 
@@ -330,7 +288,7 @@ begin
   Result := Self.ItemInterface.GetUsedSlots();
 end;
 
-function TRSInventory.GetEmptySlots: TIntegerArray;
+function TRSInventory.GetEmptySlots(): TIntegerArray;
 begin
   Result := Self.ItemInterface.GetEmptySlots();
 end;
@@ -341,9 +299,9 @@ begin
   Result := Self.ItemInterface.CountEmptySlots();
 end;
 
-function TRSInventory.HasSpace(SlotsNeeded: Int32 = 1): Boolean;
+function TRSInventory.HasSpace(slotsNeeded: Int32 = 1): Boolean;
 begin
-  Result := SlotsNeeded <= Self.CountEmptySlots();
+  Result := slotsNeeded <= Self.CountEmptySlots();
 end;
 
 
@@ -365,11 +323,7 @@ end;
 
 function TRSInventory.Drag(initialSlot, finalSlot: Int32): Boolean;
 begin
-  if not Self.IsSlotUsed(initialSlot) then
-    Exit(False);
-  Self.MouseSlot(initialSlot);
-  Mouse.DragTo(SRL.RandomPoint(Self.GetSlotBox(finalSlot)));
-  Result := True;
+  Result := Self.ItemInterface.Move(initialSlot, finalSlot);
 end;
 
 function TRSInventory.WaitItemFade(Slot: Int32): Boolean;

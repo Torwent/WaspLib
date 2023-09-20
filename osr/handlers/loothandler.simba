@@ -9,10 +9,55 @@ LootHandler is a record made to handle looting.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-const
-  LOOT_ITEM_ARRAY: TStringArray = [
-    'Clue scroll (easy)', 'Clue scroll (medium)',
-    'Clue scroll (hard)', 'Clue scroll (elite)',
+{$IFNDEF WL_ALCH_HANDLER_INCLUDED}
+  {$I WaspLib/osr/handlers/alchhandler.simba}
+{$ENDIF}
+
+type
+  TRSLootHandler = record(TSRLBaseRecord)
+    PriorityArray: TStringArray;
+    Loot: TRSGroundItem;
+    Drops: TRSMonsterDropArray;
+    ValueThreshold: Int32;
+    CheckedLoot: Boolean;
+    IsSetup: Boolean;
+  end;
+
+function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
+var
+  value: Int32;
+begin
+  if Self.PriorityArray.Contains(drop.Item) then
+    Exit(True);
+
+  value := ItemData.GetAverage(drop.ID);
+
+  Result := value >= Self.ValueThreshold;
+  if Result then
+    Exit;
+
+  value := value * drop.Quantity;
+  Result := drop.Stackable and (value >= (Self.ValueThreshold / 5));
+  if Result then
+    Exit;
+
+  Result := ItemData.GetHighAlch(drop.ID) > Self.ValueThreshold;
+  if Result then
+    RSAlchHandler.ItemArray += drop.Item;
+end;
+
+procedure TRSLootHandler.Setup(monster: TRSMonster; value: Int32 = 5000);
+var
+  i: Int32;
+  tmpDrops: TRSMonsterDropArray;
+begin
+  if (monster.Name = '') or (value <= 0) then
+    Exit;
+
+  Self.Name := 'LootHandler';
+
+  Self.PriorityArray := [
+    'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
     'Clue scroll (master)',
     'Dark totem base', 'Dark totem middle', 'Dark totem top',
     'Dark totem', 'Ancient shard', 'Brimstone key',
@@ -27,7 +72,18 @@ const
     'Giant key', 'Mossy key'
   ];
 
-  LOOT_ITEM_COLORS: array of TCTS2Color = [
+  Self.ValueThreshold := value;
+  Self.Loot._Setup();
+
+  if monster.Coordinates <> [] then
+    Self.Loot.Setup(monster.DotFilter[0].Circle.Radius, 0, monster.Coordinates)
+  else
+  begin
+    Self.Loot.Filter := monster.Filter;
+    Self.Loot.ShapeArray += [[2, 2, 0], 0];
+  end;
+
+  Self.Loot.Finder.Colors := [
     [6579858, 9, 0.09, 0.33],   //vile and malicious ashes
     [13422033, 18, 0.20, 0.30], //dragon bones (this matches a lot with proselyte. might need to be removed)
     [7760980, 9, 0.06, 0.14],   //rune items (this might need better colors but this one doesn't match in CoK background,
@@ -45,54 +101,6 @@ const
     [7311001, 7, 0.08, 0.21],   //noted drops
     [680832, 11, 0.04, 1.43]    //battlestaff
   ];
-
-type
-  TRSLootHandler = record(TSRLBaseRecord)
-    Loot: TRSGroundItem;
-    Drops: TRSMonsterDropArray;
-    ValueThreshold: Int32;
-    CheckedLoot: Boolean;
-    IsSetup: Boolean;
-  end;
-
-function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
-var
-  value: Int32;
-begin
-  if LOOT_ITEM_ARRAY.Contains(drop.Item) then
-    Exit(True);
-
-  value := ItemData.GetAverage(drop.ID);
-
-  Result := value >= Self.ValueThreshold;
-  if Result then
-    Exit;
-
-  value := value * drop.Quantity;
-  Result := drop.Stackable and (value >= (Self.ValueThreshold / 5));
-  if Result then
-    Exit;
-
-  Result := ItemData.GetHighAlch(drop.ID) > Self.ValueThreshold;
-  if Result then
-    AlchItemArray += drop.Item;
-end;
-
-procedure TRSLootHandler.Setup(monster: TRSMonster; value: Int32 = 5000);
-var
-  i: Int32;
-  tmpDrops: TRSMonsterDropArray;
-begin
-  if (monster.Name = '') or (value <= 0) then
-    Exit;
-
-  Self.ValueThreshold := value;
-  Self.Loot._Setup();
-
-  if monster.Coordinates <> [] then
-    Self.Loot.Setup(monster.DotFilter[0].Circle.Radius, 0, monster.Coordinates);
-
-  Self.Loot.Finder.Colors := LOOT_ITEM_COLORS;
   Self.Loot.Filter.UpText := False;
 
   Self.Loot.Finder.ClusterDistance := 3;
@@ -114,7 +122,7 @@ begin
     end;
   end;
 
-  Self.IsSetup:= Self.Loot <> [];
+  Self.IsSetup := True;
 end;
 
 function TRSLootHandler.HasSpace(drop: TRSMonsterDrop): Boolean;
@@ -122,76 +130,159 @@ begin
   Result := not Inventory.IsFull() or (drop.Stackable and Inventory.ContainsItem(drop.Item));
 end;
 
+
+function TRSLootHandler.IsHoveringLoot(out contextIsOpen: Boolean): Boolean;
+begin
+  contextIsOpen := False;
+  if MainScreen.IsUpText('Take') then
+    Exit(True);
+
+  contextIsOpen := ChooseOption.Open();
+  Result := contextIsOpen and ChooseOption.HasOption('Take');
+end;
+
+function TRSLootHandler.IsHoveringLoot(): Boolean; overload;
+begin
+  if MainScreen.IsUpText('Take') then
+    Exit(True);
+  Result := ChooseOption.Open() and ChooseOption.HasOption('Take');
+end;
+
+function TRSLootHandler.CountDrop(drop: TRSMonsterDrop): Int32;
+begin
+  if drop.Stackable then
+    Exit(Inventory.CountItemStack(drop.Item));
+
+  Result := Inventory.CountItem(drop.Item);
+end;
+
 function TRSLootHandler.HandleLooting(): Boolean;
 var
-  i: Int32;
-  tmpFilter: TRSDotFilterArray; //Used to reset filters.
+  i, count: Int32;
+  contextIsOpen: Boolean;
+  position: TPoint;
 begin
-  if not MainScreen.IsUpText('Take') then
-  begin
-    ChooseOption.Open();
-    if not ChooseOption.HasOption('Take') then
-      Exit;
-  end;
+  position := Mouse.Position();
+  if not Self.IsHoveringLoot(contextIsOpen) then
+    Exit;
 
   Self.CheckedLoot := True;
-  tmpFilter := Self.Loot.DotFilter;
-  Self.Loot.DotFilter.Setup([Self.Loot.ClosestDot.X, Self.Loot.ClosestDot.Y, 3], True);
+  contextIsOpen := contextIsOpen or ChooseOption.IsOpen();
 
-  if not ChooseOption.IsOpen() and MainScreen.IsUpText(Self.Loot.UpText, -1, i, False) then
+  if not contextIsOpen and MainScreen.IsUpText(Self.Loot.UpText, -1, i, False) then
   begin
-    if not Self.HasSpace(Self.Drops[i]) then
+    if Self.HasSpace(Self.Drops[i]) then
     begin
-      if Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
-        Self.Loot.Hover(5)
-      else
-      begin
-        Self.Loot.DotFilter := tmpFilter;
-        Exit;
-      end;
+      count := Self.CountDrop(Self.Drops[i]);
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+      Exit(Self.HandleLooting());
     end;
-    Mouse.Click(MOUSE_LEFT);
-    Self.Loot.DotFilter := tmpFilter;
+
+    if not Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
+    begin
+      Self.DebugLn('No space to loot!');
+      Exit;
+    end;
+
+    for i := 0 to 4 do
+    begin
+      if i > 3 then
+        Exit(True);
+      Mouse.Move(position + [Random(-4,4), Random(-4,4)]);
+      if Self.IsHoveringLoot(contextIsOpen) then
+        Break;
+    end;
+
+    Exit(Self.HandleLooting());
+  end;
+
+  if not ChooseOption.Open() then
+  begin
+    Self.DebugLn('Failed to open "Choose options" menu for some reason.');
+    Exit;
+  end;
+
+  if not ChooseOption.HasOption(Self.Loot.UpText, i, False) then
+  begin
+    Self.DebugLn('Finished looting.');
     Exit(True);
   end;
 
-  if ChooseOption.Open() then
+  if Self.HasSpace(Self.Drops[i]) then
   begin
-    if not ChooseOption.HasOption(Self.Loot.UpText, i, False) then
+    count := Self.CountDrop(Self.Drops[i]);
+    ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False);
+    WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+
+    for i := 0 to 4 do
     begin
-      Self.Loot.DotFilter := tmpFilter;
-      Exit;
+      if i > 3 then
+        Exit(True);
+      Mouse.Move(position + [Random(-4,4), Random(-4,4)]);
+      if Self.IsHoveringLoot(contextIsOpen) then
+        Break;
     end;
 
-    if not Self.HasSpace(Self.Drops[i]) then
-    begin
-      if Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
-        Self.Loot.Hover(5)
-      else
-      begin
-        Self.Loot.DotFilter := tmpFilter;
-        Exit;
-      end;
-    end;
-
-    Result := ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False);
+    Exit(Self.HandleLooting());
   end;
 
-  Self.Loot.DotFilter := tmpFilter;
+  if not Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
+  begin
+    Self.DebugLn('No space to loot!');
+    Exit(True);
+  end;
+
+  for i := 0 to 4 do
+  begin
+    if i > 3 then
+      Exit(True);
+    Mouse.Move(position + [Random(-4,4), Random(-4,4)]);
+    if Self.IsHoveringLoot(contextIsOpen) then
+      Break;
+  end;
+
+  Result := Self.HandleLooting();
 end;
 
-function TRSLootHandler.CheckLoot(P: TPoint): Boolean;
+function TRSLootHandler.CheckLoot(p: TPoint): Boolean;
 begin
-  Mouse.Move(P);
-
+  Mouse.Move(p);
   Result := Self.HandleLooting();
 end;
 
 function TRSLootHandler.CheckLoot(b: TBox): Boolean; overload;
 begin
   Mouse.Move(b);
-
   Result := Self.HandleLooting();
+end;
+
+function TRSLootHandler.CheckLoot(dots: TPointArray): Boolean; overload;
+var
+  p: TPoint;
+  angle: Double;
+  tile: TRectangle;
+  i: Int32;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  for p in dots do
+  begin
+    tile := Minimap.GetTileMS(p, [0.7, 0.7, 0], [2,2], angle);
+
+    for i := 0 to 4 do
+    begin
+      if i > 3 then
+        Break(2);
+      p := SRL.rowp(Mouse.Position(), tile);
+      Mouse.Move(p);
+      if Self.IsHoveringLoot() then
+        Break;
+    end;
+
+    Result := Self.HandleLooting();
+    if Result then
+      Exit;
+  end;
 end;
 
 function TRSLootHandler.CheckLoot(): Boolean; overload;

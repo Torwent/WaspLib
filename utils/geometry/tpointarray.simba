@@ -1,0 +1,184 @@
+(*
+TPointArray
+===========
+TPointArray related methods that extend SRL's TPoint functionality.
+*)
+
+{$DEFINE WL_TPOINTARRAY_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+// By Nava2
+function TPABetweenPoints(P1, P2: TPoint; Interval, Rand: Integer): TPointArray;
+var
+  hyp, xR, yR: Extended;
+  l: Integer;
+begin
+  SetLength(Result, Ceil(Distance(P1.X, P1.y, P2.X, P2.Y) * 1.0 / Interval) + 1);
+  Result[0] := P1;
+
+  if (Distance(P1.X, P1.Y, P2.X, P2.Y) <= Interval) then
+  begin
+    Result[High(Result)] := P2;
+    Exit;
+  end;
+
+  hyp := Hypot(P1.X - P2.x, P1.Y - P2.Y);
+  xR := (P2.X - P1.X) / hyp;
+  yR := (P2.Y - P1.Y) / hyp;
+
+  for l := High(Result) - 1 downto 1 do
+  begin
+    Result[l].X := Round(P1.X + l * Interval * xR) + RandomRange(-Rand, Rand);
+    Result[l].Y := Round(P1.Y + l * Interval * yR) + RandomRange(-Rand, Rand);
+  end;
+
+  Result[High(Result)] := P2;
+end;
+
+
+(*
+TPointArray.ToString
+~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TPointArray.ToString(): String;
+
+Prints the TPointArray in a way that can be copy pasted into and used by Simba.
+
+Example
+-------
+
+  tpa := [[1,1], [2,2], [3,3]];
+  WriteLn tpa.ToString();
+*)
+function TPointArray.ToString(endLine: Boolean = True): String;
+var
+  i: Int32;
+begin
+  Result := '[';
+  for i := 0 to High(Self) do
+  begin
+    Result += '[' + ToStr(Self[i].X) + ', ' + ToStr(Self[i].Y) + ']';
+    if i < High(Self) then
+      Result += ', ';
+  end;
+
+  Result += ']';
+  if endLine then
+    Result += ';';
+end;
+
+function TPointArray.LimitTo(box: TBox): TPointArray;
+var
+  tmp: TPointArray;
+  i, j: Int32;
+  p: TPoint;
+begin
+  tmp := Self.FilterBox(box);
+
+  if tmp = [] then
+    Exit;
+
+  if Self = tmp then
+    Exit(Self);
+
+  tmp := Self.Difference(tmp);
+  Result := Copy(Self);
+
+  for i := 0 to High(tmp) do
+  begin
+    p := tmp[i];
+    j := Result.Find(p);
+
+    Result[j] :=  p.EnsureRange(box);
+  end;
+
+  Result.ClearDuplicates();
+end;
+
+function TPointArray.TotalDistance(): Double;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if i < High(Self) then
+      Result += Self[i].DistanceTo(Self[i+1]);
+end;
+
+function TPointArray.MakeLine(): TPointArray; constref;
+var
+  line:TPointArray;
+  i:Int32;
+begin
+  if Length(self) = 0 then Exit;
+
+  for i:=0 to High(self)-1 do
+  begin
+    line := TPAFromLine(self[i].x, self[i].y, self[i+1].x, self[i+1].y);
+    Result := Result.Combine(line);
+  end;
+end;
+
+
+(*
+T2DPointArray.Connect
+~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function T2DPointArray.Connect(): T2DPointArray;
+
+Connects each TPointArray in a T2DPointArray. Useful for debugging visually.
+
+Example
+-------
+
+  Debug(atpa.Connect());
+*)
+function T2DPointArray.Connect(): T2DPointArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].Connect();
+end;
+
+function T2DPointArray.MakeLines(): T2DPointArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].MakeLine();
+end;
+
+
+function T2DPointArray.Shortest(): TPointArray; constref;
+var
+  tpa: TPointArray;
+  newDist, currentDist: Double;
+begin
+  for tpa in Self do
+  begin
+    newDist := tpa.TotalDistance();
+
+    if (Result = []) or (newDist < currentDist) then
+    begin
+      Result := tpa;
+      currentDist := newDist;
+    end;
+  end;
+end;
+
+function T2DPointArray.ShortestDistance(): Double; constref;
+var
+  tpa: TPointArray;
+  newDist: Double;
+begin
+  Result := High(Int32);
+
+  for tpa in Self do
+  begin
+    newDist := tpa.TotalDistance();
+
+    if (newDist < Result) then
+      Result := newDist;
+  end;
+end;
+

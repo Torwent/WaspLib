@@ -63,20 +63,6 @@ type ItemData = record(TSRLBaseRecord) class var
   end;
 
 (*
-ItemData.Free()
-~~~~~~~~~~~~~~~
-.. pascal:: procedure ItemData.Free();
-
-Internal method called automatically on script termination.
-Shouldn't be called by users other wise another termination will be attempted when the script stops running.
-*)
-procedure ItemData.Terminate(); static;
-begin
-  ItemData.ItemNames.Free();
-  ItemData.PriceData.Free();
-end;
-
-(*
 ItemData.SetupWikiPrices()
 ~~~~~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure ItemData.SetupWikiPrices();
@@ -91,11 +77,9 @@ var
 begin
   if not ItemData.PriceIsSetup then
   begin
-    ItemData.ItemNames.Init();
-    ItemData.ItemNames.LoadFromFile(ITEM_FINDER_ITEM_NAMES_FILE);
-    ItemData.ItemNames.SetSorted(True);
+    ItemData.ItemNames := ItemFinder.ItemNames;
 
-    AddOnTerminate(@ItemData.Terminate);
+    AddOnTerminate(@ItemData.PriceData.Free);
     ItemData.PriceIsSetup := True;
     ItemData.ReloadTimer.Setup(20 * ONE_MINUTE);
   end;
@@ -362,7 +346,7 @@ Example
 -------
   WriteLn ItemData.GetOSRSBoxBoolean('Abyssal whip', 'tradeable_on_ge');
 *)
-function ItemData.GetOSRSBoxBoolean(item: TRSItem; Key: String): Boolean; static;
+function ItemData.GetOSRSBoxBoolean(item: TRSItem; key: String): Boolean; static;
 var
   id: Integer;
   OSRSBoxJSON: TJSONObject;
@@ -375,7 +359,7 @@ begin
   if OSRSBoxJSON = nil then
     Exit;
 
-  Result := OSRSBoxJSON.getBoolean(Key);
+  Result := OSRSBoxJSON.getBoolean(key);
 end;
 
 (*
@@ -742,21 +726,17 @@ Method used to get an array of ERSAttackType used by the specified monster.
 *)
 function MonsterData.GetAttackTypes(monster: String): array of ERSAttackType; static;
 var
-  JSONArray: TJSONArray;
+  jsonArray: TJSONArray;
   i: Int32;
 begin
-  JSONArray := MonsterData.GetJSONArray(Monster, 'attack_type');
+  jsonArray := MonsterData.GetJSONArray(monster, 'attack_type');
 
-  for i := 0 to JSONArray.length - 1 do
-    case JSONArray.getString(i) of
-      'stab', 'slash', 'crush':
-        Result += MELEE_ATTACK_TYPE;
-      'ranged':
-        Result += RANGED_ATTACK_TYPE;
-      'magic':
-        Result += MAGIC_ATTACK_TYPE;
-      'typeless':
-        Result += TYPELESS_ATTACK_TYPE;
+  for i := 0 to jsonArray.length() - 1 do
+    case jsonArray.getString(i) of
+      'stab', 'slash', 'crush': Result += ERSAttackType.MELEE_ATTACK_TYPE;
+      'ranged':   Result += ERSAttackType.RANGED_ATTACK_TYPE;
+      'magic':    Result += ERSAttackType.MAGIC_ATTACK_TYPE;
+      'typeless': Result += ERSAttackType.TYPELESS_ATTACK_TYPE;
     end;
 end;
 
@@ -899,12 +879,12 @@ Example
 function WeaponData.GetAttackType(Weapon: String): ERSAttackType; static;
 begin
   if not WeaponData.IsSetup then
-    WeaponData.Setup;
+    WeaponData.Setup();
 
   case WeaponData.Data.getJSONObject(Weapon).getString('type') of
-    'melee':  Result := MELEE_ATTACK_TYPE;
-    'ranged': Result := RANGED_ATTACK_TYPE;
-    'magic':  Result := MAGIC_ATTACK_TYPE;
+    'melee':  Result := ERSAttackType.MELEE_ATTACK_TYPE;
+    'ranged': Result := ERSAttackType.RANGED_ATTACK_TYPE;
+    'magic':  Result := ERSAttackType.MAGIC_ATTACK_TYPE;
   end;
 end;
 

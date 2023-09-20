@@ -1,0 +1,848 @@
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+{$DEFINE WL_ALCH_HANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type RSAlchHandler = record(TSRLBaseRecord) class var
+  Item: TRSItem;
+  ItemArray: TRSItemArray;
+  Timer: TCountDown;
+  LowProfit, HighProfit, TotalProfit: Int32;
+  Disabled: Boolean;
+end;
+
+procedure RSAlchHandler.DebugLn(text: String); constref; override;
+begin
+  WriteLn SRL.TimeStamp() + ':[RSAlchHandler]: ' + text;
+end;
+
+procedure RSAlchHandler.Fatal(text: String); constref; override;
+begin
+  TerminateScript(SRL.TimeStamp() + ':[RSAlchHandler]:[Fatal]: ' + text);
+end;
+
+{$IFHASFILE Data/WaspLib/configs/alch_handler.simba}
+  {$I Data/WaspLib/configs/alch_handler.simba}
+{$ENDIF}
+
+procedure RSAlchHandler.Setup(); static;
+var
+  settings: TStringArray;
+  str: String;
+  i: Int32;
+begin
+  if RSAlchHandler.ItemArray = [] then
+  begin
+    RSAlchHandler.ItemArray := [
+      'abyssal bracelet(5)',
+      'adamant platebody',
+      'air battlestaff',
+      'amulet of glory',
+      'amulet of glory(4)',
+      'black d''hide body',
+      'black d''hide chaps',
+      'black d''hide shield',
+      'black d''hide vambraces',
+      'blue d''hide body',
+      'blue d''hide chaps',
+      'blue d''hide shield',
+      'blue d''hide vambraces',
+      'combat bracelet',
+      'combat bracelet(4)',
+      'diamond bracelet',
+      'dragon axe',
+      'dragon battleaxe',
+      'dragon cane',
+      'dragon chainbody',
+      'dragon dagger',
+      'dragon dagger(p+)',
+      'dragon halberd',
+      'dragon hasta',
+      'dragon longsword',
+      'dragon mace',
+      'dragon med helm',
+      'dragon platelegs',
+      'dragon plateskirt',
+      'dragon scimitar',
+      'dragon spear',
+      'dragon sq shield',
+      'dragon sword',
+      'dragonstone ring',
+      'earth battlestaff',
+      'fire battlestaff',
+      'green d''hide body',
+      'green d''hide chaps',
+      'green d''hide shield',
+      'green d''hide vambraces',
+      'lava battlestaff',
+      'magic longbow',
+      'mithril platebody',
+      'mud battlestaff',
+      'mystic air staff',
+      'mystic boots',
+      'mystic boots (dark)',
+      'mystic boots (light)',
+      'mystic earth staff',
+      'mystic fire staff',
+      'mystic gloves',
+      'mystic gloves (dark)',
+      'mystic gloves (light)',
+      'mystic hat',
+      'mystic hat (dark)',
+      'mystic hat (light)',
+      'mystic lava staff',
+      'mystic mud staff',
+      'mystic robe bottom',
+      'mystic robe bottom (dark)',
+      'mystic robe bottom (light)',
+      'mystic robe top',
+      'mystic robe top (dark)',
+      'mystic robe top (light)',
+      'mystic water staff',
+      'noted abyssal bracelet(5)',
+      'noted adamant platebody',
+      'noted air battlestaff',
+      'noted amulet of glory',
+      'noted amulet of glory(4)',
+      'noted black d''hide body',
+      'noted black d''hide chaps',
+      'noted black d''hide shield',
+      'noted black d''hide vambraces',
+      'noted blue d''hide body',
+      'noted blue d''hide chaps',
+      'noted blue d''hide shield',
+      'noted blue d''hide vambraces',
+      'noted combat bracelet',
+      'noted combat bracelet(4)',
+      'noted diamond bracelet',
+      'noted dragon axe',
+      'noted dragon battleaxe',
+      'noted dragon cane',
+      'noted dragon chainbody',
+      'noted dragon dagger',
+      'noted dragon dagger(p+)',
+      'noted dragon halberd',
+      'noted dragon hasta',
+      'noted dragon longsword',
+      'noted dragon mace',
+      'noted dragon med helm',
+      'noted dragon platelegs',
+      'noted dragon plateskirt',
+      'noted dragon scimitar',
+      'noted dragon spear',
+      'noted dragon sq shield',
+      'noted dragon sword',
+      'noted dragonstone ring',
+      'noted earth battlestaff',
+      'noted fire battlestaff',
+      'noted green d''hide body',
+      'noted green d''hide chaps',
+      'noted green d''hide shield',
+      'noted green d''hide vambraces',
+      'noted lava battlestaff',
+      'noted magic longbow',
+      'noted magic longbow (u)',
+      'noted magic shortbow (u)',
+      'noted maple longbow (u)',
+      'noted maple shortbow (u)',
+      'noted mithril platebody',
+      'noted mud battlestaff',
+      'noted mystic air staff',
+      'noted mystic boots',
+      'noted mystic boots (dark)',
+      'noted mystic boots (light)',
+      'noted mystic earth staff',
+      'noted mystic fire staff',
+      'noted mystic gloves',
+      'noted mystic gloves (dark)',
+      'noted mystic gloves (light)',
+      'noted mystic hat',
+      'noted mystic hat (dark)',
+      'noted mystic hat (light)',
+      'noted mystic lava staff',
+      'noted mystic mud staff',
+      'noted mystic robe bottom',
+      'noted mystic robe bottom (dark)',
+      'noted mystic robe bottom (light)',
+      'noted mystic robe top',
+      'noted mystic robe top (dark)',
+      'noted mystic robe top (light)',
+      'noted mystic water staff',
+      'noted red d''hide body',
+      'noted red d''hide chaps',
+      'noted red d''hide shield',
+      'noted red d''hide vambraces',
+      'noted ring of wealth',
+      'noted ring of wealth (4)',
+      'noted rune 2h sword',
+      'noted rune axe',
+      'noted rune battleaxe',
+      'noted rune boots',
+      'noted rune cane',
+      'noted rune chainbody',
+      'noted rune claws',
+      'noted rune crossbow',
+      'noted rune dagger',
+      'noted rune dagger(p+)',
+      'noted rune full helm',
+      'noted rune halberd',
+      'noted rune hasta',
+      'noted rune kiteshield',
+      'noted rune longsword',
+      'noted rune mace',
+      'noted rune med helm',
+      'noted rune pickaxe',
+      'noted rune platebody',
+      'noted rune platelegs',
+      'noted rune plateskirt',
+      'noted rune scimitar',
+      'noted rune spear',
+      'noted rune sq shield',
+      'noted rune sword',
+      'noted rune warhammer',
+      'noted runite crossbow (u)',
+      'noted runite limbs',
+      'noted skills necklace',
+      'noted skills necklace(4)',
+      'noted steel platebody',
+      'noted water battlestaff',
+      'noted yew longbow',
+      'noted yew longbow (u)',
+      'noted yew shortbow (u)',
+      'onyx bolts (e)',
+      'red d''hide body',
+      'red d''hide chaps',
+      'red d''hide shield',
+      'red d''hide vambraces',
+      'ring of wealth',
+      'ring of wealth (4)',
+      'rune 2h sword',
+      'rune axe',
+      'rune battleaxe',
+      'rune boots',
+      'rune cane',
+      'rune chainbody',
+      'rune claws',
+      'rune crossbow',
+      'rune dagger',
+      'rune dagger(p+)',
+      'rune full helm',
+      'rune halberd',
+      'rune hasta',
+      'rune kiteshield',
+      'rune longsword',
+      'rune mace',
+      'rune med helm',
+      'rune pickaxe',
+      'rune platebody',
+      'rune platelegs',
+      'rune plateskirt',
+      'rune scimitar',
+      'rune spear',
+      'rune sq shield',
+      'rune sword',
+      'rune warhammer',
+      'runite crossbow (u)',
+      'runite limbs',
+      'skills necklace',
+      'skills necklace(4)',
+      'steel platebody',
+      'water battlestaff',
+      'yew longbow'
+    ];
+
+    settings += 'RSAlchHandler.ItemArray := [';
+    for i := 0 to High(RSAlchHandler.ItemArray) do
+    begin
+      str := "    '" + ToString(RSAlchHandler.ItemArray[i]).Replace("'", "''") + "'";
+      if i < High(RSAlchHandler.ItemArray) then
+        str += ',';
+      settings += str;
+    end;
+    settings += '];';
+    WriteConfigFile('alch_handler', settings);
+  end;
+end;
+
+function RSAlchHandler.GetAlchItem(): TRSItem; static;
+var
+  match: TRSItemFinderMatch;
+  itemStr: String;
+begin
+  if not Inventory.Open() and not Inventory.SetSelectedSlot(-1) then
+    Exit;
+
+  if not ItemFinder.Find(RSAlchHandler.ItemArray, Inventory.GetSlotBoxes(), match) then
+  begin
+    RSAlchHandler.DebugLn('No items in the alch list were found!');
+    RSAlchHandler.Disabled := True;
+    Exit;
+  end;
+
+  Result := match.Item;
+  itemStr := Result;
+
+  RSAlchHandler.DebugLn('Found item: ' + itemStr);
+
+  itemStr := itemStr.After('noted ');
+  RSAlchHandler.LowProfit  := ItemData.GetLowAlchProfit(itemStr);
+  RSAlchHandler.HighProfit := ItemData.GetHighAlchProfit(itemStr);
+end;
+
+procedure RSAlchHandler.AddProfit(hi: Boolean = True); static;
+begin
+  if hi then
+    RSAlchHandler.TotalProfit += RSAlchHandler.HighProfit
+  else
+    RSAlchHandler.TotalProfit += RSAlchHandler.LowProfit;
+end;
+
+function RSAlchHandler.ClickEmptySlot(slot: Int32 = -1): Boolean; static;
+var
+  slots: TIntegerArray;
+begin
+  slots := Inventory.GetEmptySlots();
+  Result := slots <> [];
+
+  if Result then
+  begin
+    if slot = -1 then
+      slot := Inventory.ItemInterface.PointToSlot(Mouse.Position());
+
+    if slot = -1 then
+      Inventory.ItemInterface.MouseRandomSlot(slots)
+    else
+    begin
+      if (slots.Find(slot) = -1) or Antiban.BioDice(50) then
+        slot := Inventory.RandomSlotNearby(slot, slots);
+      Inventory.MouseSlot(slot);
+    end;
+    Mouse.Click(MOUSE_LEFT);
+  end;
+end;
+
+function RSAlchHandler.DisableCast(): Boolean; static;
+var
+  i, attempt: Int32;
+begin
+  if Inventory.Count() < 28 then
+    i := RandomLeft(0, 5)
+  else
+    i := RandomLeft(3, 5);
+
+  repeat
+    if Inc(attempt) > 10 then
+      RSAlchHandler.Fatal('Cannot disable the alchemy spell!');
+
+    case i of
+      0..2: RSAlchHandler.ClickEmptySlot();
+      3: Mouse.Click(MainScreen.Bounds(), MOUSE_LEFT);
+      4: Mouse.Click(Chat.Bounds(), MOUSE_LEFT);
+      5: ChooseOption.Select('Cancel');
+    end;
+  until not MainScreen.IsUpText('Alchemy -');
+  Result := True;
+end;
+
+
+function RSAlchHandler.SelectSpell(hi: Boolean = True): Boolean; static;
+var
+  attempt: Int32;
+  spellStr: String;
+  spell: ERSSpell;
+begin
+  if hi then
+  begin
+    spell := ERSSpell.HIGH_LEVEL_ALCHEMY;
+    spellStr := 'h Level Alchemy -';
+  end
+  else
+  begin
+    spell := ERSSpell.LOW_LEVEL_ALCHEMY;
+    spellStr := 'w Level Alchemy -';
+  end;
+
+  repeat
+    if not Magic.IsSpellSelected(spell) or
+       not GameTabs.FKeyOpen(ERSGameTab.INVENTORY)
+    then
+      Magic.CastSpell(spell);
+
+    Result := MainScreen.IsUpText(spellStr) or Inventory.IsOpen();
+  until Result or (Inc(attempt) > 3);
+
+  RSAlchHandler.Disabled := not Result;
+end;
+
+function RSAlchHandler.SelectItem(hi: Boolean = True): Boolean; static;
+var
+  attempt, slot, spellSlot: Int32;
+  box: TBox;
+  slots: TIntegerArray;
+begin
+  if hi then
+  begin
+    RSAlchHandler.Timer.Length := 5 * 600;
+    spellSlot := 11;
+  end
+  else
+  begin
+    RSAlchHandler.Timer.Length := 3 * 600;
+    spellSlot := 3;
+  end;
+
+  for attempt := 0 to 2 do
+  begin
+    if RSAlchHandler.Item.IsNull() then
+      RSAlchHandler.Item := RSAlchHandler.GetAlchItem();
+
+    if RSAlchHandler.Item.IsNull() then
+      Exit;
+
+    if Inventory.FindItem(RSAlchHandler.Item, slot) then
+    begin
+      if (slot <> spellSlot) and (Inventory.ItemInterface.CountStack(slot) > 0) then
+      begin
+        RSAlchHandler.DisableCast();
+        if Inventory.ItemInterface.Move(slot, spellSlot) then
+          Exit;
+        Break;
+      end;
+
+      if SRL.Dice(99.5) then
+      begin
+        if not Inventory.ClickSlot(slot, '>') or
+           not WaitUntil(XPBar.EarnedXP() or Magic.IsOpen(), 300, 3000) then
+          Exit;
+
+        RSAlchHandler.Timer.Restart();
+        RSAlchHandler.AddProfit(hi);
+        Exit(True);
+      end;
+
+      slots := Inventory.GetEmptySlots();
+      if slots <> [] then
+      begin
+        slot := Inventory.RandomSlotNearby(slot, slots);
+        Inventory.ClickSlot(slot, '>');
+      end;
+      Exit;
+    end
+    else if ItemData.GetOSRSBoxBoolean(RSAlchHandler.Item, 'equipable') then
+    begin
+      RSAlchHandler.DisableCast();
+      if Equipment.FindItem(RSAlchHandler.Item, box) then
+      begin
+        Mouse.Click(box, MOUSE_LEFT);
+        Exit;
+      end;
+    end;
+
+    RSAlchHandler.Item := '';
+  end;
+end;
+
+
+function RSAlchHandler.CastAlchemy(hi: Boolean = True; waitTimer: Boolean = False): Boolean; static;
+var
+  attempt: Int32;
+begin
+  if not waitTimer then
+  begin
+    if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
+      Exit;
+  end else
+    WaitUntil(RSAlchHandler.Timer.IsFinished(), 50, 3100);
+
+  XPBar.EarnedXP(); //Update cached XP.
+
+  repeat
+    if not RSAlchHandler.SelectSpell(hi) then
+      Exit;
+    Result := RSAlchHandler.SelectItem(hi);
+    TRSWalkerObject.RedClicked := False; //Integration with other wasplib components.
+  until Result or (Inc(attempt) > 2);
+end;
+
+begin
+  RSAlchHandler.Setup();
+end;
+
+function TScriptForm.CreateAlchemyPanel(): TTabSheet;
+  type TListBox = TListBox;
+  procedure TListBox._AddSorted(str: String);
+  var
+    i, count: Int32;
+  begin
+    count := Self.GetCount();
+    for i := 0 to count do
+    begin
+      if i < count - 1 then
+      begin
+        if str > Self.GetItems().GetStrings(i) then
+          Continue;
+
+        Self.GetItems().Insert(i, str);
+        Exit;
+      end;
+    end;
+
+    Self.GetItems().Add(str);
+  end;
+
+  procedure TListBox._Delete(i: Int32; setIndex: Boolean = True);
+  var
+    count: Int32;
+  begin
+    Self.GetItems().Delete(i);
+
+    if not setIndex then
+      Exit;
+
+    count := Self.GetCount() - 1;
+    if i > count then
+      Self.SetItemIndex(count)
+    else
+      Self.SetItemIndex(i);
+  end;
+
+  procedure TListBox._ReWriteAlchConfig();
+  var
+    i, count: Int32;
+    str: String;
+    settings: TStringArray;
+  begin
+    RSAlchHandler.ItemArray := [];
+    settings += 'RSAlchHandler.ItemArray := [';
+    count := Self.GetCount() - 1;
+    for i := 0 to count do
+    begin
+      RSAlchHandler.ItemArray += Self.getItems().GetStrings(i);
+      str := ToStr(RSAlchHandler.ItemArray[i]);
+      str := "    '" + str.Replace("'", "''") + "'";
+      if i < count then
+        str += ',';
+      settings += str;
+    end;
+    settings += '];';
+    WriteConfigFile('alch_handler', settings);
+  end;
+
+  type TScriptForm = TScriptForm;
+  procedure TScriptForm._AddAlchList(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    i := itemList.getItemIndex();
+    if i = -1 then
+    begin
+      TButton(sender).setCaption(tmp);
+      Exit;
+    end;
+
+    str := itemList.GetSelectedText();
+    itemList._Delete(i);
+    alchList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+
+    TButton(sender).setCaption(tmp);
+  end;
+
+  procedure TScriptForm._AddBothAlchList(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    i := itemList.getItemIndex();
+    if i = -1 then
+    begin
+      TButton(sender).setCaption(tmp);
+      Exit;
+    end;
+
+    str := itemList.GetSelectedText();
+    itemList._Delete(i);
+    alchList._AddSorted(str);
+
+    if str.Contains('noted ') then
+      str := str.After('noted ')
+    else
+      str := 'noted ' + str;
+
+    i := itemList.getItems().IndexOf(str);
+    if i = -1 then
+    begin
+      TButton(sender).setCaption(tmp);
+      alchList._ReWriteAlchConfig();
+      Exit;
+    end;
+
+    itemList._Delete(i, False);
+    alchList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+
+    TButton(sender).setCaption(tmp);
+  end;
+
+
+  procedure TScriptForm._RemoveAlchList(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    i := alchList.getItemIndex();
+    if i = -1 then
+    begin
+      TButton(sender).setCaption(tmp);
+      Exit;
+    end;
+
+    str := alchList.GetSelectedText();
+    alchList._Delete(i);
+    itemList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+    TButton(sender).setCaption(tmp);
+  end;
+
+  procedure TScriptForm._RemoveBothAlchList(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    i := alchList.getItemIndex();
+    if i = -1 then
+    begin
+      TButton(sender).setCaption(tmp);
+      Exit;
+    end;
+
+    str := alchList.GetSelectedText();
+    alchList._Delete(i);
+    itemList._AddSorted(str);
+
+    if str.Contains('noted ') then
+      str := str.After('noted ')
+    else
+      str := 'noted ' + str;
+
+    i := alchList.getItems().IndexOf(str);
+    if i = -1 then
+    begin
+      TButton(sender).setCaption(tmp);
+      alchList._ReWriteAlchConfig();
+      Exit;
+    end;
+
+    alchList._Delete(i, False);
+    itemList._AddSorted(str);
+    alchList._ReWriteAlchConfig();
+
+    TButton(sender).setCaption(tmp);
+  end;
+
+
+  procedure TScriptForm._OnItemListSelected({$H-}sender: TObject);{$H+}
+  var
+    btn: TButton;
+  begin
+    btn := TScriptForm.Form.GetChild('add_alch_button');
+    btn.setEnabled(True);
+    btn := TScriptForm.Form.GetChild('add_both_alch_button');
+    btn.setEnabled(True);
+  end;
+
+  procedure TScriptForm._OnAlchListSelected({$H-}sender: TObject);{$H+}
+  var
+    btn: TButton;
+  begin
+    btn := TScriptForm.Form.GetChild('remove_alch_button');
+    btn.setEnabled(True);
+    btn := TScriptForm.Form.GetChild('remove_both_alch_button');
+    btn.setEnabled(True);
+  end;
+
+  procedure TScriptForm._OnAlchListClear(sender: TObject);
+  var
+    itemList, alchList: TListBox;
+    itemNames: TStringList;
+    i: Int32;
+    str, tmp: String;
+  begin
+    tmp := TButton(sender).getCaption();
+    TButton(sender).setCaption('Loading...');
+
+    itemList := TScriptForm.Form.GetChild('item_list_listbox');
+    alchList := TScriptForm.Form.GetChild('alch_list_listbox');
+
+    alchList.Clear();
+    alchList._ReWriteAlchConfig();
+
+    itemNames.Init();
+    itemNames.LoadFromFile(ItemFinder.ITEM_NAMES);
+    itemNames.setSorted(True);
+
+    itemList.Clear();
+    for i := 0 to itemNames.getCount()-1 do
+    begin
+      if str = itemNames.getStrings(i).Before('=') then
+        Continue; //skip duplicates
+      str := itemNames.getStrings(i).Before('=');
+      itemList.GetItems().Add(str);
+    end;
+    itemNames.Free();
+    TButton(sender).setCaption(tmp);
+  end;
+
+var
+  itemList, alchList: TLabeledListBox;
+  itemNames: TStringList;
+  fullWidth, space, y, i: Int32;
+  str:String;
+  button: TButton;
+begin
+  Self.AddTab('Alchemy Settings');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  fullWidth := Floor(Self.Size.X/3);
+  space := Floor(fullWidth * 0.09);
+  y := Floor(Self.Size.Y/10);
+
+  with itemList do
+  begin
+    Create(Result);
+    SetCaption('Item list:');
+    SetTooltip('List of all items on osrs currently supported.');
+    SetName('item_list');
+    SetLeft(space);
+    SetTop(y);
+    SetWidth(fullWidth);
+    SetHeight(Floor(Self.Size.Y/1.5));
+    itemNames.Init();
+    itemNames.LoadFromFile(ItemFinder.ITEM_NAMES);
+    itemNames.setSorted(True);
+
+    for i := 0 to itemNames.getCount()-1 do
+    begin
+      if str = itemNames.getStrings(i).Before('=') then
+        Continue; //skip duplicates
+      str := itemNames.getStrings(i).Before('=');
+      if not RSAlchHandler.ItemArray.Contains(str) then
+        AddItem(str);
+    end;
+    itemNames.Free();
+    ListBox.setOnClick(@Self._OnItemListSelected);
+  end;
+
+  with alchList do
+  begin
+    Create(Result);
+    SetCaption('Alch list:');
+    SetTooltip('List of all items that will be looked for when WaspLib alch handler is used. For performance, keep the list short.');
+    SetName('alch_list');
+    SetLeft(Self.Size.X - space - fullWidth);
+    SetTop(itemList.GetTop());
+    SetWidth(itemList.GetWidth());
+    SetHeight(itemList.GetHeight());
+
+    for i := 0 to High(RSAlchHandler.ItemArray) do
+      AddItem(RSAlchHandler.ItemArray[i]);
+    ListBox.setOnClick(@Self._OnAlchListSelected);
+  end;
+
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Add Item >>>');
+    SetName('add_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*2);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._AddAlchList);
+    setEnabled(False);
+  end;
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Add Noted/Unnoted >>');
+    SetName('add_both_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*3);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._AddBothAlchList);
+    setEnabled(False);
+  end;
+
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('<< Remove Noted/Unnoted');
+    SetName('remove_both_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*5);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._RemoveBothAlchList);
+    setEnabled(False);
+  end;
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('<<< Remove Item');
+    SetName('remove_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*6);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._RemoveAlchList);
+    setEnabled(False);
+  end;
+
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Clear list');
+    SetTooltip('Clear the alch list. If it''s empty, restarting the script will re-add the default one.');
+    SetName('clear_alch_button');
+    SetLeft(itemList.GetRight() + space);
+    SetTop(y*8);
+    setWidth(space*7);
+    SetHeight(TControl.AdjustToDPI(30));
+    setOnClick(@Self._OnAlchListClear);
+  end;
+end;

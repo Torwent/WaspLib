@@ -1,3 +1,12 @@
+## [14.7.13](https://github.com/Torwent/WaspLib/compare/v14.7.12...v14.7.13) (2023-09-20)
+
+
+### Bug Fixes
+
+* compatibility fix with latest SRL-T ([7c37014](https://github.com/Torwent/WaspLib/commit/7c370145102503495f658c670f19fea7ce132fd3))
+
+
+
 ## [14.7.12](https://github.com/Torwent/WaspLib/compare/v14.7.11...v14.7.12) (2023-09-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walkerobjects:** read notes ([30696f0](https://github.com/Torwent/WaspLib/commit/30696f0a6e18164f0a4f083d516def7090efac89))
-
-
-
-## [14.7.8](https://github.com/Torwent/WaspLib/compare/v14.7.7...v14.7.8) (2023-09-17)
-
-
-### Bug Fixes
-
-* **walkerobjects:** read notes ([bd7c06b](https://github.com/Torwent/WaspLib/commit/bd7c06b0b6e8a2f8220524322be3a41e3fb4c863))
 
 
 

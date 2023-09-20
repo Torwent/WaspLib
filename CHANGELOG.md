@@ -1,3 +1,12 @@
+## [14.7.14](https://github.com/Torwent/WaspLib/compare/v14.7.13...v14.7.14) (2023-09-20)
+
+
+### Bug Fixes
+
+* **magic:** minor tweaks to magic tab ([9a8b87f](https://github.com/Torwent/WaspLib/commit/9a8b87ff29883c2a8517a954921546108f881a88))
+
+
+
 ## [14.7.13](https://github.com/Torwent/WaspLib/compare/v14.7.12...v14.7.13) (2023-09-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combathandler:** read notes ([b5b8f8a](https://github.com/Torwent/WaspLib/commit/b5b8f8ab59ff23fe2212702d887c49025ee55542))
-
-
-
-## [14.7.9](https://github.com/Torwent/WaspLib/compare/v14.7.8...v14.7.9) (2023-09-17)
-
-
-### Bug Fixes
-
-* **walkerobjects:** read notes ([30696f0](https://github.com/Torwent/WaspLib/commit/30696f0a6e18164f0a4f083d516def7090efac89))
 
 
 

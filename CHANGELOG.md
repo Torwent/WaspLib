@@ -1,3 +1,12 @@
+## [14.7.17](https://github.com/Torwent/WaspLib/compare/v14.7.16...v14.7.17) (2023-09-22)
+
+
+### Bug Fixes
+
+* **CombatHandler:** add missing brackets ([0bef92a](https://github.com/Torwent/WaspLib/commit/0bef92af49952f58593f892c4f1657a05bcd4848))
+
+
+
 ## [14.7.16](https://github.com/Torwent/WaspLib/compare/v14.7.15...v14.7.16) (2023-09-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility fix with latest SRL-T ([7c37014](https://github.com/Torwent/WaspLib/commit/7c370145102503495f658c670f19fea7ce132fd3))
-
-
-
-## [14.7.12](https://github.com/Torwent/WaspLib/compare/v14.7.11...v14.7.12) (2023-09-18)
-
-
-### Bug Fixes
-
-* **combat handler:** typo ([8f215e6](https://github.com/Torwent/WaspLib/commit/8f215e6f911a2b02bec81f270f6553dbff768c83))
 
 
 

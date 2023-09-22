@@ -10,21 +10,15 @@ Extends SRL's TRSMagic.
 {$ENDIF}
 
 (*
-Magic._CastedSpell
+Magic.SpellWasCast
 ~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSMagic._CastedSpell(spell: ERSSpell): Boolean;
+.. pascal:: function TRSMagic.SpellWasCast(spell: ERSSpell): Boolean;
 
-Internal helper function for better logic of wether we casted a spell or not.
-Used by WaspLib's TRSMagic.CastSpell() override.
-
-And yes, I know casted is not a word.
+Internal helper function to decide wether we cast a spell or not.
 *)
-function TRSMagic._CastedSpell(spell: ERSSpell): Boolean;
+function TRSMagic.SpellWasCast(spell: ERSSpell): Boolean; override;
 begin
-  if Self.IsOpen() and (Self.GetSelectedSpell() = spell) then
-    Exit(True);
-
-  Result := XPBar.EarnedXP() or Inventory.IsOpen();
+  Result := inherited() or XPBar.EarnedXP();
 end;
 
 (*
@@ -33,26 +27,12 @@ Magic.CastSpell
 .. pascal:: function TRSMagic.CastSpell(spell: ERSSpell): Boolean; override;
 
 Overrides the existing SRL TRSMagic.CastSpell() for better cast detection with
-the usage of TRSMagic._CastedSpell().
+the usage of WaspLib's TRSMagic.SpellWasCast().
 *)
-function TRSMagic.CastSpell(spell: ERSSpell): Boolean; override;
-var
-  selected: ERSSpell;
+function TRSMagic.CastSpell(spell: ERSSpell; option: String = ''): Boolean; override;
 begin
-  if not Self.Open() then
-    Exit(False);
-
-  selected := Self.GetSelectedSpell();
-  if selected = spell then
-    Exit(True);
-
-  // Unselect
-  if (selected <> ERSSpell.UNKNOWN) then
-    Self.MouseSpell(selected, MOUSE_LEFT);
-
-  XPBar.EarnedXP(); //Make sure WL.PreviousXP is set to current XP.
-  Result := Self.MouseSpell(spell, MOUSE_LEFT) and
-            WaitUntil(Self._CastedSpell(spell), 100, SRL.TruncatedGauss(1000, 2000));
+  XPBar.EarnedXP();
+  Result := inherited;
 end;
 
 
@@ -222,7 +202,7 @@ begin
 
   b := Self.Bounds();
 
-  tba := Grid(1, 6, 179, 24, [0, 1], [b.X1+2, b.Y1 + 53]);
+  tba := Grid(1, 7, 179, 24, [0, 1], [b.X1+2, b.Y1 + 45]);
 
   SetLength(Result, Length(tba));
 
@@ -251,7 +231,7 @@ Example
 function TRSMagic.IsFiltered(): Boolean;
 begin
   if Self.FiltersIsOpen() then
-    Exit(SRL.CountColor(CTS2(5945703, 20, 0.05, 0.58), Self.Bounds()) <> 222);
+    Exit(SRL.CountColor(CTS2(5945703, 20, 0.05, 0.58), Self.Bounds()) <> 259);
 
   Result := Self.CountSpells() <> Self.GetBookSpellCount();
 end;

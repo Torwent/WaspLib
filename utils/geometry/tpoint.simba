@@ -1,0 +1,53 @@
+(*
+TPoint
+======
+TPoint related methods that extend SRL's TPoint functionality.
+*)
+
+{$DEFINE WL_TPOINT_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+function TPoint.EnsureRange(x1, y1, x2, y2: Int32): TPoint;
+begin
+  Result.X := System.EnsureRange(Self.X, Min(x1, x2), Max(x1, x2));
+  Result.Y := System.EnsureRange(Self.Y, Min(y1, y2), Max(y1, y2));
+end;
+
+function TPoint.EnsureRange(box: TBox): TPoint; overload;
+begin
+  Result := Self.EnsureRange(box.X1, box.Y1, box.X2, box.Y2);
+end;
+
+function TPoint.Between(A, B: TPoint; ForceLine: Boolean = False): Boolean;
+var
+  TotalDist: Double;
+  ThirdDist: Double;
+begin
+  TotalDist := A.DistanceTo(B);
+
+  if not ForceLine then  //ForceLine makes it check if the point is between and is within a straight line of the 2 points.
+    ThirdDist := TotalDist / 3;
+  Result := InRange(Self.DistanceTo(A) + Self.DistanceTo(B), TotalDist - ThirdDist, TotalDist + ThirdDist);
+end;
+
+function TPoint.WithinDistance(p: TPoint; dist: Int32 = 15): Boolean;
+begin
+  Result := Self.DistanceTo(p) <= dist;
+end;
+
+function TPoint.WithinDistance(tpa: TPointArray; dist: Int32 = 15): Boolean; overload;
+var
+  p: TPoint;
+begin
+  for p in tpa do
+    if Self.WithinDistance(p, dist) then
+      Exit(True);
+end;
+
+function TPoint.WithinDistance(atpa: T2DPointArray; dist: Int32 = 15): Boolean; overload;
+begin
+  atpa := atpa.SortFrom(Self);
+  Result := Self.WithinDistance(atpa[0], dist);
+end;

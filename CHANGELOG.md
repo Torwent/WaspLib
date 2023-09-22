@@ -1,45 +1,45 @@
-## [14.5.7](https://github.com/Torwent/WaspLib/compare/v14.5.6...v14.5.7) (2023-08-14)
+## [14.7.16](https://github.com/Torwent/WaspLib/compare/v14.7.15...v14.7.16) (2023-09-22)
 
 
 ### Bug Fixes
 
-* read notes ([ac8bf9b](https://github.com/Torwent/WaspLib/commit/ac8bf9b06cd193ec4b458b38facda3a87b9ab672))
+* compatibility with latest SRL-T ([b01c340](https://github.com/Torwent/WaspLib/commit/b01c340dfb5cc58ab6e6c88048ba4d262087bd74))
 
 
 
-## [14.5.6](https://github.com/Torwent/WaspLib/compare/v14.5.5...v14.5.6) (2023-08-13)
-
-
-### Bug Fixes
-
-* **recorder:** update ffmpeg.exe location ([62700d3](https://github.com/Torwent/WaspLib/commit/62700d3aed2e62f303ec4fcbc7dc5cb187481d01))
-
-
-
-## [14.5.5](https://github.com/Torwent/WaspLib/compare/v14.5.4...v14.5.5) (2023-08-11)
+## [14.7.15](https://github.com/Torwent/WaspLib/compare/v14.7.14...v14.7.15) (2023-09-21)
 
 
 ### Bug Fixes
 
-* remove personal development files ([5a653a2](https://github.com/Torwent/WaspLib/commit/5a653a222b117e02209d981e8fd2c27c610b7200))
+* **map:** added sophanem bank and gem rocks mine ([2f3c8fd](https://github.com/Torwent/WaspLib/commit/2f3c8fda60ff0f3a637633b52acc3b075b3890a0))
 
 
 
-## [14.5.4](https://github.com/Torwent/WaspLib/compare/v14.5.3...v14.5.4) (2023-08-10)
-
-
-### Bug Fixes
-
-* added more points to student's webgraph changes ([50af1e7](https://github.com/Torwent/WaspLib/commit/50af1e7eaf72ac2fae0caf72906a08b0612c3c3e))
-
-
-
-## [14.5.3](https://github.com/Torwent/WaspLib/compare/v14.5.2...v14.5.3) (2023-08-10)
+## [14.7.14](https://github.com/Torwent/WaspLib/compare/v14.7.13...v14.7.14) (2023-09-20)
 
 
 ### Bug Fixes
 
-* Squashed commit of the following: ([3cf8659](https://github.com/Torwent/WaspLib/commit/3cf86597a54d840b81ed1f94b355ccdc9f63cc45))
+* **magic:** minor tweaks to magic tab ([9a8b87f](https://github.com/Torwent/WaspLib/commit/9a8b87ff29883c2a8517a954921546108f881a88))
+
+
+
+## [14.7.13](https://github.com/Torwent/WaspLib/compare/v14.7.12...v14.7.13) (2023-09-20)
+
+
+### Bug Fixes
+
+* compatibility fix with latest SRL-T ([7c37014](https://github.com/Torwent/WaspLib/commit/7c370145102503495f658c670f19fea7ce132fd3))
+
+
+
+## [14.7.12](https://github.com/Torwent/WaspLib/compare/v14.7.11...v14.7.12) (2023-09-18)
+
+
+### Bug Fixes
+
+* **combat handler:** typo ([8f215e6](https://github.com/Torwent/WaspLib/commit/8f215e6f911a2b02bec81f270f6553dbff768c83))
 
 
 

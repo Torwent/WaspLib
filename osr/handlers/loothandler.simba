@@ -54,6 +54,8 @@ begin
   if (monster.Name = '') or (value <= 0) then
     Exit;
 
+  Self.Name := 'LootHandler';
+
   Self.PriorityArray := [
     'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
     'Clue scroll (master)',
@@ -128,76 +130,159 @@ begin
   Result := not Inventory.IsFull() or (drop.Stackable and Inventory.ContainsItem(drop.Item));
 end;
 
+
+function TRSLootHandler.IsHoveringLoot(out contextIsOpen: Boolean): Boolean;
+begin
+  contextIsOpen := False;
+  if MainScreen.IsUpText('Take') then
+    Exit(True);
+
+  contextIsOpen := ChooseOption.Open();
+  Result := contextIsOpen and ChooseOption.HasOption('Take');
+end;
+
+function TRSLootHandler.IsHoveringLoot(): Boolean; overload;
+begin
+  if MainScreen.IsUpText('Take') then
+    Exit(True);
+  Result := ChooseOption.Open() and ChooseOption.HasOption('Take');
+end;
+
+function TRSLootHandler.CountDrop(drop: TRSMonsterDrop): Int32;
+begin
+  if drop.Stackable then
+    Exit(Inventory.CountItemStack(drop.Item));
+
+  Result := Inventory.CountItem(drop.Item);
+end;
+
 function TRSLootHandler.HandleLooting(): Boolean;
 var
-  i: Int32;
-  tmpFilter: TRSDotFilterArray; //Used to reset filters.
+  i, count: Int32;
+  contextIsOpen: Boolean;
+  position: TPoint;
 begin
-  if not MainScreen.IsUpText('Take') then
-  begin
-    ChooseOption.Open();
-    if not ChooseOption.HasOption('Take') then
-      Exit;
-  end;
+  position := Mouse.Position();
+  if not Self.IsHoveringLoot(contextIsOpen) then
+    Exit;
 
   Self.CheckedLoot := True;
-  tmpFilter := Self.Loot.DotFilter;
-  Self.Loot.DotFilter.Setup([Self.Loot.ClosestDot.X, Self.Loot.ClosestDot.Y, 3], True);
+  contextIsOpen := contextIsOpen or ChooseOption.IsOpen();
 
-  if not ChooseOption.IsOpen() and MainScreen.IsUpText(Self.Loot.UpText, -1, i, False) then
+  if not contextIsOpen and MainScreen.IsUpText(Self.Loot.UpText, -1, i, False) then
   begin
-    if not Self.HasSpace(Self.Drops[i]) then
+    if Self.HasSpace(Self.Drops[i]) then
     begin
-      if Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
-        Self.Loot.Hover(5)
-      else
-      begin
-        Self.Loot.DotFilter := tmpFilter;
-        Exit;
-      end;
+      count := Self.CountDrop(Self.Drops[i]);
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+      Exit(Self.HandleLooting());
     end;
-    Mouse.Click(MOUSE_LEFT);
-    Self.Loot.DotFilter := tmpFilter;
+
+    if not Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
+    begin
+      Self.DebugLn('No space to loot!');
+      Exit;
+    end;
+
+    for i := 0 to 4 do
+    begin
+      if i > 3 then
+        Exit(True);
+      Mouse.Move(position + [Random(-4,4), Random(-4,4)]);
+      if Self.IsHoveringLoot(contextIsOpen) then
+        Break;
+    end;
+
+    Exit(Self.HandleLooting());
+  end;
+
+  if not ChooseOption.Open() then
+  begin
+    Self.DebugLn('Failed to open "Choose options" menu for some reason.');
+    Exit;
+  end;
+
+  if not ChooseOption.HasOption(Self.Loot.UpText, i, False) then
+  begin
+    Self.DebugLn('Finished looting.');
     Exit(True);
   end;
 
-  if ChooseOption.Open() then
+  if Self.HasSpace(Self.Drops[i]) then
   begin
-    if not ChooseOption.HasOption(Self.Loot.UpText, i, False) then
+    count := Self.CountDrop(Self.Drops[i]);
+    ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False);
+    WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+
+    for i := 0 to 4 do
     begin
-      Self.Loot.DotFilter := tmpFilter;
-      Exit;
+      if i > 3 then
+        Exit(True);
+      Mouse.Move(position + [Random(-4,4), Random(-4,4)]);
+      if Self.IsHoveringLoot(contextIsOpen) then
+        Break;
     end;
 
-    if not Self.HasSpace(Self.Drops[i]) then
-    begin
-      if Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
-        Self.Loot.Hover(5)
-      else
-      begin
-        Self.Loot.DotFilter := tmpFilter;
-        Exit;
-      end;
-    end;
-
-    Result := ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False);
+    Exit(Self.HandleLooting());
   end;
 
-  Self.Loot.DotFilter := tmpFilter;
+  if not Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE) then
+  begin
+    Self.DebugLn('No space to loot!');
+    Exit(True);
+  end;
+
+  for i := 0 to 4 do
+  begin
+    if i > 3 then
+      Exit(True);
+    Mouse.Move(position + [Random(-4,4), Random(-4,4)]);
+    if Self.IsHoveringLoot(contextIsOpen) then
+      Break;
+  end;
+
+  Result := Self.HandleLooting();
 end;
 
 function TRSLootHandler.CheckLoot(p: TPoint): Boolean;
 begin
   Mouse.Move(p);
-
   Result := Self.HandleLooting();
 end;
 
 function TRSLootHandler.CheckLoot(b: TBox): Boolean; overload;
 begin
   Mouse.Move(b);
-
   Result := Self.HandleLooting();
+end;
+
+function TRSLootHandler.CheckLoot(dots: TPointArray): Boolean; overload;
+var
+  p: TPoint;
+  angle: Double;
+  tile: TRectangle;
+  i: Int32;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  for p in dots do
+  begin
+    tile := Minimap.GetTileMS(p, [0.7, 0.7, 0], [2,2], angle);
+
+    for i := 0 to 4 do
+    begin
+      if i > 3 then
+        Break(2);
+      p := SRL.rowp(Mouse.Position(), tile);
+      Mouse.Move(p);
+      if Self.IsHoveringLoot() then
+        Break;
+    end;
+
+    Result := Self.HandleLooting();
+    if Result then
+      Exit;
+  end;
 end;
 
 function TRSLootHandler.CheckLoot(): Boolean; overload;

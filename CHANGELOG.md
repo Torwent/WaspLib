@@ -1,3 +1,12 @@
+## [14.7.15](https://github.com/Torwent/WaspLib/compare/v14.7.14...v14.7.15) (2023-09-21)
+
+
+### Bug Fixes
+
+* **map:** added sophanem bank and gem rocks mine ([2f3c8fd](https://github.com/Torwent/WaspLib/commit/2f3c8fda60ff0f3a637633b52acc3b075b3890a0))
+
+
+
 ## [14.7.14](https://github.com/Torwent/WaspLib/compare/v14.7.13...v14.7.14) (2023-09-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **mapmaker:** it won't allow regions out of bounds anymore ([9f64a07](https://github.com/Torwent/WaspLib/commit/9f64a07f149d9b760563bbe1ad6a162792833ba7))
-
-
-
-## [14.7.10](https://github.com/Torwent/WaspLib/compare/v14.7.9...v14.7.10) (2023-09-18)
-
-
-### Bug Fixes
-
-* **combathandler:** read notes ([b5b8f8a](https://github.com/Torwent/WaspLib/commit/b5b8f8ab59ff23fe2212702d887c49025ee55542))
 
 
 

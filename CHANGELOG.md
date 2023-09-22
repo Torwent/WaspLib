@@ -1,3 +1,12 @@
+## [14.7.16](https://github.com/Torwent/WaspLib/compare/v14.7.15...v14.7.16) (2023-09-22)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([b01c340](https://github.com/Torwent/WaspLib/commit/b01c340dfb5cc58ab6e6c88048ba4d262087bd74))
+
+
+
 ## [14.7.15](https://github.com/Torwent/WaspLib/compare/v14.7.14...v14.7.15) (2023-09-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combat handler:** typo ([8f215e6](https://github.com/Torwent/WaspLib/commit/8f215e6f911a2b02bec81f270f6553dbff768c83))
-
-
-
-## [14.7.11](https://github.com/Torwent/WaspLib/compare/v14.7.10...v14.7.11) (2023-09-18)
-
-
-### Bug Fixes
-
-* **mapmaker:** it won't allow regions out of bounds anymore ([9f64a07](https://github.com/Torwent/WaspLib/commit/9f64a07f149d9b760563bbe1ad6a162792833ba7))
 
 
 

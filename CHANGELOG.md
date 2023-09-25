@@ -1,3 +1,12 @@
+## [14.7.18](https://github.com/Torwent/WaspLib/compare/v14.7.17...v14.7.18) (2023-09-25)
+
+
+### Bug Fixes
+
+* **map:** add pyramid plunder to wl map ([9c8d795](https://github.com/Torwent/WaspLib/commit/9c8d79593bf0c184fa4f3ffa0b3ce4dacffdd48f))
+
+
+
 ## [14.7.17](https://github.com/Torwent/WaspLib/compare/v14.7.16...v14.7.17) (2023-09-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **magic:** minor tweaks to magic tab ([9a8b87f](https://github.com/Torwent/WaspLib/commit/9a8b87ff29883c2a8517a954921546108f881a88))
-
-
-
-## [14.7.13](https://github.com/Torwent/WaspLib/compare/v14.7.12...v14.7.13) (2023-09-20)
-
-
-### Bug Fixes
-
-* compatibility fix with latest SRL-T ([7c37014](https://github.com/Torwent/WaspLib/commit/7c370145102503495f658c670f19fea7ce132fd3))
 
 
 

@@ -590,6 +590,17 @@ begin
 end;
 
 
+function TRSCombatHandler.Consume(consumable: ERSConsumable): Boolean;
+begin
+  Result := Inventory.Consume(consumable);
+
+  if Result or Inventory.ContainsConsumable(consumable) then
+    Exit;
+
+  if consumable = ERSConsumable.BOOST_CONSUMABLE then
+    Self.HandleBoosts := False;
+end;
+
 //Check for pending action combat handler is taking care of.
 function TRSCombatHandler.GetConsumableState(): ECombatState;
 var
@@ -685,21 +696,21 @@ begin
   Result := ECombatState.ATTACK_MONSTER;
 end;
 
-
 //Check for pending action combat handler is taking care of and do them.
 procedure TRSCombatHandler.DoActions(handlerState: ECombatState = ECombatState.UNKNOWN_COMBAT_STATE);
 begin
   if handlerState = ECombatState.UNKNOWN_COMBAT_STATE then
     handlerState := Self.GetState();
+
   Self.State := handlerState;
 
   case handlerState of
-    ECombatState.EAT_FOOD:         Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE);
-    ECombatState.DRINK_PRAYER:     Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
-    ECombatState.DRINK_ANTIFIRE:   Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
-    ECombatState.DRINK_ANTIVENOM:  Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
-    ECombatState.DRINK_ANTIPOISON: Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
-    ECombatState.DRINK_BOOST:      Inventory.Consume(ERSConsumable.BOOST_CONSUMABLE);
+    ECombatState.EAT_FOOD:         Self.Consume(ERSConsumable.FOOD_CONSUMABLE);
+    ECombatState.DRINK_PRAYER:     Self.Consume(ERSConsumable.PRAYER_CONSUMABLE);
+    ECombatState.DRINK_ANTIFIRE:   Self.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
+    ECombatState.DRINK_ANTIVENOM:  Self.Consume(ERSConsumable.VENOM_CONSUMABLE);
+    ECombatState.DRINK_ANTIPOISON: Self.Consume(ERSConsumable.POISON_CONSUMABLE);
+    ECombatState.DRINK_BOOST:      Self.Consume(ERSConsumable.BOOST_CONSUMABLE);
     ECombatState.ENABLE_QPRAY:     Minimap.EnablePrayer();
 
     ECombatState.SETUP_GEAR:       Self.SetupGear();

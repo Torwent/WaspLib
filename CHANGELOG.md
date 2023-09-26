@@ -1,3 +1,12 @@
+## [14.7.19](https://github.com/Torwent/WaspLib/compare/v14.7.18...v14.7.19) (2023-09-26)
+
+
+### Bug Fixes
+
+* **RSMonsters:** Add several slayer creatures ([68d9121](https://github.com/Torwent/WaspLib/commit/68d912111990bfd8d6390a5e929aabd9bcb0a480))
+
+
+
 ## [14.7.18](https://github.com/Torwent/WaspLib/compare/v14.7.17...v14.7.18) (2023-09-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **map:** added sophanem bank and gem rocks mine ([2f3c8fd](https://github.com/Torwent/WaspLib/commit/2f3c8fda60ff0f3a637633b52acc3b075b3890a0))
-
-
-
-## [14.7.14](https://github.com/Torwent/WaspLib/compare/v14.7.13...v14.7.14) (2023-09-20)
-
-
-### Bug Fixes
-
-* **magic:** minor tweaks to magic tab ([9a8b87f](https://github.com/Torwent/WaspLib/commit/9a8b87ff29883c2a8517a954921546108f881a88))
 
 
 

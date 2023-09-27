@@ -1,3 +1,12 @@
+## [14.7.20](https://github.com/Torwent/WaspLib/compare/v14.7.19...v14.7.20) (2023-09-27)
+
+
+### Bug Fixes
+
+* read notes ([a723b20](https://github.com/Torwent/WaspLib/commit/a723b20c2ae87d48fc22fb154d6398ccce9220b9))
+
+
+
 ## [14.7.19](https://github.com/Torwent/WaspLib/compare/v14.7.18...v14.7.19) (2023-09-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([b01c340](https://github.com/Torwent/WaspLib/commit/b01c340dfb5cc58ab6e6c88048ba4d262087bd74))
-
-
-
-## [14.7.15](https://github.com/Torwent/WaspLib/compare/v14.7.14...v14.7.15) (2023-09-21)
-
-
-### Bug Fixes
-
-* **map:** added sophanem bank and gem rocks mine ([2f3c8fd](https://github.com/Torwent/WaspLib/commit/2f3c8fda60ff0f3a637633b52acc3b075b3890a0))
 
 
 

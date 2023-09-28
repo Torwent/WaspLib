@@ -1,3 +1,12 @@
+## [14.7.23](https://github.com/Torwent/WaspLib/compare/v14.7.22...v14.7.23) (2023-09-28)
+
+
+### Bug Fixes
+
+* read notes ([01820c1](https://github.com/Torwent/WaspLib/commit/01820c1c6259c579a0081d491112efced5c28353))
+
+
+
 ## [14.7.22](https://github.com/Torwent/WaspLib/compare/v14.7.21...v14.7.22) (2023-09-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSMonsters:** Add several slayer creatures ([68d9121](https://github.com/Torwent/WaspLib/commit/68d912111990bfd8d6390a5e929aabd9bcb0a480))
-
-
-
-## [14.7.18](https://github.com/Torwent/WaspLib/compare/v14.7.17...v14.7.18) (2023-09-25)
-
-
-### Bug Fixes
-
-* **map:** add pyramid plunder to wl map ([9c8d795](https://github.com/Torwent/WaspLib/commit/9c8d79593bf0c184fa4f3ffa0b3ce4dacffdd48f))
 
 
 

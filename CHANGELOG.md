@@ -1,3 +1,12 @@
+## [14.7.22](https://github.com/Torwent/WaspLib/compare/v14.7.21...v14.7.22) (2023-09-28)
+
+
+### Bug Fixes
+
+* **Magic:** remove the override that made WaspLib attempt to fix the spell filters, it's not required anymore ([bb29ce6](https://github.com/Torwent/WaspLib/commit/bb29ce69602065c59db0558122aaaffbd0794a3f))
+
+
+
 ## [14.7.21](https://github.com/Torwent/WaspLib/compare/v14.7.20...v14.7.21) (2023-09-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **map:** add pyramid plunder to wl map ([9c8d795](https://github.com/Torwent/WaspLib/commit/9c8d79593bf0c184fa4f3ffa0b3ce4dacffdd48f))
-
-
-
-## [14.7.17](https://github.com/Torwent/WaspLib/compare/v14.7.16...v14.7.17) (2023-09-22)
-
-
-### Bug Fixes
-
-* **CombatHandler:** add missing brackets ([0bef92a](https://github.com/Torwent/WaspLib/commit/0bef92af49952f58593f892c4f1657a05bcd4848))
 
 
 

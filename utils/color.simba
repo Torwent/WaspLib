@@ -24,44 +24,65 @@ Example
   WriteLn SRLColors.ORANGE;
   WriteLn SRLColors.BLUE;
 *)
-  SRLColors = record
-  class const
-    BLACK         = $000000;
-    WHITE         = $FFFFFF;
-    ORANGE        = $1F98FF;
-    ORANGE_LIGHT  = $3EB7FE;
-    RED           = $0000FF;
-    YELLOW        = $00FFFF;
-    BLUE          = $FF0000;
+  TSRLColors = record
+    BLACK, WHITE, ORANGE, ORANGE_LIGHT, RED, YELLOW, BLUE, GREEN_SPRING,
+    BLUE_OCEAN, CYAN, DROPDOWN_BLACK, LIME,
+    TEXT_BLACK, TEXT_WHITE, TEXT_ORANGE, TEXT_ORANGE_LIGHT,
+    TEXT_BROWN, TEXT_RED, TEXT_YELLOW, TEXT_GREEN,
 
-    GREEN_SPRING  = $80FF00;
-    BLUE_OCEAN    = $BE9625;
-    CYAN          = $FFFF00;
-    DROPDOWN_BLACK= $0C0E0E;
-    LIME          = $BE9625;
+    BUTTON_RED, BUTTON_GREY,
 
-    TEXT_BLACK  = $000000;
-    TEXT_WHITE  = $FFFFFF;
-    TEXT_ORANGE = $1F98FF; // Interface titles
-    TEXT_ORANGE_LIGHT = $3EB7FE; // Interface titles
-    TEXT_BROWN  = $203040; // Make interface
-    TEXT_RED    = $0000FF;
-    TEXT_YELLOW = $00FFFF;
-    TEXT_GREEN  = $00FF00;
-
-    BUTTON_RED  = $2326A0; // Button enabled background. Use ~5 tolerance
-    BUTTON_GREY = $516370; // Button disabled background. Use ~5 tolerance
-
-    ITEM_SHADOW = $202030;
-    ITEM_BORDER = $010000;
-    ITEM_BORDER_SELECTED = $FFFFFF;
-
-    ITEM_TEXT_YELLOW = $00FFFF;
-    ITEM_TEXT_WHITE  = $FFFFFF;
-    ITEM_TEXT_GREEN  = $80FF00;
-
-    HINT_BACKGROUND = $A0FFFF;
+    ITEM_SHADOW, ITEM_BORDER, ITEM_BORDER_SELECTED, ITEM_TEXT_YELLOW,
+    ITEM_TEXT_WHITE, ITEM_TEXT_GREEN, HINT_BACKGROUND: Int32;
   end;
+
+var
+  SRLColors: TSRLColors;
+
+begin
+  with SRLColors do
+  begin
+    BLACK         := $000000;
+    WHITE         := $FFFFFF;
+    ORANGE        := $1F98FF;
+    ORANGE_LIGHT  := $3EB7FE;
+    RED           := $0000FF;
+    YELLOW        := $00FFFF;
+    BLUE          := $FF0000;
+
+    GREEN_SPRING  := $80FF00;
+    BLUE_OCEAN    := $BE9625;
+    CYAN          := $FFFF00;
+    DROPDOWN_BLACK:= $0C0E0E;
+    LIME          := $BE9625;
+
+    TEXT_BLACK  := $000000;
+    TEXT_WHITE  := $FFFFFF;
+    TEXT_ORANGE := $1F98FF; // Interface titles
+    TEXT_ORANGE_LIGHT := $3EB7FE; // Interface titles
+    TEXT_BROWN  := $203040; // Make interface
+    TEXT_RED    := $0000FF;
+    TEXT_YELLOW := $00FFFF;
+    TEXT_GREEN  := $00FF00;
+
+    BUTTON_RED  := $2326A0; // Button enabled background. Use ~5 tolerance
+    BUTTON_GREY := $516370; // Button disabled background. Use ~5 tolerance
+
+    ITEM_SHADOW := $202030;
+    ITEM_BORDER := $010000;
+    ITEM_BORDER_SELECTED := $FFFFFF;
+
+    ITEM_TEXT_YELLOW := $00FFFF;
+    ITEM_TEXT_WHITE  := $FFFFFF;
+    ITEM_TEXT_GREEN  := $80FF00;
+
+    HINT_BACKGROUND := $A0FFFF;
+  end;
+end;
+
+type
+  TCTS0ColorArray = array of TCTS0Color;
+  TCTS2ColorArray = array of TCTS2Color;
 
 (*
 GetNextCycleColor
@@ -129,3 +150,71 @@ begin
 
   Result := RGB2BGR(StrToInt(rgb));
 end;
+
+
+function TSRL.FindAnyColors(out tpa: TPointArray; colors: TIntegerArray; area: TBox): Int32; constref;
+var
+  color: Int32;
+begin
+  for color in colors do
+    if FindColorsTolerance(tpa, color, area, 0) then
+      Exit(Length(tpa));
+end;
+
+function TSRL.FindAnyColors(out tpa: TPointArray; colors: TCTS0ColorArray; area: TBox): Int32; constref; overload;
+type
+  TCTSContainer = record
+    CTS: Int32;
+    Hue, Sat: Extended;
+  end;
+var
+  old: TCTSContainer;
+  color: TCTS0Color;
+begin
+  old.CTS := GetToleranceSpeed();
+  if (old.CTS = 2) then
+    GetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+
+  SetColorToleranceSpeed(0);
+  SetToleranceSpeed2Modifiers(0.2, 0.2);
+
+  for color in colors do
+    if FindColorsTolerance(tpa, color.Color, area.X1, area.Y1, area.X2, area.Y2, color.Tolerance) then
+      Break;
+  Result := Length(tpa);
+
+  SetColorToleranceSpeed(old.CTS);
+  if (old.CTS = 2) then
+    SetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+end;
+
+function TSRL.FindAnyColors(out tpa: TPointArray; colors: TCTS2ColorArray; area: TBox): Int32; constref; overload;
+type
+  TCTSContainer = record
+    CTS: Int32;
+    Hue, Sat: Extended;
+  end;
+var
+  old: TCTSContainer;
+  color: TCTS2Color;
+begin
+  old.CTS := GetToleranceSpeed();
+  if (old.CTS = 2) then
+    GetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+
+  SetColorToleranceSpeed(2);
+
+  for color in colors do
+  begin
+    SetToleranceSpeed2Modifiers(color.HueMod, color.SatMod);
+    if FindColorsTolerance(tpa, color.Color, area.X1, area.Y1, area.X2, area.Y2, color.Tolerance) then
+      Break;
+  end;
+
+  Result := Length(tpa);
+
+  SetColorToleranceSpeed(old.CTS);
+  if (old.CTS = 2) then
+    SetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+end;
+

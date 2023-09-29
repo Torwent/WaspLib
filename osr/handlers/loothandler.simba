@@ -257,29 +257,47 @@ begin
   Result := Self.HandleLooting();
 end;
 
+function TRSLootHandler.CheckLoot(tile: TRectangle): Boolean; overload;
+var
+  i: Int32;
+  tpa: TPointArray;
+  p: TPoint;
+begin
+  for i := 0 to 4 do
+  begin
+    if i > 3 then
+      Exit;
+    p := [-1,-1];
+
+    if SRL.FindAnyColors(tpa, Self.Loot.Finder.Colors, tile.Bounds()) > 0 then
+    begin
+      tpa := tile.Filter(tpa);
+      if tpa <> [] then
+        p := tpa.RandomValue();
+    end;
+
+    if p = [-1,-1] then
+      p := SRL.rowp(Mouse.Position(), tile);
+
+    Mouse.Move(p);
+    if Self.IsHoveringLoot() then
+      Break;
+  end;
+
+  Result := Self.HandleLooting();
+end;
+
 function TRSLootHandler.CheckLoot(dots: TPointArray): Boolean; overload;
 var
   p: TPoint;
   angle: Double;
   tile: TRectangle;
-  i: Int32;
 begin
   angle := Minimap.GetCompassAngle(False);
   for p in dots do
   begin
     tile := Minimap.GetTileMS(p, [0.7, 0.7, 0], [2,2], angle);
-
-    for i := 0 to 4 do
-    begin
-      if i > 3 then
-        Break(2);
-      p := SRL.rowp(Mouse.Position(), tile);
-      Mouse.Move(p);
-      if Self.IsHoveringLoot() then
-        Break;
-    end;
-
-    Result := Self.HandleLooting();
+    Result := Self.CheckLoot(tile);
     if Result then
       Exit;
   end;

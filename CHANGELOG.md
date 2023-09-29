@@ -1,3 +1,12 @@
+# [14.8.0](https://github.com/Torwent/WaspLib/compare/v14.7.23...v14.8.0) (2023-09-29)
+
+
+### Features
+
+* read notes ([784cea1](https://github.com/Torwent/WaspLib/commit/784cea15fec4523fe0a7fcde10d35faa7ccb92b2))
+
+
+
 ## [14.7.23](https://github.com/Torwent/WaspLib/compare/v14.7.22...v14.7.23) (2023-09-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([a723b20](https://github.com/Torwent/WaspLib/commit/a723b20c2ae87d48fc22fb154d6398ccce9220b9))
-
-
-
-## [14.7.19](https://github.com/Torwent/WaspLib/compare/v14.7.18...v14.7.19) (2023-09-26)
-
-
-### Bug Fixes
-
-* **RSMonsters:** Add several slayer creatures ([68d9121](https://github.com/Torwent/WaspLib/commit/68d912111990bfd8d6390a5e929aabd9bcb0a480))
 
 
 

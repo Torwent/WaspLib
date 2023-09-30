@@ -1,3 +1,12 @@
+## [14.8.1](https://github.com/Torwent/WaspLib/compare/v14.8.0...v14.8.1) (2023-09-30)
+
+
+### Bug Fixes
+
+* **loothandler:** read notes ([ee71e54](https://github.com/Torwent/WaspLib/commit/ee71e546d8f9682050cce5113405e05879ffcc30))
+
+
+
 # [14.8.0](https://github.com/Torwent/WaspLib/compare/v14.7.23...v14.8.0) (2023-09-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([dbd7ec7](https://github.com/Torwent/WaspLib/commit/dbd7ec7fc18a643548da2159210c22ddb781a388))
-
-
-
-## [14.7.20](https://github.com/Torwent/WaspLib/compare/v14.7.19...v14.7.20) (2023-09-27)
-
-
-### Bug Fixes
-
-* read notes ([a723b20](https://github.com/Torwent/WaspLib/commit/a723b20c2ae87d48fc22fb154d6398ccce9220b9))
 
 
 

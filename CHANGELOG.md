@@ -1,3 +1,12 @@
+## [14.8.2](https://github.com/Torwent/WaspLib/compare/v14.8.1...v14.8.2) (2023-09-30)
+
+
+### Bug Fixes
+
+* **loot handler:** more tweaks and accuracy improvements ([c86ae4a](https://github.com/Torwent/WaspLib/commit/c86ae4a6cde095b45cb78ad8377d280945cac5aa))
+
+
+
 ## [14.8.1](https://github.com/Torwent/WaspLib/compare/v14.8.0...v14.8.1) (2023-09-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Magic:** remove the override that made WaspLib attempt to fix the spell filters, it's not required anymore ([bb29ce6](https://github.com/Torwent/WaspLib/commit/bb29ce69602065c59db0558122aaaffbd0794a3f))
-
-
-
-## [14.7.21](https://github.com/Torwent/WaspLib/compare/v14.7.20...v14.7.21) (2023-09-27)
-
-
-### Bug Fixes
-
-* read notes ([dbd7ec7](https://github.com/Torwent/WaspLib/commit/dbd7ec7fc18a643548da2159210c22ddb781a388))
 
 
 

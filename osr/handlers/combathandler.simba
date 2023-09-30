@@ -767,6 +767,9 @@ function TRSMainScreen.InCombat(): Boolean; override;
 var
   gotXP, hasSplats: Boolean;
   cuboid: TCuboidEx;
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  bmp: TMufasaBitmap;
+  {$ENDIF}
 begin
   if CombatHandler.InCombatTimer.IsFinished() and not XPBar.EarnedXP() then
   begin
@@ -783,11 +786,28 @@ begin
   hasSplats := Self.FindHitsplats(cuboid.Bounds()) <> [];
   Result := gotXP or hasSplats;
   if not Result then
+
     Result := Self.FindHPBars(cuboid.Bounds()) <> [];
 
   CombatHandler.IsFighting := Result;
   if Result then
+  begin
     WL.Activity.Restart();
+    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+    if WLSettings.RemoteInput.Enabled then
+    begin
+      bmp := RSClient.Image();
+      bmp.DrawCuboid(cuboid, $0000FF);
+    end;
+    {$ENDIF}
+  end;
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if not Result and WLSettings.RemoteInput.Enabled then
+  begin
+    RSClient.Image().Clear(MainScreen.Bounds());
+  end;
+  {$ENDIF}
 
   if gotXP or hasSplats then
     CombatHandler.InCombatTimer.Restart();

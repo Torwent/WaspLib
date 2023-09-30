@@ -1,3 +1,12 @@
+## [14.8.3](https://github.com/Torwent/WaspLib/compare/v14.8.2...v14.8.3) (2023-09-30)
+
+
+### Bug Fixes
+
+* read notes ([b089ec5](https://github.com/Torwent/WaspLib/commit/b089ec515b9be357d5cf07b6f343ea50896800e4))
+
+
+
 ## [14.8.2](https://github.com/Torwent/WaspLib/compare/v14.8.1...v14.8.2) (2023-09-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([01820c1](https://github.com/Torwent/WaspLib/commit/01820c1c6259c579a0081d491112efced5c28353))
-
-
-
-## [14.7.22](https://github.com/Torwent/WaspLib/compare/v14.7.21...v14.7.22) (2023-09-28)
-
-
-### Bug Fixes
-
-* **Magic:** remove the override that made WaspLib attempt to fix the spell filters, it's not required anymore ([bb29ce6](https://github.com/Torwent/WaspLib/commit/bb29ce69602065c59db0558122aaaffbd0794a3f))
 
 
 

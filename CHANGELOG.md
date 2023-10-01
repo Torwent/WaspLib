@@ -1,3 +1,12 @@
+## [14.8.4](https://github.com/Torwent/WaspLib/compare/v14.8.3...v14.8.4) (2023-10-01)
+
+
+### Bug Fixes
+
+* **TRSMMDot:** improved setup and finding performance ([96aa287](https://github.com/Torwent/WaspLib/commit/96aa287a0602618d04bc333cad8c524702a2b21a))
+
+
+
 ## [14.8.3](https://github.com/Torwent/WaspLib/compare/v14.8.2...v14.8.3) (2023-09-30)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([784cea1](https://github.com/Torwent/WaspLib/commit/784cea15fec4523fe0a7fcde10d35faa7ccb92b2))
-
-
-
-## [14.7.23](https://github.com/Torwent/WaspLib/compare/v14.7.22...v14.7.23) (2023-09-28)
-
-
-### Bug Fixes
-
-* read notes ([01820c1](https://github.com/Torwent/WaspLib/commit/01820c1c6259c579a0081d491112efced5c28353))
 
 
 

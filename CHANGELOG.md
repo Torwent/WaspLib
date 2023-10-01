@@ -1,45 +1,45 @@
-## [14.7.14](https://github.com/Torwent/WaspLib/compare/v14.7.13...v14.7.14) (2023-09-20)
+## [14.8.3](https://github.com/Torwent/WaspLib/compare/v14.8.2...v14.8.3) (2023-09-30)
 
 
 ### Bug Fixes
 
-* **magic:** minor tweaks to magic tab ([9a8b87f](https://github.com/Torwent/WaspLib/commit/9a8b87ff29883c2a8517a954921546108f881a88))
+* read notes ([b089ec5](https://github.com/Torwent/WaspLib/commit/b089ec515b9be357d5cf07b6f343ea50896800e4))
 
 
 
-## [14.7.13](https://github.com/Torwent/WaspLib/compare/v14.7.12...v14.7.13) (2023-09-20)
-
-
-### Bug Fixes
-
-* compatibility fix with latest SRL-T ([7c37014](https://github.com/Torwent/WaspLib/commit/7c370145102503495f658c670f19fea7ce132fd3))
-
-
-
-## [14.7.12](https://github.com/Torwent/WaspLib/compare/v14.7.11...v14.7.12) (2023-09-18)
+## [14.8.2](https://github.com/Torwent/WaspLib/compare/v14.8.1...v14.8.2) (2023-09-30)
 
 
 ### Bug Fixes
 
-* **combat handler:** typo ([8f215e6](https://github.com/Torwent/WaspLib/commit/8f215e6f911a2b02bec81f270f6553dbff768c83))
+* **loot handler:** more tweaks and accuracy improvements ([c86ae4a](https://github.com/Torwent/WaspLib/commit/c86ae4a6cde095b45cb78ad8377d280945cac5aa))
 
 
 
-## [14.7.11](https://github.com/Torwent/WaspLib/compare/v14.7.10...v14.7.11) (2023-09-18)
-
-
-### Bug Fixes
-
-* **mapmaker:** it won't allow regions out of bounds anymore ([9f64a07](https://github.com/Torwent/WaspLib/commit/9f64a07f149d9b760563bbe1ad6a162792833ba7))
-
-
-
-## [14.7.10](https://github.com/Torwent/WaspLib/compare/v14.7.9...v14.7.10) (2023-09-18)
+## [14.8.1](https://github.com/Torwent/WaspLib/compare/v14.8.0...v14.8.1) (2023-09-30)
 
 
 ### Bug Fixes
 
-* **combathandler:** read notes ([b5b8f8a](https://github.com/Torwent/WaspLib/commit/b5b8f8ab59ff23fe2212702d887c49025ee55542))
+* **loothandler:** read notes ([ee71e54](https://github.com/Torwent/WaspLib/commit/ee71e546d8f9682050cce5113405e05879ffcc30))
+
+
+
+# [14.8.0](https://github.com/Torwent/WaspLib/compare/v14.7.23...v14.8.0) (2023-09-29)
+
+
+### Features
+
+* read notes ([784cea1](https://github.com/Torwent/WaspLib/commit/784cea15fec4523fe0a7fcde10d35faa7ccb92b2))
+
+
+
+## [14.7.23](https://github.com/Torwent/WaspLib/compare/v14.7.22...v14.7.23) (2023-09-28)
+
+
+### Bug Fixes
+
+* read notes ([01820c1](https://github.com/Torwent/WaspLib/commit/01820c1c6259c579a0081d491112efced5c28353))
 
 
 

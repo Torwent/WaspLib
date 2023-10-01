@@ -1,0 +1,168 @@
+{$DEFINE WL_LECTERN_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  ERSSpellTab = (
+    ENCHANT_ONYX, ENCHANT_DIAMOND, LUMBRIDGE_TELEPORT, WATCHTOWER_TELEPORT,
+    HOUSE_TELEPORT, ENCHANT_EMERALD, ENCHANT_SAPPHIRE, FALADOR_TELEPORT,
+    ARDOUGNE_TELEPORT, BONES_TO_BANANAS, ENCHANT_DRAGONSTONE,ENCHANT_RUBY,
+    VARROCK_TELEPORT, CAMELOT_TELEPORT, BONES_TO_PEACHES
+  );
+
+  TRSLectern = type TRSInterface;
+
+procedure TRSLectern.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'Lectern';
+end;
+
+procedure TRSLectern.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  case Self.Mode of
+    ERSClientMode.FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 510;
+        Self.Alignment.Center.MaxHeight := 322;
+      end;
+
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 510;
+        Self.Alignment.Center.MaxHeight := 322;
+      end;
+  end;
+end;
+
+function TRSLectern.GetTabBoxes(): TBoxArray;
+begin
+  Result := Grid(5, 3, 71, 71, [10, 11], [Self.X1 + 33, Self.Y1 + 43])
+end;
+
+function TRSLectern.GetTabBox(spell: ERSSpellTab): TBox;
+begin
+  Result := Self.GetTabBoxes()[spell];
+end;
+
+
+function TRSLectern.IsOpen(waitTime: Int32 = 0; interval: Int32 = -1): Boolean;
+  function _IsOpen(): Boolean;
+  var
+    b: TBox;
+    tpa: TPointArray;
+  begin
+    b := Self.Bounds();
+    if SRL.FindColors(tpa, 790030, b) = 0 then
+      Exit;
+
+    b.X1 := b.Center().X;
+    b.Y1 := b.Center().Y;
+
+    Result := Length(tpa.FilterBox(b)) = 411;
+  end;
+begin
+  if waitTime = 0 then
+    Exit(_IsOpen());
+
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(_IsOpen(), SRL.TruncatedGauss(50, 1500), waitTime);
+end;
+
+function TRSLectern.Close(pressEscape: Boolean = False): Boolean;
+  function _ClickCloseButton(PressEscape: Boolean = False): Boolean;
+  var
+    b: TBox;
+  begin
+    b.X1 := Self.X2-28;
+    b.X2 := Self.X2-7;
+    b.Y1 := Self.Y1+6;
+    b.Y2 := Self.Y1+26;
+    Debug(b);
+    Result := SRL.CountColor(CTS2(5999522, 16, 0.15, 0.40), b) > 80;
+
+    if Result then
+    begin
+      case PressEscape of
+        False: Mouse.Click(b, MOUSE_LEFT);
+        True:  Keyboard.PressKey(VK_ESCAPE);
+      end;
+    end;
+  end;
+
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := _ClickCloseButton(pressEscape) and
+            WaitUntil(
+              not Self.IsOpen(),
+              SRL.TruncatedGauss(50, 1500),
+              Random(1500, 2000)
+            );
+end;
+
+
+function TRSLectern.HoverSpellTab(spell: ERSSpellTab): Boolean;
+begin
+  Result := Self.IsOpen();
+  if Result then
+    Mouse.Move(Self.GetTabBox(spell));
+end;
+
+function TRSLectern.ClickSpellTab(spell: ERSSpellTab): Boolean;
+begin
+  if Self.HoverSpellTab(spell) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Result := WaitUntil(not Self.IsOpen(), 300, 3000);
+  end;
+end;
+
+procedure TRSLectern.Draw(bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  bitmap.DrawBoxes(Self.GetTabBoxes(), $00FFFF);
+end;
+
+var
+  Lectern: TRSLectern;
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  Lectern.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  Lectern.Setup();
+end;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Lectern.Draw(bitmap);
+end;

@@ -1,4 +1,3 @@
-{$DEFINE SRL_DISABLE_REMOTEINPUT}
 {$DEFINE WL_ALCH_HANDLER_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
@@ -8,7 +7,7 @@ type RSAlchHandler = record(TSRLBaseRecord) class var
   Item: TRSItem;
   ItemArray: TRSItemArray;
   Timer: TCountDown;
-  LowProfit, HighProfit, TotalProfit: Int32;
+  SlotUnder, LowProfit, HighProfit, TotalProfit: Int32;
   Disabled: Boolean;
 end;
 
@@ -364,7 +363,7 @@ begin
   end;
 
   repeat
-    if not Magic.IsSpellSelected(spell) or
+    if not Magic.IsSelected(spell) or
        not GameTabs.FKeyOpen(ERSGameTab.INVENTORY)
     then
       Magic.CastSpell(spell);
@@ -382,15 +381,11 @@ var
   slots: TIntegerArray;
 begin
   if hi then
-  begin
-    RSAlchHandler.Timer.Length := 5 * 600;
-    spellSlot := 11;
-  end
+    RSAlchHandler.Timer.Length := 5 * 600
   else
-  begin
     RSAlchHandler.Timer.Length := 3 * 600;
-    spellSlot := 3;
-  end;
+
+  spellSlot := RSAlchHandler.SlotUnder;
 
   for attempt := 0 to 2 do
   begin
@@ -468,6 +463,65 @@ end;
 begin
   RSAlchHandler.Setup();
 end;
+
+function TRSMagic.FindSpell(spell: ERSSpell; out box: TBox; attempt: Int32 = 0): Boolean; override;
+var
+  slots: TBoxArray;
+  i: Int32;
+begin
+  Result := inherited(spell, box, attempt);
+
+  if not Result then
+    Exit;
+
+  if (spell <> ERSSpell.LOW_LEVEL_ALCHEMY) and
+     (spell <> ERSSpell.HIGH_LEVEL_ALCHEMY) then
+    Exit;
+
+  slots := Inventory.GetSlotBoxes();
+  for i := 0 to High(slots) do
+    if box.Overlap(slots[i]) then
+    begin
+      RSAlchHandler.SlotUnder := i;
+      Exit;
+    end;
+end;
+
+function TRSMagic.MouseSpell(spell: ERSSpell): Boolean; override;
+var
+  box: TBox;
+  upText: String;
+begin
+  if (Self.SpellCache[spell].UpText <> '') and
+     Self.SpellCache[spell].Box.Contains(Mouse.Position()) then
+  begin
+    upText := MainScreen.GetUpText().After('Cast').Before('/').Strip();
+    WriteLn upText;
+    if (upText = Self.SpellCache[spell].UpText) then
+      Exit(True);
+    if upText.Contains('>') then
+    begin
+      ChooseOption.Select('Cancel');
+      Exit(Self.MouseSpell(spell));
+    end;
+  end;
+
+  Result := Self.Open() and Self.FindSpell(spell, box);
+
+  if Result then
+  begin
+    Mouse.Move(box);
+
+    if Self.SpellCache[spell].UpText = '' then
+    begin
+      upText := MainScreen.GetUpText().After('Cast').Before('/').Strip();
+      Self.SpellCache[spell].UpText := upText;
+    end;
+  end;
+end;
+
+
+
 
 function TScriptForm.CreateAlchemyPanel(): TTabSheet;
   type TListBox = TListBox;
@@ -846,3 +900,5 @@ begin
     setOnClick(@Self._OnAlchListClear);
   end;
 end;
+
+

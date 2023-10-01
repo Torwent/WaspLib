@@ -27,26 +27,12 @@ Magic.CastSpell
 .. pascal:: function TRSMagic.CastSpell(spell: ERSSpell): Boolean; override;
 
 Overrides the existing SRL TRSMagic.CastSpell() for better cast detection with
-the usage of TRSMagic._CastedSpell().
+the usage of WaspLib's TRSMagic.SpellWasCast().
 *)
-function TRSMagic.CastSpell(spell: ERSSpell): Boolean; override;
-var
-  selected: ERSSpell;
+function TRSMagic.CastSpell(spell: ERSSpell; option: String = ''): Boolean; override;
 begin
-  if not Self.Open() then
-    Exit(False);
-
-  selected := Self.GetSelectedSpell();
-  if selected = spell then
-    Exit(True);
-
-  // Unselect
-  if (selected <> ERSSpell.UNKNOWN) then
-    Self.MouseSpell(selected, MOUSE_LEFT);
-
   XPBar.EarnedXP();
-  Result := Self.MouseSpell(spell, MOUSE_LEFT) and
-            WaitUntil(Self.SpellWasCast(spell), 300, SRL.TruncatedGauss(1000, 2000));
+  Result := inherited;
 end;
 
 
@@ -127,7 +113,8 @@ Example
 *)
 function TRSMagic.CloseFilters(): Boolean;
 begin
-  Result := Self.GetFilterButton().Disable();
+  if Self.GetFilterButton().Disable() then
+    Result := WaitUntil(not Self.FiltersIsOpen(), 300, 3000);
 end;
 
 
@@ -284,27 +271,4 @@ begin
   Self.CloseFilters();
 
   Result := not Self.IsFiltered();
-end;
-
-(*
-GameTabs.GetCurrentTab
-~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TRSGameTabs.GetCurrentTab(): ERSGametab; override;
-
-Overriden to check if the spells are filtered and disable the filters.
-*)
-function TRSGameTabs.GetCurrentTab(): ERSGametab; override;
-begin
-  Result := inherited;
-
-  if Result = ERSGametab.MAGIC then
-  begin
-    if not WL.GameSettings.MagicFiltersRemoved then
-    begin
-      WL.GameSettings.MagicFiltersRemoved := not Magic.IsFiltered();
-
-      if WL.GameSettings.MagicFiltersRemoved then
-        WL.GameSettings.MagicFiltersRemoved := Magic.DisableFilters();
-    end;
-  end;
 end;

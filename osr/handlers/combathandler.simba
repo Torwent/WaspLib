@@ -18,6 +18,7 @@ for general purpose combat this should be enough!
 
 const
   WEAPONS: TRSItemArray = [
+    'Keris partisan', 'Keris partisan of breaching',
     'Ghrazi rapier', 'Blade of saeldor (c)', 'Inquisitor''s mace',
     'Toktz-xil-ak', 'Abyssal whip', 'Abyssal bludgeon',
     'Abyssal dagger', 'Abyssal dagger (p++)', 'Saradomin sword',
@@ -26,8 +27,9 @@ const
     'Dragon hunter lance', 'Abyssal tentacle', 'Granite hammer',
     'Bow of faerdhinen (c)', 'Toxic blowpipe', 'Magic shortbow',
     'Magic shortbow (i)', 'Armadyl crossbow', 'Dragon hunter crossbow',
-    'Dragon crossbow', 'Rune crossbow', 'Adamant dart', 'Mithril dart',
-    'Rune scimitar', 'Dorgeshuun crossbow', 'Leaf-bladed sword', 'Null'
+    'Venator bow', 'Dragon crossbow', 'Rune crossbow', 'Adamant dart',
+    'Mithril dart', 'Rune scimitar', 'Dorgeshuun crossbow',
+    'Leaf-bladed sword', 'Null'
   ];
 
   SHIELDS: TRSItemArray = [
@@ -439,7 +441,7 @@ begin
   if Self.Bracelet = 'Null' then
     Exit;
 
-  Result := Inventory.ClickItem(Self.Bracelet);
+  Result := Inventory.Open() and Inventory.ClickItem(Self.Bracelet);
 
   if Result then
   begin
@@ -590,6 +592,17 @@ begin
 end;
 
 
+function TRSCombatHandler.Consume(consumable: ERSConsumable): Boolean;
+begin
+  Result := Inventory.Consume(consumable);
+
+  if Result or Inventory.ContainsConsumable(consumable) then
+    Exit;
+
+  if consumable = ERSConsumable.BOOST_CONSUMABLE then
+    Self.HandleBoosts := False;
+end;
+
 //Check for pending action combat handler is taking care of.
 function TRSCombatHandler.GetConsumableState(): ECombatState;
 var
@@ -685,21 +698,21 @@ begin
   Result := ECombatState.ATTACK_MONSTER;
 end;
 
-
 //Check for pending action combat handler is taking care of and do them.
 procedure TRSCombatHandler.DoActions(handlerState: ECombatState = ECombatState.UNKNOWN_COMBAT_STATE);
 begin
   if handlerState = ECombatState.UNKNOWN_COMBAT_STATE then
     handlerState := Self.GetState();
+
   Self.State := handlerState;
 
   case handlerState of
-    ECombatState.EAT_FOOD:         Inventory.Consume(ERSConsumable.FOOD_CONSUMABLE);
-    ECombatState.DRINK_PRAYER:     Inventory.Consume(ERSConsumable.PRAYER_CONSUMABLE);
-    ECombatState.DRINK_ANTIFIRE:   Inventory.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
-    ECombatState.DRINK_ANTIVENOM:  Inventory.Consume(ERSConsumable.VENOM_CONSUMABLE);
-    ECombatState.DRINK_ANTIPOISON: Inventory.Consume(ERSConsumable.POISON_CONSUMABLE);
-    ECombatState.DRINK_BOOST:      Inventory.Consume(ERSConsumable.BOOST_CONSUMABLE);
+    ECombatState.EAT_FOOD:         Self.Consume(ERSConsumable.FOOD_CONSUMABLE);
+    ECombatState.DRINK_PRAYER:     Self.Consume(ERSConsumable.PRAYER_CONSUMABLE);
+    ECombatState.DRINK_ANTIFIRE:   Self.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
+    ECombatState.DRINK_ANTIVENOM:  Self.Consume(ERSConsumable.VENOM_CONSUMABLE);
+    ECombatState.DRINK_ANTIPOISON: Self.Consume(ERSConsumable.POISON_CONSUMABLE);
+    ECombatState.DRINK_BOOST:      Self.Consume(ERSConsumable.BOOST_CONSUMABLE);
     ECombatState.ENABLE_QPRAY:     Minimap.EnablePrayer();
 
     ECombatState.SETUP_GEAR:       Self.SetupGear();
@@ -754,6 +767,9 @@ function TRSMainScreen.InCombat(): Boolean; override;
 var
   gotXP, hasSplats: Boolean;
   cuboid: TCuboidEx;
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  bmp: TMufasaBitmap;
+  {$ENDIF}
 begin
   if CombatHandler.InCombatTimer.IsFinished() and not XPBar.EarnedXP() then
   begin
@@ -770,11 +786,28 @@ begin
   hasSplats := Self.FindHitsplats(cuboid.Bounds()) <> [];
   Result := gotXP or hasSplats;
   if not Result then
+
     Result := Self.FindHPBars(cuboid.Bounds()) <> [];
 
   CombatHandler.IsFighting := Result;
   if Result then
+  begin
     WL.Activity.Restart();
+    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+    if WLSettings.RemoteInput.Enabled then
+    begin
+      bmp := RSClient.Image();
+      bmp.DrawCuboid(cuboid, $0000FF);
+    end;
+    {$ENDIF}
+  end;
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if not Result and WLSettings.RemoteInput.Enabled then
+  begin
+    RSClient.Image().Clear(MainScreen.Bounds());
+  end;
+  {$ENDIF}
 
   if gotXP or hasSplats then
     CombatHandler.InCombatTimer.Restart();

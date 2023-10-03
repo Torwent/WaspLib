@@ -142,13 +142,12 @@ var
   elapsedTime: UInt64;
 begin
   if Self.Action = Self.PreviousAction then
-      Exit;
+    Exit(ProgressReport.ProgressArray);
 
   Self.DebugLn(Self.Action, Self.ExtraInfo);  //add action and extra info the the log.
   elapsedTime := Self.TimeRunning.ElapsedTime();
 
   Result += ' Action        : ' + Self.Action;
-
   Result += ' Runtime       : ' + SRL.MsToTime(elapsedTime, Time_Short).Trim();
 
   Result += ' Total Actions : ' + ToStr(Self.TotalActions);
@@ -167,20 +166,6 @@ begin
 end;
 
 (*
-BaseScript.BuildHUDReport
-~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function TBaseScript.BuildHUDReport(): TStringArray;
-
-Internal method used for custom HUD reports.
-To set custom messages simply override this method and pass in each line of you report into the Result array.
-Overriding **TBaseScript.BuildTextReport()** to set a custom report will likely need you to override this as well.
-*)
-function TBaseScript.BuildHUDReport(): TStringArray;
-begin
-  Result := [];
-end;
-
-(*
 BaseScript.PrintReport
 ~~~~~~~~~~~~~~~~~~~~~~
 .. pascal:: procedure TBaseScript.PrintReport(Sender: TObject);
@@ -193,49 +178,52 @@ procedure TBaseScript.PrintReport();
 var
   i: Int32;
   str: String;
-{$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  tmpArr: TStringArray;
-{$ENDIF}
 begin
   if not APIClient.IsSetup or APIClient.Timer.IsFinished() then
     APIClient.SubmitStats(APIClient.GetUUID());
 
   ProgressReport.ProgressArray := Self.BuildTextReport();
 
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if not Self.OnAntiban then
+  if Self.OnAntiban then
   begin
-    if WLSettings.RemoteInput.HUDDebug then
-      SRL.Debug(RSClient.Image())
-    else if Self.ShouldDrawPaint() then
-    begin
-      tmpArr := Self.BuildHUDReport();
-
-      if tmpArr <> [] then
-        ProgressReport.Update(tmpArr)
-      else
-        ProgressReport.Update(ProgressReport.ProgressArray);
-    end;
+    Self.PreviousAction := Self.Action;
+    Exit;
   end;
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if WLSettings.RemoteInput.HUDDebug then
+    SRL.Debug(RSClient.Image())
+  else if Self.ShouldDrawPaint() then
+    ProgressReport.Update();
   {$ENDIF}
 
-  if WLSettings.TextReport and (ProgressReport.ProgressArray <> []) then
+  if not WLSettings.TextReport then
   begin
-    WriteLn();
-    WriteLn(' ', PadL(Self.Name + ' Rev. ' + Self.Revision, 40, ' '));
+    Self.PreviousAction := Self.Action;
+    Exit;
   end;
 
-  if WLSettings.TextReport and not Self.OnAntiban then
-    for i := 0 to High(ProgressReport.ProgressArray) do
-    begin
-      str := ProgressReport.ProgressArray[i];
+  if (Self.TimeRunning.ElapsedTime() mod (10 * ONE_MINUTE)) <> 0 then
+  begin
+    if Self.PreviousAction <> Self.Action then
+      WriteLn(SRL.TimeStamp(), ':[', Self.Name, ']: ', Self.Action);
 
-      if i < High(ProgressReport.ProgressArray) -1 then
-        str := PadR(str, 40, ' ') + ProgressReport.ProgressArray[i+1];
+    Self.PreviousAction := Self.Action;
+    Exit;
+  end;
 
-      WriteLn str;
-      i += 1;
-    end;
+  WriteLn();
+  for i := 0 to High(ProgressReport.ProgressArray) do
+  begin
+    str := ProgressReport.ProgressArray[i];
+
+    if i < High(ProgressReport.ProgressArray) -1 then
+      str := PadR(str, 40, ' ') + ProgressReport.ProgressArray[i+1];
+
+    WriteLn str;
+    i += 1;
+  end;
+  WriteLn();
 
   Self.PreviousAction := Self.Action;
 end;
@@ -331,6 +319,10 @@ begin
 
   GenerateLog(Self.Name);
   WriteFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding, True);
+
+  WriteLn(SRL.TimeStamp(), ':[', Self.Name, ']: Welcome to ',
+          Self.Name, ' Revision ', Self.Revision
+  );
 
   Self.Welcome := WELCOME_SENTENCES.RandomValue();
 

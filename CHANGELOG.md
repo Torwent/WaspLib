@@ -1,3 +1,12 @@
+## [14.8.6](https://github.com/Torwent/WaspLib/compare/v14.8.5...v14.8.6) (2023-10-04)
+
+
+### Bug Fixes
+
+* moved methods to SRL-T ([f5e534b](https://github.com/Torwent/WaspLib/commit/f5e534b73c64f8be680e1a34c010dd0b802852f4))
+
+
+
 ## [14.8.5](https://github.com/Torwent/WaspLib/compare/v14.8.4...v14.8.5) (2023-10-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **loot handler:** more tweaks and accuracy improvements ([c86ae4a](https://github.com/Torwent/WaspLib/commit/c86ae4a6cde095b45cb78ad8377d280945cac5aa))
-
-
-
-## [14.8.1](https://github.com/Torwent/WaspLib/compare/v14.8.0...v14.8.1) (2023-09-30)
-
-
-### Bug Fixes
-
-* **loothandler:** read notes ([ee71e54](https://github.com/Torwent/WaspLib/commit/ee71e546d8f9682050cce5113405e05879ffcc30))
 
 
 

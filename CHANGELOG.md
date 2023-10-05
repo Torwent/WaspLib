@@ -1,3 +1,12 @@
+## [14.8.7](https://github.com/Torwent/WaspLib/compare/v14.8.6...v14.8.7) (2023-10-05)
+
+
+### Bug Fixes
+
+* read notes ([df3a1a2](https://github.com/Torwent/WaspLib/commit/df3a1a294694481490e210946787a8eb460cc963))
+
+
+
 ## [14.8.6](https://github.com/Torwent/WaspLib/compare/v14.8.5...v14.8.6) (2023-10-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([b089ec5](https://github.com/Torwent/WaspLib/commit/b089ec515b9be357d5cf07b6f343ea50896800e4))
-
-
-
-## [14.8.2](https://github.com/Torwent/WaspLib/compare/v14.8.1...v14.8.2) (2023-09-30)
-
-
-### Bug Fixes
-
-* **loot handler:** more tweaks and accuracy improvements ([c86ae4a](https://github.com/Torwent/WaspLib/commit/c86ae4a6cde095b45cb78ad8377d280945cac5aa))
 
 
 

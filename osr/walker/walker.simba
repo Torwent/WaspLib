@@ -221,6 +221,9 @@ begin
   Self.ScaledMap.Init();
   AddOnTerminate(@Self.Free);
   Self.Map.Downsample(scaling, Self.ScaledMap);
+
+  Self.Regions := [[0, 0, Self.Map.getWidth()-1, Self.Map.getHeight()-1]];
+  Self.RegionOffsets := [[0, 0]];
 end;
 
 procedure TRSWalkerMap.Load(fileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
@@ -902,21 +905,39 @@ end;
 
 function TRSWalker.WorldToMM(me: TPoint; DotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
 var
-  dotFilter: TRSDotFilter;
+  i: Int32;
 begin
   if (roll = $FFFF) then
     roll := Minimap.GetCompassAngle(False);
 
-  for dotFilter in dotFilterArray do
-    Result += Self.WorldToMM(me, dotFilter, roll);
+  for i := 0 to High(dotFilterArray) do
+  begin
+    if dotFilterArray[i].IsExpired() then
+    begin
+      Delete(dotFilterArray, i, 1);
+      i -= 1;
+      Continue;
+    end;
+
+    Result += Self.WorldToMM(me, dotFilterArray[i], roll);
+  end;
 end;
 
 function TRSWalker.WorldToMM(dotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
 var
-  dotFilter: TRSDotFilter;
+  i: Int32;
 begin
-  for dotFilter in dotFilterArray do
-    Result += Self.WorldToMM(Self.GetMyPos(), dotFilter, roll);
+  for i := 0 to High(dotFilterArray) do
+  begin
+     if dotFilterArray[i].IsExpired() then
+    begin
+      Delete(dotFilterArray, i, 1);
+      i -= 1;
+      Continue;
+    end;
+
+    Result += Self.WorldToMM(Self.GetMyPos(), dotFilterArray[i], roll);
+  end;
 end;
 
 

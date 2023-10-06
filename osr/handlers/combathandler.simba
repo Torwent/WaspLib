@@ -294,6 +294,9 @@ var
   me, monster: TPoint;
   b: TBox;
   dots: TPointArray;
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  bmp: TMufasaBitmap;
+  {$ENDIF}
 begin
   monster := MainScreen.PointToMM(msCoord, Round(Self.Monster.ShapeArray[0].Tile.Z)).ToPoint();
   b := Box(monster, 6, 6);
@@ -303,6 +306,15 @@ begin
     Exit;
 
   Result := dots[0];
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if WLSettings.RemoteInput.Enabled then
+  begin
+    RSClient.Image().Clear(Minimap.Bounds());
+    bmp := RSClient.Image();
+    bmp.DrawCross(Result + [2,2], 2, $3FFF98);
+    bmp.DrawCrosshairs(Result + [2,2], 4, $3FFF98);
+  end;
+  {$ENDIF}
   if Self.Monster.Filter.Walker then
   begin
     me := ScriptWalker^.GetMyPos();
@@ -587,6 +599,13 @@ begin
     Result := GetTickCount() > t;
   until Result;
 
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if not Result and WLSettings.RemoteInput.Enabled then
+  begin
+    RSClient.Image().Clear(MainScreen.Bounds());
+  end;
+  {$ENDIF}
+
   Self.IsFighting := not Result;
   Self.Looted := False;
 end;
@@ -721,16 +740,13 @@ begin
     ECombatState.REEQUIP_GEAR:     Self.ReGear();
     ECombatState.BURY_BONES:       Self.DoBuryBones();
 
-    ECombatState.ATTACK_MONSTER,
-    ECombatState.SPEC_MONSTER: Self.WalkAttackMonster();
+    ECombatState.ATTACK_MONSTER, ECombatState.SPEC_MONSTER: Self.WalkAttackMonster();
 
     ECombatState.WAIT_IN_COMBAT:   Self.WaitCombatEnd();
     ECombatState.DO_LOOT:          Self.Loot();
 
-    ECombatState.LOW_HEALTH,
-    ECombatState.LOW_PRAYER,
-    ECombatState.NO_ANTIFIRE,
-    ECombatState.PLAYER_DEAD: Self.Terminate();
+    ECombatState.LOW_HEALTH, ECombatState.LOW_PRAYER,
+    ECombatState.NO_ANTIFIRE, ECombatState.PLAYER_DEAD: Self.Terminate();
   end;
 end;
 
@@ -766,6 +782,8 @@ end;
 function TRSMainScreen.InCombat(): Boolean; override;
 var
   gotXP, hasSplats: Boolean;
+  tmp: TRSMonster;
+  cuboids: TCuboidExArray;
   cuboid: TCuboidEx;
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   bmp: TMufasaBitmap;
@@ -777,10 +795,22 @@ begin
     Exit;
   end;
 
+
   if CombatHandler.Monster.Filter.Walker then
-    cuboid := ScriptWalker^.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0], [2,2])
+  begin
+    tmp := CombatHandler.Monster;
+    tmp.Coordinates := [CombatHandler.MonsterWalkerCoord];
+    tmp.DotFilter := [];
+    tmp.DotFilter.Setup([CombatHandler.MonsterWalkerCoord.X, CombatHandler.MonsterWalkerCoord.Y, 8], True);
+
+    cuboids := tmp.GetCuboidArray();
+    if cuboids = [] then
+      Exit;
+
+    cuboid := cuboids[0];
+  end
   else
-    cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0], [2,2]);
+    cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
 
   gotXP := XPBar.EarnedXP();
   hasSplats := Self.FindHitsplats(cuboid.Bounds()) <> [];
@@ -797,17 +827,11 @@ begin
     if WLSettings.RemoteInput.Enabled then
     begin
       bmp := RSClient.Image();
+      bmp.Clear(MainScreen.Bounds());
       bmp.DrawCuboid(cuboid, $0000FF);
     end;
     {$ENDIF}
   end;
-
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if not Result and WLSettings.RemoteInput.Enabled then
-  begin
-    RSClient.Image().Clear(MainScreen.Bounds());
-  end;
-  {$ENDIF}
 
   if gotXP or hasSplats then
     CombatHandler.InCombatTimer.Restart();

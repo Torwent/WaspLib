@@ -19,8 +19,8 @@ type
     Loot: TRSGroundItem;
     Drops: TRSMonsterDropArray;
     ValueThreshold: Int32;
-    CheckedLoot: Boolean;
-    IsSetup: Boolean;
+    HasGemBag, HasHerbSack, HasSeedBox, HasSoulBearer,
+    CheckedLoot, IsSetup: Boolean;
   end;
 
 function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
@@ -38,6 +38,22 @@ begin
 
   value := value * drop.Quantity;
   Result := drop.Stackable and (value >= (Self.ValueThreshold / 5));
+  if Result then
+    Exit;
+
+  Result := Self.HasHerbSack and drop.Item.Contains('rimy  ') and not drop.Item.ContainsAny(['guam', 'marrentill', 'tarromin', 'harralander']);
+  if Result then
+    Exit;
+
+  Result := Self.HasGemBag and drop.Item.Contains('ncut ');
+  if Result then
+    Exit;
+
+  Result := Self.HasSoulBearer and drop.Item.Contains('nsouled ');
+  if Result then
+    Exit;
+
+  Result := Self.HasSeedBox and drop.Item.Contains('seed') and (value >= 300);
   if Result then
     Exit;
 
@@ -71,6 +87,11 @@ begin
     'Lesser demon champion scroll',
     'Giant key', 'Mossy key'
   ];
+
+  Self.HasGemBag := Inventory.ContainsItem('Open gem bag');
+  Self.HasHerbSack := Inventory.ContainsItem('Open herb sack');
+  Self.HasSoulBearer := Inventory.ContainsItem('Soul bearer');
+  Self.HasSeedBox := Inventory.ContainsItem('Open seed box');
 
   Self.ValueThreshold := value;
   Self.Loot._Setup();
@@ -283,6 +304,7 @@ begin
   if WLSettings.RemoteInput.Enabled then
   begin
     bmp := RSClient.Image();
+    bmp.Clear(MainScreen.Bounds());
     bmp.DrawRect(tile, $FFFFFF);
   end;
   {$ENDIF}

@@ -1,3 +1,12 @@
+## [14.9.2](https://github.com/Torwent/WaspLib/compare/v14.9.1...v14.9.2) (2023-10-08)
+
+
+### Bug Fixes
+
+* deprecated TPA.LimitTo() ([a1da9fa](https://github.com/Torwent/WaspLib/commit/a1da9faa8ef29df31732b8a655b672f5df5a5bc5))
+
+
+
 ## [14.9.1](https://github.com/Torwent/WaspLib/compare/v14.9.0...v14.9.1) (2023-10-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * moved methods to SRL-T ([f5e534b](https://github.com/Torwent/WaspLib/commit/f5e534b73c64f8be680e1a34c010dd0b802852f4))
-
-
-
-## [14.8.5](https://github.com/Torwent/WaspLib/compare/v14.8.4...v14.8.5) (2023-10-03)
-
-
-### Bug Fixes
-
-* read notes ([45a2110](https://github.com/Torwent/WaspLib/commit/45a21103f91099dee0309a41cdabd05306a41437))
 
 
 

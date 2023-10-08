@@ -1,3 +1,12 @@
+## [14.9.1](https://github.com/Torwent/WaspLib/compare/v14.9.0...v14.9.1) (2023-10-08)
+
+
+### Bug Fixes
+
+* added venator bow and keris weapons to weapons.json ([5477209](https://github.com/Torwent/WaspLib/commit/5477209b16897c4d726642cc70e6693df8d83705))
+
+
+
 # [14.9.0](https://github.com/Torwent/WaspLib/compare/v14.8.7...v14.9.0) (2023-10-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([45a2110](https://github.com/Torwent/WaspLib/commit/45a21103f91099dee0309a41cdabd05306a41437))
-
-
-
-## [14.8.4](https://github.com/Torwent/WaspLib/compare/v14.8.3...v14.8.4) (2023-10-01)
-
-
-### Bug Fixes
-
-* **TRSMMDot:** improved setup and finding performance ([96aa287](https://github.com/Torwent/WaspLib/commit/96aa287a0602618d04bc333cad8c524702a2b21a))
 
 
 

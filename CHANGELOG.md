@@ -1,3 +1,12 @@
+## [14.9.3](https://github.com/Torwent/WaspLib/compare/v14.9.2...v14.9.3) (2023-10-09)
+
+
+### Bug Fixes
+
+* added a new button to mapmaker.simba to "grow" regions easily ([26c3b82](https://github.com/Torwent/WaspLib/commit/26c3b820372cca1f7b0b205d798db34aa8ecb314))
+
+
+
 ## [14.9.2](https://github.com/Torwent/WaspLib/compare/v14.9.1...v14.9.2) (2023-10-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([df3a1a2](https://github.com/Torwent/WaspLib/commit/df3a1a294694481490e210946787a8eb460cc963))
-
-
-
-## [14.8.6](https://github.com/Torwent/WaspLib/compare/v14.8.5...v14.8.6) (2023-10-04)
-
-
-### Bug Fixes
-
-* moved methods to SRL-T ([f5e534b](https://github.com/Torwent/WaspLib/commit/f5e534b73c64f8be680e1a34c010dd0b802852f4))
 
 
 

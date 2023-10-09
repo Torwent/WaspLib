@@ -64,8 +64,8 @@ type
   TBaseScript = record(TSRLBaseRecord)
     ID, Revision, Welcome, Action, PreviousAction, ExtraInfo: String;
 
+    PrintTimer: TCountDown;
     TimeRunning: TStopwatch;
-    ReportTimer: TTimer;
 
     ActionProfit, TotalActions, TotalProfit, ActionLimit: Int32;
     TimeLimit: Int64;
@@ -203,7 +203,7 @@ begin
     Exit;
   end;
 
-  if (Self.TimeRunning.ElapsedTime() mod (10 * ONE_MINUTE)) <> 0 then
+  if not Self.PrintTimer.IsFinished() then
   begin
     if Self.PreviousAction <> Self.Action then
       WriteLn(SRL.TimeStamp(), ':[', Self.Name, ']: ', Self.Action);
@@ -226,6 +226,7 @@ begin
   WriteLn();
 
   Self.PreviousAction := Self.Action;
+  Self.PrintTimer.Restart();
 end;
 
 (*
@@ -339,6 +340,7 @@ begin
     Self.TimeLimit := -1;
 
   WL.Activity.Init(260000);
+  Self.PrintTimer.Init(5 * ONE_MINUTE);
 
   if Self.IsSetup then
     Exit;

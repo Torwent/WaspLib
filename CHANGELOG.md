@@ -1,3 +1,12 @@
+## [14.9.4](https://github.com/Torwent/WaspLib/compare/v14.9.3...v14.9.4) (2023-10-09)
+
+
+### Bug Fixes
+
+* **BaseScript:** should print a full report every 5 minutes now ([85897f1](https://github.com/Torwent/WaspLib/commit/85897f15bada3ee68fd89a0c38fcd71e331ba6c7))
+
+
+
 ## [14.9.3](https://github.com/Torwent/WaspLib/compare/v14.9.2...v14.9.3) (2023-10-09)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([78431d3](https://github.com/Torwent/WaspLib/commit/78431d370faf904f24290de1661809086ba2ccd1))
-
-
-
-## [14.8.7](https://github.com/Torwent/WaspLib/compare/v14.8.6...v14.8.7) (2023-10-05)
-
-
-### Bug Fixes
-
-* read notes ([df3a1a2](https://github.com/Torwent/WaspLib/commit/df3a1a294694481490e210946787a8eb460cc963))
 
 
 

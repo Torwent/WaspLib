@@ -1,3 +1,13 @@
+## [14.9.5](https://github.com/Torwent/WaspLib/compare/v14.9.4...v14.9.5) (2023-10-11)
+
+
+### Bug Fixes
+
+* chooseoption.simba ([266e95c](https://github.com/Torwent/WaspLib/commit/266e95c5e39061a6b50467a2fcb263fbae49dfd5))
+* read notes ([6ee19fd](https://github.com/Torwent/WaspLib/commit/6ee19fd09b283c43d9b448b5583b022b21e59bb5))
+
+
+
 ## [14.9.4](https://github.com/Torwent/WaspLib/compare/v14.9.3...v14.9.4) (2023-10-09)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * added venator bow and keris weapons to weapons.json ([5477209](https://github.com/Torwent/WaspLib/commit/5477209b16897c4d726642cc70e6693df8d83705))
-
-
-
-# [14.9.0](https://github.com/Torwent/WaspLib/compare/v14.8.7...v14.9.0) (2023-10-06)
-
-
-### Features
-
-* read notes ([78431d3](https://github.com/Torwent/WaspLib/commit/78431d370faf904f24290de1661809086ba2ccd1))
 
 
 

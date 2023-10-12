@@ -1,3 +1,12 @@
+# [14.10.0](https://github.com/Torwent/WaspLib/compare/v14.9.5...v14.10.0) (2023-10-12)
+
+
+### Features
+
+* read notes ([60c5fe1](https://github.com/Torwent/WaspLib/commit/60c5fe124917983e9c04dab7b09394145643f196))
+
+
+
 ## [14.9.5](https://github.com/Torwent/WaspLib/compare/v14.9.4...v14.9.5) (2023-10-11)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * deprecated TPA.LimitTo() ([a1da9fa](https://github.com/Torwent/WaspLib/commit/a1da9faa8ef29df31732b8a655b672f5df5a5bc5))
-
-
-
-## [14.9.1](https://github.com/Torwent/WaspLib/compare/v14.9.0...v14.9.1) (2023-10-08)
-
-
-### Bug Fixes
-
-* added venator bow and keris weapons to weapons.json ([5477209](https://github.com/Torwent/WaspLib/commit/5477209b16897c4d726642cc70e6693df8d83705))
 
 
 

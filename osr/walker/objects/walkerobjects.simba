@@ -330,12 +330,12 @@ begin
   Result := floorTiles.GetCuboids();
 end;
 
-function TRSWalkerObject.GetCuboidArray(): TCuboidExArray;
+function TRSWalkerObject.GetCuboidArray(me: TPoint = []): TCuboidExArray;
 var
-  me: TPoint;
   coordinates: TPointArray;
 begin
-  me := ScriptWalker^.GetMyPos();
+  if me = [] then
+    me := ScriptWalker^.GetMyPos();
 
   coordinates := Self.Coordinates.PointsInRangeOf([me],0, 120);
   coordinates := coordinates.Sorted(me);
@@ -589,9 +589,9 @@ This are meant to be TRSWalkerObjects that do not have a minimap dot so TRSObjec
   PRSObject = ^TRSObject;
   PRSObjectArray = array of PRSObject;
 
-procedure PRSObjectArray.Del(const Index: Integer; const Count: Integer = 1);
+procedure PRSObjectArray.Del(const index: Int32; const count: Int32 = 1);
 begin
-  Delete(Self, Index, Count);
+  Delete(Self, index, count);
 end;
 
 function PRSObjectArray.IndexOf(value: TPoint): Int32; overload;
@@ -605,41 +605,137 @@ begin
   Result := -1;
 end;
 
-function PRSObjectArray.GetClosest(): TRSObject;
+function PRSObjectArray.GetClosestEx(value: TPoint): TRSObject;
 var
-  me: TPoint;
   i, hi: Int32;
-  tpa, tmp: TPointArray;
+  closest, current: Double;
 begin
   if Self = [] then
     Exit;
 
-  if ScriptWalker = nil then
-    Exit;
-
-  me := ScriptWalker^.GetMyPos();
-
+  closest := High(Int32);
   hi := High(Self);
   for i := 0 to hi do
   begin
     if Self[i]^.Coordinates = [] then
     begin
-      Self.Del(i); //remove the empty ones so next times are faster since we don't have to check them.
+      Self.Del(i);
       hi -= 1;
       i -= 1;
       Continue;
     end;
 
-    tmp := Self[i]^.Coordinates.SortFrom(me);
-    tpa += tmp.First();
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i]^;
+    end;
   end;
+end;
 
-  if tpa = [] then
+function PRSObjectArray.GetClosest(): TRSObject;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
     Exit;
 
-  tpa := tpa.SortFrom(me);
-  Result := Self[Self.IndexOf(tpa.First())]^;
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
 end;
+
+
+{$IFDEF SIMBA1400}
+procedure TRSObjectArray.Del(const index: Int32; const count: Int32 = 1);
+begin
+  Delete(Self, index, count);
+end;
+
+function TRSObjectArray.IndexOf(value: TRSObject): Int32;
+begin
+  Result := System.IndexOf(value, Self); //Simba doesn't show this but it exists and it's very fast
+end;
+
+function TRSObjectArray.IndexOf(value: TPoint): Int32; overload;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i].Coordinates.Contains(value) then
+      Exit(i);
+
+  Result := -1;
+end;
+
+function TRSObjectArray.IndicesOf(value: TRSObject): TIntegerArray;
+begin
+  Result := System.IndicesOf(value, Self); //Simba doesn't show this but it exists and it's very fast
+end;
+
+function TRSObjectArray.IndicesOf(value: TPoint): TIntegerArray; overload;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i].Coordinates.Contains(value) then
+      Result += i;
+end;
+
+procedure TRSObjectArray.Remove(const value: TRSObject; const all: Boolean = False);
+var
+  i: Int32;
+  lst: TIntegerArray;
+begin
+  if (not all) then
+  begin
+    i := Self.IndexOf(value);
+    if i >= 0 then
+      Self.Del(i);
+    Exit;
+  end;
+
+  lst := Self.IndicesOf(value);
+  for i := High(lst) downto 0 do
+    Self.Del(lst[i]);
+end;
+{$ENDIF}
+
+
+function TRSObjectArray.GetClosestEx(value: TPoint): TRSObject;
+var
+  i, hi: Int32;
+  closest, current: Double;
+begin
+  if Self = [] then
+    Exit;
+
+  closest := High(Int32);
+  hi := High(Self);
+  for i := 0 to hi do
+  begin
+    if Self[i].Coordinates = [] then
+    begin
+      Self.Del(i);
+      hi -= 1;
+      i -= 1;
+      Continue;
+    end;
+
+    current := Self[i].Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
+  end;
+end;
+
+function TRSObjectArray.GetClosest(): TRSObject;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
 
 
 (*
@@ -732,7 +828,7 @@ Example
   WriteLn RSObjects.GEBank.Find(atpa); //Be in ge and with a walker setup there.
   Debug(atpa);
 *)
-function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
+function TRSObject.Find(out atpa: T2DPointArray): Boolean;
 var
   cuboidArray: TCuboidExArray;
 begin
@@ -774,6 +870,40 @@ begin
 
   if Self.Filter.Finder then
     Result := MainScreen.FindObject(Self.Finder) <> [];
+end;
+
+(*
+TRSObject.Find
+~~~~~~~~~~~~~~
+.. pascal::
+  function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
+  function TRSObject.Find(): Boolean; overload;
+
+TRSObject methods used to find a TRSObject. If found returns true, if not returns false.
+
+Example
+-------
+
+  WriteLn RSObjects.GEBank.Find(atpa); //Be in ge and with a walker setup there.
+  Debug(atpa);
+*)
+function TRSObject.FindFromPosition(me: TPoint; out atpa: T2DPointArray): Boolean;
+var
+  cuboidArray: TCuboidExArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboidArray := Self.GetCuboidArray(me);
+
+    if cuboidArray = [] then
+      Exit;
+
+    atpa := Self.FindOnMainScreen(cuboidArray);
+  end;
+
+  Result := atpa <> [];
 end;
 
 
@@ -1005,6 +1135,30 @@ begin
   end;
 end;
 
+(*
+TRSObject.PreHoverHelper
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TRSObject.PreHoverHelper(attempts: Int32): Boolean;
+
+Internal helper method used to pre-hover a TRSObject target.
+You should not use this directly.
+*)
+function TRSObject.PreHoverHelper(me: TPoint; attempts: Int32 = 2): Boolean;
+var
+  attempt: Int32;
+  atpa: T2DPointArray;
+  tpa: TPointArray;
+begin
+  for attempt := 0 to attempts do
+  begin
+    if Self.FindFromPosition(me, atpa) then
+    begin
+      tpa := atpa[Random(0, High(atpa))];
+      ASyncMouse.Move(tpa[Random(0, High(tpa))]);
+      Exit(True);
+    end;
+  end;
+end;
 
 (*
 TRSObject.Hover
@@ -1315,7 +1469,7 @@ begin
     Exit(Self._GetMMPolys(dots, floorTiles, roofTiles));
 end;
 
-function TRSMMDot.GetCuboidArray(): TCuboidExArray; override;
+function TRSMMDot.GetCuboidArray(me: TPoint = []): TCuboidExArray; override;
 var
   angle: Double;
   dots: TPointArray;

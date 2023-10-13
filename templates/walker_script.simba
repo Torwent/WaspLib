@@ -19,10 +19,11 @@ var
 type
   EState = (
     WAIT_STATE,
+    NO_ACTIVITY,
     END_SCRIPT
   );
 
-  TScript = record(TBaseWalkerScript)
+  TWalkerScript = record(TBaseWalkerScript)
     State: EState;
   end;
 
@@ -35,22 +36,25 @@ begin
   inherited;
 end;
 
-procedure TScript.Init(maxActions: Int32; maxTime: Int64); override;
+procedure TWalkerScript.Init(maxActions: UInt32; maxTime: UInt64); override;
 begin
   inherited;
 
   RSW.Setup([RSRegions.GRAND_EXCHANGE]);
 end;
 
-function TScript.GetState(): EState;
+function TWalkerScript.GetState(): EState;
 begin
+  if Self.ShouldStop() then
+    Exit(EState.END_SCRIPT);
+
   if WL.Activity.IsFinished() then
-    Exit(END_SCRIPT);
+    Exit(EState.NO_ACTIVITY);
 
   Exit(WAIT_STATE);
 end;
 
-procedure TScript.Run(maxActions: Int32; maxTime: Int64);
+procedure TWalkerScript.Run(maxActions: UInt32; maxTime: UInt64);
 begin
   Self.Init(maxActions, maxTime);
 
@@ -59,16 +63,16 @@ begin
     Self.SetAction(ToStr(Self.State));
 
     case State of
-      WAIT_STATE: Wait(500, 800);
-      END_SCRIPT: Break;
+      EState.WAIT_STATE: Wait(500, 800);
+      EState.NO_ACTIVITY, EState.END_SCRIPT: Break;
     end;
 
     Self.DoAntiban();
-  until Self.ShouldStop();
+  until False;
 end;
 
 var
-  Script: TScript;
+  WalkerScript: TWalkerScript;
 
 {$IFDEF SCRIPT_GUI}
 type
@@ -76,35 +80,41 @@ type
     Selector: TLabeledCombobox;
   end;
 
-procedure TConfig.StartScript(Sender: TObject);
+procedure TConfig.StartScript(sender: TObject); override;
 begin
-  Self.Init(Sender);
-
   CurrentTask := ETask(Self.Selector.Combobox.getItemIndex);
-end;
-
-procedure TConfig.Setup(); override;
-begin
   inherited;
-
-  with Selector do
-  begin
-    Init(Self.SSPanel.Panel);
-    SetCaption('Task:');
-    SetLeft(5);
-    SetTop(35);
-    SetWidth(200);
-    Combobox.setStyle(csDropDownList);
-    AddItem('Task to do');
-    SetItemIndex(Ord(CurrentTask));
-  end;
-
-  Self.WLPanel.StartButton.setOnClick(@Self.StartScript);
 end;
 
 procedure TConfig.Run(); override;
+var
+  tab: TTabSheet;
 begin
-  Self.Setup();
+  Self.Setup('Walker script');
+  Self.Start.setOnClick(@Self.StartScript);
+
+  Self.AddTab('Script Settings');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  Self.CreateAccountManager(tab);
+
+  with Self.Selector do
+  begin
+    Create(tab);
+    SetCaption('Item type:');
+    SetLeft(TControl.AdjustToDPI(40));
+    SetTop(TControl.AdjustToDPI(170));
+    SetStyle(csDropDownList);
+    AddItemArray(['Item1', 'Item2', 'Item3', 'Item4']);
+    SetItemIndex(2);
+  end;
+
+  Self.CreateVersionPanel(tab);
+
+  Self.CreateAntibanManager();
+  Self.CreateBankSettings();
+  Self.CreateWaspLibSettings();
+  Self.CreateAPISettings();
 
   inherited;
 end;
@@ -115,7 +125,7 @@ var
 
 begin
   {$IFDEF SCRIPT_GUI}
-  Sync(@Config.Run);
+  Config.Run();
   {$ENDIF}
-  Script.Run(WLSettings.MaxActions, WLSettings.MaxTime);
+  WalkerScript.Run(WLSettings.MaxActions, WLSettings.MaxTime);
 end.

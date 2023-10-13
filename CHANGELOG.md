@@ -1,3 +1,12 @@
+## [14.10.2](https://github.com/Torwent/WaspLib/compare/v14.10.1...v14.10.2) (2023-10-13)
+
+
+### Bug Fixes
+
+* very minor tweak to fix the progress reports with today's changes ([f380e8c](https://github.com/Torwent/WaspLib/commit/f380e8caf29f2649b26285cdc0a9c6f40552ebd3))
+
+
+
 ## [14.10.1](https://github.com/Torwent/WaspLib/compare/v14.10.0...v14.10.1) (2023-10-13)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **BaseScript:** should print a full report every 5 minutes now ([85897f1](https://github.com/Torwent/WaspLib/commit/85897f15bada3ee68fd89a0c38fcd71e331ba6c7))
-
-
-
-## [14.9.3](https://github.com/Torwent/WaspLib/compare/v14.9.2...v14.9.3) (2023-10-09)
-
-
-### Bug Fixes
-
-* added a new button to mapmaker.simba to "grow" regions easily ([26c3b82](https://github.com/Torwent/WaspLib/commit/26c3b820372cca1f7b0b205d798db34aa8ecb314))
 
 
 

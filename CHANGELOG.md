@@ -1,3 +1,12 @@
+## [14.10.1](https://github.com/Torwent/WaspLib/compare/v14.10.0...v14.10.1) (2023-10-13)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T and Simba1500 ([c04fc85](https://github.com/Torwent/WaspLib/commit/c04fc85e84a7c712a2f7b494b7a2f77e6fe68bea))
+
+
+
 # [14.10.0](https://github.com/Torwent/WaspLib/compare/v14.9.5...v14.10.0) (2023-10-12)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * added a new button to mapmaker.simba to "grow" regions easily ([26c3b82](https://github.com/Torwent/WaspLib/commit/26c3b820372cca1f7b0b205d798db34aa8ecb314))
-
-
-
-## [14.9.2](https://github.com/Torwent/WaspLib/compare/v14.9.1...v14.9.2) (2023-10-08)
-
-
-### Bug Fixes
-
-* deprecated TPA.LimitTo() ([a1da9fa](https://github.com/Torwent/WaspLib/commit/a1da9faa8ef29df31732b8a655b672f5df5a5bc5))
 
 
 

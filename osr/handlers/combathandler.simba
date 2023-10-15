@@ -294,9 +294,6 @@ var
   me, monster: TPoint;
   b: TBox;
   dots: TPointArray;
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  bmp: TMufasaBitmap;
-  {$ENDIF}
 begin
   monster := MainScreen.PointToMM(msCoord, Round(Self.Monster.ShapeArray[0].Tile.Z)).ToPoint();
   b := Box(monster, 6, 6);
@@ -309,10 +306,8 @@ begin
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if WLSettings.RemoteInput.Enabled then
   begin
-    RSClient.Image().Clear(Minimap.Bounds());
-    bmp := RSClient.Image();
-    bmp.DrawCross(Result + [2,2], 2, $3FFF98);
-    bmp.DrawCrosshairs(Result + [2,2], 4, $3FFF98);
+    RSClient.Clear(Minimap.Bounds());
+    RSClient.DrawCrosshair(Result + [2,2], 4, $3FFF98);
   end;
   {$ENDIF}
   if Self.Monster.Filter.Walker then
@@ -593,17 +588,19 @@ var
 begin
   t := GetTickCount() + 3400;
   repeat
+    if not RSClient.IsLoggedIn() then
+      Exit;
+
     if MainScreen.InCombat() then
       Exit;
+
     Wait(300);
     Result := GetTickCount() > t;
   until Result;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
   if not Result and WLSettings.RemoteInput.Enabled then
-  begin
-    RSClient.Image().Clear(MainScreen.Bounds());
-  end;
+    RSClient.Clear(MainScreen.Bounds());
   {$ENDIF}
 
   Self.IsFighting := not Result;
@@ -785,9 +782,6 @@ var
   tmp: TRSMonster;
   cuboids: TCuboidExArray;
   cuboid: TCuboidEx;
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  bmp: TMufasaBitmap;
-  {$ENDIF}
 begin
   if CombatHandler.InCombatTimer.IsFinished() and not XPBar.EarnedXP() then
   begin
@@ -826,9 +820,8 @@ begin
     {$IFNDEF SRL_DISABLE_REMOTEINPUT}
     if WLSettings.RemoteInput.Enabled then
     begin
-      bmp := RSClient.Image();
-      bmp.Clear(MainScreen.Bounds());
-      bmp.DrawCuboid(cuboid, $0000FF);
+      RSClient.Clear(MainScreen.Bounds());
+      RSClient.DrawCuboid(cuboid, $FFFFFF);
     end;
     {$ENDIF}
   end;

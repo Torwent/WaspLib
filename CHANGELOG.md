@@ -1,3 +1,12 @@
+## [14.10.3](https://github.com/Torwent/WaspLib/compare/v14.10.2...v14.10.3) (2023-10-15)
+
+
+### Bug Fixes
+
+* added visual debugging to all TRSWalkerObjects ([f3526ae](https://github.com/Torwent/WaspLib/commit/f3526ae98308501f6545ea3b6e1168ca199ef162))
+
+
+
 ## [14.10.2](https://github.com/Torwent/WaspLib/compare/v14.10.1...v14.10.2) (2023-10-13)
 
 
@@ -32,15 +41,6 @@
 
 * chooseoption.simba ([266e95c](https://github.com/Torwent/WaspLib/commit/266e95c5e39061a6b50467a2fcb263fbae49dfd5))
 * read notes ([6ee19fd](https://github.com/Torwent/WaspLib/commit/6ee19fd09b283c43d9b448b5583b022b21e59bb5))
-
-
-
-## [14.9.4](https://github.com/Torwent/WaspLib/compare/v14.9.3...v14.9.4) (2023-10-09)
-
-
-### Bug Fixes
-
-* **BaseScript:** should print a full report every 5 minutes now ([85897f1](https://github.com/Torwent/WaspLib/commit/85897f15bada3ee68fd89a0c38fcd71e331ba6c7))
 
 
 

@@ -1,3 +1,12 @@
+## [14.10.4](https://github.com/Torwent/WaspLib/compare/v14.10.3...v14.10.4) (2023-10-15)
+
+
+### Bug Fixes
+
+* more drawing methods ([0997666](https://github.com/Torwent/WaspLib/commit/099766656193bf97d4d11cda5dc24652a3158003))
+
+
+
 ## [14.10.3](https://github.com/Torwent/WaspLib/compare/v14.10.2...v14.10.3) (2023-10-15)
 
 
@@ -31,16 +40,6 @@
 ### Features
 
 * read notes ([60c5fe1](https://github.com/Torwent/WaspLib/commit/60c5fe124917983e9c04dab7b09394145643f196))
-
-
-
-## [14.9.5](https://github.com/Torwent/WaspLib/compare/v14.9.4...v14.9.5) (2023-10-11)
-
-
-### Bug Fixes
-
-* chooseoption.simba ([266e95c](https://github.com/Torwent/WaspLib/commit/266e95c5e39061a6b50467a2fcb263fbae49dfd5))
-* read notes ([6ee19fd](https://github.com/Torwent/WaspLib/commit/6ee19fd09b283c43d9b448b5583b022b21e59bb5))
 
 
 

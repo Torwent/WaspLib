@@ -1,3 +1,12 @@
+## [14.10.5](https://github.com/Torwent/WaspLib/compare/v14.10.4...v14.10.5) (2023-10-16)
+
+
+### Bug Fixes
+
+* **house options:** several house option button fixes ([b5e5182](https://github.com/Torwent/WaspLib/commit/b5e5182eae2cfaf07513adf59704b1cd486aacfe))
+
+
+
 ## [14.10.4](https://github.com/Torwent/WaspLib/compare/v14.10.3...v14.10.4) (2023-10-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T and Simba1500 ([c04fc85](https://github.com/Torwent/WaspLib/commit/c04fc85e84a7c712a2f7b494b7a2f77e6fe68bea))
-
-
-
-# [14.10.0](https://github.com/Torwent/WaspLib/compare/v14.9.5...v14.10.0) (2023-10-12)
-
-
-### Features
-
-* read notes ([60c5fe1](https://github.com/Torwent/WaspLib/commit/60c5fe124917983e9c04dab7b09394145643f196))
 
 
 

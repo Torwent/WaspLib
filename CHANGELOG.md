@@ -1,3 +1,12 @@
+## [14.10.6](https://github.com/Torwent/WaspLib/compare/v14.10.5...v14.10.6) (2023-10-17)
+
+
+### Bug Fixes
+
+* **recorder:** read notes ([87367e9](https://github.com/Torwent/WaspLib/commit/87367e985efb68eedcbfcb55cc8345dfeb8abcbd))
+
+
+
 ## [14.10.5](https://github.com/Torwent/WaspLib/compare/v14.10.4...v14.10.5) (2023-10-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * very minor tweak to fix the progress reports with today's changes ([f380e8c](https://github.com/Torwent/WaspLib/commit/f380e8caf29f2649b26285cdc0a9c6f40552ebd3))
-
-
-
-## [14.10.1](https://github.com/Torwent/WaspLib/compare/v14.10.0...v14.10.1) (2023-10-13)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T and Simba1500 ([c04fc85](https://github.com/Torwent/WaspLib/commit/c04fc85e84a7c712a2f7b494b7a2f77e6fe68bea))
 
 
 

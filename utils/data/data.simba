@@ -94,8 +94,15 @@ begin
     Exit;
   end;
 
-  ItemData.PriceData.Init(JSON);
-  ItemData.ReloadTimer.Restart;
+  try
+    ItemData.PriceData.Init(JSON);
+  except
+    WriteLn 'https://prices.runescape.wiki gave an invalid JSON';
+    ItemData.PricesDisconnected := True;
+    Exit;
+  end;
+
+  ItemData.ReloadTimer.Restart();
 end;
 
 (*
@@ -802,50 +809,47 @@ begin
 end;
 
 (*
-type WeaponData
-~~~~~~~~~~~~~~~
+type TWeaponData
+~~~~~~~~~~~~~~~~
 .. pascal::
   type
-  WeaponData = record(TSRLBaseRecord) class var
-    Data: TJSONObject;
-    IsSetup: Boolean;
-  end;
+    TWeaponData = record
+      Data: TJSONObject;
+      IsSetup: Boolean;
+    end;
 
-Static WeaponData type, responsible to handle anything that is related to weapons data.
+Type responsible of handling anything that is related to weapons data.
 *)
 type
-  WeaponData = record(TSRLBaseRecord) class var
+  TWeaponData = record
     Data: TJSONObject;
     IsSetup: Boolean;
-  class const
-    WEAPONS_JSON  = {$macro CURRENT_DIRECTORY} + '/weapons.json';
   end;
 
 (*
-WeaponData.Setup()
-~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure WeaponData.Setup();
+WeaponData.Setup
+~~~~~~~~~~~~~~~~
+.. pascal:: procedure TWeaponData.Setup();
 
-Internal method to setup WeaponData.
+Internal method to setup TWeaponData.
 *)
-procedure WeaponData.Setup(); static;
+procedure TWeaponData.Setup();
 begin
-  if WeaponData.IsSetup then
+  if Self.IsSetup then
     Exit;
 
   WriteLn('Loading weapons.json.');
 
-  WeaponData.Data.Init(ReadFileContents(WeaponData.WEAPONS_JSON));
+  Self.Data.Init(ReadFileContents({$macro CURRENT_DIRECTORY} + '/weapons.json'));
 
-  AddOnTerminate(@WeaponData.Data.Free);
-
-  WeaponData.IsSetup := True;
+  AddOnTerminate(@Self.Data.Free);
+  Self.IsSetup := True;
 end;
 
 (*
-WeaponData.GetInt()
-~~~~~~~~~~~~~~~~~~~
-.. pascal:: function WeaponData.GetInt(Weapon, Key: String): Int32;
+WeaponData.GetInt
+~~~~~~~~~~~~~~~~~
+.. pascal:: function TWeaponData.GetInt(weapon, key: String): Int32;
 
 Method to fetch integer data from weapons.json.
 
@@ -854,34 +858,30 @@ Method to fetch integer data from weapons.json.
 Example
 -------
 
-  WriteLn WeaponData.GetInt('Abyssal whip', 'special_attack'); //This will print 50.
+  WriteLn TWeaponData.GetInt('Abyssal whip', 'special_attack'); //This will print 50.
 *)
-function WeaponData.GetInt(Weapon, Key: String): Int32; static;
+function TWeaponData.GetInt(weapon, key: String): Int32;
 begin
-  if not WeaponData.IsSetup then
-    WeaponData.Setup;
-
-  Result := WeaponData.Data.getJSONObject(Weapon).getInt(Key);
+  Self.Setup();
+  Result := Self.Data.getJSONObject(weapon).getInt(key);
 end;
 
 (*
-WeaponData.GetAttackType()
-~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function WeaponData.GetAttackType(Weapon: String): ERSAttackType;
+WeaponData.GetAttackType
+~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWeaponData.GetAttackType(weapon: String): ERSAttackType;
 
 Returns the ERSAttackType of the weapon specified.
 
 Example
 -------
 
-  WriteLn WeaponData.GetAttackType('Abyssal whip'); //This will print MELEE_ATTACK_TYPE.
+  WriteLn TWeaponData.GetAttackType('Abyssal whip'); //This will print MELEE_ATTACK_TYPE.
 *)
-function WeaponData.GetAttackType(Weapon: String): ERSAttackType; static;
+function TWeaponData.GetAttackType(weapon: String): ERSAttackType;
 begin
-  if not WeaponData.IsSetup then
-    WeaponData.Setup();
-
-  case WeaponData.Data.getJSONObject(Weapon).getString('type') of
+  Self.Setup();
+  case Self.Data.getJSONObject(weapon).getString('type') of
     'melee':  Result := ERSAttackType.MELEE_ATTACK_TYPE;
     'ranged': Result := ERSAttackType.RANGED_ATTACK_TYPE;
     'magic':  Result := ERSAttackType.MAGIC_ATTACK_TYPE;
@@ -889,40 +889,38 @@ begin
 end;
 
 (*
-WeaponData.IsTwoHanded()
-~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function WeaponData.IsTwoHanded(Weapon: String): Boolean;
+WeaponData.IsTwoHanded
+~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWeaponData.IsTwoHanded(weapon: String): Boolean;
 
 Returns wether the weapon is two-handed or not.
 
 Example
 -------
 
-  WriteLn WeaponData.IsTwoHanded('Abyssal whip'); //This will print false.
+  WriteLn TWeaponData.IsTwoHanded('Abyssal whip'); //This will print false.
 *)
-function WeaponData.IsTwoHanded(Weapon: String): Boolean; static;
+function TWeaponData.IsTwoHanded(weapon: String): Boolean;
 begin
-  if not WeaponData.IsSetup then
-    WeaponData.Setup;
-
-  Result := WeaponData.Data.getJSONObject(Weapon).getBoolean('two-handed');
+  Self.Setup();
+  Result := Self.Data.getJSONObject(weapon).getBoolean('two-handed');
 end;
 
 (*
-WeaponData.GetRequirementsJSON()
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-.. pascal:: function WeaponData.GetRequirementsJSON(Weapon: String): TJSONObject;
+WeaponData.GetRequirementsJSON
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+.. pascal:: function TWeaponData.GetRequirementsJSON(weapon: String): TJSONObject;
 
 Returns a TJSONObject of the level requirements for the weapon.
 *)
-function WeaponData.GetRequirementsJSON(Weapon: String): TJSONObject; static;
+function TWeaponData.GetRequirementsJSON(weapon: String): TJSONObject;
 begin
-  if not WeaponData.IsSetup then
-    WeaponData.Setup;
-
-  Result := WeaponData.Data.getJSONObject(Weapon).getJSONObject('level_requirements');
+  Self.Setup();
+  Result := Self.Data.getJSONObject(weapon).getJSONObject('level_requirements');
 end;
 
+var
+  {$H-}WeaponData: TWeaponData;{$H+}
 
 type
   TRSObjectData = record

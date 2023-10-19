@@ -1,5 +1,451 @@
 {$loadlib ../../plugins/librecorder}
-{$I SRL-T/osr.simba}
+
+type
+  TSRL = record
+    IsSetup: Boolean;
+  end;
+
+
+function Grid(Columns, Rows, Width, Height: Int32; Spacing, Start: TPoint): TBoxArray;
+var
+  I: Int32;
+begin
+  Start.X += (Width div 2);
+  Start.Y += (Height div 2);
+
+  Spacing.X += Width;
+  Spacing.Y += Height;
+
+  SetLength(Result, Columns * Rows);
+
+  for I := 0 to High(Result) do
+  begin
+    Result[I].X1 := Start.X + I mod Columns * Spacing.X - Width div 2;
+    Result[I].Y1 := Start.Y + I div Columns * Spacing.Y - Height div 2;
+    Result[I].X2 := Result[I].X1 + Width;
+    Result[I].Y2 := Result[I].Y1 + Height;
+  end;
+end;
+
+function FindColorsTolerance(var Points: TPointArray; const Color: Integer; const SearchBox: TBox; const Tolerance: Integer): Boolean; overload;
+begin
+  Result := System.FindColorsTolerance(Points, Color, SearchBox.x1, SearchBox.y1, SearchBox.x2, SearchBox.y2, Tolerance);
+end;
+
+type
+  TCTS0Color = record
+    Color: Int32;
+    Tolerance: Int32;
+  end;
+
+  TCTS1Color = type TCTS0Color;
+
+function CTS1(Color, Tolerance: Int32): TCTS1Color;
+begin
+  Result := [Color, Tolerance];
+end;
+
+function TSRL.FindColorsHelper(out TPA: TPointArray; Area: TBox; Color, Tol, CTS: Integer; Hue, Sat: Double = 0.2): Int32; constref;
+type
+  TCTSContainer = record CTS: Int32; Hue, Sat: Extended; end;
+var
+  Old: TCTSContainer;
+begin
+  Old.CTS := GetToleranceSpeed();
+  if (Old.CTS = 2) then
+    GetToleranceSpeed2Modifiers(Old.Hue, Old.Sat);
+
+  SetColorToleranceSpeed(CTS);
+  SetToleranceSpeed2Modifiers(Hue, Sat);
+
+  if FindColorsTolerance(TPA, Color, Area.X1, Area.Y1, Area.X2, Area.Y2, Tol) then
+    Result := Length(TPA);
+
+  SetColorToleranceSpeed(Old.CTS);
+  if (Old.CTS = 2) then
+    SetToleranceSpeed2Modifiers(Old.Hue, Old.Sat);
+end;
+
+
+function TSRL.CountColor(color: Int32; area: TBox): Int32;
+var
+  tpa: TPointArray;
+begin
+  if FindColorsTolerance(tpa, color, area, 0) then
+    Result := Length(tpa);
+end;
+
+function TSRL.CountColor(color: TCTS1Color; area: TBox): Int32; constref; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.FindColorsHelper(tpa, area, color.Color, color.Tolerance, 1);
+end;
+
+var
+  MicroSRL: TSRL;
+
+type
+  ERSClientMode = (
+    UNKNOWN,
+    FIXED,
+    RESIZABLE_CLASSIC,
+    RESIZABLE_MODERN
+  );
+
+  TRSInterfaceAlignment = record
+    Left, Right, Top, Bottom: record
+      Method: function: Int32 of object;
+      Offset: Int32;
+    end;
+
+    Center: record
+      MaxWidth: Int32;
+      MaxHeight: Int32;
+    end;
+  end;
+
+  TRSInterface = record
+    Mode: ERSClientMode;
+
+    Cache: record
+      Enabled: Boolean;
+
+      X1, Y1, X2, Y2: record
+        Mode: ERSClientMode;
+        ClientWidth, ClientHeight: Int32;
+        Value: Int32;
+      end;
+    end;
+
+    Alignment: TRSInterfaceAlignment;
+  end;
+
+
+procedure TRSInterface.SetupAlignment(mode: ERSClientMode);
+begin
+  Self.Mode := Mode;
+end;
+
+function TRSInterface.X1(): Int32;
+var
+  Left, Right, Width, Center: Single;
+  ClientWidth, ClientHeight: Int32;
+begin
+  if Self.Cache.Enabled then
+  begin
+    GetClientDimensions(ClientWidth, ClientHeight);
+    if (Self.Cache.X1.Mode = Self.Mode) and (Self.Cache.X1.ClientWidth = ClientWidth) and (Self.Cache.X1.ClientHeight = ClientHeight) then
+      Exit(Self.Cache.X1.Value);
+  end;
+
+  if (@Self.Alignment.Left.Method = nil) then
+  begin
+    WriteLn('[MicroSRL]: No left anchor');
+    TerminateScript();
+  end;
+
+  if (Self.Alignment.Center.MaxWidth > 0) then
+  begin
+    Left := Self.Alignment.Left.Method() + Self.Alignment.Left.Offset;
+    Right := Self.Alignment.Right.Method() + Self.Alignment.Right.Offset;
+
+    Width := (Right - Left);
+    Center := Left + (Width / 2);
+
+    Result := Max(
+      Floor(Center - (Width / 2)),
+      Floor(Center - ((Self.Alignment.Center.MaxWidth - 1) / 2))
+    );
+  end else
+    Result := Round(Self.Alignment.Left.Method() + Self.Alignment.Left.Offset);
+
+  if Self.Cache.Enabled then
+    Self.Cache.X1 := [Self.Mode, ClientWidth, ClientHeight, Result];
+end;
+
+function TRSInterface.X2(): Int32;
+var
+  Left, Right, Width, Center: Single;
+  ClientWidth, ClientHeight: Int32;
+begin
+  if Self.Cache.Enabled then
+  begin
+    GetClientDimensions(ClientWidth, ClientHeight);
+    if (Self.Cache.X2.Mode = Self.Mode) and (Self.Cache.X2.ClientWidth = ClientWidth) and (Self.Cache.X2.ClientHeight = ClientHeight) then
+      Exit(Self.Cache.X2.Value);
+  end;
+
+  if (@Self.Alignment.Right.Method = nil) then
+  begin
+    WriteLn('[MicroSRL]: No right anchor');
+    TerminateScript();
+  end;
+
+  if (Self.Alignment.Center.MaxWidth > 0) then
+  begin
+    Left := Self.Alignment.Left.Method() + Self.Alignment.Left.Offset;
+    Right := Self.Alignment.Right.Method() + Self.Alignment.Right.Offset;
+
+    Width := (Right - Left);
+    Center := Left + (Width / 2);
+
+    Result := Min(
+      Floor(Center + (Width / 2)),
+      Floor(Center + ((Self.Alignment.Center.MaxWidth - 1) / 2))
+    );
+  end else
+    Result := Round(Self.Alignment.Right.Method() + Self.Alignment.Right.Offset);
+
+  if Self.Cache.Enabled then
+    Self.Cache.X2 := [Self.Mode, ClientWidth, ClientHeight, Result];
+end;
+
+function TRSInterface.Y1(): Int32;
+var
+  Top, Bottom, Height, Center: Single;
+  ClientWidth, ClientHeight: Int32;
+begin
+  if Self.Cache.Enabled then
+  begin
+    GetClientDimensions(ClientWidth, ClientHeight);
+    if (Self.Cache.Y1.Mode = Self.Mode) and (Self.Cache.Y1.ClientWidth = ClientWidth) and (Self.Cache.Y1.ClientHeight = ClientHeight) then
+      Exit(Self.Cache.Y1.Value);
+  end;
+
+  if (@Self.Alignment.Top.Method = nil) then
+  begin
+    WriteLn('[MicroSRL]: No top anchor');
+    TerminateScript();
+  end;
+
+  if (Self.Alignment.Center.MaxHeight > 0) then
+  begin
+    Top := Self.Alignment.Top.Method() + Self.Alignment.Top.Offset;
+    Bottom := Self.Alignment.Bottom.Method() + Self.Alignment.Bottom.Offset;
+
+    Height := (Bottom - Top);
+    Center := Top + (Height / 2);
+
+    Result := Max(
+      Floor(Center - (Height / 2)),
+      Floor(Center - ((Self.Alignment.Center.MaxHeight - 1) / 2))
+    );
+  end else
+    Result := Round(Self.Alignment.Top.Method() + Self.Alignment.Top.Offset);
+
+  if Self.Cache.Enabled then
+    Self.Cache.Y1 := [Self.Mode, ClientWidth, ClientHeight, Result];
+end;
+
+function TRSInterface.Y2(): Int32;
+var
+  Top, Bottom, Height, Center: Single;
+  ClientWidth, ClientHeight: Int32;
+begin
+  if Self.Cache.Enabled then
+  begin
+    GetClientDimensions(ClientWidth, ClientHeight);
+    if (Self.Cache.Y2.Mode = Self.Mode) and (Self.Cache.Y2.ClientWidth = ClientWidth) and (Self.Cache.Y2.ClientHeight = ClientHeight) then
+      Exit(Self.Cache.Y2.Value);
+  end;
+
+  if (@Self.Alignment.Bottom.Method = nil) then
+  begin
+    WriteLn('[MicroSRL]: No bottom anchor');
+    TerminateScript();
+  end;
+
+  if (Self.Alignment.Center.MaxHeight > 0) then
+  begin
+    Top := Self.Alignment.Top.Method() + Self.Alignment.Top.Offset;
+    Bottom := Self.Alignment.Bottom.Method() + Self.Alignment.Bottom.Offset;
+
+    Height := (Bottom - Top);
+    Center := Top + (Height / 2);
+
+    Result := Min(
+      Floor(Center + (Height / 2)),
+      Floor(Center + ((Self.Alignment.Center.MaxHeight - 1) / 2))
+    );
+  end else
+    Result := Round(Self.Alignment.Bottom.Method() + Self.Alignment.Bottom.Offset);
+
+  if Self.Cache.Enabled then
+    Self.Cache.Y2 := [Self.Mode, ClientWidth, ClientHeight, Result];
+end;
+
+function TRSInterface.Bounds(): TBox;
+begin
+  Result := [Self.X1, Self.Y1, Self.X2, Self.Y2];
+end;
+
+function TRSInterface.Width(): Int32;
+begin
+  Result := Self.X2() - Self.X1() + 1;
+end;
+
+function TRSInterface.Height(): Int32;
+begin
+  Result := Self.Y2() - Self.Y1() + 1;
+end;
+
+
+type TRSRootInterface = type TRSInterface;
+
+function TRSRootInterface.Y1(): Int32; override;
+begin
+  Result := 0;
+end;
+
+function TRSRootInterface.X2(): Int32; override;
+var
+  ClientWidth, ClientHeight: Int32;
+begin
+  GetClientDimensions(ClientWidth, ClientHeight);
+
+  Result := ClientWidth - 1;
+end;
+
+var RootInterface: TRSRootInterface;
+
+type
+  TRSGameTabs = type TRSInterface;
+
+  ERSGameTab = (
+    COMBAT,
+    STATS,
+    QUESTS,
+    INVENTORY,
+    EQUIPMENT,
+    PRAYER,
+    MAGIC,
+    CLAN,
+    FRIENDS,
+    ACCOUNT,
+    LOGOUT,
+    OPTIONS,
+    EMOTES,
+    MUSIC,
+    UNKNOWN_2
+  );
+
+{
+function TRSGameTabs.X1: Int32; constref; override;
+begin
+  Result := inherited
+end;
+}
+
+// Needed because depending on the client width the tabs stack into row(s)
+function TRSGameTabs.Y1(): Int32; override;
+begin
+  Result := inherited;
+
+  if (Self.Mode = ERSClientMode.RESIZABLE_MODERN) and (RootInterface.Width >= 948) then
+    Result += 36;
+end;
+
+function TRSGameTabs.Y2(): Int32; override;
+begin
+  Result := inherited;
+
+  if (Self.Mode = ERSClientMode.RESIZABLE_MODERN) and (RootInterface.Width >= 948) then
+    Result += 36;
+end;
+
+function TRSGameTabs.GetTabBoxes(): TBoxArray;
+var
+  I: Int32;
+begin
+  case Self.Mode of
+    ERSClientMode.FIXED, ERSClientMode.RESIZABLE_CLASSIC:
+      begin
+        Result := Grid(7, 2, 30, 33, [3, 265], [Self.X1 + 6, Self.Y1 + 1]);
+      end;
+
+    ERSClientMode.RESIZABLE_MODERN:
+      begin
+        // One row
+        if (RootInterface.Width >= 948) then
+        begin
+          Result := Grid(14, 1, 30, 33, [3, 0], [Self.X1() - 197, Self.Y2() - 70]);
+          for I := Ord(ERSGameTab.MUSIC) downto Ord(ERSGameTab.FRIENDS) - 1 do
+            Result[I] := Result[I-1];
+        end else
+        // Two rows
+          Result := Grid(7, 2, 30, 33, [3, 3], [Self.X1(), Self.Y2() - 70]);
+
+        // Logout button is moved to top right corner
+        Result[7] := Result[10];
+        Result[10] := [RootInterface.X2() - 19, RootInterface.Y1() + 9, RootInterface.X2() - 10, RootInterface.Y1() + 18];
+      end;
+  end;
+end;
+
+function TRSGameTabs.GetTabBox(Tab: ERSGameTab): TBox;
+var
+  Tabs: TBoxArray := Self.GetTabBoxes;
+begin
+  if (Tabs = []) or (Tab = ERSGameTab.UNKNOWN_2) then
+    Exit;
+  Result := Tabs[Tab];
+end;
+
+function TRSGameTabs.GetCurrentTab(): ERSGametab;
+var
+  Tabs: TBoxArray;
+  I: Int32;
+begin
+  Tabs := Self.GetTabBoxes();
+
+  if (Self.Mode = ERSClientMode.RESIZABLE_MODERN) and (MicroSRL.CountColor(8639715, Tabs[ERSGameTab.LOGOUT]) > 0) then
+    Exit(ERSGameTab.LOGOUT);
+
+  for I := 0 to High(Tabs) do
+    if (MicroSRL.CountColor(CTS1(1778534, 22), Tabs[I]) > 50) then
+      Exit(ERSGameTab(I));
+
+  Exit(ERSGameTab.UNKNOWN_2);
+end;
+
+function TRSGameTabs.IsQuestsOpen(): Boolean;
+begin
+  Result := Self.GetCurrentTab() = ERSGameTab.QUESTS;
+end;
+
+var GameTabs: TRSGameTabs;
+
+function DetectClientMode(): ERSClientMode;
+var
+  W, H: Int32;
+begin
+  try
+    GetClientDimensions(W, H);
+  except
+    WriteLn('TargetPID: ', GetSimbaTargetPID());
+    WriteLn('TargetWin: ', GetSimbaTargetWindow());
+    WriteLn('Please refocus the client!');
+    WriteLn(GetExceptionMessage());
+    TerminateScript();
+  end;
+
+  // Music tab in each mode there are different colors at W-4, H-21
+  // Two colors each because tab can be active(red) or not(grey)
+  case GetColor(W-4, H-21) of
+    2435372, 658467: Result := ERSClientMode.FIXED;
+    3555653, 922425: Result := ERSClientMode.RESIZABLE_MODERN;
+    2896180, 790059: Result := ERSClientMode.RESIZABLE_CLASSIC;
+  end;
+
+  GameTabs.SetupAlignment(Result);
+end;
+
+begin
+  GameTabs.Cache.Enabled := True;
+  DetectClientMode();
+end;
+//SUBPROCESS STARTS HERE
 
 var
   Image: TMufasaBitmap;
@@ -10,8 +456,8 @@ function GetFrame({$H-}sender: TRecorder): Pointer;{$H+}
 begin
   Image.CopyClientToBitmap(Client.getIOManager(), False, 0, 0, Image.GetWidth()-1, Image.GetHeight()-1);
 
-  if GameTabs.GetCurrentTab() = ERSGameTab.QUESTS then
-    Image.DrawBoxFilled(Inventory.Bounds(), False, $FFFFFF);
+  if GameTabs.IsQuestsOpen() then
+    Image.DrawBoxFilled(GameTabs.Bounds(), False, $FFFFFF);
 
   if UsernameBox.X2 > 0 then
     Image.DrawBoxFilled(UsernameBox, False, $819DAC);

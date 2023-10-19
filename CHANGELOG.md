@@ -1,45 +1,45 @@
-## [14.8.3](https://github.com/Torwent/WaspLib/compare/v14.8.2...v14.8.3) (2023-09-30)
+## [14.10.6](https://github.com/Torwent/WaspLib/compare/v14.10.5...v14.10.6) (2023-10-17)
 
 
 ### Bug Fixes
 
-* read notes ([b089ec5](https://github.com/Torwent/WaspLib/commit/b089ec515b9be357d5cf07b6f343ea50896800e4))
+* **recorder:** read notes ([87367e9](https://github.com/Torwent/WaspLib/commit/87367e985efb68eedcbfcb55cc8345dfeb8abcbd))
 
 
 
-## [14.8.2](https://github.com/Torwent/WaspLib/compare/v14.8.1...v14.8.2) (2023-09-30)
-
-
-### Bug Fixes
-
-* **loot handler:** more tweaks and accuracy improvements ([c86ae4a](https://github.com/Torwent/WaspLib/commit/c86ae4a6cde095b45cb78ad8377d280945cac5aa))
-
-
-
-## [14.8.1](https://github.com/Torwent/WaspLib/compare/v14.8.0...v14.8.1) (2023-09-30)
+## [14.10.5](https://github.com/Torwent/WaspLib/compare/v14.10.4...v14.10.5) (2023-10-16)
 
 
 ### Bug Fixes
 
-* **loothandler:** read notes ([ee71e54](https://github.com/Torwent/WaspLib/commit/ee71e546d8f9682050cce5113405e05879ffcc30))
+* **house options:** several house option button fixes ([b5e5182](https://github.com/Torwent/WaspLib/commit/b5e5182eae2cfaf07513adf59704b1cd486aacfe))
 
 
 
-# [14.8.0](https://github.com/Torwent/WaspLib/compare/v14.7.23...v14.8.0) (2023-09-29)
-
-
-### Features
-
-* read notes ([784cea1](https://github.com/Torwent/WaspLib/commit/784cea15fec4523fe0a7fcde10d35faa7ccb92b2))
-
-
-
-## [14.7.23](https://github.com/Torwent/WaspLib/compare/v14.7.22...v14.7.23) (2023-09-28)
+## [14.10.4](https://github.com/Torwent/WaspLib/compare/v14.10.3...v14.10.4) (2023-10-15)
 
 
 ### Bug Fixes
 
-* read notes ([01820c1](https://github.com/Torwent/WaspLib/commit/01820c1c6259c579a0081d491112efced5c28353))
+* more drawing methods ([0997666](https://github.com/Torwent/WaspLib/commit/099766656193bf97d4d11cda5dc24652a3158003))
+
+
+
+## [14.10.3](https://github.com/Torwent/WaspLib/compare/v14.10.2...v14.10.3) (2023-10-15)
+
+
+### Bug Fixes
+
+* added visual debugging to all TRSWalkerObjects ([f3526ae](https://github.com/Torwent/WaspLib/commit/f3526ae98308501f6545ea3b6e1168ca199ef162))
+
+
+
+## [14.10.2](https://github.com/Torwent/WaspLib/compare/v14.10.1...v14.10.2) (2023-10-13)
+
+
+### Bug Fixes
+
+* very minor tweak to fix the progress reports with today's changes ([f380e8c](https://github.com/Torwent/WaspLib/commit/f380e8caf29f2649b26285cdc0a9c6f40552ebd3))
 
 
 

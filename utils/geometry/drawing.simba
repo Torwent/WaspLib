@@ -84,3 +84,188 @@ begin
   bitmap.Debug();
   bitmap.Free();
 end;
+
+
+
+procedure TMufasaBitmap.DrawCuboid(cuboid: TCuboidEx; color: Int32 = $0000FF); overload;
+begin
+  Self.DrawTPA(cuboid.Edges(), color);
+end;
+
+procedure Debug(cuboid: TCuboidEx; color: Integer = $0000FF); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  bitmap.DrawCuboid(cuboid, color);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+
+procedure TMufasaBitmap.DrawCuboidArray(cuboids: TCuboidExArray; color: Int32 = $0000FF); overload;
+var
+  c: TCuboidEx;
+begin
+  for c in cuboids do
+    Self.DrawCuboid(c, color);
+end;
+
+procedure Debug(cuboids: TCuboidExArray; color: Integer = $0000FF); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  bitmap.DrawCuboidArray(cuboids, color);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+
+procedure TRSClient.Clear();
+begin
+  Self.Image().Clear();
+end;
+
+procedure TRSClient.Clear(area: TBox); overload;
+begin
+  Self.Image().Clear(area);
+end;
+
+procedure TRSClient.DrawATPA(atpa: T2DPointArray; color: Int32 = -1; alpha: Single = 0.6);
+var
+  background, bitmap: TMufasaBitmap;
+  i, old, new, r, g, b: Int32;
+  p: TPoint;
+begin
+  bitmap := Self.Image();
+  if alpha = 1 then
+  begin
+    bitmap.DrawATPA(atpa);
+    Exit;
+  end;
+
+  background.FromClient();
+  new := color;
+
+  for i := 0 to High(atpa) do
+    for p in atpa[i] do
+    begin
+      old := background.GetPixel(p.X, p.Y);
+      ColorToRGB(old, r, g, b);
+      r := Round(r*(1-alpha));
+      g := Round(g*(1-alpha));
+      b := Round(b*(1-alpha));
+      old := RGBtoColor(r, g, b);
+
+      if color = -1 then
+        ColorToRGB(DEBUG_COLORS[i mod Length(DEBUG_COLORS)], r, g, b)
+      else
+        ColorToRGB(color, r, g, b);
+
+      r := Round(r*alpha);
+      g := Round(g*alpha);
+      b := Round(b*alpha);
+      new := RGBtoColor(r, g, b);
+
+      bitmap.SetPixel(p.X, p.Y, new + old);
+    end;
+
+  background.Free();
+end;
+
+procedure TRSClient.DrawTPA(tpa: TPointArray; color: Int32 = -1; alpha: Single = 0.6);
+var
+  bitmap: TMufasaBitmap;
+begin
+  if alpha = 1 then
+  begin
+    bitmap := RSClient.Image();
+    bitmap.DrawTPA(tpa, color);
+    Exit;
+  end;
+
+  Self.DrawATPA([tpa], color, alpha);
+end;
+
+
+procedure TRSClient.DrawCross(center: TPoint; radius: Int32; color: Int32 = $0000FF; alpha: Single = 0.6);
+var
+  tpa: TPointArray;
+begin
+  radius := Round(radius/2*Sqrt(2));
+
+  if (radius > 1) then
+  begin
+    with center do
+    begin
+      tpa := TPAFromLine(Point(X - radius, Y - radius), Point(X + radius, Y + radius));
+      tpa += TPAFromLine(Point(X + radius, Y - radius), Point(X - radius, Y + radius));
+    end;
+    Self.DrawTPA(tpa, color, alpha);
+  end;
+end;
+
+procedure TRSClient.DrawCircle(center: TPoint; radius: Int32; color: Int32 = $0000FF; alpha: Single = 0.6);
+var
+  tpa: TPointArray;
+begin
+  tpa := TPAFromCircle(center.X, center.Y, radius);
+  Self.DrawTPA(tpa, color, alpha);
+end;
+
+procedure TRSClient.DrawCrosshair(center: TPoint; radius: Int32; color: Int32 = $0000FF; alpha: Single = 0.6);
+var
+  tpa: TPointArray;
+begin
+  radius := Round(radius/2*Sqrt(2));
+
+  if (radius > 1) then
+  begin
+    with center do
+    begin
+      tpa := TPAFromLine(Point(X - radius, Y - radius), Point(X + radius, Y + radius));
+      tpa += TPAFromLine(Point(X + radius, Y - radius), Point(X - radius, Y + radius));
+      tpa += TPAFromCircle(X, Y, radius);
+    end;
+    Self.DrawTPA(tpa, color, alpha);
+  end;
+end;
+
+
+procedure TRSClient.DrawRectangle(rectangle: TRectangle; color: Int32 = $0000FF; alpha: Single = 0.6);
+begin
+  Self.DrawTPA(rectangle.ToTPA().Connect(), color, alpha);
+end;
+
+procedure TRSClient.DrawBox(box: TBox; color: Int32 = $0000FF; alpha: Single = 0.6);
+begin
+  Self.DrawTPA(EdgeFromBox(box), color, alpha);
+end;
+
+procedure TRSClient.DrawBoxes(boxes: TBoxArray; color: Int32 = -1; alpha: Single = 0.6);
+var
+  atpa: T2DPointArray;
+  i: Int32;
+begin
+  for i := 0 to High(boxes) do
+    atpa += EdgeFromBox(boxes[i]);
+
+  Self.DrawATPA(atpa, color, alpha);
+end;
+
+procedure TRSClient.DrawCuboid(cuboid: TCuboidEx; color: Int32 = $0000FF; alpha: Single = 0.6);
+begin
+  Self.DrawTPA(cuboid.Edges(), color, alpha);
+end;
+
+procedure TRSClient.DrawCuboidArray(cuboids: TCuboidExArray; color: Int32 = -1; alpha: Single = 0.6);
+var
+  i: Int32;
+  atpa: T2DPointArray;
+begin
+  for i := 0 to High(cuboids) do
+    atpa += cuboids[i].Edges();
+
+  Self.DrawATPA(atpa, color, alpha);
+end;

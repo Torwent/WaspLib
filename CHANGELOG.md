@@ -1,3 +1,12 @@
+## [14.10.11](https://github.com/Torwent/WaspLib/compare/v14.10.10...v14.10.11) (2023-10-22)
+
+
+### Bug Fixes
+
+* salt mine map was wrong ([be8dd41](https://github.com/Torwent/WaspLib/commit/be8dd41be4bfd689da3160d4d08b9ed6b6c036c4))
+
+
+
 ## [14.10.10](https://github.com/Torwent/WaspLib/compare/v14.10.9...v14.10.10) (2023-10-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * several rsregions typo fixes ([b76a5de](https://github.com/Torwent/WaspLib/commit/b76a5de5220e5764de99dec17e10f599df1e9ad8))
-
-
-
-## [14.10.6](https://github.com/Torwent/WaspLib/compare/v14.10.5...v14.10.6) (2023-10-17)
-
-
-### Bug Fixes
-
-* **recorder:** read notes ([87367e9](https://github.com/Torwent/WaspLib/commit/87367e985efb68eedcbfcb55cc8345dfeb8abcbd))
 
 
 

@@ -1,3 +1,12 @@
+## [14.10.8](https://github.com/Torwent/WaspLib/compare/v14.10.7...v14.10.8) (2023-10-22)
+
+
+### Bug Fixes
+
+* **combatHandler:** tweaks to bracelets ([cfc0b1d](https://github.com/Torwent/WaspLib/commit/cfc0b1de264451a3224ab58d4d8390175d4f163e))
+
+
+
 ## [14.10.7](https://github.com/Torwent/WaspLib/compare/v14.10.6...v14.10.7) (2023-10-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * more drawing methods ([0997666](https://github.com/Torwent/WaspLib/commit/099766656193bf97d4d11cda5dc24652a3158003))
-
-
-
-## [14.10.3](https://github.com/Torwent/WaspLib/compare/v14.10.2...v14.10.3) (2023-10-15)
-
-
-### Bug Fixes
-
-* added visual debugging to all TRSWalkerObjects ([f3526ae](https://github.com/Torwent/WaspLib/commit/f3526ae98308501f6545ea3b6e1168ca199ef162))
 
 
 

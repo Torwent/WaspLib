@@ -1,3 +1,12 @@
+## [14.10.10](https://github.com/Torwent/WaspLib/compare/v14.10.9...v14.10.10) (2023-10-22)
+
+
+### Bug Fixes
+
+* add salt mine map ([fd7493c](https://github.com/Torwent/WaspLib/commit/fd7493ca3ab83deb80a7a4e2c6d58d25fc1422e5))
+
+
+
 ## [14.10.9](https://github.com/Torwent/WaspLib/compare/v14.10.8...v14.10.9) (2023-10-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **recorder:** read notes ([87367e9](https://github.com/Torwent/WaspLib/commit/87367e985efb68eedcbfcb55cc8345dfeb8abcbd))
-
-
-
-## [14.10.5](https://github.com/Torwent/WaspLib/compare/v14.10.4...v14.10.5) (2023-10-16)
-
-
-### Bug Fixes
-
-* **house options:** several house option button fixes ([b5e5182](https://github.com/Torwent/WaspLib/commit/b5e5182eae2cfaf07513adf59704b1cd486aacfe))
 
 
 

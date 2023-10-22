@@ -431,7 +431,10 @@ end;
 
 function TRSCombatHandler.CheckBracelet(): Boolean;
 begin
-  Result := (Self.Bracelet <> 'Null') and Equipment.ContainsItem(Self.Bracelet);
+  if Self.Bracelet = 'Null' then
+    Exit;
+
+  Result := Equipment.ContainsItem(Self.Bracelet);
 
   if Result then
     Self.BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
@@ -439,16 +442,23 @@ end;
 
 function TRSCombatHandler.NeedBracelet(): Boolean;
 begin
-  Result := (Self.Bracelet <> 'Null') and Self.BraceletTimer.IsFinished() and
+  if Self.Bracelet = 'Null' then
+    Exit;
+
+  Result := Self.BraceletTimer.IsFinished() and
             Inventory.ContainsItem(Self.Bracelet) and not Self.CheckBracelet();
 end;
 
 function TRSCombatHandler.EquipBracelet(): Boolean;
+var
+  count: Int32;
 begin
   if Self.Bracelet = 'Null' then
     Exit;
 
-  Result := Inventory.Open() and Inventory.ClickItem(Self.Bracelet);
+  count := Inventory.Count();
+  if Inventory.Open() and Inventory.ClickItem(Self.Bracelet) then
+    Result := WaitUntil(Inventory.Count() < count, 300, 3000);
 
   if Result then
   begin

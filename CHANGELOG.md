@@ -1,3 +1,12 @@
+## [14.10.9](https://github.com/Torwent/WaspLib/compare/v14.10.8...v14.10.9) (2023-10-22)
+
+
+### Bug Fixes
+
+* add priff furnace ([3df725c](https://github.com/Torwent/WaspLib/commit/3df725cacff3f1cbe6fd1f9a1cc8e406b8ad244d))
+
+
+
 ## [14.10.8](https://github.com/Torwent/WaspLib/compare/v14.10.7...v14.10.8) (2023-10-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **house options:** several house option button fixes ([b5e5182](https://github.com/Torwent/WaspLib/commit/b5e5182eae2cfaf07513adf59704b1cd486aacfe))
-
-
-
-## [14.10.4](https://github.com/Torwent/WaspLib/compare/v14.10.3...v14.10.4) (2023-10-15)
-
-
-### Bug Fixes
-
-* more drawing methods ([0997666](https://github.com/Torwent/WaspLib/commit/099766656193bf97d4d11cda5dc24652a3158003))
 
 
 

@@ -1,3 +1,12 @@
+## [14.10.7](https://github.com/Torwent/WaspLib/compare/v14.10.6...v14.10.7) (2023-10-22)
+
+
+### Bug Fixes
+
+* several rsregions typo fixes ([b76a5de](https://github.com/Torwent/WaspLib/commit/b76a5de5220e5764de99dec17e10f599df1e9ad8))
+
+
+
 ## [14.10.6](https://github.com/Torwent/WaspLib/compare/v14.10.5...v14.10.6) (2023-10-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added visual debugging to all TRSWalkerObjects ([f3526ae](https://github.com/Torwent/WaspLib/commit/f3526ae98308501f6545ea3b6e1168ca199ef162))
-
-
-
-## [14.10.2](https://github.com/Torwent/WaspLib/compare/v14.10.1...v14.10.2) (2023-10-13)
-
-
-### Bug Fixes
-
-* very minor tweak to fix the progress reports with today's changes ([f380e8c](https://github.com/Torwent/WaspLib/commit/f380e8caf29f2649b26285cdc0a9c6f40552ebd3))
 
 
 

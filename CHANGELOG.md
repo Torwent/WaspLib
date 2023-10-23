@@ -1,3 +1,12 @@
+## [14.10.12](https://github.com/Torwent/WaspLib/compare/v14.10.11...v14.10.12) (2023-10-23)
+
+
+### Bug Fixes
+
+* disabled SRL's overkill debugging when using WLSettings.RemoteInput.HUDDebug ([a13fba9](https://github.com/Torwent/WaspLib/commit/a13fba95f98eee29c521441dd1ef895ff7caf27e))
+
+
+
 ## [14.10.11](https://github.com/Torwent/WaspLib/compare/v14.10.10...v14.10.11) (2023-10-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combatHandler:** tweaks to bracelets ([cfc0b1d](https://github.com/Torwent/WaspLib/commit/cfc0b1de264451a3224ab58d4d8390175d4f163e))
-
-
-
-## [14.10.7](https://github.com/Torwent/WaspLib/compare/v14.10.6...v14.10.7) (2023-10-22)
-
-
-### Bug Fixes
-
-* several rsregions typo fixes ([b76a5de](https://github.com/Torwent/WaspLib/commit/b76a5de5220e5764de99dec17e10f599df1e9ad8))
 
 
 

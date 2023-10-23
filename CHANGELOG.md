@@ -1,3 +1,12 @@
+## [14.10.13](https://github.com/Torwent/WaspLib/compare/v14.10.12...v14.10.13) (2023-10-23)
+
+
+### Bug Fixes
+
+* **comsumables:** divine potions should now be consumed ([2214046](https://github.com/Torwent/WaspLib/commit/2214046e459bdd5a450d572b2d592177d8d80cd2))
+
+
+
 ## [14.10.12](https://github.com/Torwent/WaspLib/compare/v14.10.11...v14.10.12) (2023-10-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add priff furnace ([3df725c](https://github.com/Torwent/WaspLib/commit/3df725cacff3f1cbe6fd1f9a1cc8e406b8ad244d))
-
-
-
-## [14.10.8](https://github.com/Torwent/WaspLib/compare/v14.10.7...v14.10.8) (2023-10-22)
-
-
-### Bug Fixes
-
-* **combatHandler:** tweaks to bracelets ([cfc0b1d](https://github.com/Torwent/WaspLib/commit/cfc0b1de264451a3224ab58d4d8390175d4f163e))
 
 
 

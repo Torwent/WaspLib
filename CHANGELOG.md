@@ -1,3 +1,12 @@
+## [14.10.14](https://github.com/Torwent/WaspLib/compare/v14.10.13...v14.10.14) (2023-10-24)
+
+
+### Bug Fixes
+
+* read notes ([125a537](https://github.com/Torwent/WaspLib/commit/125a537372f24e4fb584b45dff023bdbdd5689a4))
+
+
+
 ## [14.10.13](https://github.com/Torwent/WaspLib/compare/v14.10.12...v14.10.13) (2023-10-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add salt mine map ([fd7493c](https://github.com/Torwent/WaspLib/commit/fd7493ca3ab83deb80a7a4e2c6d58d25fc1422e5))
-
-
-
-## [14.10.9](https://github.com/Torwent/WaspLib/compare/v14.10.8...v14.10.9) (2023-10-22)
-
-
-### Bug Fixes
-
-* add priff furnace ([3df725c](https://github.com/Torwent/WaspLib/commit/3df725cacff3f1cbe6fd1f9a1cc8e406b8ad244d))
 
 
 

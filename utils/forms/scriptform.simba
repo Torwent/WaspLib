@@ -1453,22 +1453,6 @@ end;
 
 function TScriptForm.CreateBankSettings(): TTabSheet;
   type TScriptForm = TScriptForm;
-
-  procedure TScriptForm._FormOnShow(sender: TObject);
-  var
-    form: TForm;
-    combobox: TComboBox;
-    imgBox: TSimbaImageBox;
-  begin
-    form := sender;
-    combobox := form.GetChild('bank_selector_combobox');
-    imgBox := form.GetChild('map_selector');
-    imgBox.BackgroundChanged();
-
-    imgBox.MoveTo(8100, 2500);
-    imgBox.Update();
-  end;
-
   procedure TScriptForm._BankOnChange(sender: TObject);
   var
     combobox: TComboBox;
@@ -1481,25 +1465,35 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
 
     WLSettings.BankLocation := EWLBankLocation(combobox.getItemIndex());
     b := RSBankRegions[Ord(WLSettings.BankLocation)].Bounds;
+    b.X1 := Round(b.X1/4);
+    b.Y1 := Round(b.Y1/4);
+    b.X2 := Round(b.X2/4);
+    b.Y2 := Round(b.Y2/4);
+
     p := b.Middle();
     imgBox.MoveTo(p.X, p.Y);
+
+    imgBox.GetOverlay().Clear();
+    imgBox.getOverlay().DebugTPA(b.ToRectangle().ToTPA().Connect());
   end;
 
-  procedure TScriptForm._ImgBoxOnClick(sender: TObject);
+  procedure TScriptForm._FormOnShow(sender: TObject);
   var
     imgBox: TSimbaImageBox;
+    combobox: TComboBox;
   begin
-    imgBox := sender;
+    imgBox := TForm(sender).GetChild('map_selector');
+    combobox := form.GetChild('bank_selector_combobox');
 
-    imgBox.MoveTo(4000, 2000);
+    imgBox.BackgroundChanged();
     imgBox.Update();
-
+    Self._BankOnChange(combobox);
   end;
 
 var
   bankSelector: TLabeledCombobox;
   path: String;
-  bmp: TMufasaBitmap;
+  bmp, smallBmp: TMufasaBitmap;
   imgBox: TSimbaImageBox;
   fullWidth, w, space, x, y: Int32;
 begin
@@ -1533,6 +1527,9 @@ begin
           DIRECTORYSEPARATOR + 'walker' + DIRECTORYSEPARATOR + 'map.png';
 
   bmp := TRSWalkerMap.InternalLoadMap(path);
+  smallBmp.Init();
+  bmp.Downsample(4, smallBmp);
+  bmp.Free();
 
   with imgBox do
   begin
@@ -1543,11 +1540,10 @@ begin
     SetTop(y + TControl.AdjustToDPI(40));
     SetHeight(Round(Self.Size.Y * 0.77));
     SetWidth(fullWidth * 3 - space * 2);
-    GetBackground().LoadFromMufasaBitmap(bmp);
-    setOnClick(@Self._ImgBoxOnClick);
+    GetBackground().LoadFromMufasaBitmap(smallBmp);
+    GetOverlay().GetCanvas().GetPen().SetColor($00FFFF);
   end;
-
-  bmp.Free();
+  smallBmp.Free();
 end;
 
 function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;

@@ -1,3 +1,12 @@
+## [14.11.2](https://github.com/Torwent/WaspLib/compare/v14.11.1...v14.11.2) (2023-10-27)
+
+
+### Bug Fixes
+
+* **TScriptForm:** the new lighter bank selector tab now ensures the directory is created to save images ([680205f](https://github.com/Torwent/WaspLib/commit/680205f665692a7a114230444a0ff86a76b9b84d))
+
+
+
 ## [14.11.1](https://github.com/Torwent/WaspLib/compare/v14.11.0...v14.11.1) (2023-10-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **comsumables:** divine potions should now be consumed ([2214046](https://github.com/Torwent/WaspLib/commit/2214046e459bdd5a450d572b2d592177d8d80cd2))
-
-
-
-## [14.10.12](https://github.com/Torwent/WaspLib/compare/v14.10.11...v14.10.12) (2023-10-23)
-
-
-### Bug Fixes
-
-* disabled SRL's overkill debugging when using WLSettings.RemoteInput.HUDDebug ([a13fba9](https://github.com/Torwent/WaspLib/commit/a13fba95f98eee29c521441dd1ef895ff7caf27e))
 
 
 

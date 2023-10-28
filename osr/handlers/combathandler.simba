@@ -93,6 +93,11 @@ type
     SETUP_GEAR, NEED_BRACELET, SPEC_MONSTER,
     USE_SPECIAL_ATT, REEQUIP_GEAR,
 
+    DRINK_STR_BOOST,
+    DRINK_ATK_BOOST,
+    DRINK_DEF_BOOST,
+    DRINK_RNG_BOOST,
+    DRINK_MGC_BOOST,
     DRINK_BOOST,
     BURY_BONES,
 
@@ -114,7 +119,13 @@ type
 
     ManageGear, GearIsSetup, AutoRetaliateEnabled, QuickPrayerIsSetup,
     HandleHealth, HandlePrayer, HandlePoison, HandleVenom, HandleAntifire,
-    HandleBoosts, HandleCannon, CannonIsSetup, DoingSpec,
+    HandleBoosts,
+    HandleStrengthBoosts,
+    HandleAttackBoosts,
+    HandleDefenceBoosts,
+    HandleRangedBoosts,
+    HandleMagicBoosts,
+    HandleCannon, CannonIsSetup, DoingSpec,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
     IsFighting, Looted, IsSetup: Boolean;
 
@@ -198,6 +209,18 @@ begin
                  (Self.SpecWeapon <> 'Null') or (Self.Bracelet <> 'Null');
 end;
 
+
+function TRSCombatHandler._ShouldHandleConsumable(consumable: ERSConsumable): Boolean;
+begin
+  Result := Inventory.ContainsAny(CONSUMABLE_ARRAYS[consumable]);
+  if Result then
+  begin
+    Self.DebugLn(ToStr(consumable) + ' detected, they will be used.');
+    CONSUMABLE_HANDLER_ARRAY[consumable]^.MinInvPoints := 1;
+    CONSUMABLE_HANDLER_ARRAY[consumable]^.Setup(consumable);
+  end;
+end;
+
 procedure TRSCombatHandler.Setup(rsMonster: TRSMonster; timer: Int64 = 12000);
 begin
   if Self.IsSetup then
@@ -216,47 +239,26 @@ begin
   ChatButtons.Open(ERSChatButton.GAME_CHAT);
   Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
 
-  if Self.HandleHealth := Inventory.ContainsAny(FOOD_ARRAY) then
-  begin
-    Self.DebugLn('Food detected and will be used.');
-    FoodHandler.MinInvPoints := 1;
-    FoodHandler.Setup(ERSConsumable.FOOD_CONSUMABLE);
-  end;
+  Self.HandleHealth   := Self._ShouldHandleConsumable(ERSConsumable.FOOD_CONSUMABLE);
+  Self.HandlePrayer   := Self._ShouldHandleConsumable(ERSConsumable.PRAYER_CONSUMABLE);
+  Self.HandlePoison   := Self._ShouldHandleConsumable(ERSConsumable.POISON_CONSUMABLE);
+  Self.HandleVenom    := Self._ShouldHandleConsumable(ERSConsumable.VENOM_CONSUMABLE);
+  Self.HandleAntifire := Self._ShouldHandleConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE);
 
-  if Self.HandleBoosts := Inventory.ContainsAny(BOOST_ARRAY) then
-  begin
-    Self.DebugLn('Boost potions detected, they will be used.');
-    BoostHandler.MinInvPoints := 1;
-    BoostHandler.Setup(ERSConsumable.BOOST_CONSUMABLE);
-  end;
+  Self.HandleStrengthBoosts := Self._ShouldHandleConsumable(ERSConsumable.STRENGTH_BOOST_CONSUMABLE);
+  Self.HandleAttackBoosts   := Self._ShouldHandleConsumable(ERSConsumable.ATTACK_BOOST_CONSUMABLE);
+  Self.HandleDefenceBoosts  := Self._ShouldHandleConsumable(ERSConsumable.DEFENCE_BOOST_CONSUMABLE);
+  Self.HandleRangedBoosts   := Self._ShouldHandleConsumable(ERSConsumable.RANGING_BOOST_CONSUMABLE);
+  Self.HandleMagicBoosts    := Self._ShouldHandleConsumable(ERSConsumable.MAGIC_BOOST_CONSUMABLE);
 
-  if Self.HandlePrayer := Inventory.ContainsAny(PRAYER_ARRAY) then
-  begin
-    Self.DebugLn('Prayer potions detected, prayer will be used.');
-    PrayerHandler.MinInvPoints := 1;
-    PrayerHandler.Setup(ERSConsumable.PRAYER_CONSUMABLE);
-  end;
-
-  if Self.HandlePoison := Inventory.ContainsAny(ANTI_POISON_ARRAY) then
-  begin
-    Self.DebugLn('Anti poison potions detected, they will be used.');
-    PoisonHandler.MinInvPoints := 1;
-    PoisonHandler.Setup(ERSConsumable.POISON_CONSUMABLE);
-  end;
-
-  if Self.HandleVenom := Inventory.ContainsAny(ANTI_VENOM_ARRAY) then
-  begin
-    Self.DebugLn('Anti venom potions detected, they will be used.');
-    VenomHandler.MinInvPoints := 1;
-    VenomHandler.Setup(ERSConsumable.VENOM_CONSUMABLE);
-  end;
-
-  if Self.HandleAntifire := Inventory.ContainsAny(ANTI_FIRE_ARRAY) then
-  begin
-    Self.DebugLn('Anti fire potions detected, they will be used.');
-    AntifireHandler.MinInvPoints := 1;
-    AntifireHandler.Setup(ERSConsumable.ANTI_FIRE_CONSUMABLE);
-  end;
+  Self.HandleBoosts := not Self.HandleStrengthBoosts and
+                       not Self.HandleAttackBoosts and
+                       not Self.HandleDefenceBoosts and
+                       not Self.HandleRangedBoosts and
+                       not Self.HandleMagicBoosts and
+                       Self._ShouldHandleConsumable(
+                        ERSConsumable.BOOST_CONSUMABLE
+                       );
 
   Self.HandleCannon := Inventory.ContainsAll(DWARF_CANNON) and
                        Inventory.ContainsAny(CANNON_BALLS);
@@ -382,7 +384,6 @@ var
   b: TBox;
   tmp: TPointArray;
 begin
-
   if attempt > 2 then
     Exit;
 
@@ -431,7 +432,10 @@ end;
 
 function TRSCombatHandler.CheckBracelet(): Boolean;
 begin
-  Result := (Self.Bracelet <> 'Null') and Equipment.ContainsItem(Self.Bracelet);
+  if Self.Bracelet = 'Null' then
+    Exit;
+
+  Result := Equipment.ContainsItem(Self.Bracelet);
 
   if Result then
     Self.BraceletTimer.Restart(Random((-2 * ONE_MINUTE), (2 * ONE_MINUTE)));
@@ -439,16 +443,23 @@ end;
 
 function TRSCombatHandler.NeedBracelet(): Boolean;
 begin
-  Result := (Self.Bracelet <> 'Null') and Self.BraceletTimer.IsFinished() and
+  if Self.Bracelet = 'Null' then
+    Exit;
+
+  Result := Self.BraceletTimer.IsFinished() and
             Inventory.ContainsItem(Self.Bracelet) and not Self.CheckBracelet();
 end;
 
 function TRSCombatHandler.EquipBracelet(): Boolean;
+var
+  count: Int32;
 begin
   if Self.Bracelet = 'Null' then
     Exit;
 
-  Result := Inventory.Open() and Inventory.ClickItem(Self.Bracelet);
+  count := Inventory.Count();
+  if Inventory.Open() and Inventory.ClickItem(Self.Bracelet) then
+    Result := WaitUntil(Inventory.Count() < count, 300, 3000);
 
   if Result then
   begin
@@ -546,15 +557,11 @@ begin
             Minimap.IsPoisoned() or Minimap.IsEnvenomed();
 end;
 
-function TRSCombatHandler.NeedAntifire(): Boolean;
+function TRSCombatHandler.NeedConsumable(handling: Boolean; consumable: ERSConsumable): Boolean;
 begin
-  Result := Self.HandleAntifire and AntifireHandler.NeedToConsume();
+  Result := handling and CONSUMABLE_HANDLER_ARRAY[consumable]^.NeedToConsume();
 end;
 
-function TRSCombatHandler.NeedBoost(): Boolean;
-begin
-  Result := Self.HandleBoosts and BoostHandler.NeedToConsume();
-end;
 
 
 function TRSCombatHandler.Terminate(): Boolean;
@@ -615,6 +622,10 @@ begin
   if Result or Inventory.ContainsConsumable(consumable) then
     Exit;
 
+  if consumable = ERSConsumable.STRENGTH_BOOST_CONSUMABLE then
+    Self.HandleStrengthBoosts := False;
+  if consumable = ERSConsumable.ATTACK_BOOST_CONSUMABLE then
+    Self.HandleAttackBoosts := False;
   if consumable = ERSConsumable.BOOST_CONSUMABLE then
     Self.HandleBoosts := False;
 end;
@@ -648,7 +659,7 @@ begin
     end;
   end;
 
-  if Self.NeedAntifire() then
+  if Self.NeedConsumable(Self.HandleAntifire, ERSConsumable.ANTI_FIRE_CONSUMABLE) then
   begin
     if Inventory.ContainsConsumable(ERSConsumable.ANTI_FIRE_CONSUMABLE) then
       Exit(ECombatState.DRINK_ANTIFIRE);
@@ -681,7 +692,22 @@ begin
 
   Self.CheckSlayerTask();
 
-  if Self.NeedBoost() then
+  if Self.NeedConsumable(Self.HandleStrengthBoosts, ERSConsumable.STRENGTH_BOOST_CONSUMABLE) then
+    Exit(ECombatState.DRINK_STR_BOOST);
+
+  if Self.NeedConsumable(Self.HandleAttackBoosts, ERSConsumable.ATTACK_BOOST_CONSUMABLE) then
+    Exit(ECombatState.DRINK_ATK_BOOST);
+
+  if Self.NeedConsumable(Self.HandleDefenceBoosts, ERSConsumable.DEFENCE_BOOST_CONSUMABLE) then
+    Exit(ECombatState.DRINK_DEF_BOOST);
+
+  if Self.NeedConsumable(Self.HandleRangedBoosts, ERSConsumable.RANGING_BOOST_CONSUMABLE) then
+    Exit(ECombatState.DRINK_RNG_BOOST);
+
+  if Self.NeedConsumable(Self.HandleMagicBoosts, ERSConsumable.MAGIC_BOOST_CONSUMABLE) then
+    Exit(ECombatState.DRINK_MGC_BOOST);
+
+  if Self.NeedConsumable(Self.HandleBoosts, ERSConsumable.BOOST_CONSUMABLE) then
     Exit(ECombatState.DRINK_BOOST);
 
   if Self.ManageGear then
@@ -728,7 +754,13 @@ begin
     ECombatState.DRINK_ANTIFIRE:   Self.Consume(ERSConsumable.ANTI_FIRE_CONSUMABLE);
     ECombatState.DRINK_ANTIVENOM:  Self.Consume(ERSConsumable.VENOM_CONSUMABLE);
     ECombatState.DRINK_ANTIPOISON: Self.Consume(ERSConsumable.POISON_CONSUMABLE);
+    ECombatState.DRINK_STR_BOOST:  Self.Consume(ERSConsumable.STRENGTH_BOOST_CONSUMABLE);
+    ECombatState.DRINK_ATK_BOOST:  Self.Consume(ERSConsumable.ATTACK_BOOST_CONSUMABLE);
+    ECombatState.DRINK_DEF_BOOST:  Self.Consume(ERSConsumable.DEFENCE_BOOST_CONSUMABLE);
+    ECombatState.DRINK_RNG_BOOST:  Self.Consume(ERSConsumable.RANGING_BOOST_CONSUMABLE);
+    ECombatState.DRINK_MGC_BOOST:  Self.Consume(ERSConsumable.MAGIC_BOOST_CONSUMABLE);
     ECombatState.DRINK_BOOST:      Self.Consume(ERSConsumable.BOOST_CONSUMABLE);
+
     ECombatState.ENABLE_QPRAY:     Minimap.EnablePrayer();
 
     ECombatState.SETUP_GEAR:       Self.SetupGear();
@@ -789,7 +821,6 @@ begin
     Exit;
   end;
 
-
   if CombatHandler.Monster.Filter.Walker then
   begin
     tmp := CombatHandler.Monster;
@@ -809,21 +840,19 @@ begin
   gotXP := XPBar.EarnedXP();
   hasSplats := Self.FindHitsplats(cuboid.Bounds()) <> [];
   Result := gotXP or hasSplats;
-  if not Result then
 
+  if not Result then
     Result := Self.FindHPBars(cuboid.Bounds()) <> [];
 
   CombatHandler.IsFighting := Result;
   if Result then
   begin
     WL.Activity.Restart();
-    {$IFNDEF SRL_DISABLE_REMOTEINPUT}
     if WLSettings.RemoteInput.Enabled then
     begin
       RSClient.Clear(MainScreen.Bounds());
-      RSClient.DrawCuboid(cuboid, $FFFFFF);
+      RSClient.DrawCuboid(cuboid, $FFFFFF, 1);
     end;
-    {$ENDIF}
   end;
 
   if gotXP or hasSplats then

@@ -1453,22 +1453,6 @@ end;
 
 function TScriptForm.CreateBankSettings(): TTabSheet;
   type TScriptForm = TScriptForm;
-
-  procedure TScriptForm._FormOnShow(sender: TObject);
-  var
-    form: TForm;
-    combobox: TComboBox;
-    imgBox: TSimbaImageBox;
-  begin
-    form := sender;
-    combobox := form.GetChild('bank_selector_combobox');
-    imgBox := form.GetChild('map_selector');
-    imgBox.BackgroundChanged();
-
-    imgBox.MoveTo(8100, 2500);
-    imgBox.Update();
-  end;
-
   procedure TScriptForm._BankOnChange(sender: TObject);
   var
     combobox: TComboBox;
@@ -1481,29 +1465,48 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
 
     WLSettings.BankLocation := EWLBankLocation(combobox.getItemIndex());
     b := RSBankRegions[Ord(WLSettings.BankLocation)].Bounds;
+    b.X1 := Round(b.X1/4);
+    b.Y1 := Round(b.Y1/4);
+    b.X2 := Round(b.X2/4);
+    b.Y2 := Round(b.Y2/4);
+
     p := b.Middle();
     imgBox.MoveTo(p.X, p.Y);
+
+    imgBox.GetOverlay().Clear();
+    imgBox.getOverlay().DebugTPA(b.ToRectangle().ToTPA().Connect());
   end;
 
-  procedure TScriptForm._ImgBoxOnClick(sender: TObject);
+  procedure TScriptForm._FormOnShow(sender: TObject);
+  var
+    imgBox: TSimbaImageBox;
+    combobox: TComboBox;
+  begin
+    imgBox := TForm(sender).GetChild('map_selector');
+    combobox := form.GetChild('bank_selector_combobox');
+
+    imgBox.BackgroundChanged();
+    imgBox.Update();
+    Self._BankOnChange(combobox);
+  end;
+
+  procedure TScriptForm._FormOnHide(sender: TObject);
   var
     imgBox: TSimbaImageBox;
   begin
-    imgBox := sender;
-
-    imgBox.MoveTo(4000, 2000);
-    imgBox.Update();
-
+    imgBox := TForm(sender).GetChild('map_selector');
+    imgBox.getBackground().FreeImage();
   end;
 
 var
   bankSelector: TLabeledCombobox;
-  path: String;
-  bmp: TMufasaBitmap;
+  path, mapPath, fileName: String;
+  bmp, tmp: TMufasaBitmap;
   imgBox: TSimbaImageBox;
   fullWidth, w, space, x, y: Int32;
 begin
   TScriptForm.Form.setOnShow(@Self._FormOnShow);
+  TScriptForm.Form.setOnHide(@Self._FormOnHide);
 
   Self.AddTab('Bank Settings');
   Result := Self.Tabs[High(Self.Tabs)];
@@ -1529,10 +1532,25 @@ begin
     ComboBox.SetOnChange(@Self._BankOnChange);
   end;
 
-  path := INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'osr' +
-          DIRECTORYSEPARATOR + 'walker' + DIRECTORYSEPARATOR + 'map.png';
+  mapPath := INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'osr' +
+              DIRECTORYSEPARATOR + 'walker' + DIRECTORYSEPARATOR + 'map.png';
+  fileName := SHA1File(mapPath) + '.bmp';
+  path := WL_DATAPATH + 'assets' + DIRECTORYSEPARATOR;
 
-  bmp := TRSWalkerMap.InternalLoadMap(path);
+  bmp.Init();
+  if FileExists(path + fileName) then
+    bmp.LoadFromFile(path + fileName)
+  else
+  begin
+    tmp := TRSWalkerMap.InternalLoadMap(
+              INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'osr' +
+              DIRECTORYSEPARATOR + 'walker' + DIRECTORYSEPARATOR + 'map.png'
+           );
+    tmp.Downsample(4, bmp);
+    tmp.Free();
+    if ForceDirectories(path) then
+      bmp.SaveToFile(path + fileName);
+  end;
 
   with imgBox do
   begin
@@ -1544,7 +1562,7 @@ begin
     SetHeight(Round(Self.Size.Y * 0.77));
     SetWidth(fullWidth * 3 - space * 2);
     GetBackground().LoadFromMufasaBitmap(bmp);
-    setOnClick(@Self._ImgBoxOnClick);
+    GetOverlay().GetCanvas().GetPen().SetColor($00FFFF);
   end;
 
   bmp.Free();
@@ -1562,12 +1580,9 @@ function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
     str := edit.getText();
 
     if str = '' then
-      str := '-1';
+      str := '0';
 
-    WLSettings.MaxActions := StrToInt(str);
-    if WLSettings.MaxActions < -1 then
-      WLSettings.MaxActions := -1;
-
+    WLSettings.MaxActions := StrToInt64Def(str, 0);
     edit.setText(IntToStr(WLSettings.MaxActions));
   end;
 
@@ -1580,12 +1595,9 @@ function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
     str := edit.getText();
 
     if str = '' then
-      str := '-1';
+      str := '0';
 
-    WLSettings.MaxTime := StrToInt(str) * ONE_MINUTE;
-    if WLSettings.MaxTime < -1 then
-      WLSettings.MaxTime := -1;
-
+    WLSettings.MaxTime := StrToInt64Def(str, 0) * ONE_MINUTE;
     edit.setText(FloatToStr(WLSettings.MaxTime / ONE_MINUTE));
   end;
 

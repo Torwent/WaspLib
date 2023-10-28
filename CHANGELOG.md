@@ -1,3 +1,12 @@
+## [14.11.3](https://github.com/Torwent/WaspLib/compare/v14.11.2...v14.11.3) (2023-10-28)
+
+
+### Bug Fixes
+
+* **loothandler:** should loot multiple times the same pile if there's multiple drops now ([b95f865](https://github.com/Torwent/WaspLib/commit/b95f865f135164f07938e552759ea1cd806d1390))
+
+
+
 ## [14.11.2](https://github.com/Torwent/WaspLib/compare/v14.11.1...v14.11.2) (2023-10-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([125a537](https://github.com/Torwent/WaspLib/commit/125a537372f24e4fb584b45dff023bdbdd5689a4))
-
-
-
-## [14.10.13](https://github.com/Torwent/WaspLib/compare/v14.10.12...v14.10.13) (2023-10-23)
-
-
-### Bug Fixes
-
-* **comsumables:** divine potions should now be consumed ([2214046](https://github.com/Torwent/WaspLib/commit/2214046e459bdd5a450d572b2d592177d8d80cd2))
 
 
 

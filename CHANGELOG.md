@@ -1,3 +1,12 @@
+## [14.12.1](https://github.com/Torwent/WaspLib/compare/v14.12.0...v14.12.1) (2023-11-02)
+
+
+### Bug Fixes
+
+* added a soundlib plugin example to the templates folder ([4994b6c](https://github.com/Torwent/WaspLib/commit/4994b6ca01a1154c2d726f6e124e2eebe3872da5))
+
+
+
 # [14.12.0](https://github.com/Torwent/WaspLib/compare/v14.11.3...v14.12.0) (2023-11-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TScriptForm:** Time limit field should work again ([bba166e](https://github.com/Torwent/WaspLib/commit/bba166ebe09fc3e72523bf8898f733f135443d6a))
-
-
-
-# [14.11.0](https://github.com/Torwent/WaspLib/compare/v14.10.14...v14.11.0) (2023-10-26)
-
-
-### Features
-
-* read notes ([ab4826b](https://github.com/Torwent/WaspLib/commit/ab4826b5864e7943fa0195750c0f0c350ef21131))
 
 
 

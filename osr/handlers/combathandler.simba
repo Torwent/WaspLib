@@ -91,14 +91,10 @@ type
     PLAYER_DEAD,
 
     SETUP_GEAR, NEED_BRACELET, SPEC_MONSTER,
-    USE_SPECIAL_ATT, REEQUIP_GEAR,
+    USE_SPECIAL_ATT, REEQUIP_GEAR, SAFE_SPOT,
 
-    DRINK_STR_BOOST,
-    DRINK_ATK_BOOST,
-    DRINK_DEF_BOOST,
-    DRINK_RNG_BOOST,
-    DRINK_MGC_BOOST,
-    DRINK_BOOST,
+    DRINK_STR_BOOST, DRINK_ATK_BOOST, DRINK_DEF_BOOST,
+    DRINK_RNG_BOOST, DRINK_MGC_BOOST, DRINK_BOOST,
     BURY_BONES,
 
     ATTACK_MONSTER, WAIT_IN_COMBAT, DO_LOOT
@@ -107,7 +103,7 @@ type
   TRSCombatHandler = record(TSRLBaseRecord)
     State: ECombatState;
     Monster: TRSMonster;
-    MonsterWalkerCoord: TPoint;
+    MonsterWalkerCoord, SafeSpot: TPoint;
 
     BraceletTimer, InCombatTimer: TCountDown;
 
@@ -116,16 +112,15 @@ type
     Weapon, Shield, SpecWeapon, Bracelet: TRSItem;
 
     MinHitPoints, MinPrayPoints, WeaponSpec, AttackMonsterDelay: Int32;
+    TotalKills: UInt32;
 
     ManageGear, GearIsSetup, AutoRetaliateEnabled, QuickPrayerIsSetup,
     HandleHealth, HandlePrayer, HandlePoison, HandleVenom, HandleAntifire,
-    HandleBoosts,
-    HandleStrengthBoosts,
-    HandleAttackBoosts,
-    HandleDefenceBoosts,
-    HandleRangedBoosts,
-    HandleMagicBoosts,
-    HandleCannon, CannonIsSetup, DoingSpec,
+
+    HandleStrengthBoosts, HandleAttackBoosts, HandleDefenceBoosts,
+    HandleRangedBoosts, HandleMagicBoosts, HandleBoosts,
+
+    HandleCannon, CannonIsSetup, DoingSpec, UseSafeSpot,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
     IsFighting, Looted, IsSetup: Boolean;
 
@@ -221,7 +216,7 @@ begin
   end;
 end;
 
-procedure TRSCombatHandler.Setup(rsMonster: TRSMonster; timer: Int64 = 12000);
+procedure TRSCombatHandler.Setup(rsMonster: TRSMonster; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);
 begin
   if Self.IsSetup then
     Exit;
@@ -269,15 +264,18 @@ begin
   Self.AutoRetaliateEnabled := Combat.GetAutoRetaliate();
 
   Self.Monster := rsMonster;
+  Self.SafeSpot := safeSpotTile;
+  Self.UseSafeSpot := safeSpotTile <> [-1,-1];
+
   Self.IsSetup := True;
 end;
 
-procedure TRSCombatHandler.Setup(manage: Boolean; rsMonster: TRSMonster; lootValue: Int32 = 5000; timer: Int64 = 4000);  overload;
+procedure TRSCombatHandler.Setup(manage: Boolean; rsMonster: TRSMonster; lootValue: Int32 = 5000; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);  overload;
 begin
   if Self.IsSetup then
     Exit;
 
-  Self.Setup(rsMonster, timer);
+  Self.Setup(rsMonster, timer, safeSpotTile);
 
   if manage then
   begin
@@ -305,13 +303,9 @@ begin
     Exit;
 
   Result := dots[0];
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if WLSettings.RemoteInput.Enabled then
-  begin
-    RSClient.Clear(Minimap.Bounds());
-    RSClient.DrawCrosshair(Result + [2,2], 4, $3FFF98);
-  end;
-  {$ENDIF}
+  RSClient.Clear(Minimap.Bounds());
+  RSClient.DrawCrosshair(Result + [2,2], 4, $3FFF98);
+
   if Self.Monster.Filter.Walker then
   begin
     me := ScriptWalker^.GetMyPos();
@@ -605,19 +599,25 @@ begin
     Result := GetTickCount() > t;
   until Result;
 
-  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if not Result and WLSettings.RemoteInput.Enabled then
+  if not Result then
     RSClient.Clear(MainScreen.Bounds());
-  {$ENDIF}
 
   Self.IsFighting := not Result;
-  Self.Looted := False;
+
+  if Result then
+  begin
+    Self.TotalKills += 1;
+    Self.Looted := False;
+  end;
 end;
 
 
 function TRSCombatHandler.Consume(consumable: ERSConsumable): Boolean;
 begin
   Result := Inventory.Consume(consumable);
+
+  if Self.UseSafeSpot then
+    Self.IsFighting := not Result;
 
   if Result or Inventory.ContainsConsumable(consumable) then
     Exit;
@@ -629,6 +629,14 @@ begin
   if consumable = ERSConsumable.BOOST_CONSUMABLE then
     Self.HandleBoosts := False;
 end;
+
+
+function TRSCombatHandler.WalkSafeSpot(): Boolean;
+begin
+  Self.IsFighting := False;
+  Result := ScriptWalker^.WebWalk(Self.SafeSpot, 8, 0.2);
+end;
+
 
 //Check for pending action combat handler is taking care of.
 function TRSCombatHandler.GetConsumableState(): ECombatState;
@@ -731,6 +739,9 @@ begin
   if Self.BuryBones and Inventory.ContainsAny(REMAINS) then
     Exit(ECombatState.BURY_BONES);
 
+  if Self.UseSafeSpot and not ScriptWalker^.AtTile(Self.SafeSpot, 6) then
+    Exit(ECombatState.SAFE_SPOT);
+
   if Self.IsFighting then
     Exit(ECombatState.WAIT_IN_COMBAT);
 
@@ -768,6 +779,8 @@ begin
     ECombatState.USE_SPECIAL_ATT:  Self.DoSpec();
     ECombatState.REEQUIP_GEAR:     Self.ReGear();
     ECombatState.BURY_BONES:       Self.DoBuryBones();
+
+    ECombatState.SAFE_SPOT: Self.WalkSafeSpot();
 
     ECombatState.ATTACK_MONSTER, ECombatState.SPEC_MONSTER: Self.WalkAttackMonster();
 
@@ -810,6 +823,7 @@ end;
 
 function TRSMainScreen.InCombat(): Boolean; override;
 var
+  splats: TRSHitsplatArray;
   gotXP, hasSplats: Boolean;
   tmp: TRSMonster;
   cuboids: TCuboidExArray;
@@ -838,7 +852,8 @@ begin
     cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
 
   gotXP := XPBar.EarnedXP();
-  hasSplats := Self.FindHitsplats(cuboid.Bounds()) <> [];
+  splats := Self.FindHitsplats(cuboid.Bounds());
+  hasSplats := splats <> [];
   Result := gotXP or hasSplats;
 
   if not Result then
@@ -848,11 +863,9 @@ begin
   if Result then
   begin
     WL.Activity.Restart();
-    if WLSettings.RemoteInput.Enabled then
-    begin
-      RSClient.Clear(MainScreen.Bounds());
-      RSClient.DrawCuboid(cuboid, $FFFFFF, 1);
-    end;
+    RSClient.Clear(MainScreen.Bounds());
+    RSClient.DrawCuboid(cuboid, $FFFFFF, 1);
+    RSClient.DrawHitSplatArray(splats, $00FF00, 1);
   end;
 
   if gotXP or hasSplats then

@@ -1,3 +1,12 @@
+# [14.12.0](https://github.com/Torwent/WaspLib/compare/v14.11.3...v14.12.0) (2023-11-02)
+
+
+### Features
+
+* **combathandler:** now supports safespotting ([9a7aabb](https://github.com/Torwent/WaspLib/commit/9a7aabb71711a74aea69856a197dd4c69b7c6c64))
+
+
+
 ## [14.11.3](https://github.com/Torwent/WaspLib/compare/v14.11.2...v14.11.3) (2023-10-28)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([ab4826b](https://github.com/Torwent/WaspLib/commit/ab4826b5864e7943fa0195750c0f0c350ef21131))
-
-
-
-## [14.10.14](https://github.com/Torwent/WaspLib/compare/v14.10.13...v14.10.14) (2023-10-24)
-
-
-### Bug Fixes
-
-* read notes ([125a537](https://github.com/Torwent/WaspLib/commit/125a537372f24e4fb584b45dff023bdbdd5689a4))
 
 
 

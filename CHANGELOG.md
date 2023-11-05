@@ -1,3 +1,12 @@
+## [14.12.2](https://github.com/Torwent/WaspLib/compare/v14.12.1...v14.12.2) (2023-11-05)
+
+
+### Bug Fixes
+
+* some tweaks to TaZe PR ([eae9224](https://github.com/Torwent/WaspLib/commit/eae9224edcef1546feb6bdd7e55e6acdf32e251d))
+
+
+
 ## [14.12.1](https://github.com/Torwent/WaspLib/compare/v14.12.0...v14.12.1) (2023-11-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TScriptForm:** the new lighter bank selector tab now ensures the directory is created to save images ([680205f](https://github.com/Torwent/WaspLib/commit/680205f665692a7a114230444a0ff86a76b9b84d))
-
-
-
-## [14.11.1](https://github.com/Torwent/WaspLib/compare/v14.11.0...v14.11.1) (2023-10-26)
-
-
-### Bug Fixes
-
-* **TScriptForm:** Time limit field should work again ([bba166e](https://github.com/Torwent/WaspLib/commit/bba166ebe09fc3e72523bf8898f733f135443d6a))
 
 
 

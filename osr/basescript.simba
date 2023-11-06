@@ -625,41 +625,37 @@ Example
   if Bank.IsOpen() then
     BankScript.Withdraw(item);
 *)
-function TBaseBankScript.Withdraw(out item: TRSBankItem; attempt: Int32 = 0): Boolean;
+function TBaseBankScript.Withdraw(out item: TRSBankItem; attempts: Int32 = 0): Boolean;
 var
   count, stack: Int32;
 begin
   stack := Inventory.CountItemStack(item.Item);
-  if Inventory.IsFull() and (stack < 1) then //item not stackable.
-    Exit;
+  if Inventory.IsFull() and (stack < 1) then
+    Exit(False);
 
   count := Inventory.CountItem(item.Item);
-
-  if Bank.WithdrawItem(item, item.Quantity <> 1) then
+  if Bank.WithdrawItem(item, item.Quantity <> 1) then begin
     Result := WaitUntil(
-                (Inventory.CountItemStack(item.Item) > stack) or
-                (Inventory.CountItem(item.Item) > count), 300, 3000);
-
-  if Result then
-    Exit;
+      (Inventory.CountItemStack(item.Item) > stack) or
+      (Inventory.CountItem(item.Item) > count), 300, 3000);
+    if Result then Exit(True);
+  end;
 
   Bank.UnHoverIncinerator();
   if Bank.IsSearchOpen() then
     Bank.CloseSearch();
 
-  if attempt = 1 then
+  if attempts <= 1 then begin
     Mouse.Move(Bank.GetSlotBoxes().Merge(), True);
+    Self.BankEmpty := Bank.IsOpen();
+    if Self.BankEmpty then
+      SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
+    if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+      Self.CollectEmpty := False;
+    Exit(False);
+  end;
 
-  if attempt < 2 then
-    Exit(Self.Withdraw(item, attempt + 1));
-
-  Self.BankEmpty := Bank.IsOpen();
-
-  if Self.BankEmpty then
-    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
-
-  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
-    Self.CollectEmpty := False;
+  Exit(Self.Withdraw(item, attempts - 1));
 end;
 
 function TBaseBankScript.Withdraw(item: TRSBankWithdrawItem): Boolean; overload; deprecated 'Use the TRSBankItem version instead!';

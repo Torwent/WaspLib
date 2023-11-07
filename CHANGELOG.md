@@ -1,3 +1,12 @@
+## [14.12.3](https://github.com/Torwent/WaspLib/compare/v14.12.2...v14.12.3) (2023-11-07)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** tweaks to make `TBaseBankScript.Withdraw()` more readable ([2c0bb35](https://github.com/Torwent/WaspLib/commit/2c0bb359f4251d60dc128999d3c8549f770c84e2))
+
+
+
 ## [14.12.2](https://github.com/Torwent/WaspLib/compare/v14.12.1...v14.12.2) (2023-11-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **loothandler:** should loot multiple times the same pile if there's multiple drops now ([b95f865](https://github.com/Torwent/WaspLib/commit/b95f865f135164f07938e552759ea1cd806d1390))
-
-
-
-## [14.11.2](https://github.com/Torwent/WaspLib/compare/v14.11.1...v14.11.2) (2023-10-27)
-
-
-### Bug Fixes
-
-* **TScriptForm:** the new lighter bank selector tab now ensures the directory is created to save images ([680205f](https://github.com/Torwent/WaspLib/commit/680205f665692a7a114230444a0ff86a76b9b84d))
 
 
 

@@ -1,3 +1,12 @@
+## [14.12.4](https://github.com/Torwent/WaspLib/compare/v14.12.3...v14.12.4) (2023-11-08)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** TBaseBankScript.Withdraw() should now handle noted items properly ([4ed50b0](https://github.com/Torwent/WaspLib/commit/4ed50b07d1d463b83029c8d9febe3f372d63921d))
+
+
+
 ## [14.12.3](https://github.com/Torwent/WaspLib/compare/v14.12.2...v14.12.3) (2023-11-07)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **combathandler:** now supports safespotting ([9a7aabb](https://github.com/Torwent/WaspLib/commit/9a7aabb71711a74aea69856a197dd4c69b7c6c64))
-
-
-
-## [14.11.3](https://github.com/Torwent/WaspLib/compare/v14.11.2...v14.11.3) (2023-10-28)
-
-
-### Bug Fixes
-
-* **loothandler:** should loot multiple times the same pile if there's multiple drops now ([b95f865](https://github.com/Torwent/WaspLib/commit/b95f865f135164f07938e552759ea1cd806d1390))
 
 
 

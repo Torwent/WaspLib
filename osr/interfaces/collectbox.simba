@@ -56,7 +56,21 @@ begin
   Result := Self.GetSlots[Index];
 end;
 
-function TRSCollectBox.GetSlotBoxes(Index: Int32): TBoxArray;
+function TRSCollectBox.GetItemSlots(): TBoxArray;
+begin
+  Result := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.X1 + 25, Self.Y1 + 75]);
+end;
+
+function TRSCollectBox.GetItemSlot(index: Int32): TBox;
+begin
+  if not InRange(index, 0, 7) then
+    Exit;
+
+  Result := Self.GetItemSlots[index];
+end;
+
+
+function TRSCollectBox.GetSlotBoxes(index: Int32): TBoxArray;
 var
   SlotBox, Box: TBox;
 begin
@@ -77,12 +91,13 @@ begin
   Result += Box;
 end;
 
-function TRSCollectBox.GetSlotBox(Slot: Int32; Box: ERSCollectSlotBoxes): TBox;
+function TRSCollectBox.GetSlotBox(slot: Int32; box: ERSCollectSlotBoxes): TBox;
 var
-  Boxes: TBoxArray := Self.GetSlotBoxes(Slot);
+  boxes: TBoxArray;
 begin
-  if Length(Boxes) = Length(ERSCollectSlotBoxes) then
-    Result := Boxes[Box];
+  boxes := Self.GetSlotBoxes(slot);
+  if Length(boxes) = Length(ERSCollectSlotBoxes) then
+    Result := boxes[box];
 end;
 
 
@@ -132,7 +147,7 @@ begin
   Self.ButtonColors += CTS1(2304814, 0);
 
   Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetSlots;
+  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetItemSlots;
 end;
 
 procedure TRSCollectBox.SetupAlignment(Mode: ERSClientMode); override;
@@ -184,23 +199,9 @@ begin
   Result := MainScreen.CloseInterface(PressEscape);
 end;
 
-
-function TRSCollectBox.HasItem(Slot: Int32): Boolean;
+function TRSCollectBox.GetUsedSlots(): TIntegerArray;
 begin
-  if not Self.IsOpen then
-    Exit;
-
-  // black with tolerance for when item is transparent
-  Result := SRL.CountColor(CTS1(1118740, 35), Self.GetSlotBox(Slot, ITEM)) > 0;
-end;
-
-function TRSCollectBox.GetSlotsWithItems(): TIntegerArray;
-var
-  i: Int32;
-begin
-  for i := 0 to High(Self.GetSlots) do
-    if Self.HasItem(i) then
-      Result += i;
+  Result := Self.ItemInterface.GetUsedSlots();
 end;
 
 function TRSCollectBox.HasChange(Slot: Int32): Boolean;
@@ -221,11 +222,11 @@ begin
       Result += i;
 end;
 
-function TRSCollectBox.GetFullSlots: TIntegerArray;
+function TRSCollectBox.GetFullSlots(): TIntegerArray;
 begin
-  Result := Self.GetSlotsWithItems.Combine(Self.GetSlotsWithChange);
-  Result.ClearDuplicates;
-  Result.Sort;
+  Result := Self.GetUsedSlots().Combine(Self.GetSlotsWithChange());
+  Result.ClearDuplicates();
+  Result.Sort();
 end;
 
 
@@ -265,45 +266,40 @@ begin
 end;
 
 
-
-
 function TRSCollectBox.CountItemStack(item: TRSItem): Int32;
 begin
   Result := Self.ItemInterface.CountStack(item);
 end;
 
 
-function TRSCollectBox.CollectSlot(Slot: Int32): Boolean;
+function TRSCollectBox.CollectSlot(slot: Int32): Boolean;
 begin
-  if not Self.IsOpen then
+  if not Self.IsOpen() then
     Exit;
 
-  if Self.HasItem(Slot) then
-    Mouse.Click(Self.GetSlotBox(Slot, ITEM), MOUSE_LEFT);
-  if Self.HasChange(Slot) then
-    Mouse.Click(Self.GetSlotBox(Slot, CHANGE), MOUSE_LEFT);
+  Self.ItemInterface.ClickSlot(slot);
 
-  Result := WaitUntil((not Self.HasItem(Slot) and not Self.HasChange(Slot)), SRL.TruncatedGauss(50, 1500), 1000);
+  if Self.HasChange(slot) then
+    Mouse.Click(Self.GetSlotBox(slot, CHANGE), MOUSE_LEFT);
+
+  Result := WaitUntil(Self.ItemInterface.SlotEmpty(slot) and not Self.HasChange(slot), SRL.TruncatedGauss(50, 1500), 1000);
 end;
 
-function TRSCollectBox.CollectSlotToBank(Slot: Int32): Boolean;
+function TRSCollectBox.CollectSlotToBank(slot: Int32): Boolean;
 begin
   if not Self.IsOpen then
     Exit;
 
-  if Self.HasItem(Slot) then
-  begin
-    Mouse.Move(Self.GetSlotBox(Slot, ITEM));
-    if ChooseOption.Open then
-      ChooseOption.Select('Bank', MOUSE_LEFT);
-  end;
-  if Self.HasChange(Slot) then
+  Self.ItemInterface.InteractSlot(slot, 'Bank');
+
+  if Self.HasChange(slot) then
   begin
     Mouse.Move(Self.GetSlotBox(Slot, CHANGE));
     if ChooseOption.Open then
       ChooseOption.Select('Bank', MOUSE_LEFT);
   end;
-  Result := WaitUntil((not Self.HasItem(Slot) and not Self.HasChange(Slot)), SRL.TruncatedGauss(50, 1500), 1000);
+
+  Result := WaitUntil(Self.ItemInterface.SlotEmpty(Slot) and not Self.HasChange(Slot), SRL.TruncatedGauss(50, 1500), 1000);
 end;
 
 function TRSCollectBox.MouseItem(Item: TRSItem): Boolean;
@@ -463,8 +459,6 @@ begin
     Result := WaitUntil((Self.IsOpen() or BankPin.IsOpen()), RandomLeft(50, 1500), 3000);
   end;
 end;
-
-
 
 
 (*

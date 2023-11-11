@@ -267,6 +267,7 @@ begin
   Self.SafeSpot := safeSpotTile;
   Self.UseSafeSpot := safeSpotTile <> [-1,-1];
 
+  Self.Looted := True;
   Self.IsSetup := True;
 end;
 
@@ -347,9 +348,7 @@ end;
 
 function TRSCombatHandler.AttackMonster(attempts: Int32 = 3): Boolean;
 begin
-  Result := Self.WaitHitSplats();
-
-  if not Result and Self.Monster.SelectOption(['Attack'], attempts) then
+  if Self.Monster.SelectOption(['Attack'], attempts) then
   begin
     Minimap.WaitMoving();
     Result := Self.WaitHitSplats();
@@ -361,8 +360,7 @@ begin
   if not Self.Monster.Filter.Walker then
     Exit(Self.AttackMonster(attempts));
 
-  Result := Self.WaitHitSplats();
-  if not Result and Self.Monster.WalkSelectOption(['Attack'], attempts) then
+  if Self.Monster.WalkSelectOption(['Attack'], attempts) then
   begin
     Minimap.WaitMoving();
     Result := Self.WaitHitSplats();
@@ -687,19 +685,8 @@ begin
   Result := ECombatState.UNKNOWN_COMBAT_STATE;
 end;
 
-function TRSCombatHandler.GetState(): ECombatState;
-var
-  consumableState: ECombatState;
+function TRSCombatHandler.GetBoostState(): ECombatState;
 begin
-  consumableState := Self.GetConsumableState();
-  if consumableState <> ECombatState.UNKNOWN_COMBAT_STATE then
-    Exit(consumableState);
-
-  if MainScreen.FindGrave() then
-    Exit(ECombatState.PLAYER_DEAD);
-
-  Self.CheckSlayerTask();
-
   if Self.NeedConsumable(Self.HandleStrengthBoosts, ERSConsumable.STRENGTH_BOOST_CONSUMABLE) then
     Exit(ECombatState.DRINK_STR_BOOST);
 
@@ -717,6 +704,25 @@ begin
 
   if Self.NeedConsumable(Self.HandleBoosts, ERSConsumable.BOOST_CONSUMABLE) then
     Exit(ECombatState.DRINK_BOOST);
+
+  Result := ECombatState.UNKNOWN_COMBAT_STATE;
+end;
+
+
+function TRSCombatHandler.GetState(): ECombatState;
+begin
+  Result := Self.GetConsumableState();
+  if Result <> ECombatState.UNKNOWN_COMBAT_STATE then
+    Exit;
+
+  if MainScreen.FindGrave() then
+    Exit(ECombatState.PLAYER_DEAD);
+
+  Self.CheckSlayerTask();
+
+  Result := Self.GetBoostState();
+  if Result <> ECombatState.UNKNOWN_COMBAT_STATE then
+    Exit;
 
   if Self.ManageGear then
   begin

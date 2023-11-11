@@ -1,3 +1,12 @@
+## [14.12.6](https://github.com/Torwent/WaspLib/compare/v14.12.5...v14.12.6) (2023-11-11)
+
+
+### Bug Fixes
+
+* **combathandler:** should have slightly less delay when attacking things when it's not in combat ([dcfbfb3](https://github.com/Torwent/WaspLib/commit/dcfbfb365cab24b5e7968dd3d6fa577cb45cd2c6))
+
+
+
 ## [14.12.5](https://github.com/Torwent/WaspLib/compare/v14.12.4...v14.12.5) (2023-11-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * some tweaks to TaZe PR ([eae9224](https://github.com/Torwent/WaspLib/commit/eae9224edcef1546feb6bdd7e55e6acdf32e251d))
-
-
-
-## [14.12.1](https://github.com/Torwent/WaspLib/compare/v14.12.0...v14.12.1) (2023-11-02)
-
-
-### Bug Fixes
-
-* added a soundlib plugin example to the templates folder ([4994b6c](https://github.com/Torwent/WaspLib/commit/4994b6ca01a1154c2d726f6e124e2eebe3872da5))
 
 
 

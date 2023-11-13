@@ -1,3 +1,12 @@
+# [14.13.0](https://github.com/Torwent/WaspLib/compare/v14.12.7...v14.13.0) (2023-11-13)
+
+
+### Features
+
+* **walker:** can now setup a map as a region ([b4639ec](https://github.com/Torwent/WaspLib/commit/b4639ecda552e8602d0602d0836dc633ceffc8ad))
+
+
+
 ## [14.12.7](https://github.com/Torwent/WaspLib/compare/v14.12.6...v14.12.7) (2023-11-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** TBaseBankScript.Withdraw() should now handle noted items properly ([4ed50b0](https://github.com/Torwent/WaspLib/commit/4ed50b07d1d463b83029c8d9febe3f372d63921d))
-
-
-
-## [14.12.3](https://github.com/Torwent/WaspLib/compare/v14.12.2...v14.12.3) (2023-11-07)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** tweaks to make `TBaseBankScript.Withdraw()` more readable ([2c0bb35](https://github.com/Torwent/WaspLib/commit/2c0bb359f4251d60dc128999d3c8549f770c84e2))
 
 
 

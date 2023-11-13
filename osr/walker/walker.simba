@@ -255,7 +255,7 @@ begin
   Self.RegionOffsets := [[0, 0]];
 end;
 
-procedure TRSWalkerMap.Load(fileName: String; ARegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+procedure TRSWalkerMap.Load(fileName: String; ARegions: TBoxArray; scaling: Integer; padding: Integer = 50); override;
 var
   bitmaps, hBitmaps: TMufasaBitmapArray;
   I: Integer;
@@ -282,12 +282,12 @@ begin
 
     if (ARegions[I] <> RSWalkerRegions.WORLD) then
     begin
-      Self.RegionOffsets[I].X -= Padding;
-      Self.RegionOffsets[I].Y -= Padding;
+      Self.RegionOffsets[I].X -= padding;
+      Self.RegionOffsets[I].Y -= padding;
 
-      Bitmaps[I].Pad(Padding);
+      Bitmaps[I].Pad(padding);
       if not RSHeightMap.Disabled then
-        hBitmaps[I].Pad(Padding);
+        hBitmaps[I].Pad(padding);
     end;
 
     Self.Regions[I] := TBox.Create(0, 0, bitmaps[I].GetWidth(), bitmaps[I].GetHeight());
@@ -327,7 +327,7 @@ begin
       hBitmaps[I].Free();
 end;
 
-procedure TRSWalkerMap.Load(fileName: String; ARegion: TBox; Scaling: Integer; Padding: Integer = 50); overload;
+procedure TRSWalkerMap.Load(fileName: String; ARegion: TBox; scaling: Integer; padding: Integer = 50); overload;
 var
   bitmaps, hBitmaps: TMufasaBitmapArray;
   bitmap, hBitmap: TMufasaBitmap;
@@ -364,13 +364,86 @@ begin
 
   if (ARegion <> RSWalkerRegions.WORLD) then
   begin
-    Self.RegionOffsets[hi].X -= Padding;
-    Self.RegionOffsets[hi].Y -= Padding;
+    Self.RegionOffsets[hi].X -= padding;
+    Self.RegionOffsets[hi].Y -= padding;
 
-    bitmap.Pad(Padding);
+    bitmap.Pad(padding);
     if not RSHeightMap.Disabled then
-      hBitmap.Pad(Padding);
+      hBitmap.Pad(padding);
   end;
+
+  Self.Regions[hi] := TBox.Create(0, 0, bitmap.GetWidth(), bitmap.GetHeight());
+  bitmaps += bitmap;
+  if not RSHeightMap.Disabled then
+    hBitmaps += hBitmap;
+
+  Self.Regions := Self.Regions.Pack();
+  Self.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  for I := 0 to High(Self.Regions) do
+  begin
+    Self.Map.DrawBitmap(bitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+    if not RSHeightMap.Disabled then
+      RSHeightMap.Map.DrawBitmap(hBitmaps[I], TPoint.Create(Self.Regions[I].X1, Self.Regions[I].Y1));
+  end;
+
+  Self.ScaledMap.Clear();
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+
+  for I := 0 to High(bitmaps) do
+    bitmaps[I].Free();
+
+  if not RSHeightMap.Disabled then
+    for I := 0 to High(hBitmaps) do
+      hBitmaps[I].Free();
+end;
+
+procedure TRSWalkerMap.Load(fileName: String; start: TPoint; scaling: Integer; padding: Integer = 50); overload;
+var
+  bitmaps, hBitmaps: TMufasaBitmapArray;
+  bitmap, hBitmap: TMufasaBitmap;
+  i, hi: Int32;
+  hFileName: String;
+  aRegion: TBox;
+begin
+  for i := 0 to High(Self.Regions) do
+  begin
+    bitmaps += Self.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+    if not RSHeightMap.Disabled then
+      hBitmaps += RSHeightMap.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+  end;
+
+  Self.Map.Clear();
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.Clear();
+
+  fileName := fileName.Replace(SRL_WALKER_DIR, WL_WALKER_DIR);
+
+  hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
+
+
+  SetLength(Self.Regions, Length(Self.Regions) + 1);
+  SetLength(Self.RegionOffsets, Length(Self.Regions));
+
+  hi := High(Self.Regions);
+
+  Self.RegionOffsets[hi] := start;
+
+  bitmap := Self.InternalLoadMap(fileName);
+  if not RSHeightMap.Disabled and FileExists(hFileName) then
+    hBitmap := Self.InternalLoadMap(hFileName);
+
+  aRegion := [start.X, start.Y, bitmap.getWidth()-1, bitmap.getHeight()-1];
+
+  Self.RegionOffsets[hi].X -= padding;
+  Self.RegionOffsets[hi].Y -= padding;
+
+  bitmap.Pad(padding);
+  if not RSHeightMap.Disabled then
+    hBitmap.Pad(padding);
 
   Self.Regions[hi] := TBox.Create(0, 0, bitmap.GetWidth(), bitmap.GetHeight());
   bitmaps += bitmap;
@@ -488,11 +561,23 @@ Walker.AddRegion
 
 Add a region to walker on the fly after it is already setup.
 *)
+procedure TRSWalker.AddRegion(map: String; start: TPoint);
+begin
+  if Self = [] then
+    Self.Fatal('Walker has to be setup already to add a single region');
+  Self.Map.Load(map, start, Self.Scaling);
+  Self.InternalSetup();
+end;
+
 procedure TRSWalker.AddRegion(region: TBox); overload;
 begin
+  if Self = [] then
+    Self.Fatal('Walker has to be setup already to add a single region');
   Self.Map.Load(SRL_WALKER_MAP, region, Self.Scaling);
   Self.InternalSetup();
 end;
+
+
 
 (*
 Walker.GetHeight

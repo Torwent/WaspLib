@@ -1,3 +1,12 @@
+## [14.12.7](https://github.com/Torwent/WaspLib/compare/v14.12.6...v14.12.7) (2023-11-13)
+
+
+### Bug Fixes
+
+* **waspweb:** read notes ([d9a98c1](https://github.com/Torwent/WaspLib/commit/d9a98c11980a2b9a3f0ae971bf575586424d1c8c))
+
+
+
 ## [14.12.6](https://github.com/Torwent/WaspLib/compare/v14.12.5...v14.12.6) (2023-11-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** tweaks to make `TBaseBankScript.Withdraw()` more readable ([2c0bb35](https://github.com/Torwent/WaspLib/commit/2c0bb359f4251d60dc128999d3c8549f770c84e2))
-
-
-
-## [14.12.2](https://github.com/Torwent/WaspLib/compare/v14.12.1...v14.12.2) (2023-11-05)
-
-
-### Bug Fixes
-
-* some tweaks to TaZe PR ([eae9224](https://github.com/Torwent/WaspLib/commit/eae9224edcef1546feb6bdd7e55e6acdf32e251d))
 
 
 

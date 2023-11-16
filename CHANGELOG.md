@@ -1,3 +1,27 @@
+# [15.0.0](https://github.com/Torwent/WaspLib/compare/v14.13.0...v15.0.0) (2023-11-16)
+
+
+### Bug Fixes
+
+* scoped enums and ERSConsumable renames ([b08a199](https://github.com/Torwent/WaspLib/commit/b08a199b789dbe243e51b6586ebcb501b01de7c2))
+
+
+### BREAKING CHANGES
+
+* WaspLib utils are now scoped. Other enums will be scoped at a later time.
+* ERSConsumables were renamed to remove the prepended "_CONSUMABLE".
+Example of old vs new usage:
+```pascal
+//old usage:
+Inventory.ContainsConsumable(FOOD_CONSUMABLE);
+Inventory.Consume(FOOD_CONSUMABLE);
+//new usage:
+Inventory.ContainsConsumable(ERSConsumable.FOOD);
+Inventory.Consume(ERSConsumable.FOOD);
+```
+
+
+
 # [14.13.0](https://github.com/Torwent/WaspLib/compare/v14.12.7...v14.13.0) (2023-11-13)
 
 
@@ -31,15 +55,6 @@
 ### Bug Fixes
 
 * read notes ([92b00ec](https://github.com/Torwent/WaspLib/commit/92b00ec963f8b23c7fb03c7102af28c414691640))
-
-
-
-## [14.12.4](https://github.com/Torwent/WaspLib/compare/v14.12.3...v14.12.4) (2023-11-08)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** TBaseBankScript.Withdraw() should now handle noted items properly ([4ed50b0](https://github.com/Torwent/WaspLib/commit/4ed50b07d1d463b83029c8d9febe3f372d63921d))
 
 
 

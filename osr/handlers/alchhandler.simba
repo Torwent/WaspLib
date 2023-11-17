@@ -374,7 +374,7 @@ begin
   RSAlchHandler.Disabled := not Result;
 end;
 
-function RSAlchHandler.SelectItem(hi: Boolean = True): Boolean; static;
+function RSAlchHandler.SelectItem(hi: Boolean = True; waitTimer: Boolean = False): Boolean; static;
 var
   attempt, slot, spellSlot: Int32;
   box: TBox;
@@ -407,8 +407,19 @@ begin
 
       if SRL.Dice(99.5) then
       begin
-        if not Inventory.ClickSlot(slot, '>') or
-           not WaitUntil(XPBar.EarnedXP() or Magic.IsOpen(), 300, 3000) then
+        if not Inventory.HoverSlot(slot) and not MainScreen.IsUpText('>') then
+          Exit;
+
+        if not waitTimer then
+        begin
+          if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
+            Exit;
+        end else
+          WaitUntil(RSAlchHandler.Timer.IsFinished(), 50, 3100);
+
+        Mouse.Click(MOUSE_LEFT);
+
+        if not WaitUntil(XPBar.EarnedXP() or Magic.IsOpen(), 300, 3000) then
           Exit;
 
         RSAlchHandler.Timer.Restart();
@@ -443,19 +454,12 @@ function RSAlchHandler.CastAlchemy(hi: Boolean = True; waitTimer: Boolean = Fals
 var
   attempt: Int32;
 begin
-  if not waitTimer then
-  begin
-    if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
-      Exit;
-  end else
-    WaitUntil(RSAlchHandler.Timer.IsFinished(), 50, 3100);
-
   XPBar.EarnedXP(); //Update cached XP.
 
   repeat
     if not RSAlchHandler.SelectSpell(hi) then
       Exit;
-    Result := RSAlchHandler.SelectItem(hi);
+    Result := RSAlchHandler.SelectItem(hi, waitTimer);
     TRSWalkerObject.RedClicked := False; //Integration with other wasplib components.
   until Result or (Inc(attempt) > 2);
 end;

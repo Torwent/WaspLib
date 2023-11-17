@@ -1,3 +1,12 @@
+## [15.0.1](https://github.com/Torwent/WaspLib/compare/v15.0.0...v15.0.1) (2023-11-17)
+
+
+### Bug Fixes
+
+* **AlchHandler:** better timer logic ([3cfd419](https://github.com/Torwent/WaspLib/commit/3cfd419c7bf9cf450ca3ba7620f564fba1502268))
+
+
+
 # [15.0.0](https://github.com/Torwent/WaspLib/compare/v14.13.0...v15.0.0) (2023-11-16)
 
 
@@ -46,15 +55,6 @@ Inventory.Consume(ERSConsumable.FOOD);
 ### Bug Fixes
 
 * **combathandler:** should have slightly less delay when attacking things when it's not in combat ([dcfbfb3](https://github.com/Torwent/WaspLib/commit/dcfbfb365cab24b5e7968dd3d6fa577cb45cd2c6))
-
-
-
-## [14.12.5](https://github.com/Torwent/WaspLib/compare/v14.12.4...v14.12.5) (2023-11-09)
-
-
-### Bug Fixes
-
-* read notes ([92b00ec](https://github.com/Torwent/WaspLib/commit/92b00ec963f8b23c7fb03c7102af28c414691640))
 
 
 

@@ -1,3 +1,12 @@
+## [15.0.2](https://github.com/Torwent/WaspLib/compare/v15.0.1...v15.0.2) (2023-11-18)
+
+
+### Bug Fixes
+
+* read notes ([2bfd68f](https://github.com/Torwent/WaspLib/commit/2bfd68f36f232a4947d39a3138bde603137ed1f1))
+
+
+
 ## [15.0.1](https://github.com/Torwent/WaspLib/compare/v15.0.0...v15.0.1) (2023-11-17)
 
 
@@ -46,15 +55,6 @@ Inventory.Consume(ERSConsumable.FOOD);
 ### Bug Fixes
 
 * **waspweb:** read notes ([d9a98c1](https://github.com/Torwent/WaspLib/commit/d9a98c11980a2b9a3f0ae971bf575586424d1c8c))
-
-
-
-## [14.12.6](https://github.com/Torwent/WaspLib/compare/v14.12.5...v14.12.6) (2023-11-11)
-
-
-### Bug Fixes
-
-* **combathandler:** should have slightly less delay when attacking things when it's not in combat ([dcfbfb3](https://github.com/Torwent/WaspLib/commit/dcfbfb365cab24b5e7968dd3d6fa577cb45cd2c6))
 
 
 

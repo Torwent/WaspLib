@@ -407,7 +407,7 @@ begin
 
       if SRL.Dice(99.5) then
       begin
-        if not Inventory.HoverSlot(slot) and not MainScreen.IsUpText('>') then
+        if not Inventory.MouseSlot(slot) and not MainScreen.IsUpText('>') then
           Exit;
 
         if not waitTimer then
@@ -780,7 +780,28 @@ function TScriptForm.CreateAlchemyPanel(): TTabSheet;
     TButton(sender).setCaption(tmp);
   end;
 
+  procedure TScriptForm.OnItemSearchChange(sender: TObject);
+  var
+    list: TListBox;
+  begin
+    list := TScriptForm.Form.GetChild('item_list_listbox');
+    if not TEdit(sender).IsEmpty() then
+      if list.Search(TEdit(sender).getText()) > -1 then
+        Self._OnItemListSelected(list);
+  end;
+
+  procedure TScriptForm.OnAlchSearchChange(sender: TObject);
+  var
+    list: TListBox;
+  begin
+    list := TScriptForm.Form.GetChild('alch_list_listbox');
+    if not TEdit(sender).IsEmpty() then
+      if list.Search(TEdit(sender).getText()) > -1 then
+        Self._OnItemListSelected(list);
+  end;
+
 var
+  itemSearch, alchSearch: TLabeledEdit;
   itemList, alchList: TLabeledListBox;
   itemNames: TStringList;
   fullWidth, space, y, i: Int32;
@@ -794,6 +815,18 @@ begin
   space := Floor(fullWidth * 0.09);
   y := Floor(Self.Size.Y/10);
 
+  with itemSearch do
+  begin
+    Create(Result);
+    SetCaption('Search item:');
+    SetTooltip('Search for an item.');
+    SetName('item_search');
+    SetLeft(space);
+    SetTop(y - TControl.AdjustToDPI(15));
+    SetWidth(fullWidth);
+    Edit.setOnChange(@Self.OnItemSearchChange);
+  end;
+
   with itemList do
   begin
     Create(Result);
@@ -801,9 +834,9 @@ begin
     SetTooltip('List of all items on osrs currently supported.');
     SetName('item_list');
     SetLeft(space);
-    SetTop(y);
-    SetWidth(fullWidth);
-    SetHeight(Floor(Self.Size.Y/1.5));
+    SetTop(y + TControl.AdjustToDPI(35));
+    SetWidth(itemSearch.GetWidth());
+    SetHeight(Floor(Self.Size.Y/1.45));
     itemNames.Init();
     itemNames.LoadFromFile(ItemFinder.ITEM_NAMES);
     itemNames.setSorted(True);
@@ -820,13 +853,25 @@ begin
     ListBox.setOnClick(@Self._OnItemListSelected);
   end;
 
+  with alchSearch do
+  begin
+    Create(Result);
+    SetCaption('Search alch:');
+    SetTooltip('Search for an alch.');
+    SetName('alch_search');
+    SetLeft(Self.Size.X - space - fullWidth);
+    SetTop(itemSearch.GetTop());
+    SetWidth(itemSearch.GetWidth());
+    Edit.setOnChange(@Self.OnAlchSearchChange);
+  end;
+
   with alchList do
   begin
     Create(Result);
     SetCaption('Alch list:');
     SetTooltip('List of all items that will be looked for when WaspLib alch handler is used. For performance, keep the list short.');
     SetName('alch_list');
-    SetLeft(Self.Size.X - space - fullWidth);
+    SetLeft(alchSearch.GetLeft());
     SetTop(itemList.GetTop());
     SetWidth(itemList.GetWidth());
     SetHeight(itemList.GetHeight());

@@ -1,3 +1,12 @@
+## [15.0.3](https://github.com/Torwent/WaspLib/compare/v15.0.2...v15.0.3) (2023-11-21)
+
+
+### Bug Fixes
+
+* Iowerth warriors coordinates ([dd873e0](https://github.com/Torwent/WaspLib/commit/dd873e0f30f8dd557f19476aa693135fa98a3d8c))
+
+
+
 ## [15.0.2](https://github.com/Torwent/WaspLib/compare/v15.0.1...v15.0.2) (2023-11-18)
 
 
@@ -46,15 +55,6 @@ Inventory.Consume(ERSConsumable.FOOD);
 ### Features
 
 * **walker:** can now setup a map as a region ([b4639ec](https://github.com/Torwent/WaspLib/commit/b4639ecda552e8602d0602d0836dc633ceffc8ad))
-
-
-
-## [14.12.7](https://github.com/Torwent/WaspLib/compare/v14.12.6...v14.12.7) (2023-11-13)
-
-
-### Bug Fixes
-
-* **waspweb:** read notes ([d9a98c1](https://github.com/Torwent/WaspLib/commit/d9a98c11980a2b9a3f0ae971bf575586424d1c8c))
 
 
 

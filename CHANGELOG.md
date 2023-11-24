@@ -1,3 +1,12 @@
+## [15.0.4](https://github.com/Torwent/WaspLib/compare/v15.0.3...v15.0.4) (2023-11-24)
+
+
+### Bug Fixes
+
+* **Inventory:** Randomitem methods now properly support composite items like Cake(1..3) ([7f0d0fd](https://github.com/Torwent/WaspLib/commit/7f0d0fdf6adb894ea5c474dbd321652034a66257))
+
+
+
 ## [15.0.3](https://github.com/Torwent/WaspLib/compare/v15.0.2...v15.0.3) (2023-11-21)
 
 
@@ -46,15 +55,6 @@ Inventory.Consume(FOOD_CONSUMABLE);
 Inventory.ContainsConsumable(ERSConsumable.FOOD);
 Inventory.Consume(ERSConsumable.FOOD);
 ```
-
-
-
-# [14.13.0](https://github.com/Torwent/WaspLib/compare/v14.12.7...v14.13.0) (2023-11-13)
-
-
-### Features
-
-* **walker:** can now setup a map as a region ([b4639ec](https://github.com/Torwent/WaspLib/commit/b4639ecda552e8602d0602d0836dc633ceffc8ad))
 
 
 

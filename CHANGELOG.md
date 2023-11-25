@@ -1,3 +1,12 @@
+## [15.0.5](https://github.com/Torwent/WaspLib/compare/v15.0.4...v15.0.5) (2023-11-25)
+
+
+### Bug Fixes
+
+* **RemoteInput:** read notes ([45e2aa9](https://github.com/Torwent/WaspLib/commit/45e2aa9fb41e26385b0c8808a01dc83d5028e358))
+
+
+
 ## [15.0.4](https://github.com/Torwent/WaspLib/compare/v15.0.3...v15.0.4) (2023-11-24)
 
 
@@ -31,30 +40,6 @@
 ### Bug Fixes
 
 * **AlchHandler:** better timer logic ([3cfd419](https://github.com/Torwent/WaspLib/commit/3cfd419c7bf9cf450ca3ba7620f564fba1502268))
-
-
-
-# [15.0.0](https://github.com/Torwent/WaspLib/compare/v14.13.0...v15.0.0) (2023-11-16)
-
-
-### Bug Fixes
-
-* scoped enums and ERSConsumable renames ([b08a199](https://github.com/Torwent/WaspLib/commit/b08a199b789dbe243e51b6586ebcb501b01de7c2))
-
-
-### BREAKING CHANGES
-
-* WaspLib utils are now scoped. Other enums will be scoped at a later time.
-* ERSConsumables were renamed to remove the prepended "_CONSUMABLE".
-Example of old vs new usage:
-```pascal
-//old usage:
-Inventory.ContainsConsumable(FOOD_CONSUMABLE);
-Inventory.Consume(FOOD_CONSUMABLE);
-//new usage:
-Inventory.ContainsConsumable(ERSConsumable.FOOD);
-Inventory.Consume(ERSConsumable.FOOD);
-```
 
 
 

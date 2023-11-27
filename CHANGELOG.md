@@ -1,3 +1,12 @@
+## [15.0.7](https://github.com/Torwent/WaspLib/compare/v15.0.6...v15.0.7) (2023-11-27)
+
+
+### Bug Fixes
+
+* **webgraph:** varrock east mine ([d6ba273](https://github.com/Torwent/WaspLib/commit/d6ba2735eeec2ee381d02651f30932e05a006454))
+
+
+
 ## [15.0.6](https://github.com/Torwent/WaspLib/compare/v15.0.5...v15.0.6) (2023-11-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Iowerth warriors coordinates ([dd873e0](https://github.com/Torwent/WaspLib/commit/dd873e0f30f8dd557f19476aa693135fa98a3d8c))
-
-
-
-## [15.0.2](https://github.com/Torwent/WaspLib/compare/v15.0.1...v15.0.2) (2023-11-18)
-
-
-### Bug Fixes
-
-* read notes ([2bfd68f](https://github.com/Torwent/WaspLib/commit/2bfd68f36f232a4947d39a3138bde603137ed1f1))
 
 
 

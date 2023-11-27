@@ -1,3 +1,12 @@
+## [15.0.6](https://github.com/Torwent/WaspLib/compare/v15.0.5...v15.0.6) (2023-11-27)
+
+
+### Bug Fixes
+
+* **BaseScript:** MaxTime and MaxActions should now work properly. ([665df5a](https://github.com/Torwent/WaspLib/commit/665df5a738b6773eb8960021cd3be5e2d201a0ff))
+
+
+
 ## [15.0.5](https://github.com/Torwent/WaspLib/compare/v15.0.4...v15.0.5) (2023-11-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([2bfd68f](https://github.com/Torwent/WaspLib/commit/2bfd68f36f232a4947d39a3138bde603137ed1f1))
-
-
-
-## [15.0.1](https://github.com/Torwent/WaspLib/compare/v15.0.0...v15.0.1) (2023-11-17)
-
-
-### Bug Fixes
-
-* **AlchHandler:** better timer logic ([3cfd419](https://github.com/Torwent/WaspLib/commit/3cfd419c7bf9cf450ca3ba7620f564fba1502268))
 
 
 

@@ -205,7 +205,7 @@ begin
   if not Self.PrintTimer.IsFinished() then
   begin
     if Self.PreviousAction <> Self.Action then
-      WriteLn(SRL.TimeStamp(), ':[', Self.Name, ']: ', Self.Action);
+      Self.DebugLn(Self.Action);
 
     Self.PreviousAction := Self.Action;
     Exit;
@@ -282,22 +282,23 @@ end;
 (*
 BaseScript.Init
 ~~~~~~~~~~~~~~~
-.. pascal:: procedure TBaseScript.Init(MaxActions: Int32; MaxTime: Int64);
+.. pascal:: procedure TBaseScript.Init(maxActions: UInt32; maxTime: UInt64);
 
 Method used to setup the variables of TBaseScript.
-If **MaxActions** and/or **MaxTime** -1 that will make
-`TBaseScript.ShouldStop() = True` when `TBaseScript.TotalActions = MaxAtions` or
-`TBaseScript.TimeRunning.ElapsedTime = MaxTime`.
+If **maxActions** and/or **maxTime** are not 0 that will make
+`TBaseScript.ShouldStop() = True` when `TBaseScript.TotalActions = maxAtions` or
+`TBaseScript.TimeRunning.ElapsedTime = maxTime`.
 
 Can be used as is or overriden to do additional tasks.
 
 Example
 -------
 
-  var Script: TBaseScript;
+  var
+    Script: TBaseScript;
 
   begin
-    Script.Init(-1, 2 * ONE_DAY);
+    Script.Init(0, 2 * ONE_DAY);
   end;
 *)
 procedure TBaseScript.Init(maxActions: UInt32; maxTime: UInt64);
@@ -312,8 +313,6 @@ begin
   if Login.Players = [] then
     Login.AddPlayer(ToStr(Random()),''); //make a random username for a random biohash if no users were added.
 
-  //TotalConsumableCost := 0;
-  Self.DisableDebugging := True;
   Self.ID := {$macro SCRIPT_ID};
   Self.Revision := {$macro SCRIPT_REVISION};
 
@@ -326,17 +325,16 @@ begin
 
   Self.Welcome := WELCOME_SENTENCES.RandomValue();
 
-  Self.ActionLimit := -1;
-  if maxActions > -1 then
+  if maxActions > 0 then
     Self.ActionLimit := Self.TotalActions + maxActions;
 
   Self.TimeRunning.Start();
   ProgressReport.PTimeRunning := @Self.TimeRunning;
 
-  if maxTime > -1 then
-    Self.TimeLimit := Self.TimeRunning.ElapsedTime + maxTime
+  if maxTime > 0 then
+    Self.TimeLimit := Self.TimeRunning.ElapsedTime() + maxTime
   else
-    Self.TimeLimit := -1;
+    Self.TimeLimit := 0;
 
   WL.Activity.Init(260000);
   Self.PrintTimer.Init(5 * ONE_MINUTE);
@@ -424,9 +422,20 @@ Example
     TerminateScript();
 *)
 function TBaseScript.ShouldStop(): Boolean;
-begin
-  Result := InRange(Self.ActionLimit, 1, Self.TotalActions) or
-            InRange(Self.TimeLimit, 1, Self.TimeRunning.ElapsedTime);
+begin;
+  if InRange(Self.ActionLimit, 1, Self.TotalActions) then
+  begin
+    Result := True;
+    Self.DebugLn('Maximum actions reached: ' +
+                 ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit) + '.');
+  end
+  else
+  if InRange(Self.TimeLimit, 1, Self.TimeRunning.ElapsedTime()) then
+  begin
+    Result := True;
+    Self.DebugLn('Maximum time reached: ' +
+                 ToStr(Round(Self.TimeRunning.ElapsedTime()/ONE_MINUTE)) + '/' + ToStr(Round(Self.TimeLimit/ONE_MINUTE)) + ' mins.');
+  end;
 
   if Result then
     SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);

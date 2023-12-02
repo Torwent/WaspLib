@@ -1,3 +1,12 @@
+## [15.0.9](https://github.com/Torwent/WaspLib/compare/v15.0.8...v15.0.9) (2023-12-02)
+
+
+### Bug Fixes
+
+* added varrock west yew trees coordinates ([d31ff25](https://github.com/Torwent/WaspLib/commit/d31ff251ab3298cb74685ba62383c0f256cb49b9))
+
+
+
 ## [15.0.8](https://github.com/Torwent/WaspLib/compare/v15.0.7...v15.0.8) (2023-12-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RemoteInput:** read notes ([45e2aa9](https://github.com/Torwent/WaspLib/commit/45e2aa9fb41e26385b0c8808a01dc83d5028e358))
-
-
-
-## [15.0.4](https://github.com/Torwent/WaspLib/compare/v15.0.3...v15.0.4) (2023-11-24)
-
-
-### Bug Fixes
-
-* **Inventory:** Randomitem methods now properly support composite items like Cake(1..3) ([7f0d0fd](https://github.com/Torwent/WaspLib/commit/7f0d0fdf6adb894ea5c474dbd321652034a66257))
 
 
 

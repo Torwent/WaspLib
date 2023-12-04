@@ -114,7 +114,7 @@ type
     MinHitPoints, MinPrayPoints, WeaponSpec, AttackMonsterDelay: Int32;
     TotalKills: UInt32;
 
-    ManageGear, GearIsSetup, AutoRetaliateEnabled, QuickPrayerIsSetup,
+    ManageGear, GearIsSetup, AutoRetaliateEnabled, AutoRetaliateChecked, QuickPrayerIsSetup,
     HandleCannon, CannonIsSetup, DoingSpec, UseSafeSpot,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
     IsFighting, Looted, IsSetup: Boolean;
@@ -221,7 +221,7 @@ begin
   if Self.IsSetup then
     Exit;
 
-  Self.Name := 'RSCombatHandler';
+  Self.Name := 'CombatHandler';
 
   if Self.AttackMonsterDelay = 0 then
     Self.AttackMonsterDelay := 5000;
@@ -252,7 +252,8 @@ begin
   if Self.HandleCannon then
     Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
 
-  Self.AutoRetaliateEnabled := Combat.GetAutoRetaliate();
+  if not Self.AutoRetaliateChecked then
+    Combat.GetAutoRetaliate();
 
   Self.Monster := rsMonster;
   Self.SafeSpot := safeSpotTile;
@@ -865,7 +866,21 @@ begin
     CombatHandler.InCombatTimer.Restart();
 end;
 
+function TRSCombat.GetAutoRetaliate(): Boolean; override;
+begin
+  CombatHandler.AutoRetaliateChecked := True;
+  Result := inherited;
+  CombatHandler.AutoRetaliateEnabled := Result;
+end;
 
+function TRSCombat.SetAutoRetaliate(value: Boolean): Boolean; override;
+begin
+  CombatHandler.AutoRetaliateChecked := True;
+  Result := inherited;
+
+  if Result then
+    CombatHandler.AutoRetaliateEnabled := value;
+end;
 
 //TODO: NEED TO REVIEW EVERYTHING BELOW. This is probably all useless or not used.
 function TRSPrayer.HasProperPrayers(): Boolean;

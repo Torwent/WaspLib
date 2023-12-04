@@ -1,3 +1,12 @@
+## [15.0.10](https://github.com/Torwent/WaspLib/compare/v15.0.9...v15.0.10) (2023-12-04)
+
+
+### Bug Fixes
+
+* CombatHandler and TBaseScript ([90422d3](https://github.com/Torwent/WaspLib/commit/90422d3c5c55d40e2b3257b0b92e4ef189fa6741))
+
+
+
 ## [15.0.9](https://github.com/Torwent/WaspLib/compare/v15.0.8...v15.0.9) (2023-12-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **BaseScript:** MaxTime and MaxActions should now work properly. ([665df5a](https://github.com/Torwent/WaspLib/commit/665df5a738b6773eb8960021cd3be5e2d201a0ff))
-
-
-
-## [15.0.5](https://github.com/Torwent/WaspLib/compare/v15.0.4...v15.0.5) (2023-11-25)
-
-
-### Bug Fixes
-
-* **RemoteInput:** read notes ([45e2aa9](https://github.com/Torwent/WaspLib/commit/45e2aa9fb41e26385b0c8808a01dc83d5028e358))
 
 
 

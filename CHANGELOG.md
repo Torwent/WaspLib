@@ -1,3 +1,12 @@
+# [15.1.0](https://github.com/Torwent/WaspLib/compare/v15.0.10...v15.1.0) (2023-12-08)
+
+
+### Features
+
+* monster_maker tool added ([f6b3107](https://github.com/Torwent/WaspLib/commit/f6b31073084f7376c74bb0ef8a558086d7c8f381))
+
+
+
 ## [15.0.10](https://github.com/Torwent/WaspLib/compare/v15.0.9...v15.0.10) (2023-12-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **webgraph:** varrock east mine ([d6ba273](https://github.com/Torwent/WaspLib/commit/d6ba2735eeec2ee381d02651f30932e05a006454))
-
-
-
-## [15.0.6](https://github.com/Torwent/WaspLib/compare/v15.0.5...v15.0.6) (2023-11-27)
-
-
-### Bug Fixes
-
-* **BaseScript:** MaxTime and MaxActions should now work properly. ([665df5a](https://github.com/Torwent/WaspLib/commit/665df5a738b6773eb8960021cd3be5e2d201a0ff))
 
 
 

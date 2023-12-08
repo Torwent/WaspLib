@@ -142,6 +142,7 @@ begin
 
   for i := 0 to High(tmpDrops) do
   begin
+
     if Self.IsGoodDrop(tmpDrops[i]) then
     begin
       Self.Drops += tmpDrops[i];
@@ -183,7 +184,7 @@ begin
     Exit(True);
 
   if upText.Contains('Walk here') then
-    Exit(False);
+    Exit;
 
   Result := ChooseOption.Open() and ChooseOption.HasOption('Take');
 end;
@@ -291,9 +292,32 @@ begin
   Result := Self.HandleLooting();
 end;
 
-function TRSLootHandler.CheckLoot(b: TBox): Boolean; overload;
+function TRSLootHandler.CheckLoot(b: TBox; attempts: Int32 = 3): Boolean; overload;
+var
+  i: Int32;
+  tpa: TPointArray;
+  p: TPoint;
 begin
-  Mouse.Move(b);
+  for i := 0 to attempts do
+  begin
+    if i > 2 then
+      Exit;
+    p := [-1,-1];
+
+    if SRL.FindAnyColors(tpa, Self.Loot.Finder.Colors, b) > 0 then
+    begin
+      RSClient.DrawTPA(tpa, $FFFF00);
+      p := tpa.RandomValue();
+    end;
+
+    if p = [-1,-1] then
+      p := SRL.rowp(Mouse.Position(), b);
+
+    Mouse.Move(p);
+    if Self.IsHoveringLoot() then
+      Break;
+  end;
+
   Result := Self.HandleLooting();
 end;
 

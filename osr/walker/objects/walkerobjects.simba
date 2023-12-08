@@ -1406,6 +1406,44 @@ begin
   Self.Setup(radius, 1, height, coordinates);
 end;
 
+procedure TRSMMDot.SetupEx(radii: TIntegerArray; shape: Vector3; coordinates: TPointArray); overload;
+var
+  p: TPoint;
+  i, j, previousJ, hi: Int32;
+begin
+  Self.Setup(coordinates);
+
+  if Self.Filter.Skip then
+    Exit;
+
+  hi := radii[High(radii)];
+  for i := High(radii) to High(coordinates) do
+    radii += hi;
+
+  //Self.Coordinates is better than coordinates here because they are already filtered.
+  for i := 0 to High(Self.Coordinates) do
+  begin
+    p := Self.Coordinates[i];
+    for j := previousJ to High(coordinates) do
+      if coordinates[j] = p then
+        Break;
+
+    previousJ := j;
+    Self.DotFilter.Setup([p.X, p.Y, radii[j]], True);
+  end;
+
+  Self.ShapeArray.SetShape(shape);
+end;
+
+procedure TRSMMDot.Setup(radii: TIntegerArray; size, height: Double; coordinates: TPointArray); overload;
+begin
+  Self.SetupEx(radii, [size, size, height], coordinates);
+end;
+
+procedure TRSMMDot.Setup(radii: TIntegerArray; height: Double; coordinates: TPointArray); overload;
+begin
+  Self.Setup(radii, 1, height, coordinates);
+end;
 
 (*
 TRSMMDot._GetWMMPolys
@@ -1882,21 +1920,18 @@ begin
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True);
 
-    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
-    if not ScriptWalker^.AtTile(closestWO, 50) then
+    if not Self.DotFilter.DotValid(ScriptWalker^.GetMyPos()) then
     begin
-      ScriptWalker^.WebWalk(closestWO, 30, 0.15);
-      Continue;
+      closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+      if not ScriptWalker^.AtTile(closestWO, 50) then
+      begin
+        ScriptWalker^.WebWalk(closestWO, 30, 0.15);
+        Continue;
+      end;
     end;
 
     if attempt = (attempts - 1) then
     begin
-      if not ScriptWalker^.AtTile(closestWO, 25) then
-      begin
-        ScriptWalker^.WebWalk(closestWO, 25, 0.15);
-        Continue;
-      end;
-
       angle := Minimap.GetCompassAngle() + Random(-50, 50);
       Minimap.SetCompassAngle(angle, 10);
     end;
@@ -1971,10 +2006,14 @@ begin
   if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
-  closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
-  if not ScriptWalker^.MakePointVisible(closestWO) and
-     not ScriptWalker^.WebWalk(closestWO, 30, 0.15) then
-      Exit;
+  if not Self.DotFilter.DotValid(ScriptWalker^.GetMyPos()) then
+  begin
+    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+
+    if not ScriptWalker^.MakePointVisible(closestWO) and
+       not ScriptWalker^.WebWalk(closestWO, 30, 0.15) then
+        Exit;
+  end;
 
   Result := Self._WalkHoverHelper(attempts, trackTarget);
 end;

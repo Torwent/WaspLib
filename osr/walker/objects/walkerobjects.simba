@@ -277,7 +277,7 @@ Example
     obj.Setup(['My', 'uptext']);
   end;
 *)
-procedure TRSWalkerObject.Setup(coordinates: TPointArray);
+procedure TRSWalkerObject.SetupCoordinates(coordinates: TPointArray);
 begin
   Self.Filter.Skip := ScriptWalker = nil;
 
@@ -791,7 +791,7 @@ and sets the **shape.X** and **shape.Y** to 1.
 *)
 procedure TRSObject.SetupEx(shape: Vector3; coordinates: TPointArray); overload;
 begin
-  Self.Setup(coordinates);
+  Self.SetupCoordinates(coordinates);
 
   if Self.Filter.Skip then
     Exit;
@@ -1380,11 +1380,45 @@ The other methods all call this first one with certain default values:
 
 - If size is omited, shape.X and shape.Y are set to 1.
 *)
+
+procedure TRSMMDot.SetupCoordinates(radii: TIntegerArray; coordinates: TPointArray); overload;
+var
+  i, j, hi: Int32;
+begin
+  Self.Filter.Skip := (ScriptWalker = nil) or (radii = []) or (coordinates = []);
+
+  if Self.Filter.Skip then
+    Exit;
+
+  hi := radii[High(radii)];
+  for i := High(radii) to High(coordinates) do
+    radii += hi;
+
+  for i := 0 to High(coordinates) do
+  begin
+    for j := 0 to High(TRSWalkerObject.Regions) do
+    begin
+      if TRSWalkerObject.Regions[j].Contains(coordinates[i]) then
+      begin
+        Self.Coordinates += coordinates[i];
+        Self.DotFilter.Setup([coordinates[i].X, coordinates[i].Y, radii[i]], True);
+      end;
+    end;
+  end;
+
+  Self.Filter.Skip := Self.Coordinates = [];
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Filter.Walker := True;
+  SetLength(Self.ShapeArray, Length(Self.Coordinates));
+end;
+
 procedure TRSMMDot.SetupEx(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
 var
   p: TPoint;
 begin
-  Self.Setup(coordinates);
+  Self.SetupCoordinates(coordinates);
 
   if Self.Filter.Skip then
     Exit;
@@ -1407,32 +1441,11 @@ begin
 end;
 
 procedure TRSMMDot.SetupEx(radii: TIntegerArray; shape: Vector3; coordinates: TPointArray); overload;
-var
-  p: TPoint;
-  i, j, previousJ, hi: Int32;
 begin
-  Self.Setup(coordinates);
+  Self.SetupCoordinates(radii, coordinates);
 
-  if Self.Filter.Skip then
-    Exit;
-
-  hi := radii[High(radii)];
-  for i := High(radii) to High(coordinates) do
-    radii += hi;
-
-  //Self.Coordinates is better than coordinates here because they are already filtered.
-  for i := 0 to High(Self.Coordinates) do
-  begin
-    p := Self.Coordinates[i];
-    for j := previousJ to High(coordinates) do
-      if coordinates[j] = p then
-        Break;
-
-    previousJ := j;
-    Self.DotFilter.Setup([p.X, p.Y, radii[j]], True);
-  end;
-
-  Self.ShapeArray.SetShape(shape);
+  if not Self.Filter.Skip then
+    Self.ShapeArray.SetShape(shape);
 end;
 
 procedure TRSMMDot.Setup(radii: TIntegerArray; size, height: Double; coordinates: TPointArray); overload;

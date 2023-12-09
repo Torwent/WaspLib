@@ -9,8 +9,10 @@ Simple tool to make polygons for TRSWalker.
 {$I WaspLib/osr.simba}
 {$H-}
 
-const
-  MONSTER: PRSMonster = @RSMonsters.MutatedBloodveld;
+var
+//Add an existing on if you want. E.G.:
+//MONSTER: TRSMonster = @RSMonsters.BlackDemon;
+  MONSTER: PRSMonster = nil;
 
 const
   MAP_NAME: String = WL_WALKER_MAP;
@@ -385,6 +387,8 @@ end;
 procedure TRSMonsterMapper.ListBoxOnClick(sender: TObject);
 begin
   Self.Index := Self.ShapesList.getItemIndex();
+  if Self.Index < 0 then
+    Exit;
 
   Self.RenameEdit.setText(Self.ShapeArray[Self.Index].Name);
   Self.MoveToShape();
@@ -511,6 +515,9 @@ var
   arr: array of TRSNamedShape;
   added: Boolean;
 begin
+  if Self.ShapeArray = [] then
+    Exit;
+
   ClearDebug();
 
   arr := Copy(Self.ShapeArray);
@@ -542,10 +549,10 @@ begin
   else
     str += ToStr(copyRadii[0]);
 
-  if MONSTER^.ShapeArray[0].Tile.Z > 0 then
+  if (MONSTER^.ShapeArray <> []) and (MONSTER^.ShapeArray[0].Tile.Z > 0) then
     str += ', ' + ToStr(MONSTER^.ShapeArray[0].Tile.Z) + ', ['
   else
-    str += '], HEIGHT, [';
+    str += ', HEIGHT, [';
 
   for i := 0 to hi do
   begin
@@ -576,11 +583,11 @@ begin
 end;
 
 
-procedure TRSMonsterMapper.OnKeyDown(sender: TObject; var Key: Word; Shift: TShiftState);
+procedure TRSMonsterMapper.OnKeyDown(sender: TObject; var key: Word; shift: TShiftState);
 var
   tmp: TPointArray;
 begin
-  if Key = VK_ESCAPE then
+  if key = VK_ESCAPE then
   begin
     Self.Index := -1;
     Self.ShapesList.setItemIndex(-1);
@@ -589,7 +596,7 @@ begin
     Exit;
   end;
 
-  if Key <> VK_DELETE then
+  if key <> VK_DELETE then
     Exit;
 
   if Self.Index < 0 then
@@ -660,6 +667,7 @@ end;
 procedure TRSMonsterMapper.Run();
 var
   walker: TRSWalker;
+  customMonster: TRSMonster;
 begin
   try
     with Self.Form do
@@ -788,6 +796,13 @@ begin
     end;
 
     walker.Setup();
+
+    if MONSTER = nil then
+    begin
+      MONSTER := @customMonster;;
+      customMonster.Setup(60, 0, [[0,0]]);
+      customMonster.Setup('Monster');
+    end;
 
     with Self.ImageBox do
     begin

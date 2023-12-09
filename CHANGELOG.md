@@ -1,3 +1,17 @@
+# [16.0.0](https://github.com/Torwent/WaspLib/compare/v15.1.0...v16.0.0) (2023-12-09)
+
+
+### Bug Fixes
+
+* performance improvements to the latest commits ([ab6e562](https://github.com/Torwent/WaspLib/commit/ab6e562fe2e4f084230e24d5de94d0eca340edc7))
+
+
+### BREAKING CHANGES
+
+* `procedure TRSWalkerObject.Setup(coordinates: TPointArray);` was renamed to `procedure TRSWalkerObject.SetupCoordinates(coordinates: TPointArray);`
+
+
+
 # [15.1.0](https://github.com/Torwent/WaspLib/compare/v15.0.10...v15.1.0) (2023-12-08)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** TBaseBankScript.DepositItem() now returns true if we didn't have the item in the first place. Read notes. ([4f2df86](https://github.com/Torwent/WaspLib/commit/4f2df862b2dd158b746b42d01b5f47bab1cc13e3))
-
-
-
-## [15.0.7](https://github.com/Torwent/WaspLib/compare/v15.0.6...v15.0.7) (2023-11-27)
-
-
-### Bug Fixes
-
-* **webgraph:** varrock east mine ([d6ba273](https://github.com/Torwent/WaspLib/commit/d6ba2735eeec2ee381d02651f30932e05a006454))
 
 
 

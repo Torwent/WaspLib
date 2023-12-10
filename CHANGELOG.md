@@ -1,3 +1,12 @@
+## [16.0.3](https://github.com/Torwent/WaspLib/compare/v16.0.2...v16.0.3) (2023-12-10)
+
+
+### Bug Fixes
+
+* **TRSWalkerObjects:** read notes ([e639b1c](https://github.com/Torwent/WaspLib/commit/e639b1cb1d5a2a4c5322f2d6eb81f9505ba4145a))
+
+
+
 ## [16.0.2](https://github.com/Torwent/WaspLib/compare/v16.0.1...v16.0.2) (2023-12-10)
 
 
@@ -36,15 +45,6 @@
 ### Features
 
 * monster_maker tool added ([f6b3107](https://github.com/Torwent/WaspLib/commit/f6b31073084f7376c74bb0ef8a558086d7c8f381))
-
-
-
-## [15.0.10](https://github.com/Torwent/WaspLib/compare/v15.0.9...v15.0.10) (2023-12-04)
-
-
-### Bug Fixes
-
-* CombatHandler and TBaseScript ([90422d3](https://github.com/Torwent/WaspLib/commit/90422d3c5c55d40e2b3257b0b92e4ef189fa6741))
 
 
 

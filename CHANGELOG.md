@@ -1,3 +1,12 @@
+## [16.0.1](https://github.com/Torwent/WaspLib/compare/v16.0.0...v16.0.1) (2023-12-10)
+
+
+### Bug Fixes
+
+* read notes ([1eee137](https://github.com/Torwent/WaspLib/commit/1eee137e87fd661b53bc71c05a5fb63412efcbf4))
+
+
+
 # [16.0.0](https://github.com/Torwent/WaspLib/compare/v15.1.0...v16.0.0) (2023-12-09)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * added varrock west yew trees coordinates ([d31ff25](https://github.com/Torwent/WaspLib/commit/d31ff251ab3298cb74685ba62383c0f256cb49b9))
-
-
-
-## [15.0.8](https://github.com/Torwent/WaspLib/compare/v15.0.7...v15.0.8) (2023-12-02)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** TBaseBankScript.DepositItem() now returns true if we didn't have the item in the first place. Read notes. ([4f2df86](https://github.com/Torwent/WaspLib/commit/4f2df862b2dd158b746b42d01b5f47bab1cc13e3))
 
 
 

@@ -1,3 +1,12 @@
+## [16.0.2](https://github.com/Torwent/WaspLib/compare/v16.0.1...v16.0.2) (2023-12-10)
+
+
+### Bug Fixes
+
+* **ItemData:** ItemData now attempts to fix itself if a corrupt .json file is saved by accident ([57808ea](https://github.com/Torwent/WaspLib/commit/57808ea885dbb2283decb2bad9a222bbd33bd255))
+
+
+
 ## [16.0.1](https://github.com/Torwent/WaspLib/compare/v16.0.0...v16.0.1) (2023-12-10)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * CombatHandler and TBaseScript ([90422d3](https://github.com/Torwent/WaspLib/commit/90422d3c5c55d40e2b3257b0b92e4ef189fa6741))
-
-
-
-## [15.0.9](https://github.com/Torwent/WaspLib/compare/v15.0.8...v15.0.9) (2023-12-02)
-
-
-### Bug Fixes
-
-* added varrock west yew trees coordinates ([d31ff25](https://github.com/Torwent/WaspLib/commit/d31ff251ab3298cb74685ba62383c0f256cb49b9))
 
 
 

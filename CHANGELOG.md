@@ -1,3 +1,12 @@
+## [16.0.4](https://github.com/Torwent/WaspLib/compare/v16.0.3...v16.0.4) (2023-12-11)
+
+
+### Bug Fixes
+
+* **TBaseScript:** the "welcome" messages array is now nested under the init method ([9e829d8](https://github.com/Torwent/WaspLib/commit/9e829d8512f0c3dd297f7e68379205ace48098a7))
+
+
+
 ## [16.0.3](https://github.com/Torwent/WaspLib/compare/v16.0.2...v16.0.3) (2023-12-10)
 
 
@@ -36,15 +45,6 @@
 ### BREAKING CHANGES
 
 * `procedure TRSWalkerObject.Setup(coordinates: TPointArray);` was renamed to `procedure TRSWalkerObject.SetupCoordinates(coordinates: TPointArray);`
-
-
-
-# [15.1.0](https://github.com/Torwent/WaspLib/compare/v15.0.10...v15.1.0) (2023-12-08)
-
-
-### Features
-
-* monster_maker tool added ([f6b3107](https://github.com/Torwent/WaspLib/commit/f6b31073084f7376c74bb0ef8a558086d7c8f381))
 
 
 

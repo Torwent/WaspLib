@@ -585,7 +585,7 @@ begin
   t := GetTickCount() + 3400;
   repeat
     if not RSClient.IsLoggedIn() then
-      Exit;
+      Exit(True);
 
     if MainScreen.InCombat() then
       Exit;
@@ -700,6 +700,70 @@ begin
   Result := ECombatState.UNKNOWN_COMBAT_STATE;
 end;
 
+
+
+function TRSCombatHandler.FindTaggedMonsters(dots: TPointArray; offset: TPoint = [2, 2]): TPointArray;
+var
+  i, j, hi: Int32;
+  p: TPoint;
+  rotatedDots, last: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+  rect: TRectangle;
+  angle: Double;
+  debugATPA: T2DPointArray;
+begin
+  p := Minimap.Center();
+  angle := Minimap.GetCompassAngle(False);
+  atpa := dots.Cluster(6).SortFrom(p);
+
+  if atpa = [] then
+    Exit;
+
+  dots := atpa[0];
+  if offset <> [0, 0] then
+    dots := dots.Offset(offset);
+  rotatedDots := dots.Rotate(angle, Minimap.Center().X, Minimap.Center().Y);
+
+  b := Box(Minimap.Center(), 2, 2);
+  for i := 0 to 8 do
+  begin
+    b := b.Expand(4);
+    rect := b.ToRectangle().Rotate(angle);
+
+    debugATPA += rect.ToTPA.Connect;
+
+    hi := High(rotatedDots);
+    for j := 0 to hi do
+      if  rect.Contains(rotatedDots[j]) then
+      begin
+        Result += dots[j];
+        Delete(dots, j, 1);
+        Delete(rotatedDots, j, 1);
+        hi -= 1;
+        j -= 1;
+      end;
+
+    if Result = last then
+    begin
+      debugATPA += Result;
+      Debug(atpa[0]);
+      Exit;
+    end;
+    last := Result;
+  end;
+end;
+
+function TRSCombatHandler.FindTaggedMonsters(): TPointArray; overload;
+begin
+  Result := Self.FindTaggedMonsters(Minimap.GetDots(ERSMinimapDot.NPC));
+end;
+
+function TRSCombatHandler.FindRoamingMonsters(): TPointArray;
+begin
+  Result := Minimap.GetDots(ERSMinimapDot.NPC).Offset(2, 2);
+  Result := Result.Difference(Self.FindTaggedMonsters(Result, [0, 0]));
+end;
 
 function TRSCombatHandler.GetState(): ECombatState;
 begin

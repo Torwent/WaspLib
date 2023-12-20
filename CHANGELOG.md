@@ -1,3 +1,12 @@
+# [16.1.0](https://github.com/Torwent/WaspLib/compare/v16.0.4...v16.1.0) (2023-12-20)
+
+
+### Features
+
+* **achievements:** achievements tab now supports reading the diaries panel ([833047e](https://github.com/Torwent/WaspLib/commit/833047e93d7f147eb8fc89711c973fea3fbdcc07))
+
+
+
 ## [16.0.4](https://github.com/Torwent/WaspLib/compare/v16.0.3...v16.0.4) (2023-12-11)
 
 
@@ -31,20 +40,6 @@
 ### Bug Fixes
 
 * read notes ([1eee137](https://github.com/Torwent/WaspLib/commit/1eee137e87fd661b53bc71c05a5fb63412efcbf4))
-
-
-
-# [16.0.0](https://github.com/Torwent/WaspLib/compare/v15.1.0...v16.0.0) (2023-12-09)
-
-
-### Bug Fixes
-
-* performance improvements to the latest commits ([ab6e562](https://github.com/Torwent/WaspLib/commit/ab6e562fe2e4f084230e24d5de94d0eca340edc7))
-
-
-### BREAKING CHANGES
-
-* `procedure TRSWalkerObject.Setup(coordinates: TPointArray);` was renamed to `procedure TRSWalkerObject.SetupCoordinates(coordinates: TPointArray);`
 
 
 

@@ -1,3 +1,12 @@
+## [16.1.1](https://github.com/Torwent/WaspLib/compare/v16.1.0...v16.1.1) (2023-12-20)
+
+
+### Bug Fixes
+
+* antiban "biohashed" stuff has been rewritten ([469e7cc](https://github.com/Torwent/WaspLib/commit/469e7cce6a0ea190be96ae6e2485492c943834d4))
+
+
+
 # [16.1.0](https://github.com/Torwent/WaspLib/compare/v16.0.4...v16.1.0) (2023-12-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **ItemData:** ItemData now attempts to fix itself if a corrupt .json file is saved by accident ([57808ea](https://github.com/Torwent/WaspLib/commit/57808ea885dbb2283decb2bad9a222bbd33bd255))
-
-
-
-## [16.0.1](https://github.com/Torwent/WaspLib/compare/v16.0.0...v16.0.1) (2023-12-10)
-
-
-### Bug Fixes
-
-* read notes ([1eee137](https://github.com/Torwent/WaspLib/commit/1eee137e87fd661b53bc71c05a5fb63412efcbf4))
 
 
 

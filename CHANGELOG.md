@@ -1,3 +1,12 @@
+## [16.1.2](https://github.com/Torwent/WaspLib/compare/v16.1.1...v16.1.2) (2023-12-26)
+
+
+### Bug Fixes
+
+* read notes ([e3fb1c6](https://github.com/Torwent/WaspLib/commit/e3fb1c65eabe2ea122dc34f4eca6fb9234600527))
+
+
+
 ## [16.1.1](https://github.com/Torwent/WaspLib/compare/v16.1.0...v16.1.1) (2023-12-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSWalkerObjects:** read notes ([e639b1c](https://github.com/Torwent/WaspLib/commit/e639b1cb1d5a2a4c5322f2d6eb81f9505ba4145a))
-
-
-
-## [16.0.2](https://github.com/Torwent/WaspLib/compare/v16.0.1...v16.0.2) (2023-12-10)
-
-
-### Bug Fixes
-
-* **ItemData:** ItemData now attempts to fix itself if a corrupt .json file is saved by accident ([57808ea](https://github.com/Torwent/WaspLib/commit/57808ea885dbb2283decb2bad9a222bbd33bd255))
 
 
 

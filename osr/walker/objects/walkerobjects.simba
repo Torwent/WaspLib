@@ -69,7 +69,6 @@ type TRSWalkerObject
     CurrentUpText: TStringArray;
     RedClicked: Boolean;
     Walker: PRSWalker;
-    Regions: TBoxArray;
   end;
 
 Parent record of all TRSWalkerObjects.
@@ -92,7 +91,6 @@ Parent record of all TRSWalkerObjects.
   class var
     CurrentUpText: TStringArray;
     RedClicked: Boolean;
-    Regions: TBoxArray;
   end;
 
   PRSWalkerObjectArray = array of ^TRSWalkerObject;
@@ -107,51 +105,6 @@ This is overriden so if we redclick our current TRSWalkerObject target while mai
 When we start the walking process towards a TRSWalkerObject, TRSWalkerObject.CurrentUpText is temporarily set so we
 know what we are looking for while walking. Once we click the target TRSWalkerObject.CurrentUpText is cleared.
 *)
-
-(*
-Walker.InternalSetup
-~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.InternalSetup(); override;
-
-This is an internal TRSWalker function and you shouldn't touch it unless you know what you are doing.
-This is overriden so it sets up the TRSWalkerObject.Walker pointer and TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
-TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
-*)
-procedure TRSWalker.InternalSetup(); override;
-begin
-  inherited;
-
-  TRSWalkerObject.Regions := [[0, 0, Self.Map.Map.getWidth()-1, Self.Map.Map.getHeight()-1]];
-end;
-
-(*
-Walker.Setup
-~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-
-You shouldn't modify this unless you know what you are doing, otherwise you might break TRSWalkerObjects.
-This is overriden so it sets up TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
-TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
-*)
-procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions := Regions;
-end;
-
-procedure TRSWalker.AddRegion(map: String; start: TPoint); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions += region;
-end;
-
-procedure TRSWalker.AddRegion(region: TBox); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions += region;
-end;
-
-
 function TRSWalker.Click(MinimapPoint: TPoint; Randomness: Int32): Boolean; override;
 var
   p: TPoint;
@@ -278,7 +231,7 @@ begin
   if Self.Filter.Skip then
     Exit;
 
-  coordinates := TRSWalkerObject.Regions.Filter(coordinates);
+  coordinates := ScriptWalker^.Regions.Filter(coordinates);
 
   Self.Filter.Skip := coordinates = [];
   if Self.Filter.Skip then
@@ -1400,9 +1353,9 @@ begin
 
   for i := 0 to High(coordinates) do
   begin
-    for j := 0 to High(TRSWalkerObject.Regions) do
+    for j := 0 to High(ScriptWalker^.Regions) do
     begin
-      if TRSWalkerObject.Regions[j].Contains(coordinates[i]) then
+      if ScriptWalker^.Regions[j].Contains(coordinates[i]) then
       begin
         Self.Coordinates += coordinates[i];
         Self.DotFilter.Setup([coordinates[i].X, coordinates[i].Y, radii[i]], True);

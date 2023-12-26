@@ -20,7 +20,7 @@ type
     Drops: TRSMonsterDropArray;
     ValueThreshold: Int32;
     HasGemBag, HasHerbSack, HasSeedBox, HasSoulBearer,
-    CheckedLoot, IsSetup: Boolean;
+    CheckedLoot, DidLoot, IsSetup: Boolean;
   end;
 
 function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
@@ -216,8 +216,8 @@ begin
     begin
       count := Self.CountDrop(Self.Drops[i]);
       Mouse.Click(MOUSE_LEFT);
-      WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
-      Exit(Self.HandleLooting());
+      Self.DidLoot := WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+      Exit(Self.HandleLooting()); //HERE LOOP UNDER PLAYER....
     end;
 
     if not Inventory.Consume(ERSConsumable.FOOD) then
@@ -247,14 +247,14 @@ begin
   if not ChooseOption.HasOption(Self.Loot.UpText, i, False) then
   begin
     Self.DebugLn('Finished looting.');
-    Exit(True);
+    Exit;
   end;
 
   if Self.HasSpace(Self.Drops[i]) then
   begin
     count := Self.CountDrop(Self.Drops[i]);
-    ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False);
-    WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+    if ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False) then
+      Self.DidLoot := WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
 
     for i := 0 to 4 do
     begin
@@ -274,7 +274,7 @@ begin
     Exit(True);
   end;
 
-  for i := 0 to 4 do
+  for i := 0 to 3 do
   begin
     if i > 3 then
       Exit(True);
@@ -288,6 +288,7 @@ end;
 
 function TRSLootHandler.CheckLoot(p: TPoint): Boolean;
 begin
+  Self.DidLoot := False;
   Mouse.Move(p);
   Result := Self.HandleLooting();
 end;
@@ -298,6 +299,7 @@ var
   tpa: TPointArray;
   p: TPoint;
 begin
+  Self.DidLoot := False;
   for i := 0 to attempts do
   begin
     if i > 2 then
@@ -318,7 +320,7 @@ begin
       Break;
   end;
 
-  Result := Self.HandleLooting();
+  Result := Self.HandleLooting() or Self.DidLoot;
 end;
 
 function TRSLootHandler.CheckLoot(tile: TRectangle): Boolean; overload;
@@ -327,6 +329,7 @@ var
   tpa: TPointArray;
   p: TPoint;
 begin
+  Self.DidLoot := False;
   RSClient.Clear(MainScreen.Bounds());
   RSClient.DrawRectangle(tile, $FFFFFF, 1);
 
@@ -354,7 +357,7 @@ begin
       Break;
   end;
 
-  Result := Self.HandleLooting();
+  Result := Self.HandleLooting() or Self.DidLoot;
 end;
 
 function TRSLootHandler.CheckLoot(dots: TPointArray): Boolean; overload;
@@ -368,7 +371,7 @@ begin
   begin
     tile := Minimap.GetTileMS(p, [0.7, 0.7, 0], [2,2], angle);
     Result := Self.CheckLoot(tile);
-    if Result then
+    if Result and Self.DidLoot then
     begin
       tile := Minimap.GetTileMS(Minimap.Center(), [0.7, 0.7, 0], [0,0], angle);
       Self.CheckLoot(tile);
@@ -382,6 +385,7 @@ end;
 
 function TRSLootHandler.CheckLoot(): Boolean; overload;
 begin
+  Self.DidLoot := False;
   if not Self.Loot.Hover(0) then
     Exit;
 

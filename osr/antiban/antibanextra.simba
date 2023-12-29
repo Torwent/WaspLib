@@ -15,13 +15,12 @@ const
     DROP_PATTERN_SNAKE_R, DROP_PATTERN_TOPDOWN_R
   ];
 var
-  randomCase: Double;
-  hi: Int32;
+  hi, min: Int32;
 begin
   hi := High(PATTERNS);
-  randomCase := Antiban.GetUniqueNumber(Random(hi+1), 0, hi);
+  min := Antiban.GetUniqueInt(Round(hi/2), 0, hi);
 
-  Result := PATTERNS[Round(randomCase)];
+  Result := PATTERNS[Antiban.GetUniqueInt(Random(hi+1), min, hi)];
   if Antiban.BioDice(30) then
     Result := Result.Reversed();
 end;
@@ -83,33 +82,31 @@ begin
   else
     useKeyboard := SRL.Dice(chance);
 
-  Result := Self.ClickContinue(UseKeyboard);
+  Result := Self.ClickContinue(useKeyboard);
 end;
 
-
-function TRSChooseOption.Select(Text: TStringArray; MouseAction: Int32 = MOUSE_LEFT; CaseSensitive: Boolean = True; CloseIfNotFound: Boolean = True): Boolean; override;
+function TRSChooseOption.Select(text: TStringArray; mouseAction: Int32 = MOUSE_LEFT; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True): Boolean; override;
 var
   choices: TRSChooseOption_OptionArray;
-  i, j: Int32;
-  rand: Double;
+  i, j, maxTime: Int32;
 begin
   if not Self.Open() then
     Exit;
 
-  rand := Antiban.GetUniqueNumber(750, 500, 1000);
+  maxTime := Antiban.GetUniqueInt(400, 200, 900);
   case Antiban.GetChance(EBioBehavior.REACTION_SPEED) of
-    0.00..0.30: Wait(0, rand, wdRight);
-    0.30..0.70: Wait(0, rand, wdMean);
-    else        Wait(0, rand, wdLeft);
+    0.00..0.30: Wait(0, maxTime, wdRight);
+    0.30..0.70: Wait(0, maxTime, wdMean);
+    else        Wait(0, maxTime, wdLeft);
   end;
 
   choices := Self.GetOptions();
 
   for i := 0 to High(choices) do
-    for j := 0 to High(Text) do
-      if (CaseSensitive and (Text[j] in choices[i].Text)) or ((not CaseSensitive) and (Lowercase(Text[j]) in Lowercase(Choices[i].Text))) then
+    for j := 0 to High(text) do
+      if (caseSensitive and (text[j] in choices[i].Text)) or ((not caseSensitive) and (Lowercase(text[j]) in Lowercase(Choices[i].Text))) then
       begin
-        Self.Select(choices[i], MouseAction);
+        Self.Select(choices[i], mouseAction);
 
         Exit(True);
       end;

@@ -185,7 +185,15 @@ begin
     end;
 
     json := ReadFileContents(path);
-    tmp.Init(json);
+    try
+      tmp.Init(json);
+    except
+      WriteLn('Deleting corrupt file and disabling price checking: ', path, ' If this keeps happenning try to reinstall everything.');
+      DeleteFile(path);
+      ItemData.OSRSBoxDisconnected := True;
+      Exit;
+    end;
+
     ItemData.OSRSBoxData.put(key, tmp);
   end;
 
@@ -288,20 +296,20 @@ var
   itemStr: String := ToStr(Item).ToLower();
   low, high: Int32;
 begin
-  if itemStr.ContainsAny(['coins', '995', '996', '997', '998', '999', '1000', '1001', '1002', '1003', '1004']) then
-    Exit(1);
+  case itemStr of
+    'coins', '995', '996', '997', '998', '999',
+    '1000', '1001', '1002', '1003', '1004': Exit(1);
+  end;
 
   low := ItemData.GetPriceInt(Item, 'low');
   high := ItemData.GetPriceInt(Item, 'high');
 
-  if (low = 0) and (high = 0) then
-    Exit;
+  case low of
+    0, high: Exit(low);
+  end;
 
   if high = 0 then
     Exit(low);
-
-  if low = 0 then
-    Exit(high);
 
   Result := Round((high + low) / 2);
 end;

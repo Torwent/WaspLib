@@ -224,7 +224,7 @@ begin
 end;
 
 
-procedure TWebberForm.DeleteNode(node: Int32);
+procedure TWebberForm.DeleteNode(node: Int32; updateImg: Boolean = True);
 var
   i,j,n,curr: Int32;
   marked: TIntegerArray;
@@ -259,7 +259,8 @@ begin
   until Length(marked) = 0;
 
   Self.SelectedNode := Self.Graph.FindNearestNode(p);
-  Self.ImageBox.Update();
+  if updateImg then
+    Self.ImageBox.Update();
 end;
 
 
@@ -277,8 +278,8 @@ var
   canvas: TCanvas;
   B: TBox;
 begin
-  Nodes := Self.Graph.Nodes;
-  if Length(Nodes) = 0 then
+  nodes := Self.Graph.Nodes;
+  if Length(nodes) = 0 then
     Exit;
 
   Canvas := Self.ImageBox.GetOverlay.GetCanvas();
@@ -286,11 +287,11 @@ begin
 
   for i := 0 to High(Graph.Paths) do
   begin
-    p := Nodes[i];
+    p := nodes[i];
 
     for j:=0 to High(Graph.Paths[i]) do
     begin
-      q := Nodes[Graph.Paths[i][j]];
+      q := nodes[Graph.Paths[i][j]];
 
       if p.InBox(Area) or q.InBox(Area) then
       begin
@@ -300,20 +301,20 @@ begin
     end;
   end;
 
-  for i := 0 to High(Nodes) do
+  for i := 0 to High(nodes) do
   begin
     color := $0000FF;
     if Length(Graph.Names[i]) <> 0 then
       color := $77FF00;
 
-    if Nodes[i].InBox(Area) then
+    if nodes[i].InBox(Area) then
     begin
       Canvas.GetBrush().SetColor(Color);
-      Canvas.FillRect(Nodes[i].X-3, Nodes[i].Y-3, Nodes[i].X+3, Nodes[i].Y+3);
+      Canvas.FillRect(nodes[i].X-3, nodes[i].Y-3, nodes[i].X+3, nodes[i].Y+3);
     end;
   end;
 
-  if InRange(SelectedNode, Low(Nodes), High(Nodes)) then
+  if InRange(SelectedNode, Low(nodes), High(nodes)) then
   begin
     Canvas.GetBrush().SetColor($FF0000);
     Canvas.FillRect(Nodes[SelectedNode].X-3, Nodes[SelectedNode].Y-3, Nodes[SelectedNode].X+3, Nodes[SelectedNode].Y+3);
@@ -535,6 +536,38 @@ begin
   Self.OnPrintGraph(nil);
 end;
 
+
+procedure TWebberForm.ClearInvalidNodes();
+var
+  i, j, l, hi: Int32;
+  intArr: TIntegerArray;
+  p, q: TPoint;
+begin
+  hi := High(Self.Graph.Paths);
+  for i := 0 to hi do
+  begin
+    if i mod 100 = 0 then
+      WriteLn(i,'/', hi, ' done');
+
+    p := Self.Graph.Nodes[i];
+
+    for j:=0 to High(Self.Graph.Paths[i]) do
+    begin
+      intArr := Self.Graph.Paths[i];
+      l := intArr[j];
+      q := Self.Graph.Nodes[l];
+        if Self.Graph.InvalidConnection(p, q) then
+        begin
+          Self.DeleteNode(i, False);
+          WriteLn('Deleted: ', Self.Graph.Nodes[i]);
+          i -= 1;
+          hi := High(Self.Graph.Paths);
+          Continue(2);
+        end;
+    end;
+  end;
+end;
+
 procedure TWebberForm.Run();
 var
   panel: TPanel;
@@ -609,6 +642,11 @@ begin
             'Right Click + Drag:   Move around'           + LineEnding +
             'Ctrl + Mouse Wheel:   Zoom');
 
+
+    //WriteLn 'Clearing invalid nodes';
+    //Self.ClearInvalidNodes();
+    //WriteLn 'Done clearing invalid nodes';
+    Self.ImageBox.Update();
     Self.Form.ShowModal();
     Self.Form.Free();
   except

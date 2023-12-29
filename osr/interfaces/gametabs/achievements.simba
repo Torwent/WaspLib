@@ -19,6 +19,23 @@ type
     TIME_PLAYED
   );
 
+  ERSAchievementDiary = (
+    ARDOUGNE,
+    DESERT,
+    FALADOR,
+    FEMENNIK,
+    KANDARIN,
+    KARAMJA,
+    KOUREND_AND_KEBOS,
+    LUMBRIDGE_AND_DRAYNOR,
+    MORYTANIA,
+    VARROCK,
+    WESERT_PROVINCES,
+    WILDERNESS
+  );
+
+
+
   TRSAchievements = type TRSInterface;
 
 
@@ -153,6 +170,74 @@ begin
   bitmap.DrawButtons(Self.GetButtons());
 end;
 
+procedure TRSAchievements.MakeVisible(Diary : ERSAchievementDiary);
+var
+  CurrentScroll : Int32 := Self.GetScrollPosition;
+  Min, Max : Int32;
+begin
+  Min := Ord(Diary) - 6;
+  if Min < 0 then
+    Min := 0;
+  Min := Min * 20;
+
+  Max := Ord(Diary) * 20;
+  if Max > 100 then
+    Max := 100;
+
+  if (CurrentScroll < Min) or (CurrentScroll > Max) then
+    Self.SetScrollPosition(Random(Min, Max));
+end;
+
+function TRSAchievements.GetDiaryBoxes(): TBoxArray;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  i: Int32;
+  b: TBox;
+begin
+  if SRL.FindColors(tpa, CTS2(4156310, 9, 0.05, 1.58), Self.Bounds()) < 1 then
+    Exit;
+
+  atpa := tpa.Cluster(1);
+
+  for i := 0 to High(atpa) do
+  begin
+    b := atpa[i].Bounds();
+    if b.Area() = 4104 then
+      Result += b;
+  end;
+end;
+
+function TRSAchievements.GetDiaryBox(Diary : ERSAchievementDiary): TBox;
+const
+  EXPECTED_TEXT : TStringArray := ['Ardo', 'Dese', 'ador', 'Frem', 'Kand', 'Karam', 'Kour', 'Lumb', 'Mort', 'Varr', 'West', 'dern'];
+var
+  DiaryBoxes   : TBoxArray;
+  TextBox      : TBox;
+  i            : Int32;
+  FoundText    : String;
+begin
+  Self.MakeVisible(Diary);
+  DiaryBoxes := Self.GetDiaryBoxes;
+  for i := 0 to High(DiaryBoxes) do
+  begin
+    TextBox := [DiaryBoxes[i].X1 + 3, DiaryBoxes[i].Y1 + 1, DiaryBoxes[i].X1 + 110, DiaryBoxes[i].Y1 + 16];
+    FoundText := OCR.Recognize(TextBox, TOCRColorFilter.Create([16777215, 65535, 901389]), RS_FONT_PLAIN_11);
+    if EXPECTED_TEXT[Ord(Diary)] in FoundText then
+      Exit(DiaryBoxes[i]);
+  end;
+  Result := [0, 0];
+end;
+
+function TRSAchievements.GetDiaryLevel(Diary : ERSAchievementDiary): Int32;
+var
+  DiaryBox: TBox;
+begin
+  Self.Open();
+  Self.OpenTab(ERSAChievementTab.DIARIES);
+  DiaryBox := Self.GetDiaryBox(Diary);
+  Result := Round(SRL.CountColor(CTS2(1357111, 1, 0.01, 0.01), DiaryBox) / 175);
+end;
 
 var
   Achievements: TRSAchievements;

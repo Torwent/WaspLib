@@ -428,6 +428,7 @@ var
   bankItem: TRSBankItem;
   fairyRingChooseOption: TRSChooseOption_Option;
   usedChooseOptionTeleport: Boolean;
+  timeout: TCountdown;
 begin
   // make sure dramen is equipped
   Self.DebugLn('Searching for dramen staff');
@@ -511,6 +512,7 @@ begin
     travelLogOpen := (SRL.FindColors(redTextPoints, redTextColors, travelLog) > 1);
   until travelLogOpen or usedChooseOptionTeleport;
  
+  timeout.init(20000);
   if not usedChooseOptionTeleport then
   begin
     Self.DebugLn('Scrolling to top of fairy rings');
@@ -532,7 +534,10 @@ begin
         codeFindAttempt += 1;
         Mouse.move(fairyCodeTextBox);
       until MainScreen.IsUpText(teleportLocation.destination) or (codeFindAttempt > 3);
-    until foundCode;
+    until foundCode or timeout.IsFinished;
+ 
+    if not foundCode then
+      Exit(False);
  
     // click the given teleport in travel log
     Mouse.click(fairyCodeTextBox, MOUSE_LEFT);

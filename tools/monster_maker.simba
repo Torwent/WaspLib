@@ -1,0 +1,861 @@
+(*
+PolygonMaker
+========
+Simple tool to make polygons for TRSWalker.
+*)
+
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+{$I SRL-T/osr.simba}
+{$I WaspLib/osr.simba}
+{$H-}
+
+var
+//Add an existing on if you want. E.G.:
+//MONSTER: TRSMonster = @RSMonsters.BlackDemon;
+  MONSTER: PRSMonster = nil;
+
+const
+  MAP_NAME: String = WL_WALKER_MAP;
+
+type
+  TRSNamedShape = record
+    Name: String;
+    Circle: TCircle;
+    Polygon: TPointArray;
+  end;
+
+  TRSMonsterMapper = record
+    Form: TForm;
+    Panel: TPanel;
+    ButtonNewPolygon, ButtonNewCircle,
+    ButtonDeleteShape, ButtonReset,
+    ButtonPrintSelected, ButtonPrintMonster: TButton;
+    RenameLabel, RadiusLabel: TLabel;
+    RenameEdit, RadiusEdit: TEdit;
+    ShapesList: TListBox;
+
+    ImageBox: TSimbaImageBox;
+    VisibleArea: TBox;
+
+    Index: Int32;
+    ShapeArray: array of TRSNamedShape;
+
+    SelectedPoint: TPoint;
+    MovingPoint, Dragging: Boolean;
+  end;
+
+var
+  MapMaker: TRSMonsterMapper;
+
+//Mouse
+procedure TRSMonsterMapper.OnMouseMove(sender: TObject; Shift: TShiftState; X, Y: Int32);
+var
+  diff: TPoint;
+  tpa: TPointArray;
+  i: Int32;
+begin
+  if not Self.Dragging or (Self.Index < 0) then
+    Exit;
+
+  tpa := Self.ShapeArray[Self.Index].Polygon;
+
+  if Self.MovingPoint then
+  begin
+    if tpa <> [] then
+    begin
+      for i := 0 to High(tpa) do
+        if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+          Break;
+
+      if i > High(tpa) then
+        Exit;
+
+      Self.SelectedPoint := [X, Y];
+      tpa[i] := Self.SelectedPoint;
+
+      Self.ShapeArray[Self.Index].Polygon := tpa;
+    end
+    else
+    begin
+      Self.SelectedPoint := [X, Y];
+      Self.ShapeArray[Self.Index].Circle.X := X;
+      Self.ShapeArray[Self.Index].Circle.Y := Y;
+    end;
+
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  diff := Self.SelectedPoint - [X, Y];
+
+  Self.ShapeArray[Self.Index].Polygon := tpa.Offset(-diff.X, -diff.Y);
+  Self.SelectedPoint := [X, Y];
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMonsterMapper.OnMouseDown(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+  function checkCorners(tpa: TPointArray): Boolean;
+  var
+    i: Int32
+  begin
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+      begin
+        Self.ShapesList.setItemIndex(Self.Index);
+        Self.RenameEdit.setText(Self.ShapesList.GetSelectedText());
+        Self.MovingPoint := True;
+        Self.SelectedPoint := tpa[i];
+        Self.ImageBox.Update();
+        Self.Dragging := True;
+        Exit(True);
+      end;
+  end;
+
+var
+  p: TPoint;
+  tpa, tmp: TPointArray;
+  circle: TCircle;
+  indices: TIntegerArray;
+  i, j: Int32;
+  dist, currentDist: Double;
+begin
+  if Button <> mbLeft then
+    Exit;
+
+  Self.RadiusEdit.setEnabled(False);
+  p := Self.SelectedPoint := Point(X, Y);
+
+  i := Self.Index;
+
+  if i > -1 then
+  begin
+    if Self.ShapeArray[i].Polygon <> [] then
+    begin
+      if checkCorners(Self.ShapeArray[i].Polygon) then
+        Exit;
+
+      if SRL.PointInPoly(p, Self.ShapeArray[i].Polygon) then
+      begin
+        Self.RenameEdit.setText(Self.ShapeArray[i].Name);
+        Self.Dragging := True;
+        Self.ImageBox.Update();
+        Exit;
+      end;
+
+      tpa := Self.ShapeArray[i].Polygon;
+
+      for j := 5 to 100 do
+      begin
+        tmp := tpa.PointsInRangeOf([p], 5, j);
+
+        if (Length(tmp) > 2) or (j = 2000) then
+          Exit;
+
+        if Length(tmp) = 2 then
+          Break;
+      end;
+
+      if j <= 100 then
+      begin
+        j := tpa.IndexOf(tmp[1]);
+        tpa.Insert(p, j);
+        Self.ShapeArray[i].Polygon := tpa;
+
+        Self.MovingPoint := True;
+        Self.Dragging := True;
+        Self.ImageBox.Update();
+        Exit;
+      end;
+    end
+    else if Self.ShapeArray[i].Circle.Contains(p) then
+    begin
+      Self.RadiusEdit.setEnabled(True);
+      if Self.RadiusEdit.IsEnabled() then
+        Self.RadiusEdit.setText(ToStr(Self.ShapeArray[Self.Index].Circle.Radius));
+      Self.Dragging := True;
+      Self.MovingPoint := True;
+      Exit;
+    end;
+  end;
+
+  tpa := [];
+  Self.RenameEdit.Clear();
+
+  for i := 0 to High(Self.ShapeArray) do
+  begin
+    Self.Index := i;
+    if Self.ShapeArray[i].Polygon <> [] then
+    begin
+      if checkCorners(Self.ShapeArray[i].Polygon) then
+        Exit;
+
+      if SRL.PointInPoly(p, Self.ShapeArray[i].Polygon) then
+      begin
+        tpa += Self.ShapeArray[i].Polygon.Mean();
+        indices += i;
+      end;
+    end
+    else if Self.ShapeArray[i].Circle.Contains(p) then
+    begin
+      Self.RadiusEdit.setEnabled(True);
+      if Self.RadiusEdit.IsEnabled() then
+        Self.RadiusEdit.setText(ToStr(Self.ShapeArray[Self.Index].Circle.Radius));
+
+      Self.Dragging := True;
+      Self.MovingPoint := True;
+      Exit;
+    end;
+  end;
+
+  if tpa = [] then
+  begin
+    Self.Index := -1;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  for i := 0 to High(tpa) do
+  begin
+    currentDist := tpa[i].DistanceTo(Self.SelectedPoint);
+    if (dist = 0) or (dist > currentDist) then
+      dist := currentDist;
+  end;
+
+  for i := 0 to High(tpa) do
+    if tpa[i].DistanceTo(Self.SelectedPoint) = dist then
+      Break;
+
+  Self.Index := indices[i];
+
+  Self.RenameEdit.setText(Self.ShapeArray[Self.Index].Name);
+  Self.ShapesList.setItemIndex(Self.Index);
+  Self.ImageBox.Update();
+  Self.Dragging := True;
+end;
+
+procedure TRSMonsterMapper.OnMouseUp(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+begin
+  if Button <> mbLeft then
+    Exit;
+
+  Self.Dragging := False;
+  Self.MovingPoint := False;
+end;
+
+
+procedure TRSMonsterMapper.DrawShapes(area: TBox);
+var
+  canvas: TCanvas;
+  tpa: TPointArray;
+  circle: TCircle;
+  p: TPoint;
+  i, j: Int32;
+begin
+  canvas := Self.ImageBox.getOverlay().GetCanvas();
+
+  canvas.GetPen().SetColor($00FF7F);
+
+  for i := 0 to High(Self.ShapeArray) do
+  begin
+    tpa := Self.ShapeArray[i].Polygon;
+
+    if tpa.Connect().FilterBox(area) = [] then //Polygon not visibile right now.
+      Continue;
+
+    canvas.getPen().setWidth(2);
+    if i = Self.Index then
+    begin
+      canvas.GetPen().SetColor($00FFFF);
+      canvas.getBrush().setColor($0000FF);
+    end
+    else
+    begin
+      canvas.GetPen().SetColor($00FF7F);
+      canvas.getBrush().setColor($FFAAD4);
+    end;
+
+    for j := 0 to High(tpa) do
+    begin
+      p := tpa[j];
+      canvas.MoveTo(p.X, p.Y);
+
+      if j < High(TPA) then
+        canvas.LineTo(tpa[j+1].X, tpa[j+1].Y)
+      else
+        canvas.LineTo(tpa[0].X, tpa[0].Y);
+
+      if P.InBox(area) then
+        canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+    end;
+  end;
+
+  for i := 0 to High(Self.ShapeArray) do
+  begin
+    circle := Self.ShapeArray[i].Circle;
+
+    if not area.Overlap(circle.Bounds()) then //Circle not visibile right now.
+      Continue;
+
+    canvas.getPen().setWidth(2);
+    if i = Self.Index then
+    begin
+      canvas.GetPen().SetColor($00FFFF);
+      canvas.getBrush().setColor($0000FF);
+    end
+    else
+    begin
+      canvas.GetPen().SetColor($00FF7F);
+      canvas.getBrush().setColor($FFAAD4);
+    end;
+
+    tpa := TPAFromCircle(circle.X, circle.Y, circle.Radius).ConvexHull();
+
+    for j := 0 to High(tpa) do
+    begin
+      p := tpa[j];
+      canvas.MoveTo(p.X, p.Y);
+
+      if j < High(TPA) then
+        canvas.LineTo(tpa[j+1].X, tpa[j+1].Y)
+      else
+        canvas.LineTo(tpa[0].X, tpa[0].Y);
+    end;
+
+    p := [circle.X, circle.Y];
+    if p.InBox(area) then
+      canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+  end;
+
+  if Self.MovingPoint and Self.SelectedPoint.InBox(area) then
+  begin
+    canvas.getBrush().setColor($000000);
+    p := Self.SelectedPoint;
+    canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+  end;
+end;
+
+procedure TRSMonsterMapper.PaintArea(sender: TObject; canvas: TCanvas; r: TRect);
+begin
+  Self.VisibleArea := [r.Left, r.Top, r.Right, r.Bottom];
+  Self.DrawShapes(Self.VisibleArea);
+end;
+
+
+
+procedure TRSMonsterMapper.MoveToShape();
+var
+  p: TPoint;
+begin
+  if Self.Index > -1 then
+  begin
+    if Self.ShapeArray[Self.Index].Polygon <> [] then
+      p := Self.ShapeArray[Self.Index].Polygon.Mean()
+    else
+      p := Self.ShapeArray[Self.Index].Circle.Mean();
+
+    Self.ImageBox.MoveTo(p.X, p.Y);
+  end;
+
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMonsterMapper.DeleteShapes(all: Boolean = False);
+begin
+  if all then
+  begin
+    Self.ShapeArray := [];
+    Self.ShapesList.Clear();
+    Self.Index := -1;
+    Self.RenameEdit.Clear();
+    Exit;
+  end;
+
+  Delete(Self.ShapeArray, Self.Index, 1);
+  Self.ShapesList.getItems().Delete(Self.Index);
+
+  Self.Index -= 1;
+
+  if Self.Index > -1 then
+  begin
+    Self.ShapesList.setItemIndex(Self.Index);
+    Self.RenameEdit.setText(Self.ShapeArray[Self.Index].Name);
+  end
+  else
+    Self.RenameEdit.Clear();
+end;
+
+procedure TRSMonsterMapper.ListBoxOnClick(sender: TObject);
+begin
+  Self.Index := Self.ShapesList.getItemIndex();
+  if Self.Index < 0 then
+    Exit;
+
+  Self.RenameEdit.setText(Self.ShapeArray[Self.Index].Name);
+  Self.MoveToShape();
+  Self.RadiusEdit.setEnabled(Self.ShapeArray[Self.Index].Polygon = []);
+  if Self.RadiusEdit.IsEnabled() then
+    Self.RadiusEdit.setText(ToStr(Self.ShapeArray[Self.Index].Circle.Radius));
+end;
+
+procedure TRSMonsterMapper.OnUnSelectNode(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+
+procedure TRSMonsterMapper.OnRename(sender: TObject);
+var
+  str: String;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  str := Self.RenameEdit.getText();
+
+  Self.ShapesList.getItems().setStrings(Self.Index, str);
+  Self.ShapeArray[Self.Index].Name := str;
+end;
+
+procedure TRSMonsterMapper.OnRadius(sender: TObject);
+var
+  radius: Int32;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  if Self.ShapeArray[Self.Index].Polygon <> [] then
+    Exit;
+
+  radius := StrToIntDef(Self.RadiusEdit.getText(), 60);
+
+  Self.ShapeArray[Self.Index].Circle.Radius := radius;
+  Self.ImageBox.Update();
+end;
+
+
+
+procedure TRSMonsterMapper.OnDelete(sender: TObject);
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  Self.DeleteShapes();
+  Self.MoveToShape();
+end;
+
+procedure TRSMonsterMapper.OnReset(sender: TObject);
+begin
+  Self.DeleteShapes(True);
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMonsterMapper.OnNewPolygon(sender: TObject);
+var
+  shape: TRSNamedShape;
+begin
+  shape.Polygon := Box(Self.VisibleArea.Center(), 30, 30).ToRectangle().ToTPA();
+  shape.Name := 'New Polygon';
+
+  Self.ShapeArray += shape;
+  Self.ShapesList.getItems().Add(shape.Name);
+  Self.RenameEdit.setText(shape.Name);
+  Self.Index := High(Self.ShapeArray);
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMonsterMapper.OnNewCircle(sender: TObject);
+var
+  shape: TRSNamedShape;
+begin
+  shape.Circle.X := Self.VisibleArea.Center().X;
+  shape.Circle.Y := Self.VisibleArea.Center().Y;
+  shape.Circle.Radius := 60;
+  shape.Name := 'New Circle';
+
+  Self.ShapeArray += shape;
+  Self.ShapesList.getItems().Add(shape.Name);
+  Self.RenameEdit.setText(shape.Name);
+  Self.Index := High(Self.ShapeArray);
+  Self.ImageBox.Update();
+end;
+
+
+procedure TRSMonsterMapper.OnPrintSelected(sender: TObject);
+var
+  str: String;
+  tpa: TPointArray;
+  circle: TCircle;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  str := Self.ShapeArray[Self.Index].Name;
+  str := str.Replace(' ', '').Replace('''', '');
+  str += ' := ';
+
+  tpa := Self.ShapeArray[Self.Index].Polygon;
+  circle := Self.ShapeArray[Self.Index].Circle;
+  if tpa <> [] then
+    str += tpa.ToString()
+  else
+    str += '[' + ToStr(circle.X) + ', ' + ToStr(circle.Y) + ', ' + ToStr(circle.Radius) + '];';
+
+  WriteLn(LineEnding, LineEnding);
+  WriteLn str;
+  WriteLn(LineEnding, LineEnding);
+end;
+
+procedure TRSMonsterMapper.OnPrint(sender: TObject);
+var
+  radii, copyRadii: TIntegerArray;
+  hi, i: Int32;
+  tpa: TPointArray;
+  circle: TCircle;
+  str, height: String;
+  arr: array of TRSNamedShape;
+  added: Boolean;
+begin
+  if Self.ShapeArray = [] then
+    Exit;
+
+  ClearDebug();
+
+  arr := Copy(Self.ShapeArray);
+
+  hi := High(arr);
+  for i := 0 to hi do
+  begin
+    if arr[i].Circle.Radius = 0 then
+      Continue;
+    radii += arr[i].Circle.Radius;
+  end;
+
+  copyRadii := Copy(radii);
+  copyRadii.ClearDuplicates(); //if there's only one we can optimize the monster.setup with a single radius.
+
+  str += 'MONSTER.Setup(';
+
+  if Length(copyRadii) > 1 then
+  begin
+    str += '[';
+    for i := 0 to High(radii) do
+    begin
+      str += ToStr(radii[i]);
+      if i < High(radii) then
+        str += ', ';
+    end;
+    str += ']';
+  end
+  else
+    str += ToStr(copyRadii[0]);
+
+  if (MONSTER^.ShapeArray <> []) and (MONSTER^.ShapeArray[0].Tile.Z > 0) then
+    str += ', ' + ToStr(MONSTER^.ShapeArray[0].Tile.Z) + ', ['
+  else
+    str += ', HEIGHT, [';
+
+  for i := 0 to hi do
+  begin
+    circle := arr[i].Circle;
+    if circle.Radius = 0 then
+      Continue;
+
+    if added then
+      str += ', ';
+    str += '[' + ToStr(circle.X) + ', ' + ToStr(circle.Y) + ']';
+    added := True;
+
+    Delete(arr, i, 1);
+    i -= 1;
+    hi -= 1;
+  end;
+
+  str += ']);' + LINEENDING;
+
+  for i := 0 to hi-1 do
+  begin
+    str += 'MONSTER.DotFilter.Setup(';
+    str += arr[i].Polygon.ToString(False);
+    str += ', True);' + LINEENDING;
+  end;
+
+  WriteLn str;
+end;
+
+
+procedure TRSMonsterMapper.OnKeyDown(sender: TObject; var key: Word; shift: TShiftState);
+var
+  tmp: TPointArray;
+begin
+  if key = VK_ESCAPE then
+  begin
+    Self.Index := -1;
+    Self.ShapesList.setItemIndex(-1);
+    Self.MovingPoint := False;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  if key <> VK_DELETE then
+    Exit;
+
+  if Self.Index < 0 then
+    Exit;
+
+  tmp := Self.ShapeArray[Self.Index].Polygon;
+  if tmp.Contains(Self.SelectedPoint) then
+  begin
+    tmp.Remove(Self.SelectedPoint);
+    Self.ShapeArray[Self.Index].Polygon := tmp;
+    if Length(tmp) > 0 then
+    begin
+      tmp := tmp.SortFrom(Self.SelectedPoint);
+      Self.SelectedPoint := tmp[0];
+
+      Self.MovingPoint := True;
+      Self.ImageBox.Update();
+      Exit;
+    end;
+  end;
+
+  Self.OnDelete(sender);
+end;
+
+
+//Form stuff.
+procedure TRSMonsterMapper.OnFormShow(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMonsterMapper.OnFormClose(sender: TObject; var CloseAction: TCloseAction);
+begin
+  Self.OnPrint(nil);
+end;
+
+
+procedure TRSMonsterMapper.Init();
+var
+  i: Int32;
+  shape: TRSNamedShape;
+begin
+  Self.Index := -1;
+  Self.RenameEdit.Clear();
+
+  for i := 0 to High(MONSTER^.DotFilter) do
+  begin
+    if MONSTER^.DotFilter[i].TPA <> [] then
+    begin
+      shape.Name := 'Polygon ' + ToStr(i);
+      shape.Polygon := MONSTER^.DotFilter[i].TPA;
+    end
+    else
+    begin
+      shape.Name := 'Circle ' + ToStr(i);
+      shape.Circle := MONSTER^.DotFilter[i].Circle;
+    end;
+
+    Self.ShapeArray += shape;
+    Self.ShapesList.getItems().Add(shape.Name);
+  end;
+
+  Self.RenameEdit.SetText(shape.Name);
+  Self.Index := i - 1;
+  Self.ImageBox.Update();
+end;
+
+procedure TRSMonsterMapper.Run();
+var
+  walker: TRSWalker;
+  customMonster: TRSMonster;
+begin
+  try
+    with Self.Form do
+    begin
+      Init(nil);
+      SetPosition(poScreenCenter);
+      SetCaption('Monster Maker');
+      SetWidth(1400);
+      SetHeight(750);
+      GetFont.SetSize(10);
+      SetOnShow(@Self.OnFormShow);
+      SetOnClose(@Self.OnFormClose);
+    end;
+
+    with Self.Panel do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAutoSize(False);
+      SetAlign(alLeft);
+    end;
+
+    with Self.RenameEdit do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setAlign(alTop);
+      setOnEditingDone(@OnRename);
+    end;
+
+    with Self.RenameLabel do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Rename Selected:');
+      setAlign(alTop);
+    end;
+
+    with Self.RadiusEdit do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setAlign(alTop);
+      setOnEditingDone(@OnRadius);
+    end;
+
+    with Self.RadiusLabel do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Change radius:');
+      setAlign(alTop);
+    end;
+
+    //Top buttons
+    with Self.ButtonReset do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Reset');
+      SetOnClick(@Self.OnReset);
+      setAlign(alTop);
+    end;
+
+    with Self.ButtonDeleteShape do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Delete Shape');
+      SetOnClick(@Self.OnDelete);
+      setAlign(alTop);
+    end;
+
+    with Self.ButtonNewCircle do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('New Circle');
+      SetOnClick(@Self.OnNewCircle);
+      setAlign(alTop);
+    end;
+
+    with Self.ButtonNewPolygon do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('New Polygon');
+      SetOnClick(@Self.OnNewPolygon);
+      setAlign(alTop);
+    end;
+
+    //Listbox
+    with Self.ShapesList do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Polygons:');
+      setAlign(alClient);
+      setOnClick(@Self.ListBoxOnClick);
+      SetOnKeyDown(@Self.OnKeyDown);
+    end;
+
+    //print
+    with Self.ButtonPrintSelected do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Selected Polygon');
+      SetOnClick(@Self.OnPrintSelected);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintMonster do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Monster');
+      SetOnClick(@Self.OnPrint);
+      setAlign(alBottom);
+    end;
+
+    walker.Setup();
+
+    if MONSTER = nil then
+    begin
+      MONSTER := @customMonster;;
+      customMonster.Setup(60, 0, [[0,0]]);
+      customMonster.Setup('Monster');
+    end;
+
+    with Self.ImageBox do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAlign(alClient);
+      SetOnPaintArea(@Self.PaintArea);
+      SetOnMouseMove(@Self.OnMouseMove);
+      SetOnMouseDown(@Self.OnMouseDown);
+      SetOnMouseUp(@Self.OnMouseUp);
+      SetOnKeyDown(@Self.OnKeyDown);
+      GetBackground().LoadFromMufasaBitmap(walker.Map.Map);
+      BackgroundChanged();
+    end;
+    walker.Free();
+
+    WriteLn('Click + Drag:         Move selected shape'    + LineEnding +
+            'Click + Drag Point:   Move selected point'    + LineEnding +
+            'Press Delete Key:     Remove selected shape'  + LineEnding +
+            'Right Click + Drag:   Move around'           + LineEnding +
+            'Ctrl + Mouse Wheel:   Zoom');
+
+    Self.Init();
+    Self.Form.ShowModal();
+    Self.Form.Free();
+  except
+    Writeln GetExceptionMessage();
+  end;
+end;
+
+procedure TRSWalker.InternalSetup(); override;
+begin
+  Self.Name := 'Walker';
+  TRSWalkerObject.Regions := [[0, 0, Self.Map.Map.getWidth()-1, Self.Map.Map.getHeight()-1]];
+  ScriptWalker := @Self;
+end;
+
+procedure TRSWalker.Setup(Scaling: Integer = 8); override;
+begin
+  Self.Scaling := Scaling;
+  Self.Map.Load(SRL_WALKER_MAP, Scaling);
+  Self.InternalSetup();
+
+  RSMonsters.Setup();
+end;
+
+function TRSWalker.GetMyPos(): TPoint; override;
+begin
+  Result := [0, 0];
+end;
+
+
+begin
+  Sync(@MapMaker.Run);
+end.
+

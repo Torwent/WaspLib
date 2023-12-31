@@ -1,45 +1,45 @@
-## [15.0.7](https://github.com/Torwent/WaspLib/compare/v15.0.6...v15.0.7) (2023-11-27)
+## [16.1.2](https://github.com/Torwent/WaspLib/compare/v16.1.1...v16.1.2) (2023-12-26)
 
 
 ### Bug Fixes
 
-* **webgraph:** varrock east mine ([d6ba273](https://github.com/Torwent/WaspLib/commit/d6ba2735eeec2ee381d02651f30932e05a006454))
+* read notes ([e3fb1c6](https://github.com/Torwent/WaspLib/commit/e3fb1c65eabe2ea122dc34f4eca6fb9234600527))
 
 
 
-## [15.0.6](https://github.com/Torwent/WaspLib/compare/v15.0.5...v15.0.6) (2023-11-27)
-
-
-### Bug Fixes
-
-* **BaseScript:** MaxTime and MaxActions should now work properly. ([665df5a](https://github.com/Torwent/WaspLib/commit/665df5a738b6773eb8960021cd3be5e2d201a0ff))
-
-
-
-## [15.0.5](https://github.com/Torwent/WaspLib/compare/v15.0.4...v15.0.5) (2023-11-25)
+## [16.1.1](https://github.com/Torwent/WaspLib/compare/v16.1.0...v16.1.1) (2023-12-20)
 
 
 ### Bug Fixes
 
-* **RemoteInput:** read notes ([45e2aa9](https://github.com/Torwent/WaspLib/commit/45e2aa9fb41e26385b0c8808a01dc83d5028e358))
+* antiban "biohashed" stuff has been rewritten ([469e7cc](https://github.com/Torwent/WaspLib/commit/469e7cce6a0ea190be96ae6e2485492c943834d4))
 
 
 
-## [15.0.4](https://github.com/Torwent/WaspLib/compare/v15.0.3...v15.0.4) (2023-11-24)
+# [16.1.0](https://github.com/Torwent/WaspLib/compare/v16.0.4...v16.1.0) (2023-12-20)
+
+
+### Features
+
+* **achievements:** achievements tab now supports reading the diaries panel ([833047e](https://github.com/Torwent/WaspLib/commit/833047e93d7f147eb8fc89711c973fea3fbdcc07))
+
+
+
+## [16.0.4](https://github.com/Torwent/WaspLib/compare/v16.0.3...v16.0.4) (2023-12-11)
 
 
 ### Bug Fixes
 
-* **Inventory:** Randomitem methods now properly support composite items like Cake(1..3) ([7f0d0fd](https://github.com/Torwent/WaspLib/commit/7f0d0fdf6adb894ea5c474dbd321652034a66257))
+* **TBaseScript:** the "welcome" messages array is now nested under the init method ([9e829d8](https://github.com/Torwent/WaspLib/commit/9e829d8512f0c3dd297f7e68379205ace48098a7))
 
 
 
-## [15.0.3](https://github.com/Torwent/WaspLib/compare/v15.0.2...v15.0.3) (2023-11-21)
+## [16.0.3](https://github.com/Torwent/WaspLib/compare/v16.0.2...v16.0.3) (2023-12-10)
 
 
 ### Bug Fixes
 
-* Iowerth warriors coordinates ([dd873e0](https://github.com/Torwent/WaspLib/commit/dd873e0f30f8dd557f19476aa693135fa98a3d8c))
+* **TRSWalkerObjects:** read notes ([e639b1c](https://github.com/Torwent/WaspLib/commit/e639b1cb1d5a2a4c5322f2d6eb81f9505ba4145a))
 
 
 

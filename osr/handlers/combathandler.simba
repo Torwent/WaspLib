@@ -114,7 +114,7 @@ type
     MinHitPoints, MinPrayPoints, WeaponSpec, AttackMonsterDelay: Int32;
     TotalKills: UInt32;
 
-    ManageGear, GearIsSetup, AutoRetaliateEnabled, QuickPrayerIsSetup,
+    ManageGear, GearIsSetup, AutoRetaliateEnabled, AutoRetaliateChecked, QuickPrayerIsSetup,
     HandleCannon, CannonIsSetup, DoingSpec, UseSafeSpot,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
     IsFighting, Looted, IsSetup: Boolean;
@@ -221,7 +221,7 @@ begin
   if Self.IsSetup then
     Exit;
 
-  Self.Name := 'RSCombatHandler';
+  Self.Name := 'CombatHandler';
 
   if Self.AttackMonsterDelay = 0 then
     Self.AttackMonsterDelay := 5000;
@@ -252,7 +252,8 @@ begin
   if Self.HandleCannon then
     Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
 
-  Self.AutoRetaliateEnabled := Combat.GetAutoRetaliate();
+  if not Self.AutoRetaliateChecked then
+    Combat.GetAutoRetaliate();
 
   Self.Monster := rsMonster;
   Self.SafeSpot := safeSpotTile;
@@ -273,6 +274,10 @@ begin
   begin
     Self.ManageGear := True;
     Self._SetupGear();
+  end;
+
+  if lootValue > 0 then
+  begin
     Self.LootHandler.Setup(rsMonster, lootValue);
     Self.LootEnabled := Self.LootHandler.IsSetup;
   end;
@@ -380,7 +385,7 @@ begin
 
   size := Self.Monster.ShapeArray[0].Tile.X;
 
-  b := Box(p, Ceil(size), Ceil(size)).Expand(8);
+  b := Box(p, Ceil(size), Ceil(size)).Expand(12);
 
   if not WaitUntil(Length(tmp := Minimap.GetDots(ERSMinimapDot.ITEM, b)) > Length(dots), 300, 3000) then
     Exit(Self.Loot(tmp, attempt+1));
@@ -580,7 +585,7 @@ begin
   t := GetTickCount() + 3400;
   repeat
     if not RSClient.IsLoggedIn() then
-      Exit;
+      Exit(True);
 
     if MainScreen.InCombat() then
       Exit;
@@ -695,6 +700,70 @@ begin
   Result := ECombatState.UNKNOWN_COMBAT_STATE;
 end;
 
+
+
+function TRSCombatHandler.FindTaggedMonsters(dots: TPointArray; offset: TPoint = [2, 2]): TPointArray;
+var
+  i, j, hi: Int32;
+  p: TPoint;
+  rotatedDots, last: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+  rect: TRectangle;
+  angle: Double;
+  debugATPA: T2DPointArray;
+begin
+  p := Minimap.Center();
+  angle := Minimap.GetCompassAngle(False);
+  atpa := dots.Cluster(6).SortFrom(p);
+
+  if atpa = [] then
+    Exit;
+
+  dots := atpa[0];
+  if offset <> [0, 0] then
+    dots := dots.Offset(offset);
+  rotatedDots := dots.Rotate(angle, Minimap.Center().X, Minimap.Center().Y);
+
+  b := Box(Minimap.Center(), 2, 2);
+  for i := 0 to 8 do
+  begin
+    b := b.Expand(4);
+    rect := b.ToRectangle().Rotate(angle);
+
+    debugATPA += rect.ToTPA.Connect;
+
+    hi := High(rotatedDots);
+    for j := 0 to hi do
+      if  rect.Contains(rotatedDots[j]) then
+      begin
+        Result += dots[j];
+        Delete(dots, j, 1);
+        Delete(rotatedDots, j, 1);
+        hi -= 1;
+        j -= 1;
+      end;
+
+    if Result = last then
+    begin
+      debugATPA += Result;
+      Debug(atpa[0]);
+      Exit;
+    end;
+    last := Result;
+  end;
+end;
+
+function TRSCombatHandler.FindTaggedMonsters(): TPointArray; overload;
+begin
+  Result := Self.FindTaggedMonsters(Minimap.GetDots(ERSMinimapDot.NPC));
+end;
+
+function TRSCombatHandler.FindRoamingMonsters(): TPointArray;
+begin
+  Result := Minimap.GetDots(ERSMinimapDot.NPC).Offset(2, 2);
+  Result := Result.Difference(Self.FindTaggedMonsters(Result, [0, 0]));
+end;
 
 function TRSCombatHandler.GetState(): ECombatState;
 begin
@@ -821,6 +890,7 @@ var
   tmp: TRSMonster;
   cuboids: TCuboidExArray;
   cuboid: TCuboidEx;
+  b: TBox;
 begin
   if CombatHandler.InCombatTimer.IsFinished() and not XPBar.EarnedXP() then
   begin
@@ -845,18 +915,22 @@ begin
     cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
 
   gotXP := XPBar.EarnedXP();
-  splats := Self.FindHitsplats(cuboid.Bounds());
+
+  b := cuboid.Bounds();
+  b.LimitTo(Self.Bounds());
+
+  splats := Self.FindHitsplats(b);
   hasSplats := splats <> [];
   Result := gotXP or hasSplats;
 
   if not Result then
-    Result := Self.FindHPBars(cuboid.Bounds()) <> [];
+    Result := Self.FindHPBars(b) <> [];
 
   CombatHandler.IsFighting := Result;
   if Result then
   begin
     WL.Activity.Restart();
-    RSClient.Clear(MainScreen.Bounds());
+    RSClient.Clear(b);
     RSClient.DrawCuboid(cuboid, $FFFFFF, 1);
     RSClient.DrawHitSplatArray(splats, $00FF00, 1);
   end;
@@ -865,7 +939,21 @@ begin
     CombatHandler.InCombatTimer.Restart();
 end;
 
+function TRSCombat.GetAutoRetaliate(): Boolean; override;
+begin
+  CombatHandler.AutoRetaliateChecked := True;
+  Result := inherited;
+  CombatHandler.AutoRetaliateEnabled := Result;
+end;
 
+function TRSCombat.SetAutoRetaliate(value: Boolean): Boolean; override;
+begin
+  CombatHandler.AutoRetaliateChecked := True;
+  Result := inherited;
+
+  if Result then
+    CombatHandler.AutoRetaliateEnabled := value;
+end;
 
 //TODO: NEED TO REVIEW EVERYTHING BELOW. This is probably all useless or not used.
 function TRSPrayer.HasProperPrayers(): Boolean;

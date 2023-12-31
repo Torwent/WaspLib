@@ -69,7 +69,6 @@ type TRSWalkerObject
     CurrentUpText: TStringArray;
     RedClicked: Boolean;
     Walker: PRSWalker;
-    Regions: TBoxArray;
   end;
 
 Parent record of all TRSWalkerObjects.
@@ -92,7 +91,6 @@ Parent record of all TRSWalkerObjects.
   class var
     CurrentUpText: TStringArray;
     RedClicked: Boolean;
-    Regions: TBoxArray;
   end;
 
   PRSWalkerObjectArray = array of ^TRSWalkerObject;
@@ -107,51 +105,6 @@ This is overriden so if we redclick our current TRSWalkerObject target while mai
 When we start the walking process towards a TRSWalkerObject, TRSWalkerObject.CurrentUpText is temporarily set so we
 know what we are looking for while walking. Once we click the target TRSWalkerObject.CurrentUpText is cleared.
 *)
-
-(*
-Walker.InternalSetup
-~~~~~~~~~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.InternalSetup(); override;
-
-This is an internal TRSWalker function and you shouldn't touch it unless you know what you are doing.
-This is overriden so it sets up the TRSWalkerObject.Walker pointer and TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
-TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
-*)
-procedure TRSWalker.InternalSetup(); override;
-begin
-  inherited;
-
-  TRSWalkerObject.Regions := [[0, 0, Self.Map.Map.getWidth()-1, Self.Map.Map.getHeight()-1]];
-end;
-
-(*
-Walker.Setup
-~~~~~~~~~~~~
-.. pascal:: procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-
-You shouldn't modify this unless you know what you are doing, otherwise you might break TRSWalkerObjects.
-This is overriden so it sets up TRSWalkerObject.Regions which are used to know when to enable TRSWalkerObject.Filter.Skip.
-TRSWalkerObjects coordinates that are outside our TRSWalkerObject.Regions boxes are skipped on WaspLib's setup process.
-*)
-procedure TRSWalker.Setup(Regions: TBoxArray; Scaling: Integer = 8); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions := Regions;
-end;
-
-procedure TRSWalker.AddRegion(map: String; start: TPoint); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions += region;
-end;
-
-procedure TRSWalker.AddRegion(region: TBox); override;
-begin
-  inherited;
-  TRSWalkerObject.Regions += region;
-end;
-
-
 function TRSWalker.Click(MinimapPoint: TPoint; Randomness: Int32): Boolean; override;
 var
   p: TPoint;
@@ -206,16 +159,10 @@ begin
     Mouse.Move(P);
   end;
 
-  Mouse.Click(MOUSE_LEFT);
-
-  // 15% chance of spam clicking
-  if (Randomness > 0) and (Random < Antiban.GetUniqueNumber(0.15, 0.1, 0.2)) then
-    for i := 0 to Round(Antiban.GetUniqueNumber(2, 1, 3)) do
-    begin
-      Mouse.Click(Mouse.Position, MOUSE_LEFT);
-
-      Wait(20, 150, wdLeft);
-    end;
+  if Randomness > 0 then
+    Antiban.BioClick(MOUSE_LEFT)
+  else
+    Mouse.Click(MOUSE_LEFT);
 
   TRSWalkerObject.RedClicked := Self.ScreenWalk and hoveringTarget and MainScreen.DidRedClick();
 
@@ -277,14 +224,14 @@ Example
     obj.Setup(['My', 'uptext']);
   end;
 *)
-procedure TRSWalkerObject.Setup(coordinates: TPointArray);
+procedure TRSWalkerObject.SetupCoordinates(coordinates: TPointArray);
 begin
   Self.Filter.Skip := ScriptWalker = nil;
 
   if Self.Filter.Skip then
     Exit;
 
-  coordinates := TRSWalkerObject.Regions.Filter(coordinates);
+  coordinates := ScriptWalker^.Regions.Filter(coordinates);
 
   Self.Filter.Skip := coordinates = [];
   if Self.Filter.Skip then
@@ -295,7 +242,12 @@ begin
   SetLength(Self.ShapeArray, Length(coordinates));
 end;
 
-procedure TRSWalkerObject.Setup(upText: TStringArray); overload;
+procedure TRSWalkerObject.Setup(coordinates: TPointArray); deprecated 'Use TRSWalkerObject.SetupCoordinates() instead.';
+begin
+  Self.SetupCoordinates(coordinates);
+end;
+
+procedure TRSWalkerObject.SetupUpText(upText: TStringArray);
 begin
   if Self.Filter.Skip then
     Exit;
@@ -307,6 +259,11 @@ begin
   Self.Finder.ClusterDistance := 3;
   Self.Finder.Erode := 2;
   Self.Finder.Grow := 4;
+end;
+
+procedure TRSWalkerObject.Setup(upText: TStringArray); overload; deprecated 'Use TRSWalkerObject.SetupUpText() instead.';
+begin
+  Self.SetupUpText(upText);
 end;
 
 (*
@@ -791,7 +748,7 @@ and sets the **shape.X** and **shape.Y** to 1.
 *)
 procedure TRSObject.SetupEx(shape: Vector3; coordinates: TPointArray); overload;
 begin
-  Self.Setup(coordinates);
+  Self.SetupCoordinates(coordinates);
 
   if Self.Filter.Skip then
     Exit;
@@ -1380,11 +1337,45 @@ The other methods all call this first one with certain default values:
 
 - If size is omited, shape.X and shape.Y are set to 1.
 *)
+
+procedure TRSMMDot.SetupCoordinates(radii: TIntegerArray; coordinates: TPointArray); overload;
+var
+  i, j, hi: Int32;
+begin
+  Self.Filter.Skip := (ScriptWalker = nil) or (radii = []) or (coordinates = []);
+
+  if Self.Filter.Skip then
+    Exit;
+
+  hi := radii[High(radii)];
+  for i := High(radii) to High(coordinates) do
+    radii += hi;
+
+  for i := 0 to High(coordinates) do
+  begin
+    for j := 0 to High(ScriptWalker^.Regions) do
+    begin
+      if ScriptWalker^.Regions[j].Contains(coordinates[i]) then
+      begin
+        Self.Coordinates += coordinates[i];
+        Self.DotFilter.Setup([coordinates[i].X, coordinates[i].Y, radii[i]], True);
+      end;
+    end;
+  end;
+
+  Self.Filter.Skip := Self.Coordinates = [];
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Filter.Walker := True;
+  SetLength(Self.ShapeArray, Length(Self.Coordinates));
+end;
+
 procedure TRSMMDot.SetupEx(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
 var
   p: TPoint;
 begin
-  Self.Setup(coordinates);
+  Self.SetupCoordinates(coordinates);
 
   if Self.Filter.Skip then
     Exit;
@@ -1406,6 +1397,23 @@ begin
   Self.Setup(radius, 1, height, coordinates);
 end;
 
+procedure TRSMMDot.SetupEx(radii: TIntegerArray; shape: Vector3; coordinates: TPointArray); overload;
+begin
+  Self.SetupCoordinates(radii, coordinates);
+
+  if not Self.Filter.Skip then
+    Self.ShapeArray.SetShape(shape);
+end;
+
+procedure TRSMMDot.Setup(radii: TIntegerArray; size, height: Double; coordinates: TPointArray); overload;
+begin
+  Self.SetupEx(radii, [size, size, height], coordinates);
+end;
+
+procedure TRSMMDot.Setup(radii: TIntegerArray; height: Double; coordinates: TPointArray); overload;
+begin
+  Self.Setup(radii, 1, height, coordinates);
+end;
 
 (*
 TRSMMDot._GetWMMPolys
@@ -1882,21 +1890,18 @@ begin
     if MainScreen.IsUpText(Self.UpText) then
       Exit(True);
 
-    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
-    if not ScriptWalker^.AtTile(closestWO, 50) then
+    if not Self.DotFilter.DotValid(ScriptWalker^.GetMyPos()) then
     begin
-      ScriptWalker^.WebWalk(closestWO, 30, 0.15);
-      Continue;
+      closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+      if not ScriptWalker^.AtTile(closestWO, 50) then
+      begin
+        ScriptWalker^.WebWalk(closestWO, 30, 0.15);
+        Continue;
+      end;
     end;
 
     if attempt = (attempts - 1) then
     begin
-      if not ScriptWalker^.AtTile(closestWO, 25) then
-      begin
-        ScriptWalker^.WebWalk(closestWO, 25, 0.15);
-        Continue;
-      end;
-
       angle := Minimap.GetCompassAngle() + Random(-50, 50);
       Minimap.SetCompassAngle(angle, 10);
     end;
@@ -1971,10 +1976,14 @@ begin
   if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
-  closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
-  if not ScriptWalker^.MakePointVisible(closestWO) and
-     not ScriptWalker^.WebWalk(closestWO, 30, 0.15) then
-      Exit;
+  if not Self.DotFilter.DotValid(ScriptWalker^.GetMyPos()) then
+  begin
+    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+
+    if not ScriptWalker^.MakePointVisible(closestWO) and
+       not ScriptWalker^.WebWalk(closestWO, 30, 0.15) then
+        Exit;
+  end;
 
   Result := Self._WalkHoverHelper(attempts, trackTarget);
 end;

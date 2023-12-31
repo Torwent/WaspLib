@@ -15,26 +15,6 @@ They also contain template functions and procedures that can be used as is or ov
 {$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := '1'}{$ENDIF}
 
 (*
-const WELCOME_SENTENCES
-~~~~~~~~~~~~~~~~~~~~~~~
-  Global WELCOME_SENTENCES constant used to store advertising senteces to display in the progress report.
-*)
-const
-  WELCOME_SENTENCES: TStringArray = [
-    'Join WaspScripts today!',
-    'Road to max cape with',
-    'No time to play legit?',
-    'What are you waiting for?',
-    'The best public color bots',
-    'Learn how to make scripts at',
-    'Get that 99 with',
-    'Daily bans are not normal,',
-    'Everything is open source',
-    'Imagine AHK on steroids',
-    'Unleash the power of Simba'
-  ];
-
-(*
 type TBaseScript
 ~~~~~~~~~~~~~~~~
 Record that holds common variables for most basic scripts.
@@ -145,7 +125,6 @@ begin
   if Self.Action = Self.PreviousAction then
     Exit(ProgressReport.ProgressArray);
 
-  Self.DebugLn(Self.Action, Self.ExtraInfo);  //add action and extra info the the log.
   elapsedTime := Self.TimeRunning.ElapsedTime();
 
   Result += ' Action        : ' + Self.Action;
@@ -205,7 +184,7 @@ begin
   if not Self.PrintTimer.IsFinished() then
   begin
     if Self.PreviousAction <> Self.Action then
-      Self.DebugLn(Self.Action);
+      Self.DebugLn(Self.Action, Self.ExtraInfo);
 
     Self.PreviousAction := Self.Action;
     Exit;
@@ -302,6 +281,20 @@ Example
   end;
 *)
 procedure TBaseScript.Init(maxActions: UInt32; maxTime: UInt64);
+const
+  WELCOME_SENTENCES: TStringArray = [
+      'Join WaspScripts today!',
+      'Road to max cape with',
+      'No time to play legit?',
+      'What are you waiting for?',
+      'The best public color bots',
+      'Learn how to script at',
+      'Get that 99 with',
+      'Daily bans are not normal,',
+      'Everything is open source',
+      'Imagine AHK on steroids',
+      'Unleash the power of Simba'
+    ];
 begin
   {$IFNDEF SCRIPT_CHAINER}
   ClearDebug();
@@ -337,7 +330,7 @@ begin
     Self.TimeLimit := 0;
 
   WL.Activity.Init(260000);
-  Self.PrintTimer.Init(5 * ONE_MINUTE);
+  Self.PrintTimer.Init(3 * ONE_MINUTE);
 
   if Self.IsSetup then
     Exit;
@@ -369,9 +362,9 @@ end;
 
 
 
-procedure TBaseScript.SetAction(Action: String);
+procedure TBaseScript.SetAction(action: String);
 begin
-  Self.Action := Action;
+  Self.Action := action;
   Self.PrintReport();
 end;
 
@@ -425,20 +418,19 @@ function TBaseScript.ShouldStop(): Boolean;
 begin;
   if InRange(Self.ActionLimit, 1, Self.TotalActions) then
   begin
-    Result := True;
+    SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
     Self.DebugLn('Maximum actions reached: ' +
                  ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit) + '.');
-  end
-  else
-  if InRange(Self.TimeLimit, 1, Self.TimeRunning.ElapsedTime()) then
-  begin
-    Result := True;
-    Self.DebugLn('Maximum time reached: ' +
-                 ToStr(Round(Self.TimeRunning.ElapsedTime()/ONE_MINUTE)) + '/' + ToStr(Round(Self.TimeLimit/ONE_MINUTE)) + ' mins.');
+    Exit(True);
   end;
 
-  if Result then
+  if InRange(Self.TimeLimit, 1, Self.TimeRunning.ElapsedTime()) then
+  begin
     SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
+    Self.DebugLn('Maximum time reached: ' +
+                 ToStr(Round(Self.TimeRunning.ElapsedTime()/ONE_MINUTE)) + '/' + ToStr(Round(Self.TimeLimit/ONE_MINUTE)) + ' mins.');
+    Exit(True);
+  end;
 end;
 
 
@@ -715,12 +707,17 @@ begin
   if not isDepositBox and (isBank or Bank.IsOpen()) then
   begin
     count := Inventory.CountItem(item.Item);
+    if count = 0 then
+      Exit(True);
     Exit(Bank.DepositItem(item, True) and WaitUntil(count > Inventory.CountItem(item.Item), 300, 3000));
   end;
 
   if isDepositBox or DepositBox.IsOpen() then
   begin
     count := DepositBox.CountItem(item.Item);
+    if count = 0 then
+      Exit(True);
+
     if DepositBox.DepositItem(item, True) then
       Result := WaitUntil(count > DepositBox.CountItem(item.Item), 300, 3000);
   end;

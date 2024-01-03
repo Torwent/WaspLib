@@ -1,3 +1,12 @@
+## [16.1.4](https://github.com/Torwent/WaspLib/compare/v16.1.3...v16.1.4) (2024-01-03)
+
+
+### Bug Fixes
+
+* fix map maker with the removal of the combat regions ([2e70211](https://github.com/Torwent/WaspLib/commit/2e702115ffd5226dbcb4b68de8a02d0c6dc3f6c1))
+
+
+
 ## [16.1.3](https://github.com/Torwent/WaspLib/compare/v16.1.2...v16.1.3) (2023-12-31)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **achievements:** achievements tab now supports reading the diaries panel ([833047e](https://github.com/Torwent/WaspLib/commit/833047e93d7f147eb8fc89711c973fea3fbdcc07))
-
-
-
-## [16.0.4](https://github.com/Torwent/WaspLib/compare/v16.0.3...v16.0.4) (2023-12-11)
-
-
-### Bug Fixes
-
-* **TBaseScript:** the "welcome" messages array is now nested under the init method ([9e829d8](https://github.com/Torwent/WaspLib/commit/9e829d8512f0c3dd297f7e68379205ace48098a7))
 
 
 

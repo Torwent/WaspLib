@@ -166,7 +166,7 @@ This will:
 procedure TRSFishingHandler.Reset();
 begin
   Self.Timer.Pause();
-  Self.CurrentSpot := [];
+  Self.CurrentSpot := [-1, -1];
   Self.IsFishing := False;
 end;
 
@@ -455,21 +455,35 @@ begin
   if (atpa = []) and not Self.WaitSpot(atpa, 2000, MainScreen.GetPlayerBox(12, 16, 22, 26)) then
     Exit(True);
 
-  tmp := Minimap.GetCompassAngle(False);
-
-  p := Self.CurrentSpot;
-
-  if Self.CompassAngle <> tmp then
+  if ScriptWalker = nil then
   begin
-    angle := tmp - Self.CompassAngle;
-    p := p.Rotate(angle, MainScreen.GetPlayerBox().Center());
+    tmp := Minimap.GetCompassAngle(False);
 
-    Self.CompassAngle := tmp;
-    Self.CurrentSpot := p;
+    p := Self.CurrentSpot;
+    if Self.CompassAngle <> tmp then
+    begin
+      angle := tmp - Self.CompassAngle;
+      p := p.Rotate(angle, Minimap.GetTileMS(Minimap.Center(), [1, 1, 0], [0,0], tmp).Mean());
+
+      Self.CompassAngle := tmp;
+      Self.CurrentSpot := p;
+    end;
+
+    tpa := atpa.Merge().Connect().ShapeFill().Grow(MainScreen.NormalizeDistance(18));
+    Result := not tpa.Contains(p);
+  end
+  else
+  begin
+    for tpa in atpa do
+    begin
+      Result := Self.CurrentSpot.WithinDistance(MainScreen.PointToMM(tpa.Mean(), 0).ToPoint(), 6);
+      if Result then
+        Break;
+    end;
   end;
 
-  tpa := atpa.Merge().Connect().ShapeFill().Grow(MainScreen.NormalizeDistance(18));
-  Result := not tpa.Contains(p);
+  if not Result then
+    Self.Reset();
 
   if not Self.DisableDebugging then
   begin
@@ -499,6 +513,8 @@ Internal helper method to check for quick things that guarantee us we are not fi
 function TRSFishingHandler._StoppedFishing(): Boolean;
 begin
   Result := Self.Timer.IsFinished() or Inventory.IsFull() or Chat.LeveledUp();
+  if Result then
+    Self.Reset();
 end;
 
 (*
@@ -525,21 +541,16 @@ var
   xpEarned: Boolean;
 begin
   if Self._StoppedFishing() then
-  begin
-    Self.Reset();
     Exit;
-  end;
 
   xpEarned := XPBar.EarnedXP();
 
   if not xpEarned and Self.SpotMoved(atpa) then
-  begin
-    Self.Reset();
     Exit;
-  end;
 
   if xpEarned then
     Self.Timer.Restart(-Round(Self.TimerLength * 0.6), Round(Self.TimerLength * 0.3));
+
   Result := Self.IsFishing;
 end;
 
@@ -548,24 +559,15 @@ var
   xpEarned: Boolean;
 begin
   if Self._StoppedFishing() then
-  begin
-    Self.Reset();
     Exit;
-  end;
 
   xpEarned := XPBar.EarnedXP();
 
   if not xpEarned and Self.SpotMoved() then
-  begin
-    Self.Reset();
     Exit;
-  end;
 
   if xpEarned then
-  begin
-    Self.Timer.Restart(-Round(Self.TimerLength * 0.25), Round(Self.TimerLength * 0.25));;
-    Self.CurrentSpot := Self.FindWaterDirection().Mean();
-  end;
+    Self.Timer.Restart(-Round(Self.TimerLength * 0.25), Round(Self.TimerLength * 0.25));
 
   Result := Self.IsFishing;
 end;
@@ -665,6 +667,9 @@ begin
       Exit;
   end;
 
+  if ScriptWalker <> nil then
+    Self.CurrentSpot := ScriptWalker^.MSToWorld(atpa[i].Mean(), 0);
+
   redClicked := MainScreen.DidRedClick();
 
   for i := 7 to SRL.TruncatedGauss(0, 9) do
@@ -691,8 +696,12 @@ begin
   if not Self.WaitSpot(atpa, 2000, MainScreen.GetPlayerBox(8, 12, 18, 18)) then
     Exit;
 
-  Self.CurrentSpot := Self.FindWaterDirection().Mean();
-  Self.CompassAngle := Minimap.GetCompassAngle(False);
+  if ScriptWalker = nil then
+  begin
+    Self.CurrentSpot := Self.FindWaterDirection().Mean();
+    Self.CompassAngle := Minimap.GetCompassAngle(False);
+  end;
+
   Self.IsFishing := True;
   Self.Timer.Restart(-Round(Self.TimerLength * 0.6), Round(Self.TimerLength * 0.3));;
   Result := True;

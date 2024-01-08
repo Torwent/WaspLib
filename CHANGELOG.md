@@ -1,3 +1,12 @@
+## [16.1.6](https://github.com/Torwent/WaspLib/compare/v16.1.5...v16.1.6) (2024-01-08)
+
+
+### Bug Fixes
+
+* read notes ([8fed36e](https://github.com/Torwent/WaspLib/commit/8fed36e0aab65b328e16e05920b01c7b71fb0049))
+
+
+
 ## [16.1.5](https://github.com/Torwent/WaspLib/compare/v16.1.4...v16.1.5) (2024-01-07)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * read notes ([e3fb1c6](https://github.com/Torwent/WaspLib/commit/e3fb1c65eabe2ea122dc34f4eca6fb9234600527))
-
-
-
-## [16.1.1](https://github.com/Torwent/WaspLib/compare/v16.1.0...v16.1.1) (2023-12-20)
-
-
-### Bug Fixes
-
-* antiban "biohashed" stuff has been rewritten ([469e7cc](https://github.com/Torwent/WaspLib/commit/469e7cce6a0ea190be96ae6e2485492c943834d4))
 
 
 

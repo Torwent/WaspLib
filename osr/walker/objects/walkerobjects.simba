@@ -90,6 +90,7 @@ Parent record of all TRSWalkerObjects.
     ActionUpText: TStringArray;
   class var
     CurrentUpText: TStringArray;
+    CurrentActionUpText: TStringArray;
     RedClicked: Boolean;
   end;
 
@@ -98,14 +99,14 @@ Parent record of all TRSWalkerObjects.
 (*
 Walker.Click
 ~~~~~~~~~~~~
-.. pascal:: function TRSWalker.Click(MinimapPoint: TPoint; Randomness: Int32): Boolean; override;
+.. pascal:: function TRSWalker.Click(minimapPoint: TPoint; Randomness: Int32): Boolean; override;
 
 You shouldn't modify this unless you know what you are doing, otherwise you might break TRSWalkerObjects.
 This is overriden so if we redclick our current TRSWalkerObject target while mainscreen walking we disable walker.
 When we start the walking process towards a TRSWalkerObject, TRSWalkerObject.CurrentUpText is temporarily set so we
 know what we are looking for while walking. Once we click the target TRSWalkerObject.CurrentUpText is cleared.
 *)
-function TRSWalker.Click(MinimapPoint: TPoint; Randomness: Int32): Boolean; override;
+function TRSWalker.Click(minimapPoint: TPoint; Randomness: Int32): Boolean; override;
 var
   p: TPoint;
   line: TPointArray;
@@ -120,12 +121,13 @@ begin
   end;
 
   Result := True;
+  Self.CheckRunEnergy();
 
   if Self.ScreenWalk then
   begin
     repeat
       i += 1;
-      p := MinimapPoint.Random(-randomness, randomness);
+      p := minimapPoint.Random(-randomness, randomness);
       if i >= 15 then
       begin
         line := TPointArray.CreateFromLine(p, Minimap.Center());
@@ -148,12 +150,31 @@ begin
         Break;
       end;
 
-    if not hoveringTarget and not ('Walk here' in msUpText) then
+    if hoveringTarget and (TRSWalkerObject.CurrentActionUpText <> []) then
+    begin
+      hoveringTarget := False;
+      for str in TRSWalkerObject.CurrentActionUpText do
+        if str in msUpText then
+        begin
+          hoveringTarget := True;
+          Break;
+        end;
+
+      if not hoveringTarget then
+      begin
+        TRSWalkerObject.RedClicked := ChooseOption.Select(TRSWalkerObject.CurrentActionUpText);
+        if TRSWalkerObject.RedClicked then
+          Self.Enabled := False;
+        Exit(TRSWalkerObject.RedClicked);
+      end;
+    end
+    else if not ('Walk here' in msUpText) then
       Exit(ChooseOption.Select('Walk here'));
-  end else
+  end
+  else
   begin
     repeat
-      P := MinimapPoint.Random(-Randomness, Randomness);
+      P := minimapPoint.Random(-Randomness, Randomness);
     until Minimap.IsPointOn(P);
 
     Mouse.Move(P);
@@ -494,8 +515,8 @@ This is what's responsible for deciding if we click a target we are hovering or 
 *)
 function TRSWalkerObject._ClickHelper(leftClick: Boolean): Boolean;
 begin
-  if TRSWalkerObject.CurrentUpText <> [] then
-    TRSWalkerObject.CurrentUpText := [];
+  TRSWalkerObject.CurrentUpText := [];
+  TRSWalkerObject.CurrentActionUpText := [];
 
   if TRSWalkerObject.RedClicked then
   begin
@@ -538,8 +559,8 @@ This is what is responsible for deciding if we just left click a target we are h
 *)
 function TRSWalkerObject._SelectHelper(action: TStringArray): Boolean;
 begin
-  if TRSWalkerObject.CurrentUpText <> [] then
-    TRSWalkerObject.CurrentUpText := [];
+  TRSWalkerObject.CurrentUpText := [];
+  TRSWalkerObject.CurrentActionUpText := [];
 
   if TRSWalkerObject.RedClicked then
   begin
@@ -1200,7 +1221,7 @@ begin
   if not Self.Filter.Walker then
     Exit;
 
-  if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
+  if Self.Filter.UpText then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
   p := ScriptWalker^.GetClosestPoint(Self.Coordinates);
@@ -1247,7 +1268,10 @@ Example
 function TRSObject.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 begin
   Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
   Result := Self.Hover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
 end;
 
 
@@ -1285,7 +1309,10 @@ Example
 function TRSObject.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 begin
   Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
   Result := Self.WalkHover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
 end;
 
 
@@ -1934,7 +1961,7 @@ begin
     ChooseOption.Close();
   end;
 
-  if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
+  if Self.Filter.UpText then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
   if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
@@ -1973,7 +2000,7 @@ begin
   if not Self.Filter.Walker then
     Exit;
 
-  if Self.Filter.UpText and (TRSWalkerObject.CurrentUpText <> Self.UpText) then
+  if Self.Filter.UpText then
     TRSWalkerObject.CurrentUpText := Self.UpText;
 
   if not Self.DotFilter.DotValid(ScriptWalker^.GetMyPos()) then
@@ -2023,7 +2050,10 @@ Example
 function TRSMMDot.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 begin
   Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
   Result := Self.Hover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
 end;
 
 
@@ -2061,7 +2091,10 @@ Example
 function TRSMMDot.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
 begin
   Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
   Result := Self.WalkHover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
 end;
 
 

@@ -1,3 +1,12 @@
+## [16.1.7](https://github.com/Torwent/WaspLib/compare/v16.1.6...v16.1.7) (2024-01-09)
+
+
+### Bug Fixes
+
+* fix missing encodings (+ and ,) ([cd4ea95](https://github.com/Torwent/WaspLib/commit/cd4ea95a2676c6bba55b5f2730d3bfba91113802))
+
+
+
 ## [16.1.6](https://github.com/Torwent/WaspLib/compare/v16.1.5...v16.1.6) (2024-01-08)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * wasplib tools and added vorkath regions ([4f35997](https://github.com/Torwent/WaspLib/commit/4f35997769012c635bcbc0528db00a9ece08dd81))
-
-
-
-## [16.1.2](https://github.com/Torwent/WaspLib/compare/v16.1.1...v16.1.2) (2023-12-26)
-
-
-### Bug Fixes
-
-* read notes ([e3fb1c6](https://github.com/Torwent/WaspLib/commit/e3fb1c65eabe2ea122dc34f4eca6fb9234600527))
 
 
 

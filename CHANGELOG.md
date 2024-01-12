@@ -1,3 +1,12 @@
+## [16.1.8](https://github.com/Torwent/WaspLib/compare/v16.1.7...v16.1.8) (2024-01-12)
+
+
+### Bug Fixes
+
+* fix kraken data ([be445e2](https://github.com/Torwent/WaspLib/commit/be445e228678b0dde9a4c7993e3aee30981f2d7b))
+
+
+
 ## [16.1.7](https://github.com/Torwent/WaspLib/compare/v16.1.6...v16.1.7) (2024-01-09)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * fix map maker with the removal of the combat regions ([2e70211](https://github.com/Torwent/WaspLib/commit/2e702115ffd5226dbcb4b68de8a02d0c6dc3f6c1))
-
-
-
-## [16.1.3](https://github.com/Torwent/WaspLib/compare/v16.1.2...v16.1.3) (2023-12-31)
-
-
-### Bug Fixes
-
-* wasplib tools and added vorkath regions ([4f35997](https://github.com/Torwent/WaspLib/commit/4f35997769012c635bcbc0528db00a9ece08dd81))
 
 
 

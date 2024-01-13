@@ -1,3 +1,12 @@
+## [16.1.9](https://github.com/Torwent/WaspLib/compare/v16.1.8...v16.1.9) (2024-01-13)
+
+
+### Bug Fixes
+
+* webgraph tweaks ([98934a4](https://github.com/Torwent/WaspLib/commit/98934a43ee9adc807034fc62a254f90ba058ae7d))
+
+
+
 ## [16.1.8](https://github.com/Torwent/WaspLib/compare/v16.1.7...v16.1.8) (2024-01-12)
 
 
@@ -32,15 +41,6 @@
 
 * **FishingHandler:** Tweaks to fishing handler. ([92c39ff](https://github.com/Torwent/WaspLib/commit/92c39ff8d0c4082a4bbd4ed8e68361bd639ae36c))
 * tweaks to magic and yew tree finders. Thanks to @GalacticPolarBear / CanadianJames ([b8ba6d3](https://github.com/Torwent/WaspLib/commit/b8ba6d34df095fd8e68396eea4a1565071e8a8d3))
-
-
-
-## [16.1.4](https://github.com/Torwent/WaspLib/compare/v16.1.3...v16.1.4) (2024-01-03)
-
-
-### Bug Fixes
-
-* fix map maker with the removal of the combat regions ([2e70211](https://github.com/Torwent/WaspLib/commit/2e702115ffd5226dbcb4b68de8a02d0c6dc3f6c1))
 
 
 

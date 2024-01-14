@@ -1,3 +1,12 @@
+## [16.1.10](https://github.com/Torwent/WaspLib/compare/v16.1.9...v16.1.10) (2024-01-14)
+
+
+### Bug Fixes
+
+* **loothandler:** read notes ([6809f0b](https://github.com/Torwent/WaspLib/commit/6809f0b069a38488b5b062f13f1c086058196417))
+
+
+
 ## [16.1.9](https://github.com/Torwent/WaspLib/compare/v16.1.8...v16.1.9) (2024-01-13)
 
 
@@ -31,16 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8fed36e](https://github.com/Torwent/WaspLib/commit/8fed36e0aab65b328e16e05920b01c7b71fb0049))
-
-
-
-## [16.1.5](https://github.com/Torwent/WaspLib/compare/v16.1.4...v16.1.5) (2024-01-07)
-
-
-### Bug Fixes
-
-* **FishingHandler:** Tweaks to fishing handler. ([92c39ff](https://github.com/Torwent/WaspLib/commit/92c39ff8d0c4082a4bbd4ed8e68361bd639ae36c))
-* tweaks to magic and yew tree finders. Thanks to @GalacticPolarBear / CanadianJames ([b8ba6d3](https://github.com/Torwent/WaspLib/commit/b8ba6d34df095fd8e68396eea4a1565071e8a8d3))
 
 
 

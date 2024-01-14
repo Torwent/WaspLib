@@ -1,3 +1,12 @@
+## [16.1.11](https://github.com/Torwent/WaspLib/compare/v16.1.10...v16.1.11) (2024-01-14)
+
+
+### Bug Fixes
+
+* **loothandler:** last commit accidentally made noted drops never be looted. Oops! ([14d9637](https://github.com/Torwent/WaspLib/commit/14d96379e6dc5eb90926ed8f4fc7d8fc3f563e12))
+
+
+
 ## [16.1.10](https://github.com/Torwent/WaspLib/compare/v16.1.9...v16.1.10) (2024-01-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fix missing encodings (+ and ,) ([cd4ea95](https://github.com/Torwent/WaspLib/commit/cd4ea95a2676c6bba55b5f2730d3bfba91113802))
-
-
-
-## [16.1.6](https://github.com/Torwent/WaspLib/compare/v16.1.5...v16.1.6) (2024-01-08)
-
-
-### Bug Fixes
-
-* read notes ([8fed36e](https://github.com/Torwent/WaspLib/commit/8fed36e0aab65b328e16e05920b01c7b71fb0049))
 
 
 

@@ -1,3 +1,12 @@
+## [16.1.12](https://github.com/Torwent/WaspLib/compare/v16.1.11...v16.1.12) (2024-01-16)
+
+
+### Bug Fixes
+
+* read notes ([d9c460f](https://github.com/Torwent/WaspLib/commit/d9c460f4c6fa2f9d0d04d4a0b67ed6d7c59211ab))
+
+
+
 ## [16.1.11](https://github.com/Torwent/WaspLib/compare/v16.1.10...v16.1.11) (2024-01-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fix kraken data ([be445e2](https://github.com/Torwent/WaspLib/commit/be445e228678b0dde9a4c7993e3aee30981f2d7b))
-
-
-
-## [16.1.7](https://github.com/Torwent/WaspLib/compare/v16.1.6...v16.1.7) (2024-01-09)
-
-
-### Bug Fixes
-
-* fix missing encodings (+ and ,) ([cd4ea95](https://github.com/Torwent/WaspLib/commit/cd4ea95a2676c6bba55b5f2730d3bfba91113802))
 
 
 

@@ -1,3 +1,12 @@
+# [16.2.0](https://github.com/Torwent/WaspLib/compare/v16.1.12...v16.2.0) (2024-01-17)
+
+
+### Features
+
+* **webber:** added downscalling option (read notes) ([c893424](https://github.com/Torwent/WaspLib/commit/c893424503e0e41c029e0338e3bb9c4813aaba2a))
+
+
+
 ## [16.1.12](https://github.com/Torwent/WaspLib/compare/v16.1.11...v16.1.12) (2024-01-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * webgraph tweaks ([98934a4](https://github.com/Torwent/WaspLib/commit/98934a43ee9adc807034fc62a254f90ba058ae7d))
-
-
-
-## [16.1.8](https://github.com/Torwent/WaspLib/compare/v16.1.7...v16.1.8) (2024-01-12)
-
-
-### Bug Fixes
-
-* fix kraken data ([be445e2](https://github.com/Torwent/WaspLib/commit/be445e228678b0dde9a4c7993e3aee30981f2d7b))
 
 
 

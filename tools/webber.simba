@@ -29,6 +29,7 @@ const OFFSET_POINT
 Optional offset for the webgraph. Can be handy.
 *)
   OFFSET_POINT: TPoint = [0, 0];
+  SCALE: Boolean = False;
 
 type
   TWebberForm = record
@@ -75,6 +76,12 @@ var
   best, bestIndex: Int32;
   off: TPoint;
 begin
+  if SCALE then
+  begin
+    X := X*4;
+    Y := Y*4;
+  end;
+
   if Self.Dragging and Self.DragMode then
   begin
     if Self.DraggingBox then
@@ -135,6 +142,7 @@ procedure TWebberForm.AddNode(p: TPoint);
 var
   c: Int32;
 begin
+
   if (SelectedNode > -1) and (Graph.InvalidConnection(p,Graph.Nodes[Self.SelectedNode])) then
   begin
     WriteLn('Error: Path crosses another path');
@@ -155,67 +163,90 @@ begin
 end;
 
 
-procedure TWebberForm.OnMouseDown(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+procedure TWebberForm.OnMouseDown(Sender: TObject; button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 var
-  I: Int32;
-  T: UInt64;
+  i, n: Int32;
+  t: UInt64;
+  p: TPoint;
 begin
-  if Button = mbLeft then
+  if button <> mbLeft then
+    Exit;
+
+  if SCALE then
   begin
-    if Self.DragMode then
+    X := X*4;
+    Y := Y*4;
+    n := 6;
+  end
+  else
+    n := 3;
+
+  if Self.DragMode then
+  begin
+    Self.Dragging := True;
+    if Self.BoxIsValid() and Self.SelectBox.Contains([X, Y]) then
     begin
-      Self.Dragging := True;
-      if Self.BoxIsValid() and Self.SelectBox.Contains([X, Y]) then
-      begin
-        Self.DraggingBox := True;
-        Self.ClickPoint := [X, Y];
-        Exit;
-      end;
-
-      Self.SelectBox.X1 := X;
-      Self.SelectBox.Y1 := Y;
-      Self.SelectBox.X2 := X;
-      Self.SelectBox.Y2 := Y;
-
-      Self.ImageBox.Update();
+      Self.DraggingBox := True;
+      Self.ClickPoint := [X, Y];
       Exit;
     end;
 
-    if (ssShift in Shift) then
+    Self.SelectBox.X1 := X;
+    Self.SelectBox.Y1 := Y;
+    Self.SelectBox.X2 := X;
+    Self.SelectBox.Y2 := Y;
+
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  if (ssShift in Shift) then
+  begin
+    if Self.SelectedNode = -1 then
+      Exit;
+
+    for i := 0 to High(Self.Graph.Nodes) do
     begin
-      if Self.SelectedNode = -1 then
+      p := Self.Graph.Nodes[i];
+      if Distance(p.X, p.Y, X, Y) <= n then
+      begin
+        if Self.SelectedNode <> i then
+          Self.ConnectNodes(Self.SelectedNode, i);
+        Self.ImageBox.Update();
         Exit;
+      end;
+    end;
 
-      for I := 0 to High(Self.Graph.Nodes) do
-        if Distance(Self.Graph.Nodes[I].X, Self.Graph.Nodes[I].Y, X, Y) <= 3 then
-        begin
-          if Self.SelectedNode <> I then
-            Self.ConnectNodes(self.SelectedNode, I);
-          Self.ImageBox.Update();
-          Exit;
-        end;
-    end else
+    Exit;
+  end;
+
+  Self.Dragging := True;
+
+  for i := 0 to High(Self.Graph.Nodes) do
+  begin
+    p := Self.Graph.Nodes[i];
+    if Distance(p.X, p.Y, X, Y) <= n then
     begin
-      Self.Dragging := True;
-
-      for I := 0 to High(Self.Graph.Nodes) do
-        if Distance(Self.Graph.Nodes[I].X, Self.Graph.Nodes[I].Y, X, Y) <= 3 then
-        begin
-          Self.SelectedNode := I;
-          Self.ImageBox.GetStatusPanel().SetText(Self.Graph.Names[I]);
-          Self.ImageBox.Update();
-          Exit;
-        end;
-
-       AddNode([X, Y]);
+      Self.SelectedNode := i;
+      Self.ImageBox.GetStatusPanel().SetText(Self.Graph.Names[i]);
+      Self.ImageBox.Update();
+      Exit;
     end;
   end;
+
+   Self.AddNode([X, Y]);
 end;
 
-procedure TWebberForm.OnMouseUp(Sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+procedure TWebberForm.OnMouseUp(Sender: TObject; button: TMouseButton; Shift: TShiftState; X, Y: Int32);
 begin
-  if Button = mbLeft then
+  if button = mbLeft then
   begin
+    if SCALE then
+    begin
+      X := X*4;
+      Y := Y*4;
+    end;
+
     Self.Dragging := False;
     Self.DraggingBox := False;
     if Self.DragMode then
@@ -270,13 +301,12 @@ begin
     Self.DeleteNode(Self.SelectedNode);
 end;
 
-procedure TWebberForm.DrawWeb(Area: TBox);
+procedure TWebberForm.DrawWeb(area: TBox);
 var
-  W,H,i,j,n,color,add: Int32;
+  i,j,n,color: Int32;
   p,q: TPoint;
   nodes,line: TPointArray;
   canvas: TCanvas;
-  B: TBox;
 begin
   nodes := Self.Graph.Nodes;
   if Length(nodes) = 0 then
@@ -285,15 +315,26 @@ begin
   Canvas := Self.ImageBox.GetOverlay.GetCanvas();
   Canvas.GetPen.SetColor($00FFFF);
 
+  if SCALE then
+    n := 1
+  else
+    n := 3;
+
   for i := 0 to High(Graph.Paths) do
   begin
     p := nodes[i];
+
+    if SCALE then
+      p := [Floor(p.X/4), Floor(p.Y/4)];
 
     for j:=0 to High(Graph.Paths[i]) do
     begin
       q := nodes[Graph.Paths[i][j]];
 
-      if p.InBox(Area) or q.InBox(Area) then
+      if SCALE then
+        q := [Floor(q.X/4), Floor(q.Y/4)];
+
+      if p.InBox(area) or q.InBox(area) then
       begin
         Canvas.MoveTo(p.x, p.y);
         Canvas.LineTo(q.x, q.y);
@@ -307,21 +348,29 @@ begin
     if Length(Graph.Names[i]) <> 0 then
       color := $77FF00;
 
-    if nodes[i].InBox(Area) then
+    p := nodes[i];
+    if SCALE then
+      p := [Floor(p.X/4), Floor(p.Y/4)];
+
+    if p.InBox(area) then
     begin
       Canvas.GetBrush().SetColor(Color);
-      Canvas.FillRect(nodes[i].X-3, nodes[i].Y-3, nodes[i].X+3, nodes[i].Y+3);
+      Canvas.FillRect(p.X-n, p.Y-n, p.X+n, p.Y+n);
     end;
   end;
 
   if InRange(SelectedNode, Low(nodes), High(nodes)) then
   begin
     Canvas.GetBrush().SetColor($FF0000);
-    Canvas.FillRect(Nodes[SelectedNode].X-3, Nodes[SelectedNode].Y-3, Nodes[SelectedNode].X+3, Nodes[SelectedNode].Y+3);
+    p := Nodes[SelectedNode];
+    if SCALE then
+      p := [Floor(p.X/4), Floor(p.Y/4)];
+
+    Canvas.FillRect(p.X-n, p.Y-n, p.X+n, p.Y+n);
   end;
 end;
 
-procedure TWebberForm.DrawPath(Area: TBox);
+procedure TWebberForm.DrawPath(area: TBox);
 var
   i,j,W,H: Int32;
   p,q: TPoint;
@@ -333,9 +382,6 @@ begin
   if Length(Nodes) = 0 then
     Exit;
 
-  p := Nodes[Path[0]];
-  q := Nodes[Path[High(Path)]];
-
   Canvas := Self.ImageBox.GetOverlay.GetCanvas();
   Canvas.GetPen().SetColor(clNavy);
   Canvas.GetPen().setWidth(3);
@@ -343,12 +389,17 @@ begin
   for i := 0 to High(Path) do
   begin
     p := Nodes[Path[i]];
+    if SCALE then
+      p := [Floor(p.X/4), Floor(p.Y/4)];
 
     if i < High(Path) then
     begin
       q := Nodes[Path[i+1]];
 
-      if p.InBox(Area) or q.InBox(Area) then
+      if SCALE then
+        q := [Floor(q.X/4), Floor(q.Y/4)];
+
+      if p.InBox(area) or q.InBox(area) then
       begin
         Canvas.MoveTo(p.x, p.y);
         Canvas.LineTo(q.x, q.y);
@@ -377,6 +428,12 @@ begin
   begin
     p := corners[i];
     q := corners[i+1];
+
+    if SCALE then
+    begin
+      p := [Floor(p.X/4), Floor(p.Y/4)];
+      q := [Floor(q.X/4), Floor(q.Y/4)];
+    end;
 
     if p.InBox(area) or q.InBox(area) then
     begin
@@ -573,6 +630,8 @@ var
   panel: TPanel;
   button: TButton;
   check: TLabeledCheckBox;
+  bmp, tmp: TMufasaBitmap;
+  path, fileName: String;
 begin
   try
     Self.Name := 'Graph';
@@ -623,6 +682,25 @@ begin
     button.SetOnClick(@Self.OnPrintGraph);
     button.setAlign(alLeft);
 
+
+    if SCALE then
+    begin
+      fileName := SHA1File(Self.Map) + '.bmp';
+      path := WL_DATAPATH + 'assets' + DIRECTORYSEPARATOR;
+
+      bmp.Init();
+      if FileExists(path + fileName) then
+        bmp.LoadFromFile(path + fileName)
+      else
+      begin
+        tmp := TRSWalkerMap.InternalLoadMap(Self.Map);
+        tmp.Downsample(4, bmp);
+        tmp.Free();
+        if ForceDirectories(path) then
+          bmp.SaveToFile(path + fileName);
+      end;
+    end;
+
     Self.ImageBox.Init(Self.Form);
     Self.ImageBox.SetParent(Self.Form);
     Self.ImageBox.SetAlign(alClient);
@@ -631,7 +709,12 @@ begin
     Self.ImageBox.SetOnMouseDown(@Self.OnMouseDown);
     Self.ImageBox.SetOnMouseUp(@Self.OnMouseUp);
     Self.ImageBox.SetOnKeyDown(@Self.OnKeyDown);
-    Self.ImageBox.GetBackground().LoadFromFile(Self.Map);
+
+    if SCALE then
+      Self.ImageBox.GetBackground().LoadFromMufasaBitmap(bmp)
+    else
+      Self.ImageBox.getBackground().LoadFromFile(Self.Map);
+
     Self.ImageBox.BackgroundChanged();
 
     WriteLn('Click:                Add or select node'    + LineEnding +

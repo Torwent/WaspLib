@@ -1,3 +1,12 @@
+## [16.2.1](https://github.com/Torwent/WaspLib/compare/v16.2.0...v16.2.1) (2024-01-17)
+
+
+### Bug Fixes
+
+* **RSTeleports:** myth cape option was wrong, credits to student ([88529a3](https://github.com/Torwent/WaspLib/commit/88529a3686b5aa4cb7566d3faafcac55ffb66f0e))
+
+
+
 # [16.2.0](https://github.com/Torwent/WaspLib/compare/v16.1.12...v16.2.0) (2024-01-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **loothandler:** read notes ([6809f0b](https://github.com/Torwent/WaspLib/commit/6809f0b069a38488b5b062f13f1c086058196417))
-
-
-
-## [16.1.9](https://github.com/Torwent/WaspLib/compare/v16.1.8...v16.1.9) (2024-01-13)
-
-
-### Bug Fixes
-
-* webgraph tweaks ([98934a4](https://github.com/Torwent/WaspLib/commit/98934a43ee9adc807034fc62a254f90ba058ae7d))
 
 
 

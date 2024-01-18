@@ -1,3 +1,12 @@
+## [16.2.3](https://github.com/Torwent/WaspLib/compare/v16.2.2...v16.2.3) (2024-01-18)
+
+
+### Bug Fixes
+
+* **map:** read notes ([8f9c155](https://github.com/Torwent/WaspLib/commit/8f9c155baf84ca9f87a74f94b93052cf5a97d76b))
+
+
+
 ## [16.2.2](https://github.com/Torwent/WaspLib/compare/v16.2.1...v16.2.2) (2024-01-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([d9c460f](https://github.com/Torwent/WaspLib/commit/d9c460f4c6fa2f9d0d04d4a0b67ed6d7c59211ab))
-
-
-
-## [16.1.11](https://github.com/Torwent/WaspLib/compare/v16.1.10...v16.1.11) (2024-01-14)
-
-
-### Bug Fixes
-
-* **loothandler:** last commit accidentally made noted drops never be looted. Oops! ([14d9637](https://github.com/Torwent/WaspLib/commit/14d96379e6dc5eb90926ed8f4fc7d8fc3f563e12))
 
 
 

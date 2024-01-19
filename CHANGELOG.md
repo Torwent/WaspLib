@@ -1,3 +1,12 @@
+## [16.3.1](https://github.com/Torwent/WaspLib/compare/v16.3.0...v16.3.1) (2024-01-19)
+
+
+### Bug Fixes
+
+* read notes ([79e0a33](https://github.com/Torwent/WaspLib/commit/79e0a33a855cd4ac9f02a4dc8dbad3f613e6c6ae))
+
+
+
 # [16.3.0](https://github.com/Torwent/WaspLib/compare/v16.2.3...v16.3.0) (2024-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSTeleports:** myth cape option was wrong, credits to student ([88529a3](https://github.com/Torwent/WaspLib/commit/88529a3686b5aa4cb7566d3faafcac55ffb66f0e))
-
-
-
-# [16.2.0](https://github.com/Torwent/WaspLib/compare/v16.1.12...v16.2.0) (2024-01-17)
-
-
-### Features
-
-* **webber:** added downscalling option (read notes) ([c893424](https://github.com/Torwent/WaspLib/commit/c893424503e0e41c029e0338e3bb9c4813aaba2a))
 
 
 

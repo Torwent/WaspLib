@@ -1,3 +1,12 @@
+## [16.3.3](https://github.com/Torwent/WaspLib/compare/v16.3.2...v16.3.3) (2024-01-19)
+
+
+### Bug Fixes
+
+* **transport:** now compatible with the most recent changes ([b6b8ebd](https://github.com/Torwent/WaspLib/commit/b6b8ebdb3e8bd58244e8861091e1d59718fc415a))
+
+
+
 ## [16.3.2](https://github.com/Torwent/WaspLib/compare/v16.3.1...v16.3.2) (2024-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **map:** read notes ([8f9c155](https://github.com/Torwent/WaspLib/commit/8f9c155baf84ca9f87a74f94b93052cf5a97d76b))
-
-
-
-## [16.2.2](https://github.com/Torwent/WaspLib/compare/v16.2.1...v16.2.2) (2024-01-17)
-
-
-### Bug Fixes
-
-* add ferox enclave map, bank and pool ([ee9c1f8](https://github.com/Torwent/WaspLib/commit/ee9c1f83fc226a3c35494413223ed6b578d70358))
 
 
 

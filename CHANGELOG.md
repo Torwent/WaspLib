@@ -1,3 +1,12 @@
+## [16.3.2](https://github.com/Torwent/WaspLib/compare/v16.3.1...v16.3.2) (2024-01-19)
+
+
+### Bug Fixes
+
+* **lectern:** fixed typo and added the missing tablets of the other lecterns ([407189e](https://github.com/Torwent/WaspLib/commit/407189ea7dca0a1a3fe8e83ff4b93bc10ce07330))
+
+
+
 ## [16.3.1](https://github.com/Torwent/WaspLib/compare/v16.3.0...v16.3.1) (2024-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add ferox enclave map, bank and pool ([ee9c1f8](https://github.com/Torwent/WaspLib/commit/ee9c1f83fc226a3c35494413223ed6b578d70358))
-
-
-
-## [16.2.1](https://github.com/Torwent/WaspLib/compare/v16.2.0...v16.2.1) (2024-01-17)
-
-
-### Bug Fixes
-
-* **RSTeleports:** myth cape option was wrong, credits to student ([88529a3](https://github.com/Torwent/WaspLib/commit/88529a3686b5aa4cb7566d3faafcac55ffb66f0e))
 
 
 

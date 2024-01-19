@@ -94,7 +94,8 @@ Parent record of all TRSWalkerObjects.
     RedClicked: Boolean;
   end;
 
-  PRSWalkerObjectArray = array of ^TRSWalkerObject;
+  PWalkerObjectArray = array of Pointer;
+  PRSWalkerObject = ^TRSWalkerObject;
 
 (*
 Walker.Click
@@ -200,7 +201,6 @@ Base internal TRSWalkerObject setup method. You probably won't need to call this
 *)
 procedure TRSWalkerObject._Setup();
 begin
-  Self.Filter.MinimapDot := True;
   Self.Filter.Finder     := True;
   Self.Filter.UpText     := True;
 end;
@@ -581,6 +581,46 @@ begin
 end;
 
 
+function PWalkerObjectArray.GetClosestEx(value: TPoint): PRSWalkerObject;
+var
+  i, hi: Int32;
+  closest, current: Double;
+  tmp: PRSWalkerObject;
+begin
+  if Self = [] then
+    Exit;
+
+  closest := $FFFFFF;
+  for i := 0 to hi := High(Self) do
+  begin
+    tmp := PRSWalkerObject(Self[i]);
+
+    if tmp^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      hi -= 1;
+      i -= 1;
+      Continue;
+    end;
+
+    current := tmp^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := tmp;
+    end;
+  end;
+end;
+
+function PWalkerObjectArray.GetClosest(): PRSWalkerObject;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
+
 type
 (*
 type TRSObject
@@ -740,7 +780,6 @@ begin
 
   Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
 end;
-
 
 
 (*
@@ -1314,7 +1353,6 @@ begin
   Self.ActionUpText := [];
   Self.CurrentActionUpText := [];
 end;
-
 
 type
 (*
@@ -2159,6 +2197,7 @@ begin
     Exit;
 
   Self._Setup();
+  Self.Filter.MinimapDot := True;
 
   Self.UpText := upText;
 
@@ -2183,6 +2222,7 @@ begin
     Exit;
 
   Self._Setup();
+  Self.Filter.MinimapDot := True;
 
   Self.UpText := upText;
 
@@ -2207,6 +2247,7 @@ begin
     Exit;
 
   Self._Setup();
+  Self.Filter.MinimapDot := True;
 
   Self.UpText := upText;
 
@@ -2301,9 +2342,153 @@ begin
   bitmap.Free();
 end;
 
+type
+  TRSWalkerObjects = record
+    Banks, DepositBoxes: PWalkerObjectArray;
+  end;
+
 var
+  WalkerObjects: TRSWalkerObjects;
   DebugObjectArray: TRSObjectArray;
   DebugMMDotArray: array of TRSMMDot;
+
+function TRSBank.Hover(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+    Exit;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(PRSNPC(walkerObject)^.Hover());
+
+  Result := PRSObject(walkerObject)^.Hover();
+end;
+
+function TRSBank.Open(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Result := PRSNPC(walkerObject)^.SelectOption(['Bank B', 'Bank E']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']))
+  else
+    Result := PRSObject(walkerObject)^.Click() or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+function TRSBank.WalkHover(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+    Exit;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(PRSNPC(walkerObject)^.WalkHover());
+
+  Result := PRSObject(walkerObject)^.WalkHover();
+end;
+
+function TRSBank.WalkOpen(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Result := PRSNPC(walkerObject)^.WalkSelectOption(['Bank B', 'Bank E']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']))
+  else
+    Result := PRSObject(walkerObject)^.WalkClick() or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+
+function TRSDepositBox.Hover(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+    Exit;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.DepositBoxes.GetClosest();
+
+  Result := PRSObject(walkerObject)^.Hover();
+end;
+
+function TRSDepositBox.Open(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.DepositBoxes.GetClosest();
+
+  if PRSObject(walkerObject)^.Click() or ChooseOption.Select(['Deposit B', 'Bank D']) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil(Self.IsOpen(), RandomLeft(50, 1500), 3000);
+  end;
+end;
+
+function TRSDepositBox.WalkHover(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+    Exit;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.DepositBoxes.GetClosest();
+
+  Result := PRSObject(walkerObject)^.WalkHover();
+end;
+
+function TRSDepositBox.WalkOpen(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if PRSObject(walkerObject)^.WalkClick() or ChooseOption.Select(['Deposit B', 'Bank D']) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil(Self.IsOpen(), RandomLeft(50, 1500), 3000);
+  end;
+end;
+
 
 procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
 var

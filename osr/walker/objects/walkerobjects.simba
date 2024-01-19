@@ -342,10 +342,10 @@ function TRSWalkerObject.FindOnMainScreen(cuboidArray: TCuboidExArray): T2DPoint
 var
   i: Int32;
   tpa: TPointArray;
-  tempFinder: TRSObjectFinder;
+  tmpFinder: TRSObjectFinder;
 begin
   if Self.Filter.Finder then
-    tempFinder := Self.Finder.Unlimited();
+    tmpFinder := Self.Finder.Unlimited();
 
   cuboidArray := MainScreen.Filter(cuboidArray);
 
@@ -357,7 +357,7 @@ begin
     begin
       RSClient.DrawCuboid(cuboidArray[i], $FFFFFF, 1);
 
-      tpa := MainScreen.FindObject(tempFinder, cuboidArray[i].Bounds()).Merge();
+      tpa := MainScreen.FindObject(tmpFinder, cuboidArray[i].Bounds()).Merge();
       if tpa = [] then
         Continue;
 
@@ -583,23 +583,17 @@ end;
 
 function PWalkerObjectArray.GetClosestEx(value: TPoint): PRSWalkerObject;
 var
-  i, hi: Int32;
-  closest, current: Double;
+  i: Int32;
   tmp: PRSWalkerObject;
+  closest: Double = $FFFFFF;
+  current: Double;
 begin
-  if Self = [] then
-    Exit;
-
-  closest := $FFFFFF;
-  for i := 0 to hi := High(Self) do
+  for i := High(Self) downto 0 do
   begin
     tmp := PRSWalkerObject(Self[i]);
-
     if tmp^.Coordinates = [] then
     begin
       Delete(Self, i, 1);
-      hi -= 1;
-      i -= 1;
       Continue;
     end;
 
@@ -633,154 +627,6 @@ This are meant to be TRSWalkerObjects that do not have a minimap dot so TRSObjec
   TRSObjectArray = array of TRSObject;
   PRSObject = ^TRSObject;
   PRSObjectArray = array of PRSObject;
-
-procedure PRSObjectArray.Del(const index: Int32; const count: Int32 = 1);
-begin
-  Delete(Self, index, count);
-end;
-
-function PRSObjectArray.IndexOf(value: TPoint): Int32; overload;
-var
-  i: Int32;
-begin
-  for i := 0 to High(Self) do
-    if Self[i]^.Coordinates.Contains(value) then
-      Exit(i);
-
-  Result := -1;
-end;
-
-function PRSObjectArray.GetClosestEx(value: TPoint): TRSObject;
-var
-  i, hi: Int32;
-  closest, current: Double;
-begin
-  if Self = [] then
-    Exit;
-
-  closest := High(Int32);
-  hi := High(Self);
-  for i := 0 to hi do
-  begin
-    if Self[i]^.Coordinates = [] then
-    begin
-      Self.Del(i);
-      hi -= 1;
-      i -= 1;
-      Continue;
-    end;
-
-    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
-    if current < closest then
-    begin
-      closest := current;
-      Result := Self[i]^;
-    end;
-  end;
-end;
-
-function PRSObjectArray.GetClosest(): TRSObject;
-begin
-  if (Self = []) or (ScriptWalker = nil) then
-    Exit;
-
-  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
-end;
-
-
-{$IFDEF SIMBA1400}
-procedure TRSObjectArray.Del(const index: Int32; const count: Int32 = 1);
-begin
-  Delete(Self, index, count);
-end;
-
-function TRSObjectArray.IndexOf(value: TRSObject): Int32;
-begin
-  Result := System.IndexOf(value, Self); //Simba doesn't show this but it exists and it's very fast
-end;
-
-function TRSObjectArray.IndexOf(value: TPoint): Int32; overload;
-var
-  i: Int32;
-begin
-  for i := 0 to High(Self) do
-    if Self[i].Coordinates.Contains(value) then
-      Exit(i);
-
-  Result := -1;
-end;
-
-function TRSObjectArray.IndicesOf(value: TRSObject): TIntegerArray;
-begin
-  Result := System.IndicesOf(value, Self); //Simba doesn't show this but it exists and it's very fast
-end;
-
-function TRSObjectArray.IndicesOf(value: TPoint): TIntegerArray; overload;
-var
-  i: Int32;
-begin
-  for i := 0 to High(Self) do
-    if Self[i].Coordinates.Contains(value) then
-      Result += i;
-end;
-
-procedure TRSObjectArray.Remove(const value: TRSObject; const all: Boolean = False);
-var
-  i: Int32;
-  lst: TIntegerArray;
-begin
-  if (not all) then
-  begin
-    i := Self.IndexOf(value);
-    if i >= 0 then
-      Self.Del(i);
-    Exit;
-  end;
-
-  lst := Self.IndicesOf(value);
-  for i := High(lst) downto 0 do
-    Self.Del(lst[i]);
-end;
-{$ENDIF}
-
-
-function TRSObjectArray.GetClosestEx(value: TPoint): TRSObject;
-var
-  i, hi: Int32;
-  closest, current: Double;
-begin
-  if Self = [] then
-    Exit;
-
-  closest := High(Int32);
-  hi := High(Self);
-  for i := 0 to hi do
-  begin
-    if Self[i].Coordinates = [] then
-    begin
-      Self.Del(i);
-      hi -= 1;
-      i -= 1;
-      Continue;
-    end;
-
-    current := Self[i].Coordinates.NearestPoint(value).DistanceTo(value);
-    if current < closest then
-    begin
-      closest := current;
-      Result := Self[i];
-    end;
-  end;
-end;
-
-function TRSObjectArray.GetClosest(): TRSObject;
-begin
-  if (Self = []) or (ScriptWalker = nil) then
-    Exit;
-
-  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
-end;
-
 
 (*
 TRSObject.Setup
@@ -881,13 +727,11 @@ begin
   if Self.Filter.Walker then
   begin
     cuboidArray := Self.GetCuboidArray();
-
     if cuboidArray = [] then
       Exit;
 
     atpa := Self.FindOnMainScreen(cuboidArray);
   end
-
   else if Self.Filter.Finder then
     atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
 
@@ -1354,6 +1198,38 @@ begin
   Self.CurrentActionUpText := [];
 end;
 
+function PRSObjectArray.GetClosestEx(value: TPoint): PRSObject;
+var
+  i: Int32;
+  closest: Double = $FFFFFF;
+  current: Double;
+begin
+  for i := High(Self) downto 0 do
+  begin
+    if Self[i]^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      Continue;
+    end;
+
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
+  end;
+end;
+
+function PRSObjectArray.GetClosest(): PRSObject;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
+
 type
 (*
 type TRSMMDot
@@ -1402,7 +1278,6 @@ The other methods all call this first one with certain default values:
 
 - If size is omited, shape.X and shape.Y are set to 1.
 *)
-
 procedure TRSMMDot.SetupCoordinates(radii: TIntegerArray; coordinates: TPointArray); overload;
 var
   i, j, hi: Int32;
@@ -1604,7 +1479,6 @@ begin
     Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2]));
   end;
 end;
-
 
 (*
 TRSMMDot.FindEx
@@ -2135,7 +2009,6 @@ begin
   Self.CurrentActionUpText := [];
 end;
 
-
 type
 (*
 type TRSNPC
@@ -2170,17 +2043,6 @@ This are meant to be TRSMMDot that have a white minimap dot so TRSPlayer.Filter.
 *)
   TRSPlayer = type TRSMMDot;
   TRSPlayerArray = array of TRSPlayer;
-
-procedure PRSNPCArray.Del(const Index: Integer; const Count: Integer = 1);
-begin
-  Delete(Self, Index, Count);
-end;
-
-procedure PRSGroundItemArray.Del(const Index: Integer; const Count: Integer = 1);
-begin
-  Delete(Self, Index, Count);
-end;
-
 
 (*
 TRSNPC.Setup
@@ -2258,51 +2120,77 @@ begin
 end;
 
 
-function PRSNPCArray.IndexOf(value: TPoint): Int32; overload;
+function PRSNPCArray.GetClosestEx(value: TPoint): PRSNPC;
 var
   i: Int32;
-begin
-  for i := 0 to High(Self) do
-    if Self[i]^.Coordinates.Contains(value) then
-      Exit(i);
-
-  Result := -1;
-end;
-
-function PRSNPCArray.GetClosest(): TRSNPC;
-var
-  me: TPoint;
-  i, hi: Int32;
-  tpa, tmp: TPointArray;
+  closest, current: Double;
 begin
   if Self = [] then
     Exit;
 
-  if ScriptWalker = nil then
-    Exit;
+  closest := $FFFFFF;
 
-  me := ScriptWalker^.GetMyPos();
-
-  hi := High(Self);
-  for i := 0 to hi do
+  for i := High(Self) downto 0 do
   begin
     if Self[i]^.Coordinates = [] then
     begin
-      Self.Del(i); //remove the empty ones so next times are faster since we don't have to check them.
-      hi -= 1;
+      Delete(Self, i, 1);
       Continue;
     end;
 
-    tmp := Self[i]^.Coordinates.SortFrom(me);
-    tpa += tmp.First();
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
   end;
+end;
 
-  if tpa = [] then
+function PRSNPCArray.GetClosest(): PRSNPC;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
     Exit;
 
-  tpa := tpa.SortFrom(me);
-  Result := Self[Self.IndexOf(tpa.First())]^;
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
 end;
+
+
+function PRSGroundItemArray.GetClosestEx(value: TPoint): PRSGroundItem;
+var
+  i: Int32;
+  closest, current: Double;
+begin
+  if Self = [] then
+    Exit;
+
+  closest := $FFFFFF;
+
+  for i := High(Self) downto 0 do
+  begin
+    if Self[i]^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      Continue;
+    end;
+
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
+  end;
+end;
+
+function PRSGroundItemArray.GetClosest(): PRSGroundItem;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
 
 (*
 Debug

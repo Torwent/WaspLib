@@ -2240,21 +2240,18 @@ var
   DebugObjectArray: TRSObjectArray;
   DebugMMDotArray: array of TRSMMDot;
 
-function TRSBank.Hover(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+
+
+
+
+function TRSBank.Hover(rsObject: TRSObject): Boolean; overload;
 begin
   if MainScreen.HasInterface() then
     Exit;
-
-  if walkerObject = nil then
-    walkerObject := WalkerObjects.Banks.GetClosest();
-
-  if walkerObject^.Filter.MinimapDot then
-    Exit(PRSNPC(walkerObject)^.Hover());
-
-  Result := PRSObject(walkerObject)^.Hover();
+  Result := rsObject.Hover();
 end;
 
-function TRSBank.Open(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+function TRSBank.Open(rsObject: TRSObject): Boolean; overload;
 begin
   if MainScreen.HasInterface() then
   begin
@@ -2263,13 +2260,7 @@ begin
     MainScreen.CloseInterface();
   end;
 
-  if walkerObject = nil then
-    walkerObject := WalkerObjects.Banks.GetClosest();
-
-  if walkerObject^.Filter.MinimapDot then
-    Result := PRSNPC(walkerObject)^.SelectOption(['Bank B', 'Bank E']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']))
-  else
-    Result := PRSObject(walkerObject)^.Click() or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Bank B', 'Bank E']));
+  Result := rsObject.Click() or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']));
 
   if not Result then
     Exit;
@@ -2278,21 +2269,15 @@ begin
   Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), RandomLeft(50, 1500), 3000);
 end;
 
-function TRSBank.WalkHover(walkerObject: PRSWalkerObject = nil): Boolean;
+function TRSBank.WalkHover(rsObject: TRSObject): Boolean;
 begin
   if MainScreen.HasInterface() then
     Exit;
 
-  if walkerObject = nil then
-    walkerObject := WalkerObjects.Banks.GetClosest();
-
-  if walkerObject^.Filter.MinimapDot then
-    Exit(PRSNPC(walkerObject)^.WalkHover());
-
-  Result := PRSObject(walkerObject)^.WalkHover();
+  Result := rsObject.WalkHover();
 end;
 
-function TRSBank.WalkOpen(walkerObject: PRSWalkerObject = nil): Boolean;
+function TRSBank.WalkOpen(rsObject: TRSObject): Boolean;
 begin
   if MainScreen.HasInterface() then
   begin
@@ -2301,19 +2286,110 @@ begin
     MainScreen.CloseInterface();
   end;
 
-  if walkerObject = nil then
-    walkerObject := WalkerObjects.Banks.GetClosest();
-
-  if walkerObject^.Filter.MinimapDot then
-    Result := PRSNPC(walkerObject)^.WalkSelectOption(['Bank B', 'Bank E']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']))
-  else
-    Result := PRSObject(walkerObject)^.WalkClick() or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']));
+  Result := rsObject.WalkClick() or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']));
 
   if not Result then
     Exit;
 
   Minimap.WaitMoving();
   Result := WaitUntil(Self.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+
+function TRSBank.Hover(rsNPC: TRSNPC): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+    Exit;
+  Result := rsNPC.Hover();
+end;
+
+function TRSBank.Open(rsNPC: TRSNPC): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  Result := rsNPC.Click() or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+function TRSBank.WalkHover(rsNPC: TRSNPC): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+    Exit;
+
+  Result := rsNPC.WalkHover();
+end;
+
+function TRSBank.WalkOpen(rsNPC: TRSNPC): Boolean; overload;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  Result := rsNPC.WalkClick() or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+
+function TRSBank.Hover(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Self.Hover(PRSNPC(walkerObject)^));
+
+  Result := Bank.Hover(PRSObject(walkerObject)^);
+end;
+
+function TRSBank.Open(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Bank.Open(PRSNPC(walkerObject)^));
+
+  Result := Bank.Open(PRSObject(walkerObject)^);
+end;
+
+function TRSBank.WalkHover(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Bank.WalkHover(PRSNPC(walkerObject)^));
+
+  Result := Bank.WalkHover(PRSObject(walkerObject)^);
+end;
+
+function TRSBank.WalkOpen(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Bank.WalkOpen(PRSNPC(walkerObject)^));
+
+  Result := Bank.WalkOpen(PRSObject(walkerObject)^);
 end;
 
 

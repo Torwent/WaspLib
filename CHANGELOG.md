@@ -1,3 +1,12 @@
+# [16.3.0](https://github.com/Torwent/WaspLib/compare/v16.2.3...v16.3.0) (2024-01-19)
+
+
+### Features
+
+* **bank:** read notes ([aca5a96](https://github.com/Torwent/WaspLib/commit/aca5a96cb9b540ab46d588fb13bc680836e77966))
+
+
+
 ## [16.2.3](https://github.com/Torwent/WaspLib/compare/v16.2.2...v16.2.3) (2024-01-18)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **webber:** added downscalling option (read notes) ([c893424](https://github.com/Torwent/WaspLib/commit/c893424503e0e41c029e0338e3bb9c4813aaba2a))
-
-
-
-## [16.1.12](https://github.com/Torwent/WaspLib/compare/v16.1.11...v16.1.12) (2024-01-16)
-
-
-### Bug Fixes
-
-* read notes ([d9c460f](https://github.com/Torwent/WaspLib/commit/d9c460f4c6fa2f9d0d04d4a0b67ed6d7c59211ab))
 
 
 

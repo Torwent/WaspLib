@@ -1,3 +1,12 @@
+## [16.3.4](https://github.com/Torwent/WaspLib/compare/v16.3.3...v16.3.4) (2024-01-20)
+
+
+### Bug Fixes
+
+* mark deprecated method ([c8c9588](https://github.com/Torwent/WaspLib/commit/c8c9588a1e5c187daf37b77b1857c73fefca7271))
+
+
+
 ## [16.3.3](https://github.com/Torwent/WaspLib/compare/v16.3.2...v16.3.3) (2024-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **bank:** read notes ([aca5a96](https://github.com/Torwent/WaspLib/commit/aca5a96cb9b540ab46d588fb13bc680836e77966))
-
-
-
-## [16.2.3](https://github.com/Torwent/WaspLib/compare/v16.2.2...v16.2.3) (2024-01-18)
-
-
-### Bug Fixes
-
-* **map:** read notes ([8f9c155](https://github.com/Torwent/WaspLib/commit/8f9c155baf84ca9f87a74f94b93052cf5a97d76b))
 
 
 

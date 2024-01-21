@@ -1,3 +1,12 @@
+## [16.3.7](https://github.com/Torwent/WaspLib/compare/v16.3.6...v16.3.7) (2024-01-21)
+
+
+### Bug Fixes
+
+* refactor really but need to bump version ([860243c](https://github.com/Torwent/WaspLib/commit/860243cd882ac12fa033eea683053dab98056ad3))
+
+
+
 ## [16.3.6](https://github.com/Torwent/WaspLib/compare/v16.3.5...v16.3.6) (2024-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **transport:** now compatible with the most recent changes ([b6b8ebd](https://github.com/Torwent/WaspLib/commit/b6b8ebdb3e8bd58244e8861091e1d59718fc415a))
-
-
-
-## [16.3.2](https://github.com/Torwent/WaspLib/compare/v16.3.1...v16.3.2) (2024-01-19)
-
-
-### Bug Fixes
-
-* **lectern:** fixed typo and added the missing tablets of the other lecterns ([407189e](https://github.com/Torwent/WaspLib/commit/407189ea7dca0a1a3fe8e83ff4b93bc10ce07330))
 
 
 

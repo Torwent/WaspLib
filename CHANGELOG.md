@@ -1,3 +1,12 @@
+## [16.4.1](https://github.com/Torwent/WaspLib/compare/v16.4.0...v16.4.1) (2024-01-21)
+
+
+### Bug Fixes
+
+* optional files used on my scripts were removed. minor tweaks to anvil interface ([4238363](https://github.com/Torwent/WaspLib/commit/423836300d84929b362f943cd3af1d6b18dcefcf))
+
+
+
 # [16.4.0](https://github.com/Torwent/WaspLib/compare/v16.3.7...v16.4.0) (2024-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * refactors really, but need to bump version so "fix". ([9140e14](https://github.com/Torwent/WaspLib/commit/9140e14790fa6632f5f1b9ef79617ac3af321c74))
-
-
-
-## [16.3.4](https://github.com/Torwent/WaspLib/compare/v16.3.3...v16.3.4) (2024-01-20)
-
-
-### Bug Fixes
-
-* mark deprecated method ([c8c9588](https://github.com/Torwent/WaspLib/commit/c8c9588a1e5c187daf37b77b1857c73fefca7271))
 
 
 

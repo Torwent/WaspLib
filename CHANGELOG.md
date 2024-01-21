@@ -1,3 +1,12 @@
+## [16.3.6](https://github.com/Torwent/WaspLib/compare/v16.3.5...v16.3.6) (2024-01-21)
+
+
+### Bug Fixes
+
+* accidentally missed the path to the world hopper ([e12497c](https://github.com/Torwent/WaspLib/commit/e12497c9a24119d112f5891e399cde4f4b3e8eb6))
+
+
+
 ## [16.3.5](https://github.com/Torwent/WaspLib/compare/v16.3.4...v16.3.5) (2024-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **lectern:** fixed typo and added the missing tablets of the other lecterns ([407189e](https://github.com/Torwent/WaspLib/commit/407189ea7dca0a1a3fe8e83ff4b93bc10ce07330))
-
-
-
-## [16.3.1](https://github.com/Torwent/WaspLib/compare/v16.3.0...v16.3.1) (2024-01-19)
-
-
-### Bug Fixes
-
-* read notes ([79e0a33](https://github.com/Torwent/WaspLib/commit/79e0a33a855cd4ac9f02a4dc8dbad3f613e6c6ae))
 
 
 

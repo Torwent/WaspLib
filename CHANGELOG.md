@@ -1,3 +1,12 @@
+## [16.5.1](https://github.com/Torwent/WaspLib/compare/v16.5.0...v16.5.1) (2024-01-21)
+
+
+### Bug Fixes
+
+* **optional:** removed mushtree from being auto-included ([1e9a7e7](https://github.com/Torwent/WaspLib/commit/1e9a7e7ddb30d27dd0d8476d4e8b22d2a68be579))
+
+
+
 # [16.5.0](https://github.com/Torwent/WaspLib/compare/v16.4.1...v16.5.0) (2024-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * refactor really but need to bump version ([860243c](https://github.com/Torwent/WaspLib/commit/860243cd882ac12fa033eea683053dab98056ad3))
-
-
-
-## [16.3.6](https://github.com/Torwent/WaspLib/compare/v16.3.5...v16.3.6) (2024-01-21)
-
-
-### Bug Fixes
-
-* accidentally missed the path to the world hopper ([e12497c](https://github.com/Torwent/WaspLib/commit/e12497c9a24119d112f5891e399cde4f4b3e8eb6))
 
 
 

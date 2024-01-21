@@ -1,3 +1,12 @@
+## [16.3.5](https://github.com/Torwent/WaspLib/compare/v16.3.4...v16.3.5) (2024-01-21)
+
+
+### Bug Fixes
+
+* refactors really, but need to bump version so "fix". ([9140e14](https://github.com/Torwent/WaspLib/commit/9140e14790fa6632f5f1b9ef79617ac3af321c74))
+
+
+
 ## [16.3.4](https://github.com/Torwent/WaspLib/compare/v16.3.3...v16.3.4) (2024-01-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([79e0a33](https://github.com/Torwent/WaspLib/commit/79e0a33a855cd4ac9f02a4dc8dbad3f613e6c6ae))
-
-
-
-# [16.3.0](https://github.com/Torwent/WaspLib/compare/v16.2.3...v16.3.0) (2024-01-19)
-
-
-### Features
-
-* **bank:** read notes ([aca5a96](https://github.com/Torwent/WaspLib/commit/aca5a96cb9b540ab46d588fb13bc680836e77966))
 
 
 

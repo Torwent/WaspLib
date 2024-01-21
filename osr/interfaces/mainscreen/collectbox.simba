@@ -1,0 +1,432 @@
+(*
+CollectBox
+==========
+Methods to interact with the CollectBox.
+*)
+
+{$DEFINE WL_COLLECTBOX_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  // In order FindButtons returns
+  ERSCollectButton = (
+    CLOSE,
+    COLLECT_INVENTORY,
+    COLLECT_BANK
+  );
+
+  ERSCollectSlotBoxes = (
+    TRADE_STATUS,
+    OPERATION,
+    ITEM,
+    CHANGE
+  );
+
+  TRSCollectBox = record(TRSTitledInterface)
+    FINDER_UPTEXT: TStringArray;
+    FINDER_OPTION: TStringArray;
+  end;
+
+function TRSCollectBox.GetButtons(): TRSButtonArray;
+begin
+  Result := FindButtons([[83, 19], [21,21]]);
+end;
+
+function TRSCollectBox.GetButton(Button: ERSCollectButton): TRSButton;
+var
+  Buttons: TRSButtonArray := Self.GetButtons;
+begin
+  if Length(Buttons) = Length(ERSCollectButton) then
+    Result := Buttons[Button];
+end;
+
+
+function TRSCollectBox.GetSlots(): TBoxArray;
+begin
+  Result := Grid(4, 2, 100, 74, [10, 10], [Self.X1 + 15, Self.Y1 + 44]);
+end;
+
+function TRSCollectBox.GetSlot(Index: Int32): TBox;
+begin
+  if (Index < 0) and (Index > 7) then
+    Exit;
+
+  Result := Self.GetSlots[Index];
+end;
+
+function TRSCollectBox.GetItemSlots(): TBoxArray;
+begin
+  Result := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.X1 + 25, Self.Y1 + 75]);
+end;
+
+function TRSCollectBox.GetItemSlot(index: Int32): TBox;
+begin
+  if not InRange(index, 0, 7) then
+    Exit;
+
+  Result := Self.GetItemSlots[index];
+end;
+
+
+function TRSCollectBox.GetSlotBoxes(index: Int32): TBoxArray;
+var
+  SlotBox, Box: TBox;
+begin
+  SlotBox := Self.GetSlot(Index);
+  if SlotBox = [] then
+    Exit;
+
+  Box := [(SlotBox.X1 + 8), (SlotBox.Y1 + 8), (SlotBox.X1 + 48), (SlotBox.Y1 + 26)];
+  Result += Box;
+
+  Box := [(SlotBox.X1 + 50), (SlotBox.Y1 + 8), (SlotBox.X1 + 70), (SlotBox.Y1 + 26)];
+  Result += Box;
+
+  Box := [(SlotBox.X1 + 9), (SlotBox.Y1 + 31), (SlotBox.X1 + 47), (SlotBox.Y1 + 65)];
+  Result += Box;
+
+  Box := [(SlotBox.X1 + 53), (SlotBox.Y1 + 31), (SlotBox.X1 + 91), (SlotBox.Y1 + 65)];
+  Result += Box;
+end;
+
+function TRSCollectBox.GetSlotBox(slot: Int32; box: ERSCollectSlotBoxes): TBox;
+var
+  boxes: TBoxArray;
+begin
+  boxes := Self.GetSlotBoxes(slot);
+  if Length(boxes) = Length(ERSCollectSlotBoxes) then
+    Result := boxes[box];
+end;
+
+
+function TRSCollectBox.IsOpen(): Boolean;
+begin
+  Result := Self.IsTitle('Collection Box');
+end;
+
+function TRSCollectBox.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
+begin
+  if (Interval = -1) then
+    Interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen, Interval, WaitTime);
+end;
+
+procedure TRSCollectBox.Draw(Bitmap: TMufasaBitmap); override;
+var
+  i: Int32;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawButtons(Self.GetButtons);
+  Bitmap.DrawBoxes(Self.GetSlots, $00FFFF);
+  for i := 0 to High(Self.GetSlots) do
+    Bitmap.DrawBoxes(Self.GetSlotBoxes(i), $00FFFF);
+end;
+
+(*
+CollectBox.Setup
+~~~~~~~~~~~~~~~~
+.. pascal:: procedure CollectBox.Setup;
+
+Initializes CollectBox variables.
+
+.. note:: This is automatically called on the **CollectBox** variable.
+*)
+procedure TRSCollectBox.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'CollectBox';
+
+  Self.ButtonColors += CTS1(2304814, 0);
+
+  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
+  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetItemSlots;
+end;
+
+procedure TRSCollectBox.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  Self.Mode := Mode;
+
+  case Self.Mode of
+    ERSClientMode.FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
+        Self.Alignment.Center.MaxWidth := 460;
+        Self.Alignment.Center.MaxHeight := 247;
+      end;
+
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
+        Self.Alignment.Center.MaxWidth := 460;
+        Self.Alignment.Center.MaxHeight := 247;
+      end;
+  end;
+end;
+
+
+(*
+CollectBox.Close
+~~~~~~~~~~~~~~~~
+.. pascal:: function TRSCollectBox.Close(UseKeyboard: Boolean = False): Boolean;
+
+Closes the CollectBox, Depending on `UseKeyboard` the function will either click the button
+or press backspace.
+
+Example
+-------
+
+ WriteLn CollectBox.Close;
+*)
+function TRSCollectBox.Close(PressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := MainScreen.CloseInterface(PressEscape);
+end;
+
+function TRSCollectBox.GetUsedSlots(): TIntegerArray;
+begin
+  Result := Self.ItemInterface.GetUsedSlots();
+end;
+
+function TRSCollectBox.HasChange(Slot: Int32): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  // black with tolerance for when item is transparent
+  Result := SRL.CountColor(CTS1(1118740, 35), Self.GetSlotBox(Slot, ERSCollectSlotBoxes.CHANGE)) > 0;
+end;
+
+function TRSCollectBox.GetSlotsWithChange(): TIntegerArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self.GetSlots) do
+    if Self.HasChange(i) then
+      Result += i;
+end;
+
+function TRSCollectBox.GetFullSlots(): TIntegerArray;
+begin
+  Result := Self.GetUsedSlots().Combine(Self.GetSlotsWithChange());
+  Result.ClearDuplicates();
+  Result.Sort();
+end;
+
+
+function TRSCollectBox.FindItems(items: TRSItemArray; out slots: TIntegerArray): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  slots := Self.ItemInterface.IndicesOf(items);
+  Result := slots <> [];
+end;
+
+function TRSCollectBox.ContainsAny(Items: TRSItemArray): Boolean;
+var
+  Slots: TIntegerArray;
+begin
+  Result := Self.FindItems(Items, Slots);
+end;
+
+
+function TRSCollectBox.FindItem(Item: TRSItem; out Slots: TIntegerArray): Boolean;
+begin
+  Result := Self.FindItems([Item], Slots);
+end;
+
+function TRSCollectBox.FindItem(item: TRSItem; out slot: Int32): Boolean; overload;
+begin
+  slot := Self.ItemInterface.IndexOf([item]);
+  Result := slot > -1;
+end;
+
+function TRSCollectBox.ContainsItem(Item: TRSItem): Boolean;
+var
+  Slots: TIntegerArray;
+begin
+  Result := Self.FindItem(Item, Slots);
+end;
+
+
+function TRSCollectBox.CountItemStack(item: TRSItem): Int32;
+begin
+  Result := Self.ItemInterface.CountStack(item);
+end;
+
+
+function TRSCollectBox.CollectSlot(slot: Int32): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Self.ItemInterface.ClickSlot(slot);
+
+  if Self.HasChange(slot) then
+    Mouse.Click(Self.GetSlotBox(slot, ERSCollectSlotBoxes.CHANGE), MOUSE_LEFT);
+
+  Result := WaitUntil(Self.ItemInterface.SlotEmpty(slot) and not Self.HasChange(slot), SRL.TruncatedGauss(50, 1500), 1000);
+end;
+
+function TRSCollectBox.CollectSlotToBank(slot: Int32): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Self.ItemInterface.InteractSlot(slot, 'Bank');
+
+  if Self.HasChange(slot) then
+  begin
+    Mouse.Move(Self.GetSlotBox(Slot, ERSCollectSlotBoxes.CHANGE));
+    if ChooseOption.Open then
+      ChooseOption.Select('Bank', MOUSE_LEFT);
+  end;
+
+  Result := WaitUntil(Self.ItemInterface.SlotEmpty(Slot) and not Self.HasChange(Slot), SRL.TruncatedGauss(50, 1500), 1000);
+end;
+
+function TRSCollectBox.MouseItem(Item: TRSItem): Boolean;
+var
+  Slot: Int32;
+begin
+  Result := Self.FindItem(Item, Slot);
+  if Result then
+    Mouse.Move(Self.GetSlotBox(Slot, ERSCollectSlotBoxes.ITEM));
+end;
+
+function TRSCollectBox.ClickItem(Item: TRSItem; Option: String = ''): Boolean;
+begin
+  if Self.MouseItem(Item) then
+  begin
+    if Option <> '' then
+      Result := ChooseOption.Select(Option)
+    else
+    begin
+      Mouse.Click(MOUSE_LEFT);
+
+      Result := True;
+    end;
+  end;
+end;
+
+
+function TRSCollectBox.CollectToInventory(): Boolean;
+begin
+  if Self.GetFullSlots = [] then
+    Exit;
+
+  Result := Self.GetButton(ERSCollectButton.COLLECT_INVENTORY).Click();
+end;
+
+function TRSCollectBox.CollectToBank(): Boolean;
+begin
+  if Self.GetFullSlots = [] then
+    Exit;
+
+  Result := Self.GetButton(ERSCollectButton.COLLECT_BANK).Click();
+end;
+
+
+function TRSCollectBox.Hover(walkerObject: PRSWalkerObject = nil): Boolean; overload;
+begin
+  Result := Bank.Hover(walkerObject);
+end;
+
+function TRSCollectBox.Open(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Result := PRSNPC(walkerObject)^.SelectOption(['Collect']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Collect']))
+  else
+    Result := PRSObject(walkerObject)^.SelectOption(['Collect']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Collect']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+function TRSCollectBox.WalkHover(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  Result := Bank.WalkHover(walkerObject);
+end;
+
+function TRSCollectBox.WalkOpen(walkerObject: PRSWalkerObject = nil): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Result := PRSNPC(walkerObject)^.WalkSelectOption(['Collect']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Collect']))
+  else
+    Result := PRSObject(walkerObject)^.WalkSelectOption(['Collect']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Collect']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen(), RandomLeft(50, 1500), 3000);
+end;
+
+(*
+var CollectBox
+~~~~~~~~~~~~~~
+  Global CollectBox variable.
+*)
+var
+  CollectBox: TRSCollectBox;
+
+procedure TRSClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  CollectBox.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  CollectBox.Setup;
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  CollectBox.Draw(Bitmap);
+end;

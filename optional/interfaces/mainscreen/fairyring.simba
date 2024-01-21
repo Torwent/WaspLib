@@ -9,64 +9,13 @@ FairyRing
 {$ENDIF}
 
 type
+  ERSFairyRingWheel = (LEFT, MIDDLE, RIGHT);
   TRSFairyRing = type TRSInterface;
-
-(*
-FairyRing.IsOpen
-~~~~~~~~~~~~
-.. pascal:: function TRSFairyRing.IsOpen(): Boolean;
-
-Returns true/false whether the fairy ring interface is open or not.
-
-Example
--------
-
- WriteLn FairyRing.IsOpen();
-*)
-function TRSFairyRing.IsOpen(): Boolean;
-begin
-  Result := True;
-end;
-
-(*
-FairyRing.Close
-~~~~~~~~~~~~~~~
-.. pascal:: function TRSFairyRing.Close(pressEscape: Boolean = False): Boolean;
-
-Closes the fairy ring interface.
-Depending on `pressEscape` the function will either click the button or press backspace.
-
-Example
--------
-
- WriteLn FairyRing.Close();
-*)
-function TRSFairyRing.Close(pressEscape: Boolean = False): Boolean;
-begin
-  if not Self.IsOpen then
-    Exit(True);
-
-  Result := MainScreen.CloseInterface(PressEscape);
-end;
-
-procedure TRSFairyRing.Draw(Bitmap: TMufasaBitmap); override;
-var
-  Boxes: TBoxArray;
-  i: Int32;
-begin
-  if not Self.IsOpen() then
-    Exit;
-
-  inherited;
-
-end;
-
-
 
 (*
 FairyRing.Setup
 ~~~~~~~~~~~~~~~
-.. pascal:: procedure FairyRing.Setup;
+.. pascal:: procedure FairyRing.Setup();
 
 Initializes TRSFairyRing variables.
 
@@ -79,17 +28,17 @@ begin
   Self.Name := 'FairyRing';
 end;
 
-procedure TRSFairyRing.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSFairyRing.SetupAlignment(mode: ERSClientMode); override;
 begin
-  Self.Mode := Mode;
+  Self.Mode := mode;
 
   case Self.Mode of
     ERSClientMode.FIXED:
       begin
         Self.Alignment.Left := [@InterfaceArea.X1];
         Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
+        Self.Alignment.Top := [@InterfaceArea.Y1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
         Self.Alignment.Center.MaxWidth := 500;
         Self.Alignment.Center.MaxHeight := 320;
       end;
@@ -106,5 +55,153 @@ begin
   end;
 end;
 
+(*
+FairyRing.IsOpen
+~~~~~~~~~~~~~~~~
+.. pascal::
+  function TRSFairyRing.IsOpen(): Boolean;
+
+Returns true/false whether the FairyRing interface is open or not.
+
+Example
+-------
+
+ WriteLn FairyRing.IsOpen();
+*)
+function TRSFairyRing.IsOpen(): Boolean;
+begin
+  Result := InRange(SRL.CountColor(CTS2(3949742, 14, 0.03, 0.70), Self.Bounds()), 18000, 19000);
+end;
+
+(*
+FairyRing.Close
+~~~~~~~~~~~~~~~
+.. pascal::
+  function TRSFairyRing.Close(pressEscape: Boolean): Boolean;
+  function TRSFairyRing.Close(chance: Double = BioHash): Boolean; overload;
+
+Closes the FairyRing interface, depending on `pressEscape` the function will either click the button
+or press escape.
+
+Example
+-------
+
+ WriteLn FairyRing.Close();
+*)
+function TRSFairyRing.Close(pressEscape: Boolean): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+  Result := MainScreen.ClickCloseButton(pressEscape);
+end;
+
+function TRSFairyRing.Close(chance: Double = BioHash): Boolean; overload;
+begin
+  Result := MainScreen.CloseInterface(chance);
+end;
+
+
+function TRSFairyRing.GetWheels(): TBoxArray;
+begin
+  Result := Grid(3, 1, 159, 159, [11, 0], [Self.X1()+2, Self.Y1()+75]);
+  Result[2].X1 -= 2;
+  Result[2].X2 -= 2;
+end
+
+function TRSFairyRing.GetWheel(wheel: ERSFairyRingWheel): TBox;
+begin
+  Result := Self.GetWheels()[Ord(wheel)];
+end;
+
+
+function TRSFairyRing.GetLeftRotationBox(wheel: ERSFairyRingWheel): TBox;
+begin
+  Result := Self.GetWheel(wheel);
+  Result.X2 -= 80;
+end;
+
+function TRSFairyRing.GetRightRotationBox(wheel: ERSFairyRingWheel): TBox;
+begin
+  Result := Self.GetWheel(wheel);
+  Result.X1 += 80;
+end;
+
+
+function TRSFairyRing.GetTeleportButton(): TBox;
+begin
+  Result := Self.Bounds();
+  Result.X1 += 166;
+  Result.Y1 += 247;
+  Result.X2 -= 165;
+  Result.Y2 -= 20;
+end;
+
+
+procedure TRSFairyRing.Draw(bitmap: TMufasaBitmap); override;
+var
+  wheel: ERSFairyRingWheel;
+  b: TBox;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  bitmap.DrawBoxes(Self.GetWheels(), $00FFFF);
+  for wheel := ERSFairyRingWheel.LEFT to ERSFairyRingWheel.RIGHT do
+  begin
+    b := Self.GetLeftRotationBox(wheel).Expand(-1);
+    bitmap.DrawBox(b, $00FF00);
+    b := Self.GetRightRotationBox(wheel).Expand(-1);
+    bitmap.DrawBox(b, $0000FF);
+  end;
+
+  bitmap.DrawBox(Self.GetTeleportButton(), $00FFFF);
+end;
+
+(*
+var FairyRing
+~~~~~~~~~~~~~
+  Global FairyRing variable.
+*)
 var
   FairyRing: TRSFairyRing;
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  FairyRing.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  FairyRing.Setup();
+end;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  FairyRing.Draw(bitmap);
+end;
+
+function TRSMainScreen.IsVisible(p: TPoint): Boolean; override;
+begin
+  Result := inherited;
+
+  if not Result or (RSClient.Mode = ERSClientMode.FIXED) then
+    Exit;
+
+  if FairyRing.Bounds().Expand(5).Contains(p) and FairyRing.IsOpen() then
+    Exit(False);
+end;
+
+function TRSMainScreen.IsVisible(tpa: TPointArray; useCenter: Boolean = True): Boolean; override;
+begin
+  Result := inherited;
+  if FairyRing.IsOpen() then
+    Exit(False);
+end;

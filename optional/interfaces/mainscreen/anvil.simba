@@ -9,11 +9,6 @@ Anvil
 {$ENDIF}
 
 type
-  ERSAnvilType = (
-    RUSTED,
-    STANDARD
-  );
-
   ERSAnvilButton = (
     QUANTITY_ONE,
     QUANTITY_FIVE,
@@ -24,43 +19,7 @@ type
     QUANTITY_CUSTOM
   );
 
-  TRSAnvil = record(TRSTitledInterface)
-    FINDER_UPTEXT: TStringArray;
-    FINDER_OPTION: TStringArray;
-  end;
-
-
-function TRSAnvil.GetButtons(): TRSButtonArray;
-begin
-  Result := FindButtons([[37, 37]]);
-end;
-
-
-function TRSAnvil.GetButton(button: ERSAnvilButton): TRSButton;
-var
-  buttons: TRSButtonArray;
-  b: TRSButton;
-  textArray: TStringArray;
-  foundString: String;
-begin
-  buttons := Self.GetButtons();
-  if buttons = [] then
-    Exit;
-
-  textArray := ['1', '5', '10', 'X', '?', 'All'];
-
-  if button <> ERSAnvilButton.QUANTITY_CUSTOM then
-  begin
-    for b in Buttons do
-      if b.FindText(textArray[Ord(button)], RS_FONT_PLAIN_11, [$FFFFFF, $1F98FF]) then
-        Exit(b);
-    Exit;
-  end;
-
-  b := Buttons[High(Buttons)];
-  if not b.FindText([], RS_FONT_PLAIN_11, foundString) then
-    Exit(b);
-end;
+  TRSAnvil = type TRSTitledInterface;
 
 (*
 Anvil.GetSlots
@@ -69,6 +28,10 @@ Anvil.GetSlots
 
 Returns the all available anvil slots.
 
+Example
+-------
+
+  Debug(Anvil.GetSlots());
 *)
 function TRSAnvil.GetSlots(): TBoxArray;
 var
@@ -103,94 +66,6 @@ begin
 
   Result.SortByXY;
 end;
-
-function TRSAnvil.GetSlot(Slot: Int32): TBox;
-var
-  Slots: TBoxArray := Self.GetSlots;
-begin
-  if Slot <= Length(Slots) then
-    Result := Slots[Slot];
-end;
-
-function TRSAnvil.GetItemSlot(Slot: Int32): TBox;
-var
-  B: TBox := Self.GetSlot(Slot);
-begin
-  if B = [] then Exit;
-
-  Result := [B.X1 + 4, B.Y1, B.X2 - 12, B.Y2 - 22];
-end;
-
-
-(*
-Anvil.IsOpen
-~~~~~~~~~~~~
-.. pascal::
-  function TRSAnvil.IsOpen(): Boolean;
-  function TRSAnvil.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
-
-Returns true/false whether the anvil interface is open or not.
-
-Example
--------
-
- WriteLn Anvil.IsOpen();
-*)
-function TRSAnvil.IsOpen(): Boolean;
-begin
-  Result := MainScreen.IsClassicOpen and
-            (SRL.CountColor(CTS0(65280, 0), Self.Bounds) >= 300);
-end;
-
-function TRSAnvil.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
-begin
-  if (Interval = -1) then
-    Interval := SRL.TruncatedGauss(50, 1500);
-
-  Result := WaitUntil(Self.IsOpen, Interval, WaitTime);
-end;
-
-
-(*
-Anvil.Close
-~~~~~~~~~~~
-.. pascal:: function TRSAnvil.Close(PressEscape: Boolean = False): Boolean;
-
-Closes the anvil, Depending on `PressEscape` the function will either click the button
-or press backspace.
-
-Example
--------
-
- WriteLn Anvil.Close;
-*)
-function TRSAnvil.Close(PressEscape: Boolean = False): Boolean;
-begin
-  if not Self.IsOpen then
-    Exit(True);
-
-  Result := MainScreen.CloseInterface(PressEscape);
-end;
-
-procedure TRSAnvil.Draw(Bitmap: TMufasaBitmap); override;
-var
-  Boxes: TBoxArray;
-  i: Int32;
-begin
-  if not Self.IsOpen then
-    Exit;
-
-  inherited;
-
-  Bitmap.DrawButtons(Self.GetButtons);
-  Boxes := Self.GetSlots;
-  Bitmap.DrawBoxes(Boxes, $00FFFF);
-
-  for i := 0 to High(Boxes) do
-    Bitmap.DrawBox(Self.GetItemSlot(i), $FFFFFF);
-end;
-
-
 
 (*
 Anvil.Setup
@@ -241,17 +116,126 @@ begin
   end;
 end;
 
-function TRSAnvil.ClickSlot(Slot: Int32; ForceClick: Boolean = False): Boolean;
+
+function TRSAnvil.GetButtons(): TRSButtonArray;
+begin
+  Result := FindButtons([[37, 37]]);
+end;
+
+function TRSAnvil.GetButton(button: ERSAnvilButton): TRSButton;
+var
+  buttons: TRSButtonArray;
+  b: TRSButton;
+  textArray: TStringArray;
+  foundString: String;
+begin
+  buttons := Self.GetButtons();
+  if buttons = [] then
+    Exit;
+
+  textArray := ['1', '5', '10', 'X', '?', 'All'];
+
+  if button <> ERSAnvilButton.QUANTITY_CUSTOM then
+  begin
+    for b in Buttons do
+      if b.FindText(textArray[Ord(button)], RS_FONT_PLAIN_11, [$FFFFFF, $1F98FF]) then
+        Exit(b);
+    Exit;
+  end;
+
+  b := Buttons[High(Buttons)];
+  if not b.FindText([], RS_FONT_PLAIN_11, foundString) then
+    Exit(b);
+end;
+
+
+function TRSAnvil.GetSlot(Slot: Int32): TBox;
+var
+  Slots: TBoxArray := Self.GetSlots;
+begin
+  if Slot <= Length(Slots) then
+    Result := Slots[Slot];
+end;
+
+function TRSAnvil.GetItemSlot(Slot: Int32): TBox;
+var
+  B: TBox := Self.GetSlot(Slot);
+begin
+  if B = [] then Exit;
+
+  Result := [B.X1 + 4, B.Y1, B.X2 - 12, B.Y2 - 22];
+end;
+
+
+(*
+Anvil.IsOpen
+~~~~~~~~~~~~
+.. pascal::
+  function TRSAnvil.IsOpen(): Boolean;
+  function TRSAnvil.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload;
+
+Returns true/false whether the anvil interface is open or not.
+
+Example
+-------
+
+ WriteLn Anvil.IsOpen();
+*)
+function TRSAnvil.IsOpen(): Boolean;
+begin
+  Result := MainScreen.IsClassicOpen and
+            (SRL.CountColor(CTS0(65280, 0), Self.Bounds) >= 300);
+end;
+
+function TRSAnvil.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen(), interval, waitTime);
+end;
+
+
+(*
+Anvil.Close
+~~~~~~~~~~~
+.. pascal::
+  function TRSAnvil.Close(pressEscape: Boolean): Boolean;
+  function TRSAnvil.Close(chance: Double = BioHash): Boolean; overload;
+
+Closes the anvil interface, depending on `pressEscape` the function will either click the button
+or press escape.
+
+Example
+-------
+
+ WriteLn Anvil.Close;
+*)
+function TRSAnvil.Close(pressEscape: Boolean): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := MainScreen.CloseInterface(pressEscape);
+end;
+
+function TRSAnvil.Close(chance: Double = BioHash): Boolean; overload;
+begin
+  Result := MainScreen.CloseInterface(chance);
+end;
+
+
+function TRSAnvil.ClickSlot(slot: Int32; forceClick: Boolean = False): Boolean;
 const
   AVAILABLE = $FFFFFF;
 begin
-  if not Self.IsOpen then
+  if not Self.IsOpen() then
     Exit;
 
-  if ForceClick or (CountColor(AVAILABLE, Self.GetSlot(Slot)) > 0) then
+  if forceClick or (CountColor(AVAILABLE, Self.GetSlot(slot)) > 0) then
   begin
-    Mouse.Click(Self.GetItemSlot(Slot), MOUSE_LEFT);
-    Result := WaitUntil(not Self.IsOpen, SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+    Mouse.Click(Self.GetItemSlot(slot), MOUSE_LEFT);
+    Result := WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
   end;
 end;
 
@@ -278,112 +262,23 @@ begin
 end;
 
 
-function TRSAnvil._FindAnvil(Color: TCTS2Color): T2DPointArray;
+procedure TRSAnvil.Draw(bitmap: TMufasaBitmap); override;
 var
-  Finder: TRSObjectFinder;
+  boxes: TBoxArray;
+  i: Int32;
 begin
-  Finder.Colors += Color;
-
-  Finder.ClusterDistance := 30;  // Distance is 30 so MaxLongSide filters
-  Finder.Grow := 3;              // Tin rock clusters and furnaces...
-  Finder.Erode := 3;             // E.G. tutorial island
-
-  Finder.MinShortSide := 8;
-  Finder.MaxLongSide := 55;
-
-  Result := MainScreen.FindObject(Finder);
-  if Length(Result) = 0 then
+  if not Self.IsOpen() then
     Exit;
 
-  Result.SortByMiddle(MainScreen.GetPlayerBox.Middle);
+  inherited;
+
+  bitmap.DrawButtons(Self.GetButtons);
+  boxes := Self.GetSlots;
+  bitmap.DrawBoxes(boxes, $00FFFF);
+
+  for i := 0 to High(boxes) do
+    bitmap.DrawBox(Self.GetItemSlot(i), $FFFFFF);
 end;
-
-
-function TRSAnvil.Hover(AnvilType: ERSAnvilType; RightClick: Boolean = False): Boolean;
-var
-  ATPA: T2DPointArray;
-  TPA: TPointArray;
-  P: TPoint;
-begin
-  if ChooseOption.IsOpen or MainScreen.IsUpText(Self.FINDER_UPTEXT) then
-    Exit(True);
-
-  case AnvilType of
-    ERSAnvilType.RUSTED:   ATPA := Self._FindAnvil(CTS2(2371906, 13, 0.10, 0.18));
-    ERSAnvilType.STANDARD: ATPA := Self._FindAnvil(CTS2(3881791, 15, 0.20, 0.12));
-  end;
-
-  for TPA in ATPA do
-  begin
-    P := TPA[Random(Length(TPA))];
-    P.X += Random(-2, 2);
-    P.Y += Random(-2, 2);
-
-    Mouse.Move(P);
-    if MainScreen.IsUpText(Self.FINDER_UPTEXT) then
-    begin
-      if RightClick then
-        ChooseOption.Hover(Self.FINDER_OPTION);
-
-      Exit(True);
-   end;
-  end;
-end;
-
-function TRSAnvil.Open(P: TPoint): Boolean;
-begin
-  Mouse.Move(P);
-
-  Result := ChooseOption.IsOpen and ChooseOption.Select(Self.FINDER_OPTION);
-
-  if not Result then
-  begin
-    if MainScreen.IsUpText(Self.FINDER_UPTEXT) then
-    begin
-      if SRL.Dice(10) then
-        Result := ChooseOption.Select(Self.FINDER_OPTION)
-      else
-      begin
-        Mouse.Click(MOUSE_LEFT);
-
-        Result := MainScreen.DidRedClick;
-      end;
-    end;
-  end;
-
-  if Result then
-  begin
-    if Minimap.HasFlag(Random(200, 400)) then
-      Minimap.WaitFlag;
-
-    Result := Self.IsOpen(Random(3000, 4000));
-  end;
-end;
-
-function TRSAnvil.Open(AnvilType: ERSAnvilType): Boolean; overload;
-var
-  Attempt: Int32;
-begin
-  if Self.IsOpen or Self.Open(Mouse.Position) then
-    Exit(True);
-
-  for Attempt := 1 to 3 do
-  begin
-    if Attempt = 2 then
-    begin
-      Self.DebugLn('Anvil not found, rotating...');
-
-      if SRL.Dice(50) then
-        Minimap.SetCompassAngle(Minimap.GetCompassAngle + Random(100, 200))
-      else
-        Minimap.SetCompassAngle(Minimap.GetCompassAngle - Random(100, 200));
-    end;
-
-    if Self.Hover(AnvilType, SRL.Dice(10)) then
-      Exit(Self.Open(Mouse.Position));
-  end;
-end;
-
 
 (*
 var Anvil
@@ -393,23 +288,48 @@ var Anvil
 var
   Anvil: TRSAnvil;
 
-procedure TRSClient.ClientModeChanged; override;
+procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
   Anvil.SetupAlignment(Self.Mode);
 end;
 
-procedure TSRL.Setup; override;
+procedure TSRL.Setup(); override;
 begin
   inherited;
 
-  Anvil.Setup;
+  Anvil.Setup();
 end;
 
-procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
 begin
   inherited;
 
-  Anvil.Draw(Bitmap);
+  Anvil.Draw(bitmap);
+end;
+
+function TRSMainScreen.IsVisible(p: TPoint): Boolean; override;
+begin
+  Result := inherited;
+
+  if not Result or (RSClient.Mode = ERSClientMode.FIXED) then
+    Exit;
+
+  if Anvil.Bounds().Expand(5).Contains(p) and Anvil.IsOpen() then
+    Exit(False);
+end;
+
+function TRSMainScreen.IsVisible(tpa: TPointArray; useCenter: Boolean = True): Boolean; override;
+begin
+  Result := inherited;
+
+  if Result and useCenter then
+    Exit;
+
+  if not Result or (RSClient.Mode = ERSClientMode.FIXED) then
+    Exit;
+
+  if Anvil.Bounds().Expand(5).Contains(tpa) and Anvil.IsOpen() then
+    Exit(False);
 end;

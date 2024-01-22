@@ -1,3 +1,12 @@
+## [16.5.2](https://github.com/Torwent/WaspLib/compare/v16.5.1...v16.5.2) (2024-01-22)
+
+
+### Bug Fixes
+
+* fix optional.simba paths ([3b9f414](https://github.com/Torwent/WaspLib/commit/3b9f414315f2e07c72bf054c0ea93c13d6dc7fc6))
+
+
+
 ## [16.5.1](https://github.com/Torwent/WaspLib/compare/v16.5.0...v16.5.1) (2024-01-21)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **optional:** add a full optional files includer ([cbf3f68](https://github.com/Torwent/WaspLib/commit/cbf3f688398212ac84684add20c81e78da9cfe43))
-
-
-
-## [16.3.7](https://github.com/Torwent/WaspLib/compare/v16.3.6...v16.3.7) (2024-01-21)
-
-
-### Bug Fixes
-
-* refactor really but need to bump version ([860243c](https://github.com/Torwent/WaspLib/commit/860243cd882ac12fa033eea683053dab98056ad3))
 
 
 

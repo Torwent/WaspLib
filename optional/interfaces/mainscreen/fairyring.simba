@@ -10,7 +10,9 @@ FairyRing
 
 type
   ERSFairyRingWheel = (LEFT, MIDDLE, RIGHT);
-  TRSFairyRing = type TRSInterface;
+  TRSFairyRing = record (TRSInterface)
+    Wheels: array [ERSFairyRingWheel] of String;
+  end;
 
 (*
 FairyRing.Setup
@@ -26,6 +28,9 @@ begin
   inherited;
 
   Self.Name := 'FairyRing';
+  Self.Wheels[ERSFairyRingWheel.LEFT] := 'adcb';
+  Self.Wheels[ERSFairyRingWheel.MIDDLE] := 'ilkj';
+  Self.Wheels[ERSFairyRingWheel.RIGHT] := 'psrq';
 end;
 
 procedure TRSFairyRing.SetupAlignment(mode: ERSClientMode); override;
@@ -106,11 +111,47 @@ begin
   Result := Grid(3, 1, 159, 159, [11, 0], [Self.X1()+2, Self.Y1()+75]);
   Result[2].X1 -= 2;
   Result[2].X2 -= 2;
-end
+end;
 
 function TRSFairyRing.GetWheel(wheel: ERSFairyRingWheel): TBox;
 begin
   Result := Self.GetWheels()[Ord(wheel)];
+end;
+
+
+function TRSFairyRing.GetLetterBox(wheel: ERSFairyRingWheel): TBox;
+begin
+  Result := Self.GetWheel(wheel);
+  Result.X1 += 60;
+  Result.Y1 += 115;
+  Result.X2 -= 60;
+  Result.Y2 -= 10;
+end;
+
+function TRSFairyRing.GetLetter(wheel: ERSFairyRingWheel): Char;
+begin
+  case SRl.CountColor(CTS2(6107727, 4, 0.49, 2.05), Self.GetLetterBox(wheel)) of
+    52 : Result := 'l';
+    63 : Result := 'q';
+    65 : Result := 'i';
+    66 : Result := 'j';
+    80 : Result := 'c';
+    81 : Result := 'r';
+    85 : Result := 'p';
+    98 : Result := 'k';
+    100: Result := 's';
+    125: Result := 'b';
+    172: Result := 'a';
+    198: Result := 'd';
+    else Result := 'n'; //n for null
+  end;
+end;
+
+function TRSFairyRing.GetCombination(): String;
+begin
+  Result := Self.GetLetter(ERSFairyRingWheel.LEFT) +
+            Self.GetLetter(ERSFairyRingWheel.MIDDLE) +
+            Self.GetLetter(ERSFairyRingWheel.RIGHT);
 end;
 
 
@@ -125,6 +166,36 @@ begin
   Result := Self.GetWheel(wheel);
   Result.X1 += 80;
 end;
+
+
+function TRSFairyRing.SpinLeft(wheel: ERSFairyRingWheel): Boolean;
+var
+  c, tmp: Char;
+begin
+  Result := Self.IsOpen();
+  if Result then
+  begin
+    c := Self.GetLetter(wheel);
+    Mouse.Click(Self.GetLeftRotationBox(wheel), MOUSE_LEFT);
+    Result := WaitUntil((c <> (tmp := Self.GetLetter(wheel))) and (tmp <> 'n'), 300, 5000);
+  end;
+end;
+
+function TRSFairyRing.SpinRight(wheel: ERSFairyRingWheel): Boolean;
+var
+  c, tmp: Char;
+begin
+  Result := Self.IsOpen();
+  if Result then
+  begin
+    c := Self.GetLetter(wheel);
+    Mouse.Click(Self.GetRightRotationBox(wheel), MOUSE_LEFT);
+    Result := WaitUntil((c <> (tmp := Self.GetLetter(wheel))) and (tmp <> 'n'), 300, 5000);
+  end;
+end;
+
+
+
 
 
 function TRSFairyRing.GetTeleportButton(): TBox;

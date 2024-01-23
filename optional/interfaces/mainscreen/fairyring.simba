@@ -9,9 +9,76 @@ FairyRing
 {$ENDIF}
 
 type
+  TRSFairyRingTravelLog = type TRSInterface;
+
+procedure TRSFairyRingTravelLog.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'FairyRingTravelLog';
+end;
+
+procedure TRSFairyRingTravelLog.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  Self.Alignment.Left := [@GameTab.X1, -3];
+  Self.Alignment.Right := [@GameTab.X2, 3];
+  Self.Alignment.Top := [@GameTab.Y1];
+  Self.Alignment.Bottom := [@GameTab.Y2];
+end;
+
+function TRSFairyRingTravelLog.GetVisibleCodes(out boxes: TBoxArray): TStringArray;
+const
+  COLORS := [$3F3FFF, $7F7FFF];
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  i: Int32;
+  str: String;
+begin
+  if SRL.FindColors(tpa, COLORS, Self.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(8, 1);
+  atpa.SortByY();
+
+  boxes := atpa.ToTBA();
+  for i := 0 to High(boxes) do
+  begin
+    str := OCR.Recognize(boxes[i], TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
+    Result += str.Replace(' ', '').ToLower();
+
+    boxes[i].X2 := Self.X2() - 22;
+    if i = High(boxes) then
+      boxes[i].Y2 := Self.Y2() - 6
+    else
+      boxes[i].Y2 := boxes[i+1].Y1 - 7;
+  end;
+end;
+
+function TRSFairyRingTravelLog.GetVisibleCodes(): TStringArray; overload;
+const
+  COLORS := [$3F3FFF, $7F7FFF];
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+begin
+  if SRL.FindColors(tpa, COLORS, Self.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(8, 1);
+  for b in atpa.ToTBA() do
+    Result += OCR.Recognize(b, TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
+end;
+
+type
   ERSFairyRingWheel = (LEFT, MIDDLE, RIGHT);
+
   TRSFairyRing = record (TRSInterface)
     Wheels: array [ERSFairyRingWheel] of String;
+    TravelLog: TRSFairyRingTravelLog;
   end;
 
 (*
@@ -31,6 +98,7 @@ begin
   Self.Wheels[ERSFairyRingWheel.LEFT] := 'adcb';
   Self.Wheels[ERSFairyRingWheel.MIDDLE] := 'ilkj';
   Self.Wheels[ERSFairyRingWheel.RIGHT] := 'psrq';
+  Self.TravelLog.Setup();
 end;
 
 procedure TRSFairyRing.SetupAlignment(mode: ERSClientMode); override;
@@ -58,6 +126,8 @@ begin
         Self.Alignment.Center.MaxHeight := 320;
       end;
   end;
+
+  Self.TravelLog.SetupAlignment(mode);
 end;
 
 (*
@@ -195,9 +265,6 @@ begin
 end;
 
 
-
-
-
 function TRSFairyRing.GetTeleportButton(): TBox;
 begin
   Result := Self.Bounds();
@@ -276,3 +343,6 @@ begin
   if FairyRing.IsOpen() then
     Exit(False);
 end;
+
+var
+ tba: TBoxArray;

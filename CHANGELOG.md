@@ -1,3 +1,12 @@
+# [16.7.0](https://github.com/Torwent/WaspLib/compare/v16.6.0...v16.7.0) (2024-01-23)
+
+
+### Features
+
+* **FairyRings:** More fairy rings methods ([826dc20](https://github.com/Torwent/WaspLib/commit/826dc20181267a381b6c54d21470bcefc548c93e))
+
+
+
 # [16.6.0](https://github.com/Torwent/WaspLib/compare/v16.5.2...v16.6.0) (2024-01-23)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **fairy ring:** more methods added, can already be sort of used ([c0ef2f5](https://github.com/Torwent/WaspLib/commit/c0ef2f59fde78444d2dbbe776043cb16a10d5233))
-
-
-
-## [16.4.1](https://github.com/Torwent/WaspLib/compare/v16.4.0...v16.4.1) (2024-01-21)
-
-
-### Bug Fixes
-
-* optional files used on my scripts were removed. minor tweaks to anvil interface ([4238363](https://github.com/Torwent/WaspLib/commit/423836300d84929b362f943cd3af1d6b18dcefcf))
 
 
 

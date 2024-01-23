@@ -1,3 +1,12 @@
+## [16.7.1](https://github.com/Torwent/WaspLib/compare/v16.7.0...v16.7.1) (2024-01-23)
+
+
+### Bug Fixes
+
+* **fairy rings:** tweaks and more methods for the travel log ([fb412a2](https://github.com/Torwent/WaspLib/commit/fb412a27aa274b7cdc3953134775854100a30890))
+
+
+
 # [16.7.0](https://github.com/Torwent/WaspLib/compare/v16.6.0...v16.7.0) (2024-01-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **optional:** removed mushtree from being auto-included ([1e9a7e7](https://github.com/Torwent/WaspLib/commit/1e9a7e7ddb30d27dd0d8476d4e8b22d2a68be579))
-
-
-
-# [16.5.0](https://github.com/Torwent/WaspLib/compare/v16.4.1...v16.5.0) (2024-01-21)
-
-
-### Features
-
-* **fairy ring:** more methods added, can already be sort of used ([c0ef2f5](https://github.com/Torwent/WaspLib/commit/c0ef2f59fde78444d2dbbe776043cb16a10d5233))
 
 
 

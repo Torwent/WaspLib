@@ -9,76 +9,11 @@ FairyRing
 {$ENDIF}
 
 type
-  TRSFairyRingTravelLog = type TRSInterface;
-
-procedure TRSFairyRingTravelLog.Setup(); override;
-begin
-  inherited;
-
-  Self.Name := 'FairyRingTravelLog';
-end;
-
-procedure TRSFairyRingTravelLog.SetupAlignment(Mode: ERSClientMode); override;
-begin
-  inherited;
-
-  Self.Alignment.Left := [@GameTab.X1, -3];
-  Self.Alignment.Right := [@GameTab.X2, 3];
-  Self.Alignment.Top := [@GameTab.Y1];
-  Self.Alignment.Bottom := [@GameTab.Y2];
-end;
-
-function TRSFairyRingTravelLog.GetVisibleCodes(out boxes: TBoxArray): TStringArray;
-const
-  COLORS := [$3F3FFF, $7F7FFF];
-var
-  tpa: TPointArray;
-  atpa: T2DPointArray;
-  i: Int32;
-  str: String;
-begin
-  if SRL.FindColors(tpa, COLORS, Self.Bounds()) = 0 then
-    Exit;
-
-  atpa := tpa.Cluster(8, 1);
-  atpa.SortByY();
-
-  boxes := atpa.ToTBA();
-  for i := 0 to High(boxes) do
-  begin
-    str := OCR.Recognize(boxes[i], TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
-    Result += str.Replace(' ', '').ToLower();
-
-    boxes[i].X2 := Self.X2() - 22;
-    if i = High(boxes) then
-      boxes[i].Y2 := Self.Y2() - 6
-    else
-      boxes[i].Y2 := boxes[i+1].Y1 - 7;
-  end;
-end;
-
-function TRSFairyRingTravelLog.GetVisibleCodes(): TStringArray; overload;
-const
-  COLORS := [$3F3FFF, $7F7FFF];
-var
-  tpa: TPointArray;
-  atpa: T2DPointArray;
-  b: TBox;
-begin
-  if SRL.FindColors(tpa, COLORS, Self.Bounds()) = 0 then
-    Exit;
-
-  atpa := tpa.Cluster(8, 1);
-  for b in atpa.ToTBA() do
-    Result += OCR.Recognize(b, TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
-end;
-
-type
-  ERSFairyRingWheel = (LEFT, MIDDLE, RIGHT);
+  ERSFairyRingDial = (LEFT, MIDDLE, RIGHT);
 
   TRSFairyRing = record (TRSInterface)
-    Wheels: array [ERSFairyRingWheel] of String;
-    TravelLog: TRSFairyRingTravelLog;
+    Dials: array [ERSFairyRingDial] of String;
+    TravelLog: TRSInterface;
   end;
 
 (*
@@ -91,14 +26,19 @@ Initializes TRSFairyRing variables.
 .. note:: This is automatically called on the **FairyRing** variable.
 *)
 procedure TRSFairyRing.Setup(); override;
+const
+  STRINGS: TStringArray = ['adcb', 'ilkj', 'psrq'];
+var
+  i: Int32;
 begin
   inherited;
 
   Self.Name := 'FairyRing';
-  Self.Wheels[ERSFairyRingWheel.LEFT] := 'adcb';
-  Self.Wheels[ERSFairyRingWheel.MIDDLE] := 'ilkj';
-  Self.Wheels[ERSFairyRingWheel.RIGHT] := 'psrq';
+  for i := 0 to High(STRINGS) do
+    Self.Dials[ERSFairyRingDial(i)] := STRINGS[i];
+
   Self.TravelLog.Setup();
+  Self.TravelLog.Name := 'FairyRingTravelLog';
 end;
 
 procedure TRSFairyRing.SetupAlignment(mode: ERSClientMode); override;
@@ -128,6 +68,10 @@ begin
   end;
 
   Self.TravelLog.SetupAlignment(mode);
+  Self.TravelLog.Alignment.Left := [@GameTab.X1, -3];
+  Self.TravelLog.Alignment.Right := [@GameTab.X2, 3];
+  Self.TravelLog.Alignment.Top := [@GameTab.Y1];
+  Self.TravelLog.Alignment.Bottom := [@GameTab.Y2];
 end;
 
 (*
@@ -176,31 +120,31 @@ begin
 end;
 
 
-function TRSFairyRing.GetWheels(): TBoxArray;
+function TRSFairyRing.GetDials(): TBoxArray;
 begin
   Result := Grid(3, 1, 159, 159, [11, 0], [Self.X1()+2, Self.Y1()+75]);
   Result[2].X1 -= 2;
   Result[2].X2 -= 2;
 end;
 
-function TRSFairyRing.GetWheel(wheel: ERSFairyRingWheel): TBox;
+function TRSFairyRing.GetDial(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetWheels()[Ord(wheel)];
+  Result := Self.GetDials()[Ord(dial)];
 end;
 
 
-function TRSFairyRing.GetLetterBox(wheel: ERSFairyRingWheel): TBox;
+function TRSFairyRing.GetLetterBox(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetWheel(wheel);
+  Result := Self.GetDial(dial);
   Result.X1 += 60;
   Result.Y1 += 115;
   Result.X2 -= 60;
   Result.Y2 -= 10;
 end;
 
-function TRSFairyRing.GetLetter(wheel: ERSFairyRingWheel): Char;
+function TRSFairyRing.GetLetter(dial: ERSFairyRingDial): Char;
 begin
-  case SRl.CountColor(CTS2(6107727, 4, 0.49, 2.05), Self.GetLetterBox(wheel)) of
+  case SRl.CountColor(CTS2(6107727, 4, 0.49, 2.05), Self.GetLetterBox(dial)) of
     52 : Result := 'l';
     63 : Result := 'q';
     65 : Result := 'i';
@@ -219,48 +163,48 @@ end;
 
 function TRSFairyRing.GetCombination(): String;
 begin
-  Result := Self.GetLetter(ERSFairyRingWheel.LEFT) +
-            Self.GetLetter(ERSFairyRingWheel.MIDDLE) +
-            Self.GetLetter(ERSFairyRingWheel.RIGHT);
+  Result := Self.GetLetter(ERSFairyRingDial.LEFT) +
+            Self.GetLetter(ERSFairyRingDial.MIDDLE) +
+            Self.GetLetter(ERSFairyRingDial.RIGHT);
 end;
 
 
-function TRSFairyRing.GetLeftRotationBox(wheel: ERSFairyRingWheel): TBox;
+function TRSFairyRing.GetLeftRotationBox(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetWheel(wheel);
+  Result := Self.GetDial(dial);
   Result.X2 -= 80;
 end;
 
-function TRSFairyRing.GetRightRotationBox(wheel: ERSFairyRingWheel): TBox;
+function TRSFairyRing.GetRightRotationBox(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetWheel(wheel);
+  Result := Self.GetDial(dial);
   Result.X1 += 80;
 end;
 
 
-function TRSFairyRing.SpinLeft(wheel: ERSFairyRingWheel): Boolean;
+function TRSFairyRing.SpinLeft(dial: ERSFairyRingDial): Boolean;
 var
   c, tmp: Char;
 begin
   Result := Self.IsOpen();
   if Result then
   begin
-    c := Self.GetLetter(wheel);
-    Mouse.Click(Self.GetLeftRotationBox(wheel), MOUSE_LEFT);
-    Result := WaitUntil((c <> (tmp := Self.GetLetter(wheel))) and (tmp <> 'n'), 300, 5000);
+    c := Self.GetLetter(dial);
+    Mouse.Click(Self.GetLeftRotationBox(dial), MOUSE_LEFT);
+    Result := WaitUntil((c <> (tmp := Self.GetLetter(dial))) and (tmp <> 'n'), 300, 5000);
   end;
 end;
 
-function TRSFairyRing.SpinRight(wheel: ERSFairyRingWheel): Boolean;
+function TRSFairyRing.SpinRight(dial: ERSFairyRingDial): Boolean;
 var
   c, tmp: Char;
 begin
   Result := Self.IsOpen();
   if Result then
   begin
-    c := Self.GetLetter(wheel);
-    Mouse.Click(Self.GetRightRotationBox(wheel), MOUSE_LEFT);
-    Result := WaitUntil((c <> (tmp := Self.GetLetter(wheel))) and (tmp <> 'n'), 300, 5000);
+    c := Self.GetLetter(dial);
+    Mouse.Click(Self.GetRightRotationBox(dial), MOUSE_LEFT);
+    Result := WaitUntil((c <> (tmp := Self.GetLetter(dial))) and (tmp <> 'n'), 300, 5000);
   end;
 end;
 
@@ -275,9 +219,100 @@ begin
 end;
 
 
+function TRSFairyRing.GetLogCodes(out boxes: TBoxArray): TStringArray;
+const
+  COLORS := [$3F3FFF, $7F7FFF];
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  i: Int32;
+  str: String;
+begin
+  if SRL.FindColors(tpa, COLORS, Self.TravelLog.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(8, 1);
+  atpa.SortByY();
+
+  boxes := atpa.ToTBA();
+  for i := 0 to High(boxes) do
+  begin
+    str := OCR.Recognize(boxes[i], TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
+    Result += str.Replace(' ', '').ToLower();
+
+    boxes[i].X2 := Self.TravelLog.X2() - 22;
+    if i = High(boxes) then
+      boxes[i].Y2 := Self.TravelLog.Y2() - 6
+    else
+      boxes[i].Y2 := boxes[i+1].Y1 - 7;
+  end;
+end;
+
+function TRSFairyRing.GetLogCodes(): TStringArray; overload;
+const
+  COLORS := [$3F3FFF, $7F7FFF];
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+begin
+  if SRL.FindColors(tpa, COLORS, Self.TravelLog.Bounds()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(8, 1);
+  for b in atpa.ToTBA() do
+    Result += OCR.Recognize(b, TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
+end;
+
+function TRSFairyRing.LogFind(code: String): Boolean;
+  function _DoScrolling(code: String; direction: Boolean): Boolean;
+  var
+    limit: Int32;
+  begin
+    if direction then
+      limit := 100;
+
+    Mouse.Move(Self.TravelLog.Bounds(), True);
+    while Self.TravelLog.CanScroll() and (Self.TravelLog.GetScrollPosition() <> limit) do
+    begin
+      Mouse.Scroll(Antiban.GetUniqueInt(3, 1, 5), direction);
+      if Self.GetLogCodes().Contains(code) then
+        Exit(True);
+    end;
+  end;
+
+var
+  i, scroll: Int32;
+  direction: Boolean;
+begin
+  if Length(code) <> 3 then
+    Self.Fatal('"' + code.Upper() + '" is not a valid fairy ring code. It must be exactly 3 letters.');
+
+  for i := 1 to Length(code) do
+    if not Self.Dials[ERSFairyRingDial(i-1)].Contains(code[i]) then
+      Self.Fatal('"' + code.Upper() + '" is not a valid fairy ring code.');
+
+  if Self.GetLogCodes().Contains(code) then
+    Exit(True);
+
+  scroll := Self.TravelLog.GetScrollPosition();
+  direction := InRange(scroll, 0, 3);
+  if not direction then
+    direction := not InRange(scroll, 97, 100) and Antiban.BioDice();
+
+  if _DoScrolling(code, direction) then
+    Exit(True);
+
+  if InRange(scroll, 0, 3) then
+    Exit; //scrolled everything and was not found.
+
+  Result := _DoScrolling(code, not direction);
+end;
+
+
 procedure TRSFairyRing.Draw(bitmap: TMufasaBitmap); override;
 var
-  wheel: ERSFairyRingWheel;
+  dial: ERSFairyRingDial;
   b: TBox;
 begin
   if not Self.IsOpen() then
@@ -285,12 +320,12 @@ begin
 
   inherited;
 
-  bitmap.DrawBoxes(Self.GetWheels(), $00FFFF);
-  for wheel := ERSFairyRingWheel.LEFT to ERSFairyRingWheel.RIGHT do
+  bitmap.DrawBoxes(Self.GetDials(), $00FFFF);
+  for dial := ERSFairyRingDial.LEFT to ERSFairyRingDial.RIGHT do
   begin
-    b := Self.GetLeftRotationBox(wheel).Expand(-1);
+    b := Self.GetLeftRotationBox(dial).Expand(-1);
     bitmap.DrawBox(b, $00FF00);
-    b := Self.GetRightRotationBox(wheel).Expand(-1);
+    b := Self.GetRightRotationBox(dial).Expand(-1);
     bitmap.DrawBox(b, $0000FF);
   end;
 
@@ -344,5 +379,3 @@ begin
     Exit(False);
 end;
 
-var
- tba: TBoxArray;

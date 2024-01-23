@@ -1,3 +1,12 @@
+# [16.6.0](https://github.com/Torwent/WaspLib/compare/v16.5.2...v16.6.0) (2024-01-23)
+
+
+### Features
+
+* **FairyRing:** more methods. ([130c50a](https://github.com/Torwent/WaspLib/commit/130c50a04c29dbaa7bc0dceb50e1f59a002154f5))
+
+
+
 ## [16.5.2](https://github.com/Torwent/WaspLib/compare/v16.5.1...v16.5.2) (2024-01-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * optional files used on my scripts were removed. minor tweaks to anvil interface ([4238363](https://github.com/Torwent/WaspLib/commit/423836300d84929b362f943cd3af1d6b18dcefcf))
-
-
-
-# [16.4.0](https://github.com/Torwent/WaspLib/compare/v16.3.7...v16.4.0) (2024-01-21)
-
-
-### Features
-
-* **optional:** add a full optional files includer ([cbf3f68](https://github.com/Torwent/WaspLib/commit/cbf3f688398212ac84684add20c81e78da9cfe43))
 
 
 

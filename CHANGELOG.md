@@ -1,3 +1,12 @@
+# [16.8.0](https://github.com/Torwent/WaspLib/compare/v16.7.2...v16.8.0) (2024-01-24)
+
+
+### Features
+
+* **TRSFairyRing:** 🧚Fairy rings interface is finished ([fcf6921](https://github.com/Torwent/WaspLib/commit/fcf6921f95d91da9c5faee9bac1ad26b8cfe3d9a))
+
+
+
 ## [16.7.2](https://github.com/Torwent/WaspLib/compare/v16.7.1...v16.7.2) (2024-01-24)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **FairyRing:** more methods. ([130c50a](https://github.com/Torwent/WaspLib/commit/130c50a04c29dbaa7bc0dceb50e1f59a002154f5))
-
-
-
-## [16.5.2](https://github.com/Torwent/WaspLib/compare/v16.5.1...v16.5.2) (2024-01-22)
-
-
-### Bug Fixes
-
-* fix optional.simba paths ([3b9f414](https://github.com/Torwent/WaspLib/commit/3b9f414315f2e07c72bf054c0ea93c13d6dc7fc6))
 
 
 

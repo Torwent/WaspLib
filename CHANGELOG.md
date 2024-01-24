@@ -1,3 +1,12 @@
+## [16.7.2](https://github.com/Torwent/WaspLib/compare/v16.7.1...v16.7.2) (2024-01-24)
+
+
+### Bug Fixes
+
+* read notes ([36e5223](https://github.com/Torwent/WaspLib/commit/36e5223c9f2980ebb7b01927019e2428f250a0cc))
+
+
+
 ## [16.7.1](https://github.com/Torwent/WaspLib/compare/v16.7.0...v16.7.1) (2024-01-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fix optional.simba paths ([3b9f414](https://github.com/Torwent/WaspLib/commit/3b9f414315f2e07c72bf054c0ea93c13d6dc7fc6))
-
-
-
-## [16.5.1](https://github.com/Torwent/WaspLib/compare/v16.5.0...v16.5.1) (2024-01-21)
-
-
-### Bug Fixes
-
-* **optional:** removed mushtree from being auto-included ([1e9a7e7](https://github.com/Torwent/WaspLib/commit/1e9a7e7ddb30d27dd0d8476d4e8b22d2a68be579))
 
 
 

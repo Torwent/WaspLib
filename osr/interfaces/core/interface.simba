@@ -221,59 +221,59 @@ begin
   Result := WaitUntil(Self.IsOpen(TPA), 100, 2000);
 end;
 
-function TRSDropDown.Open: Boolean; constref; overload;
+function TRSDropDown.Open(): Boolean; constref; overload;
 var
-  TPA: TPointArray;
+  tpa: TPointArray;
 begin
-  Result := Self.Open(TPA);
+  Result := Self.Open(tpa);
 end;
 
-function TRSDropDown.Close: Boolean; constref;
+function TRSDropDown.Close(): Boolean; constref;
 begin
   if Self = [] then
     Exit;
 
-  if not Self.IsOpen then
+  if not Self.IsOpen() then
     Exit(True);
 
   Mouse.Click(Self.Bounds, MOUSE_LEFT);
 
-  Result := WaitUntil(not Self.IsOpen, 100, 2000);
+  Result := WaitUntil(not Self.IsOpen(), 100, 2000);
 end;
 
 
-function TRSDropDown.GetOptions(constref Font: TFontSet = RS_FONT_PLAIN_11): TRSDropDown_OptionArray; constref;
+function TRSDropDown.GetOptions(constref font: TFontSet = RS_FONT_PLAIN_11): TRSDropDown_OptionArray; constref;
 var
-  TPA: TPointArray;
-  I: Int32;
-  Box, B: TBox;
+  tpa: TPointArray;
+  i: Int32;
+  bounds, b: TBox;
 begin
-  if Self.Open(TPA) then
+  if Self.Open(tpa) then
   begin
-    Box := TPA.Bounds;
+    bounds := tpa.Bounds();
 
-    if (Bounds.Height < 18) then
+    if (Self.Bounds.Height() < 18) then
       Exit;
 
-    Box.Y1 += 1;
-    Box.X1 += 1;
-    Box.X2 -= 17;
+    bounds.Y1 += 1;
+    bounds.X1 += 1;
+    bounds.X2 -= 17;
 
-    SetLength(Result, Box.Height div 15);
-    for I := 0 to High(Result) do
+    SetLength(Result, bounds.Height() div 15);
+    for i := 0 to High(Result) do
     begin
-      B := [Box.X1, Box.Y1 + (I * 15), Box.X2, Box.Y1 + (I * 15) + 15];
-      if (B.Y2 > Box.Y2) then
+      b := [bounds.X1, bounds.Y1 + (i * 15), bounds.X2, bounds.Y1 + (i * 15) + 15];
+      if (b.Y2 > bounds.Y2) then
         Exit;
 
-      Result[I].Text := OCR.Recognize(B, TOCRColorFilter.Create([4110334, 2070783]), Font);
-      Result[I].Bounds := B;
+      Result[i].Text := OCR.Recognize(b, TOCRColorFilter.Create([4110334, 2070783]), font);
+      Result[i].Bounds := b;
     end;
   end;
 end;
 
 
-procedure TRSDropDown.Select(Option: TRSDropDown_Option; MouseAction: Int32 = MOUSE_LEFT); constref;
+procedure TRSDropDown.Select(Option: TRSDropDown_Option; mouseAction: Int32 = MOUSE_LEFT); constref;
 var
   From: TPoint;
   B: TBox;
@@ -290,36 +290,43 @@ begin
   CustomMouse.IdleInterval := 0;
   CustomMouse.Move(SRL.RandomPointEx(From, B));
 
-  if (MouseAction <> MOUSE_MOVE) then
-    CustomMouse.Click(MouseAction);
+  if (mouseAction <> MOUSE_MOVE) then
+    CustomMouse.Click(mouseAction);
 end;
 
-function TRSDropDown.Select(Text: TStringArray; MouseAction: Int32 = MOUSE_LEFT; CaseSensitive: Boolean = True; CloseIfNotFound: Boolean = True; constref Font: TFontSet = RS_FONT_PLAIN_11): Boolean; constref; overload;
+function TRSDropDown.Select(text: TStringArray; mouseAction: Int32 = MOUSE_LEFT; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True; constref font: TFontSet = RS_FONT_PLAIN_11): Boolean; constref; overload;
 var
-  Choices: TRSChooseOption_OptionArray;
-  I, J: Int32;
+  choices: TRSDropDown_OptionArray;
+  i, j: Int32;
 begin
-  Choices := Self.GetOptions(Font);
+  choices := Self.GetOptions(Font);
 
-  for I := 0 to High(Choices) do
-    for J := 0 to High(Text) do
-      if (CaseSensitive and (Text[J] in Choices[I].Text)) or ((not CaseSensitive) and (Lowercase(Text[J]) in Lowercase(Choices[I].Text))) then
+  for i := 0 to High(choices) do
+    for j := 0 to High(Text) do
+    begin
+      if not caseSensitive then
       begin
-        Self.Select(Choices[I], MouseAction);
-
-        Exit(True);
+        text[j] := LowerCase(text[j]);
+        choices[i].Text := Lowercase(choices[i].Text);
       end;
 
-  if CloseIfNotFound then
+      if text[j] in choices[i].Text then
+      begin
+        Self.Select(choices[i], mouseAction);
+        Exit(True);
+      end;
+    end;
+
+  if closeIfNotFound then
   begin
     WaitEx(500, 250);
-    Self.Close;
+    Self.Close();
   end;
 end;
 
-function TRSDropDown.Select(Text: String; MouseAction: Int32 = MOUSE_LEFT; CaseSensitive: Boolean = True; CloseIfNotFound: Boolean = True; constref Font: TFontSet = RS_FONT_PLAIN_11): Boolean; constref; overload;
+function TRSDropDown.Select(Text: String; mouseAction: Int32 = MOUSE_LEFT; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True; constref font: TFontSet = RS_FONT_PLAIN_11): Boolean; constref; overload;
 begin
-  Result := Select([Text], MouseAction, CaseSensitive, CloseIfNotFound, Font);
+  Result := Select([text], mouseAction, caseSensitive, closeIfNotFound, font);
 end;
 
 

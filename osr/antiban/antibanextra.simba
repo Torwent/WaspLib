@@ -79,7 +79,7 @@ begin
   Result := Self.ClickContinue(useKeyboard);
 end;
 
-function TRSChooseOption.Select(text: TStringArray; mouseAction: Int32 = MOUSE_LEFT; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True): Boolean; override;
+function TRSChooseOption.HasOption(text: TStringArray; out option: TRSChooseOption_Option; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True): Boolean; override;
 var
   choices: TRSChooseOption_OptionArray;
   i, j, maxTime: Int32;
@@ -96,19 +96,29 @@ begin
 
   choices := Self.GetOptions();
 
-  for i := 0 to High(choices) do
-    for j := 0 to High(text) do
-      if (caseSensitive and (text[j] in choices[i].Text)) or ((not caseSensitive) and (Lowercase(text[j]) in Lowercase(Choices[i].Text))) then
-      begin
-        Self.Select(choices[i], mouseAction);
+  WriteLn choices;
+  WriteLn text;
 
-        Exit(True);
+  for i := 0 to High(text) do
+    for j := 0 to High(choices) do
+    begin
+      if not caseSensitive then
+      begin
+        text[i] := Lowercase(text[i]);
+        choices[j].Text := Lowercase(choices[j].Text);
       end;
 
-  if CloseIfNotFound then
+      if text[i] in choices[j].Text then
+      begin
+        option := choices[j];
+        option.StringIndex := i;
+        Exit(True);
+      end;
+    end;
+
+  if closeIfNotFound then
   begin
     WaitEx(500, 250);
-
     Self.Close();
   end;
 end;

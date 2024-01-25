@@ -1,3 +1,12 @@
+# [16.10.0](https://github.com/Torwent/WaspLib/compare/v16.9.0...v16.10.0) (2024-01-25)
+
+
+### Features
+
+* **TRSPOHHandler:** Initial commit containing the future POH Handler. ([f602ff3](https://github.com/Torwent/WaspLib/commit/f602ff393ddac87f398a199c15a632ca69bee783))
+
+
+
 # [16.9.0](https://github.com/Torwent/WaspLib/compare/v16.8.0...v16.9.0) (2024-01-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **fairy rings:** tweaks and more methods for the travel log ([fb412a2](https://github.com/Torwent/WaspLib/commit/fb412a27aa274b7cdc3953134775854100a30890))
-
-
-
-# [16.7.0](https://github.com/Torwent/WaspLib/compare/v16.6.0...v16.7.0) (2024-01-23)
-
-
-### Features
-
-* **FairyRings:** More fairy rings methods ([826dc20](https://github.com/Torwent/WaspLib/commit/826dc20181267a381b6c54d21470bcefc548c93e))
 
 
 

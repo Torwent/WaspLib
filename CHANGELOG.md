@@ -1,3 +1,12 @@
+## [16.10.1](https://github.com/Torwent/WaspLib/compare/v16.10.0...v16.10.1) (2024-01-25)
+
+
+### Bug Fixes
+
+* **optional:** moved skunks transport to the optional directory ([1dc8fff](https://github.com/Torwent/WaspLib/commit/1dc8fff9994575252c48dcaed6d687004686dfea))
+
+
+
 # [16.10.0](https://github.com/Torwent/WaspLib/compare/v16.9.0...v16.10.0) (2024-01-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([36e5223](https://github.com/Torwent/WaspLib/commit/36e5223c9f2980ebb7b01927019e2428f250a0cc))
-
-
-
-## [16.7.1](https://github.com/Torwent/WaspLib/compare/v16.7.0...v16.7.1) (2024-01-23)
-
-
-### Bug Fixes
-
-* **fairy rings:** tweaks and more methods for the travel log ([fb412a2](https://github.com/Torwent/WaspLib/commit/fb412a27aa274b7cdc3953134775854100a30890))
 
 
 

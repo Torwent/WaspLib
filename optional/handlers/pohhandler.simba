@@ -1,0 +1,80 @@
+(*
+POHHandler
+==========
+*)
+
+{$DEFINE WL_POH_HANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/optional.simba}
+{$ENDIF}
+
+type
+  ERSHouseRoom = (
+    STUDY_PARLOUR, GARDEN, IDK1, IDK2, ACHIEVEMENT_GALLERY,
+    QUEST_HALL, NEXUS, COMBAT, IDK3, MENAGERIE_OPEN,
+    MENAGERIE_CLOSED, COSTUME, ALTAR, SUPERIOR_GARDEN, PORTAL, KITCHEN_BEDROOM
+  );
+
+  ERSHouseRoomArray = array of ERSHouseRoom;
+  E2DRSHouseRoomArray = array of ERSHouseRoomArray;
+
+  TRSPOHHandler = record
+    RoomsMap, Map: TMufasaBitmap;
+    Rooms: E2DRSHouseRoomArray;
+  end;
+
+procedure TRSPOHHandler.Free();
+begin
+  Self.Map.Free();
+  Self.RoomsMap.Free();
+end;
+
+procedure TRSPOHHandler.Init();
+begin
+  Self.Map.Init();
+  Self.RoomsMap.Init();
+
+  Self.RoomsMap.LoadFromFile(WALKER_DIR + 'poh.png');
+  AddOnTerminate(@Self.Free);
+end;
+
+function TRSPOHHandler.GetRoom(room: ERSHouseRoom): TMufasaBitmap;
+const
+  SIZE: Int32 = 31;
+var
+  i: Int32;
+begin
+  i := Ord(room);
+  Result := Self.RoomsMap.Copy(i * (SIZE + 1), 0, i * (SIZE + 1) + SIZE, SIZE);
+end;
+
+procedure TRSPOHHandler.Setup();
+var
+  room: TMufasaBitmap;
+begin
+  Self.Map := TRSWalker.GetCleanMinimap();
+
+  room := Self.GetRoom(ERSHouseRoom.SUPERIOR_GARDEN);
+
+  room.Debug();
+  room.Free();
+  //Self.Map.Draw
+  //Self.Map.Debug();
+end;
+
+var
+  POHHandler: TRSPOHHandler;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  POHHandler.Init();
+end;
+
+
+begin
+  POHHandler.Setup();
+end;
+
+

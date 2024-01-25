@@ -1,0 +1,705 @@
+{$DEFINE SKUNK_UNIVERSAL_TRANSPORT}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/optional.simba}
+{$ENDIF}
+
+{$IFNDEF SKUNK_TELEPORTS}
+  {$I WaspLib/optional/handlers/teleports/rsteleports.simba}
+{$ENDIF}
+
+type
+  TUniversalTransport = record(TSRLBaseRecord)
+    ardougneCape: TRSItem;
+    fairyTeleportItem: EFairyTeleportItem;
+  end;
+
+procedure TUniversalTransport.Init(fairyTeleportItem: EFairyTeleportItem; ardougneCape: TRSItem); overload;
+begin
+  Self.Name := 'UniversalTransport';
+  self.fairyTeleportItem := fairyTeleportItem;
+  self.ardougneCape := ardougneCape;
+end;
+
+
+function TUniversalTransport.pathLength(path: TPointArray): Int32;
+var
+  total: Double;
+  i: Int32;
+begin
+  // if the path contains 1 or 0 points then return -1
+  if path.Len() < 2 then Exit(-1);
+  for i := 1 to (path.Len() - 1) do
+    // TODO fix by convert this to int
+    total += path[i-1].DistanceTo(path[i]);
+  Exit(Floor(total));
+end;
+
+function TUniversalTransport.pathLength(point1, point2: TPoint): Int32; overload;
+var
+  path: TPointArray := WaspWeb.PathBetween(point1, point2);
+begin
+  Exit(self.pathLength(path));
+end;
+
+// gets closest teleport to destination that has a connecting path nearby
+function TUniversalTransport.getIdealTeleport(destination: TPoint; teleports: array of TTeleportLocation): TTeleportLocation;
+var
+  currentClosest: TTeleportLocation;
+  pathBetween: TPointArray;
+begin
+  for currentClosest in RSTeleports.sortTeleportsByDistance(destination, teleports) do
+  begin
+    pathBetween := WaspWeb.PathBetween(destination, currentClosest.worldPoint);
+    if pathBetween.Len() > 0 then
+      Exit(currentClosest);
+  end;
+
+  raise 'No teleport has a path connecting to destination ' + ToStr(destination);
+end;
+
+function TUniversalTransport.getConnectingTeleports(destination: TPoint; teleports: array of TTeleportLocation): array of TTeleportLocation;
+var
+  currentClosest: TTeleportLocation;
+  pathBetween: TPointArray;
+  connectingTeleports: array of TTeleportLocation;
+  teleportsByDistance: array of TTeleportLocation;
+begin
+  teleportsByDistance := RSTeleports.sortTeleportsByDistance(destination, teleports);
+  Self.DebugLn('Getting teleports that connect to ' + ToString(destination));
+  for currentClosest in teleportsByDistance do
+  begin
+    try
+      pathBetween := WaspWeb.PathBetween(destination, currentClosest.worldPoint);
+    except
+      // we don't want to raise if there is no pathbetween
+    end;
+    if pathBetween.Len() > 0 then
+      connectingTeleports += currentClosest;
+    // this method is slow, limit to finding 3 teleports
+    if Length(connectingTeleports) > 2 then
+      Exit(connectingTeleports);
+  end;
+  Self.DebugLn('Amount of connecting teleports: ', ToString(Length(connectingTeleports)));
+  if (Length(connectingTeleports) = 0) then
+  raise 'No teleport has a path connecting to destination ' + ToStr(destination);
+  Exit(connectingTeleports);
+end;
+
+function TUniversalTransport.getConnectingTeleportPaths(destination: TPoint; teleports: array of TTeleportLocation): T2DPointArray;
+var
+  currentClosest: TTeleportLocation;
+  pathBetween: TPointArray;
+  paths: T2DPointArray;
+  teleportsByDistance: array of TTeleportLocation;
+begin
+  teleportsByDistance := RSTeleports.sortTeleportsByDistance(destination, teleports);
+  Self.DebugLn('Getting teleports that connect to ' + ToString(destination));
+  for currentClosest in teleportsByDistance do
+  begin
+    try
+      pathBetween := WaspWeb.PathBetween(destination, currentClosest.worldPoint);
+    except
+      // we don't want to raise if there is no pathbetween
+    end;
+    if pathBetween.Len() > 0 then
+      paths += pathBetween;
+    // this method is slow, limit to finding 3 teleports
+    if Length(paths) > 2 then
+      Exit(paths);
+  end;
+  Self.DebugLn('Amount of connecting teleports: ', ToString(Length(paths)));
+  if (Length(paths) = 0) then
+  raise 'No teleport has a path connecting to destination ' + ToStr(destination);
+  Exit(paths);
+end;
+
+function TUniversalTransport.getPathRegion(path: TPointArray): TBox;
+begin
+  Exit(path.Bounds().Expand(100));
+end;
+
+function TUniversalTransport.getRegionBetween(point1, point2: TPoint): TBox;
+var
+  path: TPointArray := WaspWeb.PathBetween(point1, point2, 1);
+begin
+  Exit(self.getPathRegion(path));
+end;
+
+function TUniversalTransport.genericJewelleryBankTeleport(): Boolean;
+begin
+  if WaitUntil(Equipment.ContainsAny(getChargedJewelleryNames('Amulet of Glory')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.GRAND_EXCHANGE)
+  else if WaitUntil(Equipment.ContainsAny(getChargedJewelleryNames('Ring of Dueling')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.CASTLE_WARS)
+  else if WaitUntil(Equipment.ContainsAny(getChargedJewelleryNames('Ring of Wealth')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.EDGEVILLE)
+  else if WaitUntil(Equipment.ContainsAny(getChargedJewelleryNames('Games Necklace')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.WINTERTODT_CAMP)
+  else if WaitUntil(Inventory.ContainsAny(getChargedJewelleryNames('Amulet of Glory')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.GRAND_EXCHANGE)
+  else if WaitUntil(Inventory.ContainsAny(getChargedJewelleryNames('Ring of Dueling')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.CASTLE_WARS)
+  else if WaitUntil(Inventory.ContainsAny(getChargedJewelleryNames('Ring of Wealth')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.EDGEVILLE)
+  else if WaitUntil(Inventory.ContainsAny(getChargedJewelleryNames('Games Necklace')), 200, 5000) then
+    Result := self.handleJewelleryTeleport(RSTeleports.WINTERTODT_CAMP);
+end;
+
+// when location selection is in chat interface
+function TUniversalTransport.handleChatJewellery(teleportLocation: TTeleportLocation): Boolean;
+begin
+  if not (teleportLocation.teleportType = ETeleportType.JEWELLERY) then
+    raise 'Requires teleport type jewellery. Got ' + ToStr(teleportLocation.teleportType);
+
+  WaitUntil(Chat.FindOption(teleportLocation.destination, [0]), 200, 5000);
+  Self.DebugLn("Clicking ", teleportLocation.destination);
+  if Chat.ClickOption(teleportLocation.destination, False, [CHAT_COLOR_BLACK]) then
+    Exit(True);
+end;
+
+// when location selection is in middle of screen
+function TUniversalTransport.handleMiddleScreenJewellery(teleportLocation: TTeleportLocation): Boolean;
+var
+  textColor: TColor := 668230;
+  textColorTPA: TPointArray;
+  clusteredText: T2DPointArray;
+  foundTextBox: TBox;
+  textBox: TBox;
+  findInterfaceAttempts: Int32;
+begin
+  if not (teleportLocation.teleportType = ETeleportType.JEWELLERY) then
+    raise 'Requires teleport type jewellery. Got ' + ToStr(teleportLocation.teleportType);
+
+  repeat
+    SRL.FindColors(textColorTPA, textColor, MainScreen.Bounds());
+    clusteredText := textColorTPA.Cluster(6, 1);
+    if not (clusteredText.Len() > 8) then
+      Wait(SRL.TruncatedGauss(400, 600));
+
+    findInterfaceAttempts += 1;
+    // there are like 12 clusters, so just check if there are more than 8 for false positives
+  until (clusteredText.Len() > 8) or (findInterfaceAttempts > 4);
+  for textBox in clusteredText.ToTBA() do
+  begin
+    textBox := textBox.Expand(5);
+    OCR.LocateText(textBox, teleportLocation.destination, RS_FONT_PLAIN_12, TOCRColorFilter.Create([textColor]), foundTextBox);
+    if foundTextBox.Area > 1 then
+      begin
+        Mouse.Move(foundTextBox.Center());
+        Self.DebugLn(MainScreen.GetUpText());
+        Mouse.Click(MOUSE_LEFT);
+        Exit(True);
+        //end;
+      end;
+  end;
+  raise 'Unable to find ' + teleportLocation.destination + ' in menu for ' + ToStr(teleportLocation.item);
+end;
+
+function TUniversalTransport.handleJewelleryTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  startPosition: TPoint := ScriptWalker^.GetMyPos();
+  chargedJewellery: TRSItem;
+  chargedVariants: TRSItemArray := getChargedJewelleryNames(teleportLocation.item);
+  didTeleport: Boolean;
+  middleScreenJewellery: TStringArray := ['skills necklace'];
+begin
+  for chargedJewellery in chargedVariants do
+  begin
+    Self.DebugLn("Searching for " + chargedJewellery + " in inventory");
+    if Inventory.ContainsItem(chargedJewellery) then
+    begin
+      Self.DebugLn("Searching for " + chargedJewellery + " Rub");
+      WaitUntil(Inventory.ClickItem(chargedJewellery, "Rub"), 200, 5000);
+      if middleScreenJewellery.Contains(ToStr(teleportLocation.item).Lower()) then
+        didTeleport := self.handleMiddleScreenJewellery(teleportLocation)
+      else
+        didTeleport := self.handleChatJewellery(teleportLocation);
+
+      if didTeleport then
+        Exit(WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 5000));
+    end;
+  end;
+
+  for chargedJewellery in chargedVariants do
+  begin
+    Self.DebugLn("Searching for " + chargedJewellery + " in Equipment");
+    Equipment.Open();
+    if Equipment.ContainsItem(chargedJewellery) then
+    begin
+      Self.DebugLn("Clicking " + chargedJewellery + " " + teleportLocation.destination);
+      if WaitUntil(Equipment.ClickItem(chargedJewellery, teleportLocation.destination), 200, 5000) then
+      begin
+        if WaitUntil(Chat.ClickOption('Okay, teleport to level 41 Wilderness.'), 200, 3000) then
+          Writeln 'Teleporting to wilderness';
+
+        Exit(WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 5000));
+      end;
+    end;
+  end;
+end;
+
+function TUniversalTransport.handleOtherTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  didTeleport: Boolean;
+  teleportItem: TRSItem := teleportLocation.item;
+  teleportDestination: String := teleportLocation.destination;
+  startPosition: TPoint := ScriptWalker^.GetMyPos();
+begin
+  if Inventory.Open() and Inventory.ContainsItem(teleportItem) then
+  begin
+    Self.DebugLn("Searching for " + ToString(teleportItem) + " in inventory");
+    Self.DebugLn("Searching for " + ToString(teleportItem) + " teleportDestination");
+    didTeleport := WaitUntil(Inventory.ClickItem(teleportItem, teleportDestination), 200, 5000);
+  end
+  else if Equipment.Open() and Equipment.ContainsItem(teleportItem) then
+  begin
+    Self.DebugLn("Searching for " + ToString(teleportItem) + " in Equipment");
+    Self.DebugLn("Clicking " + ToString(teleportItem) + " " + teleportLocation.destination);
+    didTeleport := WaitUntil(Equipment.ClickItem(teleportItem, teleportLocation.destination), 200, 5000);
+  end;
+
+  if didTeleport then
+    Result := WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 300, 5000);
+end;
+
+function TUniversalTransport.handleDiaryTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  numberedItems: TRSItemArray := getNumberedDiaryItems(teleportLocation.item);
+  numberedDiaryItem: TRSItem;
+  didTeleport: Boolean;
+  startPosition: TPoint := ScriptWalker^.GetMyPos();
+begin
+  for numberedDiaryItem in numberedItems do
+  begin
+    WriteLn("Searching for ", numberedDiaryItem, " in inventory");
+    if Inventory.ContainsItem(numberedDiaryItem) then
+    begin
+      WriteLn("Searching for ", numberedDiaryItem, " ", teleportLocation.destination);
+      didTeleport := WaitUntil(Inventory.ClickItem(numberedDiaryItem, teleportLocation.destination), 200, 5000);
+
+      if didTeleport then
+        Exit(WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 5000));
+    end;
+  end;
+
+  for numberedDiaryItem in numberedItems do
+  begin
+    WriteLn("Searching for ", numberedDiaryItem, " in Equipment");
+    if Equipment.ContainsItem(numberedDiaryItem) then
+    begin
+      WriteLn("Searching for ", numberedDiaryItem, " ", teleportLocation.destination);
+      didTeleport := WaitUntil(Equipment.ClickItem(numberedDiaryItem, teleportLocation.destination), 200, 5000);
+
+      if didTeleport then
+        Exit(WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 5000));
+    end;
+  end;
+end;
+
+function TUniversalTransport.withdrawTeleportItem(teleportLocation: TTeleportLocation): Boolean;
+var
+  bankItem: TRSBankItem;
+  chargedJewellery: TRSItem;
+  chargedVariants: TRSItemArray;
+  teleportTabName: String;
+begin
+  Self.DebugLn('Trying to withdraw');
+  if not Bank.IsOpen(2000, 200) then Exit(False);
+  Self.DebugLn('bank is open');
+  case teleportLocation.teleportType of
+    ETeleportType.JEWELLERY:
+    begin
+      chargedVariants := getChargedJewelleryNames(teleportLocation.item);
+      for chargedJewellery in chargedVariants do
+      begin
+        Self.DebugLn('Withdrawing', chargedJewellery);
+        bankItem := bankItem.Setup(chargedJewellery, 1, False);
+        if Bank.WithdrawItem(bankItem, False) then
+          Exit(True);
+        //The following shouldn't be required. The lines above already kinda do this.
+        //if WaitUntil(Inventory.ContainsItem(chargedJewellery), 200, 5000) then
+        //  Exit(True);
+      end;
+    end;
+    ETeleportType.ANCIENT_MAGICKS,
+    ETeleportType.ARCEUUS_MAGIC,
+    ETeleportType.LUNAR_MAGIC,
+    ETeleportType.NORMAL_MAGIC:
+    begin
+      teleportTabName := teleportLocation.destination.Lower() + " teleport";
+      Self.DebugLn('Withdrawing: ', teleportTabName);
+      bankItem.Setup(teleportTabName);
+      if Bank.WithdrawItem(bankItem, False) then
+        Exit(True);
+      //The following shouldn't be required. The lines above already kinda do this.
+      //if WaitUntil(Inventory.ContainsItem(teleportTabName), 200, 5000) then
+      //  Exit(True);
+    end;
+  end;
+end;
+
+function TUniversalTransport.handleMagicTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  teleportTabName: String := teleportLocation.destination.Lower() + " teleport";
+begin
+  Self.DebugLn('Looking for ' + teleportTabName);
+  if WaitUntil(Inventory.ClickItem(teleportTabName), 200, 5000) then
+    Exit(True);
+end;
+
+function TUniversalTransport.findFairyRingMiddle(fairyRing: TTeleportLocation): TPoint;
+var
+  fairyRingGreen: TCTS2Color := CTS2(4089424, 10, 0.14, 0.19);
+  fairyRingBrown: TCTS2Color := CTS2(4807548, 17, 0.07, 0.21);
+  fairyRingButterflyWhite: TCTS2Color := CTS2(14476264, 4, 0.36, 0.64);
+  brownTPA: TPointArray;
+  greenTPA: TPointArray;
+  butteryflyTPA: TPointArray;
+  searchBox: TBox := Mainscreen.Bounds();
+  nearbyColorPoints: TPointArray;
+begin
+  SRL.FindColors(greenTPA, fairyRingGreen, searchBox);
+  SRL.FindColors(brownTPA, fairyRingBrown, searchBox);
+  nearbyColorPoints := brownTPA.Grow(2).PointsInRangeOf(greenTPA.Grow(2), 1, 10);
+  if (Length(nearbyColorPoints) > 0) then
+    Exit(nearbyColorPoints.Grow(50).Erode(30).MinAreaCircle().mean());
+
+  SRL.FindColors(butteryflyTPA, fairyRingButterflyWhite, searchBox);
+  if (Length(butteryflyTPA) > 0) then
+    Exit(butteryflyTPA.RandomValue());
+
+  Exit(ScriptWalker^.GetTileMS(fairyRing.worldPoint).mean());
+end;
+
+function TUniversalTransport.getFairyDialTeleportBox(): TBox;
+var
+  teleportBox: TBox;
+  attempt: Int32;
+begin
+  for attempt in [1..5] do
+  begin
+    OCR.LocateText(MainScreen.Bounds, 'Teleport to this location', RS_FONT_QUILL_8, TOCRColorFilter.Create([8256]), teleportBox);
+    Wait(300, 500);
+    if not (Result = teleportBox) then Exit(teleportBox);
+  end;
+  raise 'Unable to find fairy dial teleport box in 5 tries';
+end;
+
+function TUniversalTransport.getWalkableFairyRing(maximumDistance: Int32): TTeleportLocation;
+var
+  sortedWalkableRings: array of TTeleportLocation;
+  ringTeleport: TTeleportLocation;
+  myPos: TPoint := ScriptWalker^.GetMyPos();
+begin
+  try
+    sortedWalkableRings := self.getConnectingTeleports(myPos, RSTeleports.FairyRingTeleports);
+  except
+    Self.DebugLn('There is not a walkable ring nearby.');
+  end;
+  if Length(sortedWalkableRings) > 0 then
+  begin
+    for ringTeleport in sortedWalkableRings do
+      if (self.pathLength(ringTeleport.worldPoint, myPos) < maximumDistance)
+      and ringTeleport.dispatcherRing then
+        Exit(ringTeleport);
+    Self.DebugLn('There is no walkable fairy ring');
+  end;
+end;
+
+function TUniversalTransport.handleFairyRingTeleport(teleportLocation: TTeleportLocation): Boolean;
+const
+  TEXT_COLORS: TIntegerArray = [4145151, 8355839];
+var
+  travelLog: TBox;
+  fairyCodeTextBox: TBox;
+  redTPA: TPointArray;
+  walkableFairyRing: TTeleportLocation;
+  canFairyTeleport: Boolean := self.fairyTeleportItem = EFairyTeleportItem.DIARY;
+  travelLogOpen: Boolean;
+  outerAttempt, innerAttempt: Int32;
+  fairyTeleportStaff: TRSItem;
+  fairyRingChooseOption: TRSChooseOption_Option;
+  usedChooseOptionTeleport: Boolean;
+begin
+  travelLog := Logout.Bounds();
+  travelLog.Y1 += 40;
+  travelLog.X2 -= 36;
+
+  // make sure dramen is equipped
+  Self.DebugLn('Searching for dramen staff');
+  if not canFairyTeleport then
+  for outerAttempt := 0 to 3 do
+  begin
+    case self.fairyTeleportItem of
+      EFairyTeleportItem.DRAMEN: fairyTeleportStaff := 'Dramen staff';
+      EFairyTeleportItem.LUNAR: fairyTeleportStaff := 'Lunar staff';
+      EFairyTeleportItem.UNAVAILABLE: raise 'You either need to configure a method for fairy teleports (dramen/lunar/diary) or not use them.';
+    end;
+
+    canFairyTeleport := Inventory.ClickItem(fairyTeleportStaff) or Equipment.ContainsItem(fairyTeleportStaff);
+
+    Self.DebugLn('Is it equipped? ' + ToString(canFairyTeleport));
+
+    if not canFairyTeleport then
+    begin
+      if outerAttempt = 3 then
+        raise "We could not find a dramen staff.";
+
+      // maybe remove this whole part and just raise no item in inventory; leave it up the caller to get the fairy teleport item
+      Self.DebugLn('Opening Bank');
+      // teleport nearby bank if possible
+      self.genericJewelleryBankTeleport();
+      if not Bank.WalkOpen() then
+        raise "We can't get to a bank from here: " + ToString(ScriptWalker^.GetMyPos()) + ". Consider adding some jewellery to teleport with.";
+      // TO DO ^ maybe add desperate teleports to banks like home teleport
+      Self.DebugLn('Withdrawing ', fairyTeleportStaff);
+      if not WaitUntil(Bank.WithdrawItem(fairyTeleportStaff, False), 200, 5000) then
+        raise "You do not have a dramen/lunar staff. You can turn off fairy teleports";
+    end;
+  end;
+
+  Self.DebugLn('Getting walkable fairy ring');
+
+  for outerAttempt := 0 to 3 do
+  begin
+    walkableFairyRing := self.getWalkableFairyRing(500);
+
+    // try to use ardy cloak if available
+    if (ToString(self.ardougneCape) <> '') and (walkableFairyRing.worldPoint = [0,0]) then
+    begin
+      Self.DebugLn('Looking for ', ToString(self.ardougneCape));
+      if not Equipment.ClickItem(self.ardougneCape, 'Monastery') then
+        if not (Inventory.Open() and Inventory.ClickItem(self.ardougneCape, 'Monastery')) then
+          raise "Couldn't find " + self.ardougneCape + " in inventory or equipment";
+
+      Wait(SRL.TruncatedGauss(4000, 5500));
+    end;
+
+    // walk to nearest fairy ring
+    if (outerAttempt = 3) and (walkableFairyRing.worldPoint = [0,0]) then
+      raise 'Fairy ring ' + walkableFairyRing.destination + ' is not configured properly';
+  end;
+
+  Self.DebugLn('We are going to walk to ' + ToString(walkableFairyRing.worldPoint));
+  ScriptWalker^.WebWalk(walkableFairyRing.worldPoint, 40);
+ 
+  // open fairy ring teleports
+  Self.DebugLn("opening fairy ring teleports");
+  for outerAttempt := 0 to 3 do
+  begin
+    for innerAttempt := 0 to 3 do
+    begin
+      Mouse.Move(findFairyRingMiddle(walkableFairyRing));
+      if not MainScreen.IsUpText("y ring") then
+        Antiban.RandomRotate();
+      if MainScreen.IsUpText("y ring") then
+        Break;
+
+      travelLogOpen := SRL.FindColors(redTPA, TEXT_COLORS, travelLog) > 1;
+      if travelLogOpen then
+        Break(2);
+    end;
+
+    Mouse.click(MOUSE_RIGHT);
+    Self.DebugLn('Selecting configure or previous ring');
+    // handle zanaris cause it's weird
+    if teleportLocation = RSTeleports.BKS_ZANARIS then
+      usedChooseOptionTeleport := ChooseOption.Select('Zanaris')
+    else
+      for fairyRingChooseOption in ChooseOption.GetOptions() do
+        if Between('(',')', fairyRingChooseOption.Text) = teleportLocation.destination.Replace(' ', '') then
+          usedChooseOptionTeleport := ChooseOption.Select(fairyRingChooseOption.Text);
+ 
+    if not usedChooseOptionTeleport then
+      ChooseOption.Select('Configure', MOUSE_LEFT);
+
+    travelLogOpen := WaitUntil((SRL.FindColors(redTPA, TEXT_COLORS, travelLog) > 1), 300, 5000);
+    if travelLogOpen or usedChooseOptionTeleport then
+      Break;
+    if outerAttempt = 3 then
+      raise "Got stuck!";
+  end;
+
+  if usedChooseOptionTeleport then
+    Exit(True);
+
+  Self.DebugLn('Scrolling to top of fairy rings');
+  // scroll to top of fairy rings
+  Mouse.Move(travelLog, True);
+  Mouse.Scroll(SRL.TruncatedGauss(30, 50), False);
+
+  for outerAttempt := 0 to 3 do
+  begin
+    // look for given teleport in travel log
+    OCR.LocateText(travelLog, teleportLocation.destination, RS_FONT_PLAIN_12, TOCRColorFilter.Create(TEXT_COLORS), fairyCodeTextBox);
+
+    if fairyCodeTextBox.Area() > 5 then
+      Break;
+
+    Self.DebugLn('Scrolling down fairy rings');
+    Mouse.Move(travelLog, True);
+    Mouse.Scroll(Random(1, 3), True);
+
+    for innerAttempt := 0 to 3 do
+    begin
+      Mouse.Move(fairyCodeTextBox);
+      if MainScreen.IsUpText(teleportLocation.destination) then
+        Break;
+    end;
+  end;
+
+  // click the given teleport in travel log
+  Mouse.Click(fairyCodeTextBox, MOUSE_LEFT);
+
+  // click the confirm teleport in middle of screen
+  Mouse.Move(self.getFairyDialTeleportBox());
+  if WaitUntil(MainScreen.IsUpText("Confirm"), 200, 5000) then
+    Mouse.click(MOUSE_LEFT);
+end;
+
+function TUniversalTransport.nearGE(): Boolean;
+var
+  boxAroundGE: TBox := Box(RSTeleports.GRAND_EXCHANGE.worldPoint, 400, 400);
+begin
+  Exit(boxAroundGE.Contains(ScriptWalker^.GetMyPos()));
+end;
+
+function TUniversalTransport.goToGE(): Boolean;
+begin
+  if self.nearGE() then
+  begin
+    Result := ScriptWalker^.WebWalk(RSTeleports.GRAND_EXCHANGE.worldPoint, 50)
+  end
+  else
+    Result := self.run(RSTeleports.GRAND_EXCHANGE.worldPoint);
+end;
+
+function TUniversalTransport.getConnectingBank(position: TPoint): PRSObject;
+var
+  currentMinimumDistance: Int32 := 100000;
+  currentBank: PRSObject;
+  pathDistance: Int32;
+begin
+  for currentBank in WalkerObjects.Banks do
+  begin
+    currentBank^.Coordinates.Sort(position);
+    pathDistance := self.pathLength(currentBank^.Coordinates.First(), position);
+    if (pathDistance < currentMinimumDistance)
+    and (pathDistance > 0) then
+      Result := currentBank;
+  end;
+end;
+
+function TUniversalTransport.desperateBankOpen(): Boolean;
+var
+  maxDistance: Int32 := 1000;
+  closestBanker: PRSWalkerObject := WalkerObjects.Banks.GetClosest();
+  closestBankPoint: TPoint := closestBanker^.Coordinates.First();
+  myPos: TPoint := ScriptWalker^.GetMyPos();
+  pathDistance: Int32 := self.pathLength(closestBankPoint, myPos);
+  walkableBank: PRSWalkerObject;
+begin
+  Self.DebugLn('desperately opening bank');
+  Self.DebugLn(ToString(closestBankPoint));
+  Self.DebugLn('Distance to bank from current ' + ToString(pathDistance));
+  if pathDistance < maxDistance then
+  begin
+    Bank.WalkOpen(closestBanker);
+    if Bank.IsOpen(5000, 200) then
+      Exit(true);
+  end;
+
+  // to do: add more ways to get to bank
+  if Magic.CastSpell(ERSSpell.LUMBRIDGE_HOME_TELEPORT) then
+    WaitUntil(ScriptWalker^.GetMyPos().InBox(Box(RSTeleports.LUMBRIDGE.worldPoint, 200, 200)), 200, 15000)
+  else if Magic.CastSpell(ERSSpell.EDGEVILLE_HOME_TELEPORT) then
+    WaitUntil(ScriptWalker^.GetMyPos().InBox(Box(RSTeleports.EDGEVILLE.worldPoint, 200, 200)), 200, 15000)
+  else if Magic.CastSpell(ERSSpell.MOONCLAN_TELEPORT) then
+    WaitUntil(ScriptWalker^.GetMyPos().InBox(Box(RSTeleports.MOONCLAN.worldPoint, 200, 200)), 200, 15000)
+  else if Magic.CastSpell(ERSSpell.ARCEUUS_HOME_TELEPORT) then
+    WaitUntil(ScriptWalker^.GetMyPos().InBox(Box(RSTeleports.CIS_NORTH_OF_THE_ARCEUUS_LIBRARY.worldPoint, 500, 500)), 200, 15000)
+  else raise "Couldn't go home!";
+
+  walkableBank := PRSWalkerObject(self.getConnectingBank(ScriptWalker^.GetMyPos()));
+  Bank.WalkOpen(walkableBank);
+end;
+
+
+function TUniversalTransport.run(teleportLocation: TTeleportLocation): Boolean; overload;
+var
+  didTeleport: Boolean;
+begin
+  Self.DebugLn('Trying to teleport to: ' + ToString(teleportLocation));
+
+  case teleportLocation.teleportType of
+    ETeleportType.JEWELLERY: didTeleport := self.handleJewelleryTeleport(teleportLocation);
+    ETeleportType.ANCIENT_MAGICKS,
+    ETeleportType.ARCEUUS_MAGIC,
+    ETeleportType.LUNAR_MAGIC,
+    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
+    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
+    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
+  end;
+
+  Exit(didTeleport);
+end;
+
+function TUniversalTransport.run(destination: TPoint): Boolean; overload;
+var
+  teleportLocation: TTeleportLocation;
+  didTeleport: Boolean;
+  attempt: Int32;
+begin
+  teleportLocation := self.getIdealTeleport(destination, RSTeleports.RSTeleportsArray);
+  Self.DebugLn('Ideal teleport found to be: ' + ToString(teleportLocation));
+
+  case teleportLocation.teleportType of
+    ETeleportType.JEWELLERY: didTeleport := self.handleJewelleryTeleport(teleportLocation);
+    ETeleportType.ANCIENT_MAGICKS,
+    ETeleportType.ARCEUUS_MAGIC,
+    ETeleportType.LUNAR_MAGIC,
+    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
+    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
+    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
+  end;
+
+  for attempt in [0..5] do
+  try
+    if didTeleport then
+    begin
+      ScriptWalker^.WebWalk(destination, 20);
+    end;
+  except
+    WaitUntil(RSNamedRegionsArray.Find(destination).Bounds.Contains(ScriptWalker^.GetMyPos()), 200, 5000);
+
+  if attempt = 5 then raise 'Bomba - rsw cannae connect lassie';
+  end;
+
+  Exit(didTeleport);
+end;
+
+// example usage/test
+//
+//var
+//  rsw: TRSWalker;
+//  Transport: TUniversalTransport;
+//  teleportLocation: TTeleportLocation := RSTeleports.GRAND_EXCHANGE;
+//begin
+//  try
+//    rsw.Setup();
+//    Transport.Init(EFairyTeleportItem.DRAMEN, 'ardougne cloak 2');
+//    if not Transport.run(teleportLocation) then
+//    begin
+//      Transport.desperateBankOpen();
+//      if not Transport.withdrawTeleportItem(teleportLocation) then
+//        raise 'You dont have the item needed for ' + teleportLocation.destination
+//      else Bank.Close(True);
+//      Transport.run(teleportLocation);
+//    end;
+//  except
+//    WriteLn 'We ending';
+//    WriteLn GetExceptionMessage();
+//  end;
+//end;

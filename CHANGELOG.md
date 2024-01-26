@@ -1,3 +1,12 @@
+## [16.11.4](https://github.com/Torwent/WaspLib/compare/v16.11.3...v16.11.4) (2024-01-26)
+
+
+### Bug Fixes
+
+* **FairyRing:** Teleport and WalkTeleport will now result true if we teleported from the context menu ([bd3bac1](https://github.com/Torwent/WaspLib/commit/bd3bac130b83bc31635dbcc207b5adde444899f1))
+
+
+
 ## [16.11.3](https://github.com/Torwent/WaspLib/compare/v16.11.2...v16.11.3) (2024-01-26)
 
 
@@ -32,15 +41,6 @@
 ### Features
 
 * **POHHandler:** read notes ([84ae889](https://github.com/Torwent/WaspLib/commit/84ae889b9fbd57244a2036fc856da8be1ca6d4ba))
-
-
-
-## [16.10.1](https://github.com/Torwent/WaspLib/compare/v16.10.0...v16.10.1) (2024-01-25)
-
-
-### Bug Fixes
-
-* **optional:** moved skunks transport to the optional directory ([1dc8fff](https://github.com/Torwent/WaspLib/commit/1dc8fff9994575252c48dcaed6d687004686dfea))
 
 
 

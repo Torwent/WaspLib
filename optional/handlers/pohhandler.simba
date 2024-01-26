@@ -10,9 +10,10 @@ POHHandler
 
 type
   ERSHouseRoom = (
-    STUDY_PARLOUR, GARDEN, IDK1, IDK2, ACHIEVEMENT_GALLERY,
-    QUEST_HALL, NEXUS, COMBAT, IDK3, MENAGERIE_OPEN,
-    MENAGERIE_CLOSED, COSTUME, ALTAR, SUPERIOR_GARDEN, PORTAL, KITCHEN_BEDROOM
+    UNKNOWN,
+    STUDY_PARLOUR, GARDEN, KITCHEN_BEDROOM, ACHIEVEMENT_GALLERY,
+    QUEST_NEXUS, COMBAT, MENAGERIE_OPEN, MENAGERIE_CLOSED,
+    COSTUME, ALTAR, PORTAL, SUPERIOR_GARDEN, WORKSHOP
   );
 
   ERSHouseRoomArray = array of ERSHouseRoom;
@@ -20,34 +21,90 @@ type
 
   TRSPOHHandler = record
     RoomsMap, Map: TMufasaBitmap;
+    RoomsBitmaps: array [ERSHouseRoom] of TMufasaBitmap;
     Rooms: E2DRSHouseRoomArray;
   end;
 
 procedure TRSPOHHandler.Free();
+var
+  room: ERSHouseRoom;
 begin
   Self.Map.Free();
   Self.RoomsMap.Free();
+  for room := ERSHouseRoom(0) to ERSHouseRoom(High(ERSHouseRoom)) do
+    if Self.RoomsBitmaps[room] <> nil then
+      Self.RoomsBitmaps[room].Free();
 end;
 
 procedure TRSPOHHandler.Init();
+var
+  i: Int32;
 begin
   Self.Map.Init();
   Self.Map.SetSize(248, 248);
   Self.RoomsMap.Init();
   Self.RoomsMap.LoadFromFile(WALKER_DIR + 'poh.png');
+  SetLength(Self.Rooms, 8);
+  for i := 0 to 7 do
+    SetLength(Self.Rooms[i], 8);
+
   AddOnTerminate(@Self.Free);
 end;
 
-function TRSPOHHandler.GetRoom(room: ERSHouseRoom; floorColor: Int32): TMufasaBitmap;
+function TRSPOHHandler.GetRoom(i: Int32): ERSHouseRoom;
+const
+  SIZE: Int32 = 31;
+begin
+  Result := ERSHouseRoom((i div SIZE) + 1);
+end;
+
+function TRSPOHHandler.GetRoomBox(room: ERSHouseRoom): TBox;
 const
   SIZE: Int32 = 31;
 var
   i: Int32;
 begin
-  i := Ord(room);
-  Result := Self.RoomsMap.Copy(i * (SIZE + 1), 0, i * (SIZE + 1) + SIZE, SIZE);
+  i := Ord(room)-1;
+  Result := [i * (SIZE + 1), 0, i * (SIZE + 1) + SIZE, SIZE];
+end;
+
+function TRSPOHHandler.GetRoomBitmap(room: ERSHouseRoom; floorColor: Int32): TMufasaBitmap;
+var
+  b: TBox;
+begin
+  if Self.RoomsBitmaps[room] = nil then
+  begin
+    b := Self.GetRoomBox(room);
+    Result := Self.RoomsMap.Copy(b.X1, b.Y1, b.X2, b.Y2);
+    Self.RoomsBitmaps[room] := Result.Copy();
+  end
+  else
+    Result := Self.RoomsBitmaps[room].Copy();
+
   Result.ReplaceColor($FFFFFF, floorColor);
 end;
+
+
+procedure TRSPOHHandler.WriteRoom(room: ERSHouseRoom; y, x: Int32);
+begin
+  if not InRange(y, 0, 7) then
+    TerminateScript('y has to be between 0 and 7, got: ' + ToStr(y));
+  if not InRange(x, 0, 7) then
+    TerminateScript('x has to be between 0 and 7, got: ' + ToStr(x));
+
+  Self.Rooms[y,x] := room;
+end;
+
+function TRSPOHHandler.ReadRoom(y, x: Int32): ERSHouseRoom;
+begin
+  if not InRange(y, 0, 7) then
+    TerminateScript('y has to be between 0 and 7, got: ' + ToStr(y));
+  if not InRange(x, 0, 7) then
+    TerminateScript('x has to be between 0 and 7, got: ' + ToStr(x));
+
+  Result := Self.Rooms[y,x];
+end;
+
 
 procedure TRSPOHHandler.CleanMinimap(bitmap: TMufasaBitmap); static;
 
@@ -126,68 +183,131 @@ begin
   bitmap.Free();
 end;
 
+function TRSPOHHandler._RotateRoom(bitmap: TMufasaBitmap; rotations: Int32): TMufasaBitmap;
+var
+  p: TPoint;
+begin
+  Result.Init();
+  bitmap.RotateBitmap(PI/2*rotations, Result);
+  for p.X := 0 to 3 do
+    for p.Y := 0 to 3 do
+      if Result.GetPixel(p.X, p.Y) <> 0 then
+        Break(2);
+
+  Result.Crop(p.X, p.Y, p.X + 31, p.Y + 31);
+end;
 
 procedure TRSPOHHandler.Setup();
 const
-  UNIQUE_ROOMS: ERSHouseRoomArray = [
-    ERSHouseRoom.SUPERIOR_GARDEN,
-    ERSHouseRoom.MENAGERIE_OPEN,
-    ERSHouseRoom.MENAGERIE_CLOSED
-  ];
-  OFFSETS: TPointArray = [
-    [-46, -10], [-46, -10],
-    [-46, -10], [-46, -10],
-    [-46, -10], [-46, -10]
-  ];
+  OFFSETS: TPointArray = [[-46, -10], [18, -10], [-46, -42], [-14, -42], [18, -42], [-14, 22]];
+  DRAW_OFFSETS: TPointArray = [[-22, 7], [42, 7], [-22, -25], [10, -25], [42, -25], [10, 39]];
 var
-  floorColor, i: Int32;
+  floorColor, grassColor, i, j, bestRotation: Int32;
   center, p: TPoint;
   room, tmp, crop, rooms, rotated: TMufasaBitmap;
   matrix, best: TSingleMatrix;
+  eRoom: ERSHouseRoom;
 begin
   tmp := TRSPOHHandler.GetCleanMinimap();
   center := tmp.getCenter();
-  floorColor := tmp.GetPixel(center.X, center.Y);
+  grassColor := tmp.GetPixel(center.X, center.Y);
 
-  room := Self.GetRoom(ERSHouseRoom.GARDEN, floorColor);
+  room := Self.GetRoomBitmap(ERSHouseRoom.GARDEN, grassColor);
+
   Self.Map.DrawBitmap(room, [93, 93]);
+  Self.WriteRoom(ERSHouseRoom.GARDEN, 93 div 32, 93 div 32);
   room.Free();
 
-  p := center.Offset([-46, -10]);
-  floorColor := tmp.GetPixel(p.X+5, p.Y+5);
-  crop.Init();
-
-  crop := tmp.Copy(p.X, p.Y, p.X+31, p.Y+31);
-  rooms.Init();
-  rooms.SetSize(Length(UNIQUE_ROOMS) * 32, 32);
-  for i := 0 to High(UNIQUE_ROOMS) do
+  for i := 0 to High(OFFSETS) do
   begin
-    room := Self.GetRoom(UNIQUE_ROOMS[i], floorColor);
-    rooms.DrawBitmap(room, [i * 32, 0]);
+    p := center.Offset(OFFSETS[i]);
+    floorColor := tmp.GetPixel(p.X+5, p.Y+5);
+
+    crop.Init();
+    crop := tmp.Copy(p.X, p.Y, p.X+31, p.Y+31);
+
+    crop.Pad(1);
+    rooms.Init();
+    rooms := Self.RoomsMap.Copy();
+    rooms.ReplaceColor($FFFFFF, floorColor);
+
+    for j := 0 to 3 do
+    begin
+      rotated := Self._RotateRoom(crop, j);
+      matrix := rooms.MatchTemplate(rotated, TM_CCOEFF_NORMED);
+
+      if matrix.Max() > best.Max() then
+      begin
+        case Self.GetRoom(matrix.ArgMax().X) of
+          ERSHouseRoom.GARDEN, ERSHouseRoom.MENAGERIE_OPEN,
+          ERSHouseRoom.SUPERIOR_GARDEN:
+            if grassColor <> floorColor then
+            begin
+              rotated.Free();
+              Continue;
+            end;
+          else if grassColor = floorColor then
+            begin
+              rotated.Free();
+              Continue;
+            end;
+        end;
+
+        best := matrix;
+        bestRotation := j;
+      end;
+      rotated.Free();
+    end;
+
+    crop.Free();
+
+    p := best.ArgMax();
+    eRoom := Self.GetRoom(p.X);
+    crop := Self.GetRoomBitmap(eRoom, floorColor);
+    crop.Pad(1);
+    rotated := Self._RotateRoom(crop, -bestRotation);
+
+    p := center.Offset(DRAW_OFFSETS[i]);
+    Self.Map.DrawBitmap(rotated, p);
+    Self.WriteRoom(eRoom, p.Y div 32, p.X div 32);
+    best := [];
     room.Free();
+    rooms.Free();
   end;
 
-  for i := 0 to 3 do
-  begin
-    rotated.Init();
-    crop.RotateBitmap(PI/2*i, rotated);
-
-    matrix := rooms.MatchTemplate(rotated, TM_CCOEFF_NORMED);
-    if matrix.Max > best.Max then
-      best := matrix;
-    rotated.Free();
-  end;
-
-  p := best.ArgMax();
-  room := rooms.Copy(p.X, p.Y, p.X + 31, p.Y + 31);
-  rooms.Free();
-  room.Debug();
-  room.Free();
-  crop.Free();
-
-  //tmp.Debug();
   tmp.Free();
 end;
+
+
+function TRSPOHHandler.GetMappedRoom(p: TPoint): ERSHouseRoom;
+begin
+  Result := Self.ReadRoom((p.Y div 32) - 1 , (p.X div 32) - 1);
+end;
+
+function TRSPOHHandler.GetPos(): TPoint;
+var
+  sample: TMufasaBitmap;
+  b: TBox;
+  matrix: TSingleMatrix;
+begin
+  sample := Self.GetCleanMinimap();
+  b := Box(sample.getCenter().Offset(2, 5), 20, 20);
+  sample.Crop(b.X1, b.Y1, b.X2, b.Y2);
+
+  matrix := Self.Map.MatchTemplate(sample, TM_CCOEFF_NORMED);
+
+  Result := matrix.ArgMax().Offset(17, 15);
+
+  Self.Map.DrawTPA([Result], $FF00FF);
+  Self.Map.Debug();
+  sample.Free();
+end;
+
+function TRSPOHHandler.GetCurrentRoom(): ERSHouseRoom;
+begin
+  Result := Self.GetMappedRoom(Self.GetPos());
+end;
+
 
 var
   POHHandler: TRSPOHHandler;
@@ -199,4 +319,13 @@ begin
   POHHandler.Init();
 end;
 
+(*
+var
+  p: TPoint;
+begin
+  ClearDebug();
+  POHHandler.Setup();
+  WriteLn POHHandler.GetPos();
+end;
+*)
 

@@ -1,3 +1,12 @@
+## [16.11.1](https://github.com/Torwent/WaspLib/compare/v16.11.0...v16.11.1) (2024-01-26)
+
+
+### Bug Fixes
+
+* **fairy ring:** should now be able to teleport to zanaris ([f9c9169](https://github.com/Torwent/WaspLib/commit/f9c916982d95a557d5e404ca0270fb89726ca521))
+
+
+
 # [16.11.0](https://github.com/Torwent/WaspLib/compare/v16.10.1...v16.11.0) (2024-01-26)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TRSFairyRing:** now wields dramen/lunar staff if present ([61f4d9d](https://github.com/Torwent/WaspLib/commit/61f4d9dd663eb76baf8d4e8552dbf39bba00cc64))
-
-
-
-# [16.8.0](https://github.com/Torwent/WaspLib/compare/v16.7.2...v16.8.0) (2024-01-24)
-
-
-### Features
-
-* **TRSFairyRing:** 🧚Fairy rings interface is finished ([fcf6921](https://github.com/Torwent/WaspLib/commit/fcf6921f95d91da9c5faee9bac1ad26b8cfe3d9a))
 
 
 

@@ -1,3 +1,12 @@
+## [16.11.2](https://github.com/Torwent/WaspLib/compare/v16.11.1...v16.11.2) (2024-01-26)
+
+
+### Bug Fixes
+
+* **FairyRings:** FairyRing.HandleItem() now attempts twice before setting the fairy ring staff as "null" ([40c1719](https://github.com/Torwent/WaspLib/commit/40c17196616944753166fb4782f971d375ee0da8))
+
+
+
 ## [16.11.1](https://github.com/Torwent/WaspLib/compare/v16.11.0...v16.11.1) (2024-01-26)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TRSPOHHandler:** Initial commit containing the future POH Handler. ([f602ff3](https://github.com/Torwent/WaspLib/commit/f602ff393ddac87f398a199c15a632ca69bee783))
-
-
-
-# [16.9.0](https://github.com/Torwent/WaspLib/compare/v16.8.0...v16.9.0) (2024-01-25)
-
-
-### Features
-
-* **TRSFairyRing:** now wields dramen/lunar staff if present ([61f4d9d](https://github.com/Torwent/WaspLib/commit/61f4d9dd663eb76baf8d4e8552dbf39bba00cc64))
 
 
 

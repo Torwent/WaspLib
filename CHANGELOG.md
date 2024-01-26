@@ -1,3 +1,12 @@
+# [16.11.0](https://github.com/Torwent/WaspLib/compare/v16.10.1...v16.11.0) (2024-01-26)
+
+
+### Features
+
+* **POHHandler:** read notes ([84ae889](https://github.com/Torwent/WaspLib/commit/84ae889b9fbd57244a2036fc856da8be1ca6d4ba))
+
+
+
 ## [16.10.1](https://github.com/Torwent/WaspLib/compare/v16.10.0...v16.10.1) (2024-01-25)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TRSFairyRing:** 🧚Fairy rings interface is finished ([fcf6921](https://github.com/Torwent/WaspLib/commit/fcf6921f95d91da9c5faee9bac1ad26b8cfe3d9a))
-
-
-
-## [16.7.2](https://github.com/Torwent/WaspLib/compare/v16.7.1...v16.7.2) (2024-01-24)
-
-
-### Bug Fixes
-
-* read notes ([36e5223](https://github.com/Torwent/WaspLib/commit/36e5223c9f2980ebb7b01927019e2428f250a0cc))
 
 
 

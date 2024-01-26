@@ -1,3 +1,13 @@
+## [16.11.3](https://github.com/Torwent/WaspLib/compare/v16.11.2...v16.11.3) (2024-01-26)
+
+
+### Bug Fixes
+
+* **FairyRing:** tweaks to fix some odd behaviour Flight found out ([5d2e2e8](https://github.com/Torwent/WaspLib/commit/5d2e2e853e47819c1ddb571fc679483453b9748f))
+* oops ([87e589b](https://github.com/Torwent/WaspLib/commit/87e589b3226ba1b66fc3162e92e1bb820f12fbcf))
+
+
+
 ## [16.11.2](https://github.com/Torwent/WaspLib/compare/v16.11.1...v16.11.2) (2024-01-26)
 
 
@@ -31,15 +41,6 @@
 ### Bug Fixes
 
 * **optional:** moved skunks transport to the optional directory ([1dc8fff](https://github.com/Torwent/WaspLib/commit/1dc8fff9994575252c48dcaed6d687004686dfea))
-
-
-
-# [16.10.0](https://github.com/Torwent/WaspLib/compare/v16.9.0...v16.10.0) (2024-01-25)
-
-
-### Features
-
-* **TRSPOHHandler:** Initial commit containing the future POH Handler. ([f602ff3](https://github.com/Torwent/WaspLib/commit/f602ff393ddac87f398a199c15a632ca69bee783))
 
 
 

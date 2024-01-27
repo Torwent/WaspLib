@@ -1,3 +1,12 @@
+## [16.11.6](https://github.com/Torwent/WaspLib/compare/v16.11.5...v16.11.6) (2024-01-27)
+
+
+### Bug Fixes
+
+* **POHHandler:** reworked what I did yesterday to be better ([223551f](https://github.com/Torwent/WaspLib/commit/223551fba62f5f1e02322b74bb62405d4003dae9))
+
+
+
 ## [16.11.5](https://github.com/Torwent/WaspLib/compare/v16.11.4...v16.11.5) (2024-01-27)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **FairyRings:** FairyRing.HandleItem() now attempts twice before setting the fairy ring staff as "null" ([40c1719](https://github.com/Torwent/WaspLib/commit/40c17196616944753166fb4782f971d375ee0da8))
-
-
-
-## [16.11.1](https://github.com/Torwent/WaspLib/compare/v16.11.0...v16.11.1) (2024-01-26)
-
-
-### Bug Fixes
-
-* **fairy ring:** should now be able to teleport to zanaris ([f9c9169](https://github.com/Torwent/WaspLib/commit/f9c916982d95a557d5e404ca0270fb89726ca521))
 
 
 

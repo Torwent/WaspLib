@@ -1,3 +1,12 @@
+## [16.11.5](https://github.com/Torwent/WaspLib/compare/v16.11.4...v16.11.5) (2024-01-27)
+
+
+### Bug Fixes
+
+* **FairyRing:** calling FairyRing.HandleItem is now up to the scripter ([7f6a5ee](https://github.com/Torwent/WaspLib/commit/7f6a5ee6d4481f4e93639ba0ae481aeabf51c53a))
+
+
+
 ## [16.11.4](https://github.com/Torwent/WaspLib/compare/v16.11.3...v16.11.4) (2024-01-26)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **fairy ring:** should now be able to teleport to zanaris ([f9c9169](https://github.com/Torwent/WaspLib/commit/f9c916982d95a557d5e404ca0270fb89726ca521))
-
-
-
-# [16.11.0](https://github.com/Torwent/WaspLib/compare/v16.10.1...v16.11.0) (2024-01-26)
-
-
-### Features
-
-* **POHHandler:** read notes ([84ae889](https://github.com/Torwent/WaspLib/commit/84ae889b9fbd57244a2036fc856da8be1ca6d4ba))
 
 
 

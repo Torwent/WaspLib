@@ -1,3 +1,12 @@
+## [16.11.7](https://github.com/Torwent/WaspLib/compare/v16.11.6...v16.11.7) (2024-01-28)
+
+
+### Bug Fixes
+
+* **POHHandler:** very early but can already be used to some extent ([61d2b98](https://github.com/Torwent/WaspLib/commit/61d2b98bce36f8a8f9d6cdf4c8de8e4f8ead5e6e))
+
+
+
 ## [16.11.6](https://github.com/Torwent/WaspLib/compare/v16.11.5...v16.11.6) (2024-01-27)
 
 
@@ -32,15 +41,6 @@
 
 * **FairyRing:** tweaks to fix some odd behaviour Flight found out ([5d2e2e8](https://github.com/Torwent/WaspLib/commit/5d2e2e853e47819c1ddb571fc679483453b9748f))
 * oops ([87e589b](https://github.com/Torwent/WaspLib/commit/87e589b3226ba1b66fc3162e92e1bb820f12fbcf))
-
-
-
-## [16.11.2](https://github.com/Torwent/WaspLib/compare/v16.11.1...v16.11.2) (2024-01-26)
-
-
-### Bug Fixes
-
-* **FairyRings:** FairyRing.HandleItem() now attempts twice before setting the fairy ring staff as "null" ([40c1719](https://github.com/Torwent/WaspLib/commit/40c17196616944753166fb4782f971d375ee0da8))
 
 
 

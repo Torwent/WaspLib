@@ -201,6 +201,15 @@ begin
 end;
 
 
+function TRSPOHHandler.GetMinimapRoomCoordinate(topLeft, p: TPoint; angle: Double): TPoint;
+begin
+  if not InRange(p.X, 0, 32) or not InRange(p.Y, 0, 32) then
+    TerminateScript(ToStr(p) + ' is not wthin the room you want to check.');
+
+  Result := topLeft + p + [Minimap.X1(), Minimap.Y1()] - [10, 10];
+  Result := p.Rotate(angle, Minimap.Center());
+end;
+
 function TRSPOHHandler.RotateRoom(bitmap: TMufasaBitmap; rotation: Int32): TMufasaBitmap;
 var
   p: TPoint;
@@ -218,9 +227,9 @@ begin
   Result.Crop(p.X, p.Y, p.X + 31, p.Y + 31);
 end;
 
-procedure TRSPOHHandler.MapAdjacentRooms(minimapBMP: TMufasaBitmap; topLeft, currentRoom: TPoint);
+procedure TRSPOHHandler.MapAdjacentRooms(minimapBMP: TMufasaBitmap; topLeft, currentRoom: TPoint; angle: Double);
 const
-  COLOR_OFFSETS: TPointArray = [[5,5], [26,5], [26,26], [5, 26]];
+  FLOOR_COLOR_OFFSETS: TPointArray = [[5,5], [26,5], [26,26], [5, 26]];
 var
   minimapTPA, localTPA: TPointArray;
   p: TPoint;
@@ -242,7 +251,7 @@ begin
 
     crop := minimapBMP.Copy(p.X, p.Y, p.X + Self.SIZE-1, p.Y + Self.SIZE-1);
 
-    colors := crop.GetPixels(COLOR_OFFSETS);
+    colors := crop.GetPixels(FLOOR_COLOR_OFFSETS);
     floor := colors.GetMostCommon();
 
     for j := 1 to Ord(High(ERSHouseRoom)) do
@@ -256,6 +265,12 @@ begin
       sample.Pad(1);
       for r := 0 to 3 do
       begin
+        if i = 2 then
+        begin
+          Self.GetMinimapRoomCoordinate(p, [5,5], angle);
+          //CHECK MAINSCREEN!
+        end;
+
         rotated := Self.RotateRoom(sample, j);
         matrix := crop.MatchTemplate(rotated, TM_CCOEFF_NORMED);
 
@@ -315,8 +330,9 @@ procedure TRSPOHHandler.Setup();
 var
   minimapBMP: TMufasaBitmap;
   center, topLeft: TPoint;
+  angle: Double;
 begin
-  minimapBMP := TRSPOHHandler.GetCleanMinimap();
+  minimapBMP := TRSPOHHandler.GetCleanMinimap(angle);
   center := minimapBMP.getCenter();
   Self.GrassColor := minimapBMP.GetPixel(center.X, center.Y);
   minimapBMP.ReplaceColor(1, Self.GrassColor);
@@ -325,7 +341,7 @@ begin
 
   Self.DrawMap(ERSHouseRoom.GARDEN, Self.GrassColor, Self.AMOUNT div 2, Self.AMOUNT div 2);
   topLeft := center.Offset(-14, -10);
-  Self.MapAdjacentRooms(minimapBMP, topLeft, [Self.AMOUNT div 2, Self.AMOUNT div 2]);
+  Self.MapAdjacentRooms(minimapBMP, topLeft, [Self.AMOUNT div 2, Self.AMOUNT div 2], angle);
 
   minimapBMP.Free();
 end;
@@ -338,13 +354,13 @@ begin
 end;
 
 
-procedure TRSPOHHandler.LoadSuroundings(minimapBMP: TMufasaBitmap; p: TPoint);
+procedure TRSPOHHandler.LoadSuroundings(minimapBMP: TMufasaBitmap; p: TPoint; angle: double);
 var
   topLeft: TPoint;
 begin
   topLeft := p - Self.GetMappedRoomTopLeft(p);
   topLeft := minimapBMP.getCenter() - topLeft - [1,0];
-  Self.MapAdjacentRooms(minimapBMP, topLeft, Self.GetMappedRoomIndices(p));
+  Self.MapAdjacentRooms(minimapBMP, topLeft, Self.GetMappedRoomIndices(p), angle);
 end;
 
 
@@ -357,7 +373,7 @@ var
   resultSM, resultLG: TPointArray;
   i, s: Int32;
 begin
-  s := sampleSize div 2;
+  s := 20;
   offset := minimapBMP.getCenter().Offset(2, 5);
   b := Box(offset, s, s);
   sampleSM := minimapBMP.Copy(b.X1, b.Y1, b.X2, b.Y2);
@@ -374,7 +390,7 @@ begin
   begin
     with matrixSM.ArgMax() do
     begin
-      resultSM += [X - s, Y - s];
+      resultSM += [X - (sampleSize - s), Y - (sampleSize - s)];
       matrixSM.Fill([X - 5, Y - 5, X + 5, Y + 5], 0);
     end;
 
@@ -384,6 +400,7 @@ begin
       matrixLG.Fill([X - 5, Y - 5, X + 5, Y + 5], 0);
     end;
 
+    WriteLn(resultSM[i-1], ' and ', resultLG[i-1]);
     if resultSM[i-1] = resultLG[i-1] then
       Break;
   end;
@@ -400,13 +417,14 @@ const
   SAMPLE_SIZE: Int32 = 50;
 var
   minimapBMP: TMufasaBitmap;
+  angle: Double;
 begin
-  minimapBMP := TRSPOHHandler.GetCleanMinimap();
+  minimapBMP := TRSPOHHandler.GetCleanMinimap(angle);
   minimapBMP.ReplaceColor(1, Self.GrassColor);
 
   Result := Self.SampleSearch(minimapBMP, SAMPLE_SIZE);
   Result := Result.Offset(SAMPLE_SIZE - 3, SAMPLE_SIZE - 5);
-  Self.LoadSuroundings(minimapBMP, Result);
+  Self.LoadSuroundings(minimapBMP, Result, angle);
   minimapBMP.Free();
 end;
 
@@ -416,14 +434,15 @@ const
 var
   minimapBMP, display: TMufasaBitmap;
   p: TPoint;
+  angle: Double;
 begin
-  minimapBMP := TRSPOHHandler.GetCleanMinimap();
+  minimapBMP := TRSPOHHandler.GetCleanMinimap(angle);
   minimapBMP.ReplaceColor(1, Self.GrassColor);
 
   p := Self.SampleSearch(minimapBMP, SAMPLE_SIZE);
   p := p.Offset(SAMPLE_SIZE - 3, SAMPLE_SIZE - 5);
 
-  Self.LoadSuroundings(minimapBMP, p);
+  Self.LoadSuroundings(minimapBMP, p, angle);
 
   display.Init();
   display.SetSize(Self.Map.getWidth() + minimapBMP.getWidth() + 300, Self.Map.getHeight());
@@ -463,11 +482,9 @@ begin
 end;
 
 
-(*
 begin
   ClearDebug();
   POHHandler.Setup();
   while True do
     POHHandler.DebugPos();
 end;
-*)

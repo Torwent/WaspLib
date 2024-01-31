@@ -18,11 +18,20 @@ type
   ERSHouseRoomArray = array of ERSHouseRoom;
   E2DRSHouseRoomArray = array of ERSHouseRoomArray;
 
+  TRoomObject = record
+    UpText: String;
+    Coordinates: TPointArray;
+    Finder: TRSObjectFinder;
+  end;
+
+  TRoomObjectArray = array of TRoomObject;
+
   TRSPOHHandler = record
     AMOUNT, SIZE: Int32;
     RoomsMap, Map: TMufasaBitmap;
     RoomsBitmaps: array [ERSHouseRoom] of TMufasaBitmap;
     Rooms: E2DRSHouseRoomArray;
+    RoomObjects: array [ERSHouseRoom] of TRoomObjectArray;
     GrassColor: Int32;
     Similarity: Double;
   end;
@@ -121,7 +130,7 @@ begin
 end;
 
 
-procedure TRSPOHHandler.PrintRooms();
+procedure TRSPOHHandler.PrintRooms(); //for debugging...
 var
   str: String;
   i, j: Int32;
@@ -201,14 +210,57 @@ begin
 end;
 
 
-function TRSPOHHandler.GetMinimapRoomCoordinate(topLeft, p: TPoint; angle: Double): TPoint;
+function TRSPOHHandler.GetMinimapRoomCoordinate(topLeft, p: TPoint; angle: Double; rotation: Int32): TPoint;
+var
+  roomCenter: TPoint;
 begin
   if not InRange(p.X, 0, 32) or not InRange(p.Y, 0, 32) then
     TerminateScript(ToStr(p) + ' is not wthin the room you want to check.');
 
   Result := topLeft + p + [Minimap.X1(), Minimap.Y1()] - [10, 10];
-  Result := p.Rotate(angle, Minimap.Center());
+  Result := Result.Rotate(angle, Minimap.Center());
+
+  if rotation = 0 then
+    Exit;
+
+  roomCenter := topLeft + [16, 16] + [Minimap.X1(), Minimap.Y1()] - [10, 10];
+  roomCenter := roomCenter.Rotate(angle, Minimap.Center());
+  Result := Result.Rotate(PI/2 * rotation, roomCenter);
 end;
+
+function TRSPOHHandler.GetCuboid(topLeft, p: TPoint; tile: Vector3; angle: Double; rotation: Int32): TCuboidEx;
+begin
+  p := Self.GetMinimapRoomCoordinate(topLeft, p, angle, rotation);
+  Result := Minimap.GetCuboidMS(p, tile);
+end;
+
+function TRSPOHHandler.ContainsPool(topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+var
+  cuboid: TCuboidEx;
+  b: TBox;
+begin
+  cuboid := Self.GetCuboid(topLeft, [4,4], [1.5, 1.5, 6], angle, rotation);
+  b := cuboid.Bounds();
+  b.LimitTo(MainScreen.Bounds());
+  Result := SRL.CountColor(CTS2(11514040, 19, 0.10, 0.13), b) > 10;
+end;
+
+function TRSPOHHandler.ContainsJewelleryBox(topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+var
+  cuboid: TCuboidEx;
+  b: TBox;
+begin
+  cuboid := Self.GetCuboid(topLeft, [4,4], [2, 2, 6], angle, rotation);
+  b := cuboid.Bounds();
+  b.LimitTo(MainScreen.Bounds());
+  (* ALTAR
+  Result := (SRL.CountColor(CTS2(12307635, 19, 1.36, 0.91), b) +
+            SRL.CountColor(CTS2(7575724, 13, 0.04, 0.79), b)) > 10;
+  *)
+  Result := (SRL.CountColor(CTS2(1287353, 17, 0.02, 0.72), b) +
+            SRL.CountColor(CTS2(530791, 8, 0.24, 2.28), b)) > 10;
+end;
+
 
 function TRSPOHHandler.RotateRoom(bitmap: TMufasaBitmap; rotation: Int32): TMufasaBitmap;
 var
@@ -217,8 +269,10 @@ begin
   if rotation = 0 then
     Exit(bitmap.Copy());
 
+  bitmap.Pad(1);
   Result.Init();
   bitmap.RotateBitmap(PI/2*rotation, Result);
+
   for p.X := 0 to 3 do
     for p.Y := 0 to 3 do
       if Result.GetPixel(p.X, p.Y) <> 0 then
@@ -238,7 +292,8 @@ var
   colors: TIntegerArray;
   bestRoom: ERSHouseRoom;
   matrix: TSingleMatrix;
-  bestMatch: Single;
+  match, bestMatch: Single;
+  hasCoreObject: Boolean;
 begin
   localTPA := Self.GetAdjacentRoomsIndices(currentRoom);
   minimapTPA := Self.GetAdjacentRoomsMinimap(topLeft);
@@ -262,25 +317,32 @@ begin
       end;
 
       sample := Self.GetRoomBitmap(ERSHouseRoom(j), floor);
-      sample.Pad(1);
       for r := 0 to 3 do
       begin
-        if i = 2 then
-        begin
-          Self.GetMinimapRoomCoordinate(p, [5,5], angle);
-          //CHECK MAINSCREEN!
+        rotated := Self.RotateRoom(sample, r);
+        (*
+        WriteLn ERSHouseRoom(j);
+        rotated.Debug();
+        Wait(500);
+        *)
+
+        case j of
+          2: hasCoreObject := Self.ContainsPool(p, angle, r);
+          7: hasCoreObject := Self.ContainsJewelleryBox(p, angle, r);
         end;
 
-        rotated := Self.RotateRoom(sample, j);
         matrix := crop.MatchTemplate(rotated, TM_CCOEFF_NORMED);
+        match := matrix.Max();
+        if hasCoreObject then
+          match += 0.2;
 
-        if matrix.Max() > bestMatch then
+        if match > bestMatch then
         begin
           if bestBMP <> nil then
             bestBMP.Free();
 
           bestBMP := rotated;
-          bestMatch := matrix.Max();
+          bestMatch := match;
           bestRoom := ERSHouseRoom(j);
           Continue;
         end;
@@ -400,7 +462,6 @@ begin
       matrixLG.Fill([X - 5, Y - 5, X + 5, Y + 5], 0);
     end;
 
-    WriteLn(resultSM[i-1], ' and ', resultLG[i-1]);
     if resultSM[i-1] = resultLG[i-1] then
       Break;
   end;
@@ -457,7 +518,6 @@ begin
   display.setFontSize(10);
   display.DrawText('Pos:' + ToStr(p), [Self.Map.getWidth()+10, minimapBMP.getHeight() + 40], $FFFFFF);
 
-
   display.DrawCrosshairs(p, 1, $FFFFFF);
   display.Debug();
 
@@ -482,9 +542,11 @@ begin
 end;
 
 
+(*
 begin
   ClearDebug();
   POHHandler.Setup();
   while True do
     POHHandler.DebugPos();
 end;
+*)

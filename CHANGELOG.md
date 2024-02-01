@@ -1,3 +1,12 @@
+## [16.11.10](https://github.com/Torwent/WaspLib/compare/v16.11.9...v16.11.10) (2024-02-01)
+
+
+### Bug Fixes
+
+* **RSRegions:** is now a regular record without class vars ([8e57df6](https://github.com/Torwent/WaspLib/commit/8e57df62e504f0057c940df7abab22736b41d03b))
+
+
+
 ## [16.11.9](https://github.com/Torwent/WaspLib/compare/v16.11.8...v16.11.9) (2024-01-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **POHHandler:** reworked what I did yesterday to be better ([223551f](https://github.com/Torwent/WaspLib/commit/223551fba62f5f1e02322b74bb62405d4003dae9))
-
-
-
-## [16.11.5](https://github.com/Torwent/WaspLib/compare/v16.11.4...v16.11.5) (2024-01-27)
-
-
-### Bug Fixes
-
-* **FairyRing:** calling FairyRing.HandleItem is now up to the scripter ([7f6a5ee](https://github.com/Torwent/WaspLib/commit/7f6a5ee6d4481f4e93639ba0ae481aeabf51c53a))
 
 
 

@@ -1,3 +1,12 @@
+## [16.11.13](https://github.com/Torwent/WaspLib/compare/v16.11.12...v16.11.13) (2024-02-02)
+
+
+### Bug Fixes
+
+* **pohhandler:** improved api for interacting with house objects ([b8e7f45](https://github.com/Torwent/WaspLib/commit/b8e7f45853123fbabc17be7b8f9556b1fddea7dc))
+
+
+
 ## [16.11.12](https://github.com/Torwent/WaspLib/compare/v16.11.11...v16.11.12) (2024-02-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **POHHandler:** lots of small corrections ([cf1d2f7](https://github.com/Torwent/WaspLib/commit/cf1d2f732e5340fb8762bd747a14bcd0915f14b8))
-
-
-
-## [16.11.8](https://github.com/Torwent/WaspLib/compare/v16.11.7...v16.11.8) (2024-01-31)
-
-
-### Bug Fixes
-
-* added fountain of rune region and webgraph ([1a3e651](https://github.com/Torwent/WaspLib/commit/1a3e651c9eb7a71eb520acf38089e398cd720216))
 
 
 

@@ -1,3 +1,12 @@
+## [16.11.12](https://github.com/Torwent/WaspLib/compare/v16.11.11...v16.11.12) (2024-02-02)
+
+
+### Bug Fixes
+
+* **POHHandler:** read notes ([5fc3504](https://github.com/Torwent/WaspLib/commit/5fc3504b81296c739c7e19d7be9b41dc237f68ad))
+
+
+
 ## [16.11.11](https://github.com/Torwent/WaspLib/compare/v16.11.10...v16.11.11) (2024-02-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added fountain of rune region and webgraph ([1a3e651](https://github.com/Torwent/WaspLib/commit/1a3e651c9eb7a71eb520acf38089e398cd720216))
-
-
-
-## [16.11.7](https://github.com/Torwent/WaspLib/compare/v16.11.6...v16.11.7) (2024-01-28)
-
-
-### Bug Fixes
-
-* **POHHandler:** very early but can already be used to some extent ([61d2b98](https://github.com/Torwent/WaspLib/commit/61d2b98bce36f8a8f9d6cdf4c8de8e4f8ead5e6e))
 
 
 

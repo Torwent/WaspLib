@@ -1,270 +1,118 @@
 {$DEFINE WL_ALCH_HANDLER_INCLUDED}
 {$IFNDEF WL_OSR}
-  {$I WaspLib/optional.simba}
+  {$I WaspLib/osr.simba}
 {$ENDIF}
 
-type RSAlchHandler = record(TSRLBaseRecord) class var
-  Item: TRSItem;
-  ItemArray: TRSItemArray;
-  Timer: TCountDown;
-  SlotUnder, LowProfit, HighProfit, TotalProfit: Int32;
-  Disabled: Boolean;
-end;
+type
+  TRSAlchHandler = record(TSRLBaseRecord)
+    Item: TRSItem;
+    ItemArray: TRSItemArray;
+    Timer: TCountDown;
+    SlotUnder, LowProfit, HighProfit, TotalProfit: Int32;
+    Disabled: Boolean;
+  end;
 
-procedure RSAlchHandler.DebugLn(text: String); constref; override;
-begin
-  WriteLn SRL.TimeStamp() + ':[RSAlchHandler]: ' + text;
-end;
-
-procedure RSAlchHandler.Fatal(text: String); constref; override;
-begin
-  TerminateScript(SRL.TimeStamp() + ':[RSAlchHandler]:[Fatal]: ' + text);
-end;
-
-{$IFHASFILE Data/WaspLib/configs/alch_handler.simba}
-  {$I Data/WaspLib/configs/alch_handler.simba}
-{$ENDIF}
-
-procedure RSAlchHandler.Setup(); static;
+procedure TRSAlchHandler.Setup();
 var
   settings: TStringArray;
   str: String;
   i: Int32;
 begin
-  if RSAlchHandler.ItemArray = [] then
-  begin
-    RSAlchHandler.ItemArray := [
-      'abyssal bracelet(5)',
-      'adamant platebody',
-      'air battlestaff',
-      'amulet of glory',
-      'amulet of glory(4)',
-      'black d''hide body',
-      'black d''hide chaps',
-      'black d''hide shield',
-      'black d''hide vambraces',
-      'blue d''hide body',
-      'blue d''hide chaps',
-      'blue d''hide shield',
-      'blue d''hide vambraces',
-      'combat bracelet',
-      'combat bracelet(4)',
-      'diamond bracelet',
-      'dragon axe',
-      'dragon battleaxe',
-      'dragon cane',
-      'dragon chainbody',
-      'dragon dagger',
-      'dragon dagger(p+)',
-      'dragon halberd',
-      'dragon hasta',
-      'dragon longsword',
-      'dragon mace',
-      'dragon med helm',
-      'dragon platelegs',
-      'dragon plateskirt',
-      'dragon scimitar',
-      'dragon spear',
-      'dragon sq shield',
-      'dragon sword',
-      'dragonstone ring',
-      'earth battlestaff',
-      'fire battlestaff',
-      'green d''hide body',
-      'green d''hide chaps',
-      'green d''hide shield',
-      'green d''hide vambraces',
-      'lava battlestaff',
-      'magic longbow',
-      'mithril platebody',
-      'mud battlestaff',
-      'mystic air staff',
-      'mystic boots',
-      'mystic boots (dark)',
-      'mystic boots (light)',
-      'mystic earth staff',
-      'mystic fire staff',
-      'mystic gloves',
-      'mystic gloves (dark)',
-      'mystic gloves (light)',
-      'mystic hat',
-      'mystic hat (dark)',
-      'mystic hat (light)',
-      'mystic lava staff',
-      'mystic mud staff',
-      'mystic robe bottom',
-      'mystic robe bottom (dark)',
-      'mystic robe bottom (light)',
-      'mystic robe top',
-      'mystic robe top (dark)',
-      'mystic robe top (light)',
-      'mystic water staff',
-      'noted abyssal bracelet(5)',
-      'noted adamant platebody',
-      'noted air battlestaff',
-      'noted amulet of glory',
-      'noted amulet of glory(4)',
-      'noted black d''hide body',
-      'noted black d''hide chaps',
-      'noted black d''hide shield',
-      'noted black d''hide vambraces',
-      'noted blue d''hide body',
-      'noted blue d''hide chaps',
-      'noted blue d''hide shield',
-      'noted blue d''hide vambraces',
-      'noted combat bracelet',
-      'noted combat bracelet(4)',
-      'noted diamond bracelet',
-      'noted dragon axe',
-      'noted dragon battleaxe',
-      'noted dragon cane',
-      'noted dragon chainbody',
-      'noted dragon dagger',
-      'noted dragon dagger(p+)',
-      'noted dragon halberd',
-      'noted dragon hasta',
-      'noted dragon longsword',
-      'noted dragon mace',
-      'noted dragon med helm',
-      'noted dragon platelegs',
-      'noted dragon plateskirt',
-      'noted dragon scimitar',
-      'noted dragon spear',
-      'noted dragon sq shield',
-      'noted dragon sword',
-      'noted dragonstone ring',
-      'noted earth battlestaff',
-      'noted fire battlestaff',
-      'noted green d''hide body',
-      'noted green d''hide chaps',
-      'noted green d''hide shield',
-      'noted green d''hide vambraces',
-      'noted lava battlestaff',
-      'noted magic longbow',
-      'noted magic longbow (u)',
-      'noted magic shortbow (u)',
-      'noted maple longbow (u)',
-      'noted maple shortbow (u)',
-      'noted mithril platebody',
-      'noted mud battlestaff',
-      'noted mystic air staff',
-      'noted mystic boots',
-      'noted mystic boots (dark)',
-      'noted mystic boots (light)',
-      'noted mystic earth staff',
-      'noted mystic fire staff',
-      'noted mystic gloves',
-      'noted mystic gloves (dark)',
-      'noted mystic gloves (light)',
-      'noted mystic hat',
-      'noted mystic hat (dark)',
-      'noted mystic hat (light)',
-      'noted mystic lava staff',
-      'noted mystic mud staff',
-      'noted mystic robe bottom',
-      'noted mystic robe bottom (dark)',
-      'noted mystic robe bottom (light)',
-      'noted mystic robe top',
-      'noted mystic robe top (dark)',
-      'noted mystic robe top (light)',
-      'noted mystic water staff',
-      'noted red d''hide body',
-      'noted red d''hide chaps',
-      'noted red d''hide shield',
-      'noted red d''hide vambraces',
-      'noted ring of wealth',
-      'noted ring of wealth (4)',
-      'noted rune 2h sword',
-      'noted rune axe',
-      'noted rune battleaxe',
-      'noted rune boots',
-      'noted rune cane',
-      'noted rune chainbody',
-      'noted rune claws',
-      'noted rune crossbow',
-      'noted rune dagger',
-      'noted rune dagger(p+)',
-      'noted rune full helm',
-      'noted rune halberd',
-      'noted rune hasta',
-      'noted rune kiteshield',
-      'noted rune longsword',
-      'noted rune mace',
-      'noted rune med helm',
-      'noted rune pickaxe',
-      'noted rune platebody',
-      'noted rune platelegs',
-      'noted rune plateskirt',
-      'noted rune scimitar',
-      'noted rune spear',
-      'noted rune sq shield',
-      'noted rune sword',
-      'noted rune warhammer',
-      'noted runite crossbow (u)',
-      'noted runite limbs',
-      'noted skills necklace',
-      'noted skills necklace(4)',
-      'noted steel platebody',
-      'noted water battlestaff',
-      'noted yew longbow',
-      'noted yew longbow (u)',
-      'noted yew shortbow (u)',
-      'onyx bolts (e)',
-      'red d''hide body',
-      'red d''hide chaps',
-      'red d''hide shield',
-      'red d''hide vambraces',
-      'ring of wealth',
-      'ring of wealth (4)',
-      'rune 2h sword',
-      'rune axe',
-      'rune battleaxe',
-      'rune boots',
-      'rune cane',
-      'rune chainbody',
-      'rune claws',
-      'rune crossbow',
-      'rune dagger',
-      'rune dagger(p+)',
-      'rune full helm',
-      'rune halberd',
-      'rune hasta',
-      'rune kiteshield',
-      'rune longsword',
-      'rune mace',
-      'rune med helm',
-      'rune pickaxe',
-      'rune platebody',
-      'rune platelegs',
-      'rune plateskirt',
-      'rune scimitar',
-      'rune spear',
-      'rune sq shield',
-      'rune sword',
-      'rune warhammer',
-      'runite crossbow (u)',
-      'runite limbs',
-      'skills necklace',
-      'skills necklace(4)',
-      'steel platebody',
-      'water battlestaff',
-      'yew longbow'
-    ];
+  if Self.ItemArray <> []then
+    Exit;
 
-    settings += 'RSAlchHandler.ItemArray := [';
-    for i := 0 to High(RSAlchHandler.ItemArray) do
-    begin
-      str := "    '" + ToString(RSAlchHandler.ItemArray[i]).Replace("'", "''") + "'";
-      if i < High(RSAlchHandler.ItemArray) then
-        str += ',';
-      settings += str;
-    end;
-    settings += '];';
-    WriteConfigFile('alch_handler', settings);
+  Self.ItemArray := [
+    'abyssal bracelet(5)', 'adamant platebody', 'air battlestaff',
+    'amulet of glory', 'amulet of glory(4)', 'black d''hide body',
+    'black d''hide chaps', 'black d''hide shield', 'black d''hide vambraces',
+    'blue d''hide body', 'blue d''hide chaps', 'blue d''hide shield',
+    'blue d''hide vambraces', 'combat bracelet', 'combat bracelet(4)',
+    'diamond bracelet', 'dragon axe', 'dragon battleaxe', 'dragon cane',
+    'dragon chainbody', 'dragon dagger', 'dragon dagger(p+)', 'dragon halberd',
+    'dragon hasta', 'dragon longsword', 'dragon mace', 'dragon med helm',
+    'dragon platelegs', 'dragon plateskirt', 'dragon scimitar', 'dragon spear',
+    'dragon sq shield', 'dragon sword', 'dragonstone ring', 'earth battlestaff',
+    'fire battlestaff', 'green d''hide body', 'green d''hide chaps',
+    'green d''hide shield', 'green d''hide vambraces', 'lava battlestaff',
+    'magic longbow', 'mithril platebody', 'mud battlestaff', 'mystic air staff',
+    'mystic boots', 'mystic boots (dark)', 'mystic boots (light)',
+    'mystic earth staff', 'mystic fire staff', 'mystic gloves',
+    'mystic gloves (dark)', 'mystic gloves (light)', 'mystic hat',
+    'mystic hat (dark)', 'mystic hat (light)', 'mystic lava staff',
+    'mystic mud staff', 'mystic robe bottom', 'mystic robe bottom (dark)',
+    'mystic robe bottom (light)', 'mystic robe top', 'mystic robe top (dark)',
+    'mystic robe top (light)', 'mystic water staff',
+    'noted abyssal bracelet(5)', 'noted adamant platebody',
+    'noted air battlestaff', 'noted amulet of glory',
+    'noted amulet of glory(4)', 'noted black d''hide body',
+    'noted black d''hide chaps', 'noted black d''hide shield',
+    'noted black d''hide vambraces', 'noted blue d''hide body',
+    'noted blue d''hide chaps', 'noted blue d''hide shield',
+    'noted blue d''hide vambraces', 'noted combat bracelet',
+    'noted combat bracelet(4)', 'noted diamond bracelet',
+    'noted dragon axe', 'noted dragon battleaxe', 'noted dragon cane',
+    'noted dragon chainbody', 'noted dragon dagger', 'noted dragon dagger(p+)',
+    'noted dragon halberd', 'noted dragon hasta', 'noted dragon longsword',
+    'noted dragon mace', 'noted dragon med helm', 'noted dragon platelegs',
+    'noted dragon plateskirt', 'noted dragon scimitar', 'noted dragon spear',
+    'noted dragon sq shield', 'noted dragon sword', 'noted dragonstone ring',
+    'noted earth battlestaff', 'noted fire battlestaff',
+    'noted green d''hide body', 'noted green d''hide chaps',
+    'noted green d''hide shield', 'noted green d''hide vambraces',
+    'noted lava battlestaff', 'noted magic longbow', 'noted magic longbow (u)',
+    'noted magic shortbow (u)', 'noted maple longbow (u)',
+    'noted maple shortbow (u)', 'noted mithril platebody',
+    'noted mud battlestaff', 'noted mystic air staff', 'noted mystic boots',
+    'noted mystic boots (dark)', 'noted mystic boots (light)',
+    'noted mystic earth staff', 'noted mystic fire staff',
+    'noted mystic gloves', 'noted mystic gloves (dark)',
+    'noted mystic gloves (light)', 'noted mystic hat',
+    'noted mystic hat (dark)', 'noted mystic hat (light)',
+    'noted mystic lava staff', 'noted mystic mud staff',
+    'noted mystic robe bottom', 'noted mystic robe bottom (dark)',
+    'noted mystic robe bottom (light)', 'noted mystic robe top',
+    'noted mystic robe top (dark)', 'noted mystic robe top (light)',
+    'noted mystic water staff', 'noted red d''hide body',
+    'noted red d''hide chaps', 'noted red d''hide shield',
+    'noted red d''hide vambraces', 'noted ring of wealth',
+    'noted ring of wealth (4)', 'noted rune 2h sword', 'noted rune axe',
+    'noted rune battleaxe', 'noted rune boots', 'noted rune cane',
+    'noted rune chainbody', 'noted rune claws', 'noted rune crossbow',
+    'noted rune dagger', 'noted rune dagger(p+)', 'noted rune full helm',
+    'noted rune halberd', 'noted rune hasta', 'noted rune kiteshield',
+    'noted rune longsword', 'noted rune mace', 'noted rune med helm',
+    'noted rune pickaxe', 'noted rune platebody', 'noted rune platelegs',
+    'noted rune plateskirt', 'noted rune scimitar', 'noted rune spear',
+    'noted rune sq shield', 'noted rune sword', 'noted rune warhammer',
+    'noted runite crossbow (u)', 'noted runite limbs', 'noted skills necklace',
+    'noted skills necklace(4)', 'noted steel platebody',
+    'noted water battlestaff', 'noted yew longbow', 'noted yew longbow (u)',
+    'noted yew shortbow (u)', 'onyx bolts (e)', 'red d''hide body',
+    'red d''hide chaps', 'red d''hide shield', 'red d''hide vambraces',
+    'ring of wealth', 'ring of wealth (4)', 'rune 2h sword', 'rune axe',
+    'rune battleaxe', 'rune boots', 'rune cane', 'rune chainbody', 'rune claws',
+    'rune crossbow', 'rune dagger', 'rune dagger(p+)', 'rune full helm',
+    'rune halberd', 'rune hasta', 'rune kiteshield', 'rune longsword',
+    'rune mace', 'rune med helm', 'rune pickaxe', 'rune platebody',
+    'rune platelegs', 'rune plateskirt', 'rune scimitar', 'rune spear',
+    'rune sq shield', 'rune sword', 'rune warhammer', 'runite crossbow (u)',
+    'runite limbs', 'skills necklace', 'skills necklace(4)', 'steel platebody',
+    'water battlestaff', 'yew longbow'
+  ];
+
+  settings += 'RSAlchHandler.ItemArray := [';
+  for i := 0 to High(Self.ItemArray) do
+  begin
+    str := "    '" + ToString(Self.ItemArray[i]).Replace("'", "''") + "'";
+    if i < High(Self.ItemArray) then
+      str += ',';
+    settings += str;
   end;
+  settings += '];';
+  WriteConfigFile('alch_handler', settings);
 end;
 
-function RSAlchHandler.GetAlchItem(): TRSItem; static;
+function TRSAlchHandler.GetAlchItem(): TRSItem;
 var
   match: TRSItemFinderMatch;
   itemStr: String;
@@ -272,32 +120,32 @@ begin
   if not Inventory.Open() and not Inventory.SetSelectedSlot(-1) then
     Exit;
 
-  if not ItemFinder.Find(RSAlchHandler.ItemArray, Inventory.GetSlotBoxes(), match) then
+  if not ItemFinder.Find(Self.ItemArray, Inventory.GetSlotBoxes(), match) then
   begin
-    RSAlchHandler.DebugLn('No items in the alch list were found!');
-    RSAlchHandler.Disabled := True;
+    Self.DebugLn('No items in the alch list were found!');
+    Self.Disabled := True;
     Exit;
   end;
 
   Result := match.Item;
   itemStr := Result;
 
-  RSAlchHandler.DebugLn('Found item: ' + itemStr);
+  Self.DebugLn('Found item: ' + itemStr);
 
   itemStr := itemStr.After('noted ');
-  RSAlchHandler.LowProfit  := ItemData.GetLowAlchProfit(itemStr);
-  RSAlchHandler.HighProfit := ItemData.GetHighAlchProfit(itemStr);
+  Self.LowProfit  := ItemData.GetLowAlchProfit(itemStr);
+  Self.HighProfit := ItemData.GetHighAlchProfit(itemStr);
 end;
 
-procedure RSAlchHandler.AddProfit(hi: Boolean = True); static;
+procedure TRSAlchHandler.AddProfit(hi: Boolean = True);
 begin
   if hi then
-    RSAlchHandler.TotalProfit += RSAlchHandler.HighProfit
+    Self.TotalProfit += Self.HighProfit
   else
-    RSAlchHandler.TotalProfit += RSAlchHandler.LowProfit;
+    Self.TotalProfit += Self.LowProfit;
 end;
 
-function RSAlchHandler.ClickEmptySlot(slot: Int32 = -1): Boolean; static;
+function TRSAlchHandler.ClickEmptySlot(slot: Int32 = -1): Boolean;
 var
   slots: TIntegerArray;
 begin
@@ -321,7 +169,7 @@ begin
   end;
 end;
 
-function RSAlchHandler.DisableCast(): Boolean; static;
+function TRSAlchHandler.DisableCast(): Boolean;
 var
   i, attempt: Int32;
 begin
@@ -332,10 +180,10 @@ begin
 
   repeat
     if Inc(attempt) > 10 then
-      RSAlchHandler.Fatal('Cannot disable the alchemy spell!');
+      Self.Fatal('Cannot disable the alchemy spell!');
 
     case i of
-      0..2: RSAlchHandler.ClickEmptySlot();
+      0..2: Self.ClickEmptySlot();
       3: Mouse.Click(MainScreen.Bounds(), MOUSE_LEFT);
       4: Mouse.Click(Chat.Bounds(), MOUSE_LEFT);
       5: ChooseOption.Select('Cancel');
@@ -345,7 +193,7 @@ begin
 end;
 
 
-function RSAlchHandler.SelectSpell(hi: Boolean = True): Boolean; static;
+function TRSAlchHandler.SelectSpell(hi: Boolean = True): Boolean;
 var
   attempt: Int32;
   spellStr: String;
@@ -371,35 +219,35 @@ begin
     Result := MainScreen.IsUpText(spellStr) or Inventory.IsOpen();
   until Result or (Inc(attempt) > 3);
 
-  RSAlchHandler.Disabled := not Result;
+  Self.Disabled := not Result;
 end;
 
-function RSAlchHandler.SelectItem(hi: Boolean = True; waitTimer: Boolean = False): Boolean; static;
+function TRSAlchHandler.SelectItem(hi: Boolean = True; waitTimer: Boolean = False): Boolean;
 var
   attempt, slot, spellSlot: Int32;
   box: TBox;
   slots: TIntegerArray;
 begin
   if hi then
-    RSAlchHandler.Timer.Length := 5 * 600
+    Self.Timer.Length := 5 * 600
   else
-    RSAlchHandler.Timer.Length := 3 * 600;
+    Self.Timer.Length := 3 * 600;
 
-  spellSlot := RSAlchHandler.SlotUnder;
+  spellSlot := Self.SlotUnder;
 
   for attempt := 0 to 2 do
   begin
-    if RSAlchHandler.Item.IsNull() then
-      RSAlchHandler.Item := RSAlchHandler.GetAlchItem();
+    if Self.Item.IsNull() then
+      Self.Item := Self.GetAlchItem();
 
-    if RSAlchHandler.Item.IsNull() then
+    if Self.Item.IsNull() then
       Exit;
 
-    if Inventory.FindItem(RSAlchHandler.Item, slot) then
+    if Inventory.FindItem(Self.Item, slot) then
     begin
       if (slot <> spellSlot) and (Inventory.ItemInterface.CountStack(slot) > 0) then
       begin
-        RSAlchHandler.DisableCast();
+        Self.DisableCast();
         if Inventory.ItemInterface.Move(slot, spellSlot) then
           Exit;
         Break;
@@ -412,18 +260,18 @@ begin
 
         if not waitTimer then
         begin
-          if not RSAlchHandler.Timer.IsFinished() and (RSAlchHandler.Timer.Timeout > 0) then
+          if not Self.Timer.IsFinished() and (Self.Timer.Timeout > 0) then
             Exit;
         end else
-          WaitUntil(RSAlchHandler.Timer.IsFinished(), 50, 3100);
+          WaitUntil(Self.Timer.IsFinished(), 50, 3100);
 
         Mouse.Click(MOUSE_LEFT);
 
         if not WaitUntil(XPBar.EarnedXP() or Magic.IsOpen(), 300, 3000) then
           Exit;
 
-        RSAlchHandler.Timer.Restart();
-        RSAlchHandler.AddProfit(hi);
+        Self.Timer.Restart();
+        Self.AddProfit(hi);
         Exit(True);
       end;
 
@@ -435,34 +283,41 @@ begin
       end;
       Exit;
     end
-    else if ItemData.GetOSRSBoxBoolean(RSAlchHandler.Item, 'equipable') then
+    else if ItemData.GetOSRSBoxBoolean(Self.Item, 'equipable') then
     begin
-      RSAlchHandler.DisableCast();
-      if Equipment.FindItem(RSAlchHandler.Item, box) then
+      Self.DisableCast();
+      if Equipment.FindItem(Self.Item, box) then
       begin
         Mouse.Click(box, MOUSE_LEFT);
         Exit;
       end;
     end;
 
-    RSAlchHandler.Item := '';
+    Self.Item := '';
   end;
 end;
 
 
-function RSAlchHandler.CastAlchemy(hi: Boolean = True; waitTimer: Boolean = False): Boolean; static;
+function TRSAlchHandler.CastAlchemy(hi: Boolean = True; waitTimer: Boolean = False): Boolean;
 var
   attempt: Int32;
 begin
   XPBar.EarnedXP(); //Update cached XP.
 
   repeat
-    if not RSAlchHandler.SelectSpell(hi) then
+    if not Self.SelectSpell(hi) then
       Exit;
-    Result := RSAlchHandler.SelectItem(hi, waitTimer);
+    Result := Self.SelectItem(hi, waitTimer);
     TRSWalkerObject.RedClicked := False; //Integration with other wasplib components.
   until Result or (Inc(attempt) > 2);
 end;
+
+var
+  RSAlchHandler: TRSAlchHandler;
+
+{$IFHASFILE Data/WaspLib/configs/alch_handler.simba}
+  {$I Data/WaspLib/configs/alch_handler.simba}
+{$ENDIF}
 
 begin
   RSAlchHandler.Setup();
@@ -523,8 +378,6 @@ begin
     end;
   end;
 end;
-
-
 
 
 function TScriptForm.CreateAlchemyPanel(): TTabSheet;

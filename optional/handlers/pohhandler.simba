@@ -8,10 +8,12 @@ POHHandler
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+{$IFNDEF WL_HOUSEOBJECTS_INCLUDED}
+  {$I WaspLib/optional/handlers/houseobjects.simba}
+{$ENDIF}
 
 {$SCOPEDENUMS ON}
 type
-
   ERSHouseRoom = (
     UNKNOWN, GARDEN, SUPERIOR_GARDEN, MENAGERIE_OPEN, MENAGERIE_CLOSED,
     STUDY_PARLOUR, KITCHEN_BEDROOM, ACHIEVEMENT_GALLERY, QUEST_NEXUS, COMBAT,
@@ -20,16 +22,6 @@ type
 
   ERSHouseRoomArray = array of ERSHouseRoom;
   E2DRSHouseRoomArray = array of ERSHouseRoomArray;
-
-  TRoomObject = record
-    Name: String;
-    Coordinates: TPointArray;
-    Shape: Vector3;
-    UpText: TStringArray;
-    Finder: TRSObjectFinder;
-  end;
-
-  TRoomObjectArray = array of TRoomObject;
 
   TRSPOHHandler = record
     AMOUNT, SIZE: Int32;
@@ -56,6 +48,7 @@ end;
 procedure TRSPOHHandler.Init();
 var
   i: Int32;
+  obj: TRoomObject;
 begin
   Self.SIZE := 32;
   Self.AMOUNT := 12;
@@ -71,6 +64,18 @@ begin
     SetLength(Self.Rooms[i], Self.AMOUNT);
 
   AddOnTerminate(@Self.Free);
+
+  obj.Setup(['pool'], [1.5, 1.5, 6], [4,4]);
+  obj.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
+  Self.RoomObjects[ERSHouseRoom.SUPERIOR_GARDEN][ERSRoomObject.POOL] := obj;
+
+  obj.Setup(['Fairy', 'Tree'], [1.5, 1.5, 6], [16,16]);
+  obj.Finder.Colors := [CTS2(7307158, 15, 0.48, 0.69)];
+  Self.RoomObjects[ERSHouseRoom.SUPERIOR_GARDEN][ERSRoomObject.FAIRY_TREE] := obj;
+
+  obj.Setup(['Jewellery', 'Box'], [2, 2, 6], [4,4]);
+  obj.Finder.Colors := [CTS2(1287353, 17, 0.02, 0.72), CTS2(530791, 8, 0.24, 2.28)];
+  Self.RoomObjects[ERSHouseRoom.ACHIEVEMENT_GALLERY][ERSRoomObject.JEWELERY_BOX] := obj;
 end;
 
 function TRSPOHHandler.GetRoom(i: Int32): ERSHouseRoom;
@@ -241,71 +246,64 @@ begin
 end;
 
 
-function TRSPOHHandler.ContainsPool(topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+function TRSPOHHandler.Contains(room: ERSHouseRoom; objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
 var
+  obj: TRoomObject;
   cuboid: TCuboidEx;
-  b: TBox;
 begin
-  cuboid := Self.GetCuboid(topLeft, [4,4], [1.5, 1.5, 6], angle, rotation);
-  b := cuboid.Bounds();
-  b.LimitTo(MainScreen.Bounds());
-  Result := SRL.CountColor(CTS2(11514040, 19, 0.10, 0.13), b) > 10;
-end;
+  obj := Self.RoomObjects[room][objType];
+  if obj.Coordinates <> [] then
+    Exit;
 
-function TRSPOHHandler.ContainsJewelleryBox(topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
-var
-  cuboid: TCuboidEx;
-  b: TBox;
-begin
-  cuboid := Self.GetCuboid(topLeft, [4,4], [2, 2, 6], angle, rotation);
-  b := cuboid.Bounds();
-  b.LimitTo(MainScreen.Bounds());
-  (* ALTAR
-  Result := (SRL.CountColor(CTS2(12307635, 19, 1.36, 0.91), b) +
-            SRL.CountColor(CTS2(7575724, 13, 0.04, 0.79), b)) > 10;
-  *)
-  Result := (SRL.CountColor(CTS2(1287353, 17, 0.02, 0.72), b) +
-            SRL.CountColor(CTS2(530791, 8, 0.24, 2.28), b)) > 10;
+  cuboid := Self.GetCuboid(topLeft, obj.RoomOffset, obj.Shape, angle, rotation);
+  Result := MainScreen.FindObject(obj.Finder, cuboid.Bounds()) <> [];
 end;
 
 
 procedure TRSPOHHandler.MapRoomObjects(room: ERSHouseRoom; topLeft: TPoint; roomIndex: TPoint; angle: Double);
 var
-  i: Int32;
+  rotation: Int32;
   p, center: TPoint;
-  roomObject: TRoomObject;
+  obj: ERSRoomObject;
 begin
   case room of
     ERSHouseRoom.SUPERIOR_GARDEN:
     begin
-      for i := 0 to 3 do
-        if Self.ContainsPool(topLeft, angle, i) then
+      roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
+      center := roomIndex.Offset(16,16);
+
+      for rotation := 0 to 3 do
+      begin
+        obj := ERSRoomObject.POOL;
+        if Self.Contains(room, obj, topLeft, angle, rotation) then
         begin
-          roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
-          p := roomIndex + [4,4];
-          center := roomIndex.Offset(16,16);
-          p := p.Rotate(PI/2*i, center);
-
-          roomObject.Name := 'pool';
-          roomObject.Coordinates := [p];
-          roomObject.Shape := [1.5, 1.5, 6];
-          roomObject.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
-          roomObject.UpText := ['pool'];
-          Self.RoomObjects[room] += roomObject;
-
-          roomObject.Name := 'fairy ring';
-          roomObject.Coordinates := [center];
-          roomObject.Shape := [1.5, 1.5, 6];
-          roomObject.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
-          roomObject.UpText := ['Fairy', 'Tree'];
-          Self.RoomObjects[room] += roomObject;
-          Exit;
+          p := roomIndex + Self.RoomObjects[room][obj].RoomOffset;
+          p := p.Rotate(PI/2*rotation, center);
+          Self.RoomObjects[room][obj].AddCoordinates([p]);
         end;
+
+        obj := ERSRoomObject.FAIRY_TREE;
+        if Self.Contains(room, obj, topLeft, angle, rotation) then
+          Self.RoomObjects[room][obj].AddCoordinates([center]);
+      end;
     end;
 
     ERSHouseRoom.ACHIEVEMENT_GALLERY:
     begin
+      roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
+      center := roomIndex.Offset(16,16);
 
+      for rotation := 0 to 3 do
+      begin
+        obj := ERSRoomObject.JEWELERY_BOX;
+        if Self.Contains(room, obj, topLeft, angle, rotation) then
+        begin
+          p := roomIndex + Self.RoomObjects[room][obj].RoomOffset;
+          p := p.Rotate(PI/2*rotation, center);
+
+          Self.RoomObjects[room][obj].AddCoordinates([p]);
+        end;
+      end;
     end;
   end;
 end;
@@ -370,8 +368,8 @@ begin
         rotated := Self.RotateRoom(sample, r);
 
         case j of
-          2: hasCoreObject := Self.ContainsPool(p, angle, r);
-          7: hasCoreObject := Self.ContainsJewelleryBox(p, angle, r);
+          2: hasCoreObject := Self.Contains(ERSHouseRoom(j), ERSRoomObject.POOL, p, angle, r);
+          7: hasCoreObject := Self.Contains(ERSHouseRoom(j), ERSRoomObject.JEWELERY_BOX, p, angle, r);
         end;
 
         matrix := crop.MatchTemplate(rotated, TM_CCOEFF_NORMED);
@@ -450,9 +448,6 @@ begin
 
   minimapBMP.Free();
 end;
-
-
-
 
 
 procedure TRSPOHHandler.LoadSuroundings(minimapBMP: TMufasaBitmap; p: TPoint; angle: double);
@@ -600,32 +595,24 @@ begin
   Result := Self.MapToMM(Self.GetPos(), tpa, Minimap.GetCompassAngle(False));
 end;
 
-function TRSPOHHandler.PoolHover(): Boolean;
+function TRSPOHHandler.HoverObject(room: ERSHouseRoom; objType: ERSRoomObject): Boolean;
 var
   obj: TRoomObject;
-  objs: TRoomObjectArray;
   i: Int32;
   mmPoints, tpa: TPointArray;
   atpa: T2DPointArray;
   cuboids: TCuboidExArray;
   radians: Double;
+  me: TPoint;
 begin
-  objs := Self.RoomObjects[ERSHouseRoom.SUPERIOR_GARDEN];
-  if objs = [] then
-    Exit;
+  me := Self.GetPos();
 
-  for i := 0 to High(objs) do
-    if objs[i].Name = 'pool' then
-    begin
-      obj := objs[i];
-      Break;
-    end;
-
-  if obj = [] then
+  obj := Self.RoomObjects[room][objType];
+  if obj.Coordinates = [] then
     Exit;
 
   radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.MapToMM(Self.GetPos(), obj.Coordinates, radians);
+  mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
   cuboids := Minimap.GetCuboidArrayMS(mmPoints, obj.Shape, [0,0], radians);
 
   for i := 0 to High(cuboids) do
@@ -657,7 +644,13 @@ end;
 begin
   ClearDebug();
   POHHandler.Setup();
-  POHHandler.PoolHover();
+
+  WriteLn POHHandler.HoverObject(ERSHouseRoom.SUPERIOR_GARDEN, ERSRoomObject.POOL);
+  WriteLn POHHandler.HoverObject(ERSHouseRoom.SUPERIOR_GARDEN, ERSRoomObject.FAIRY_TREE);
+  Wait(5000);
+  //Walk to a room adjacent to your achiev gallery
+  WriteLn POHHandler.HoverObject(ERSHouseRoom.ACHIEVEMENT_GALLERY, ERSRoomObject.JEWELERY_BOX);
+
   while True do
     POHHandler.DebugPos();
 end;

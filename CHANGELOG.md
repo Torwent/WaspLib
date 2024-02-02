@@ -1,3 +1,12 @@
+## [16.11.11](https://github.com/Torwent/WaspLib/compare/v16.11.10...v16.11.11) (2024-02-02)
+
+
+### Bug Fixes
+
+* read notes ([48edd4c](https://github.com/Torwent/WaspLib/commit/48edd4c459b12f53e01301eb92c48c7cbb4fb867))
+
+
+
 ## [16.11.10](https://github.com/Torwent/WaspLib/compare/v16.11.9...v16.11.10) (2024-02-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **POHHandler:** very early but can already be used to some extent ([61d2b98](https://github.com/Torwent/WaspLib/commit/61d2b98bce36f8a8f9d6cdf4c8de8e4f8ead5e6e))
-
-
-
-## [16.11.6](https://github.com/Torwent/WaspLib/compare/v16.11.5...v16.11.6) (2024-01-27)
-
-
-### Bug Fixes
-
-* **POHHandler:** reworked what I did yesterday to be better ([223551f](https://github.com/Torwent/WaspLib/commit/223551fba62f5f1e02322b74bb62405d4003dae9))
 
 
 

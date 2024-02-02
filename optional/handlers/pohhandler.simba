@@ -22,8 +22,10 @@ type
   E2DRSHouseRoomArray = array of ERSHouseRoomArray;
 
   TRoomObject = record
-    UpText: String;
+    Name: String;
     Coordinates: TPointArray;
+    Shape: Vector3;
+    UpText: TStringArray;
     Finder: TRSObjectFinder;
   end;
 
@@ -238,6 +240,7 @@ begin
   Result := Minimap.GetCuboidMS(p, tile);
 end;
 
+
 function TRSPOHHandler.ContainsPool(topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
 var
   cuboid: TCuboidEx;
@@ -265,6 +268,47 @@ begin
             SRL.CountColor(CTS2(530791, 8, 0.24, 2.28), b)) > 10;
 end;
 
+
+procedure TRSPOHHandler.MapRoomObjects(room: ERSHouseRoom; topLeft: TPoint; roomIndex: TPoint; angle: Double);
+var
+  i: Int32;
+  p, center: TPoint;
+  roomObject: TRoomObject;
+begin
+  case room of
+    ERSHouseRoom.SUPERIOR_GARDEN:
+    begin
+      for i := 0 to 3 do
+        if Self.ContainsPool(topLeft, angle, i) then
+        begin
+          roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
+          p := roomIndex + [4,4];
+          center := roomIndex.Offset(16,16);
+          p := p.Rotate(PI/2*i, center);
+
+          roomObject.Name := 'pool';
+          roomObject.Coordinates := [p];
+          roomObject.Shape := [1.5, 1.5, 6];
+          roomObject.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
+          roomObject.UpText := ['pool'];
+          Self.RoomObjects[room] += roomObject;
+
+          roomObject.Name := 'fairy ring';
+          roomObject.Coordinates := [center];
+          roomObject.Shape := [1.5, 1.5, 6];
+          roomObject.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
+          roomObject.UpText := ['Fairy', 'Tree'];
+          Self.RoomObjects[room] += roomObject;
+          Exit;
+        end;
+    end;
+
+    ERSHouseRoom.ACHIEVEMENT_GALLERY:
+    begin
+
+    end;
+  end;
+end;
 
 function TRSPOHHandler.RotateRoom(bitmap: TMufasaBitmap; rotation: Int32): TMufasaBitmap;
 var
@@ -324,11 +368,6 @@ begin
       for r := 0 to 3 do
       begin
         rotated := Self.RotateRoom(sample, r);
-        (*
-        WriteLn ERSHouseRoom(j);
-        rotated.Debug();
-        Wait(500);
-        *)
 
         case j of
           2: hasCoreObject := Self.ContainsPool(p, angle, r);
@@ -362,6 +401,7 @@ begin
     if bestMatch > 0.3 then
     begin
       Self.DrawMap(bestBMP, bestRoom, localTPA[i]);
+      Self.MapRoomObjects(bestRoom, p, localTPA[i], angle);
       bestMatch := 0;
     end;
   end;
@@ -412,11 +452,7 @@ begin
 end;
 
 
-function TRSPOHHandler.MapToMM(p, handlerPoint: TPoint; radians: Double): TPoint;
-begin
-  Result := handlerPoint - p + Minimap.Center();
-  Result := Result.Rotate(radians, Minimap.Center());
-end;
+
 
 
 procedure TRSPOHHandler.LoadSuroundings(minimapBMP: TMufasaBitmap; p: TPoint; angle: double);
@@ -436,7 +472,8 @@ var
   b: TBox;
   matrixSM, matrixLG: TSingleMatrix;
   resultSM, resultLG: TPointArray;
-  i, s: Int32;
+  i, j, s: Int32;
+  p: TPoint;
 begin
   s := 20;
   offset := minimapBMP.getCenter().Offset(2, 5);
@@ -451,27 +488,34 @@ begin
   sampleSM.Free();
   sampleLG.Free();
 
-  for i := 1 to sampleAmount do
-  begin
+  Dec(sampleAmount);
+
+  for i := 0 to sampleAmount do
     with matrixSM.ArgMax() do
     begin
-      resultSM += [X - (sampleSize - s), Y - (sampleSize - s)];
+      p := Point(X - (sampleSize - s), Y - (sampleSize - s)).Offset(sampleSize - 3, sampleSize - 5);
+      if Self.GetMappedRoom(p) <> ERSHouseRoom.UNKNOWN then
+        resultSM += p
+      else
+        Dec(i);
       matrixSM.Fill([X - 5, Y - 5, X + 5, Y + 5], 0);
     end;
 
+  for i := 0 to sampleAmount do
     with matrixLG.ArgMax() do
     begin
-      resultLG += [X, Y];
+      p := Point(X, Y).Offset(sampleSize - 3, sampleSize - 5);
+      if Self.GetMappedRoom(p) <> ERSHouseRoom.UNKNOWN then
+        resultLG += p
+      else
+        Dec(i);
       matrixLG.Fill([X - 5, Y - 5, X + 5, Y + 5], 0);
     end;
 
-    if resultSM[i-1] = resultLG[i-1] then
-      Break;
-  end;
-
-  for i := 0 to High(resultSM) do
-    if resultSM[i].WithinDistance(resultLG[i], 5) then
-      Exit(resultLG[i]);
+  for i := 0 to High(resultLG) do
+    for j := 0 to High(resultSM) do
+      if resultLG[i].WithinDistance(resultSM[j], 6) then
+        Exit(resultLG[i]);
 
   Result := resultSM[0];
 end;
@@ -487,7 +531,6 @@ begin
   minimapBMP.ReplaceColor(1, Self.GrassColor);
 
   Result := Self.SampleSearch(minimapBMP, SAMPLE_SIZE);
-  Result := Result.Offset(SAMPLE_SIZE - 3, SAMPLE_SIZE - 5);
   Self.LoadSuroundings(minimapBMP, Result, angle);
   minimapBMP.Free();
 end;
@@ -504,7 +547,6 @@ begin
   minimapBMP.ReplaceColor(1, Self.GrassColor);
 
   p := Self.SampleSearch(minimapBMP, SAMPLE_SIZE);
-  p := p.Offset(SAMPLE_SIZE - 3, SAMPLE_SIZE - 5);
 
   Self.LoadSuroundings(minimapBMP, p, angle);
 
@@ -534,6 +576,73 @@ begin
 end;
 
 
+function TRSPOHHandler.MapToMM(me, handlerPoint: TPoint; radians: Double): TPoint;
+begin
+  Result := handlerPoint - me + Minimap.Center();
+  Result := Result.Rotate(radians, Minimap.Center());
+end;
+
+function TRSPOHHandler.MapToMM(walkerPoint: TPoint): TPoint; overload;
+begin
+  Result := Self.MapToMM(Self.GetPos(), walkerPoint, Minimap.GetCompassAngle(False));
+end;
+
+function TRSPOHHandler.MapToMM(me: TPoint; tpa: TPointArray; radians: Double): TPointArray; overload;
+var
+  p: TPoint;
+begin
+  for p in tpa do
+    Result += Self.MapToMM(me, p, radians);
+end;
+
+function TRSPOHHandler.MapToMM(tpa: TPointArray): TPointArray; overload;
+begin
+  Result := Self.MapToMM(Self.GetPos(), tpa, Minimap.GetCompassAngle(False));
+end;
+
+function TRSPOHHandler.PoolHover(): Boolean;
+var
+  obj: TRoomObject;
+  objs: TRoomObjectArray;
+  i: Int32;
+  mmPoints, tpa: TPointArray;
+  atpa: T2DPointArray;
+  cuboids: TCuboidExArray;
+  radians: Double;
+begin
+  objs := Self.RoomObjects[ERSHouseRoom.SUPERIOR_GARDEN];
+  if objs = [] then
+    Exit;
+
+  for i := 0 to High(objs) do
+    if objs[i].Name = 'pool' then
+    begin
+      obj := objs[i];
+      Break;
+    end;
+
+  if obj = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.MapToMM(Self.GetPos(), obj.Coordinates, radians);
+  cuboids := Minimap.GetCuboidArrayMS(mmPoints, obj.Shape, [0,0], radians);
+
+  for i := 0 to High(cuboids) do
+  begin
+    atpa := MainScreen.FindObject(obj.Finder, cuboids[i].Bounds());
+
+    if atpa <> [] then
+    begin
+      tpa := atpa[0];
+      Mouse.Move(tpa[Random(0, High(tpa))]);
+      if MainScreen.IsUpText(obj.UpText) then
+        Exit(True);
+    end;
+  end;
+end;
+
+
 var
   POHHandler: TRSPOHHandler;
 
@@ -544,11 +653,11 @@ begin
   POHHandler.Init();
 end;
 
-
 (*
 begin
   ClearDebug();
   POHHandler.Setup();
+  POHHandler.PoolHover();
   while True do
     POHHandler.DebugPos();
 end;

@@ -1,6 +1,5 @@
 # WaspLib
  WaspLib is a include for Simba to bot OldSchool RuneScape.
- 
  WaspLib v2 is intended to work with [Simba 1400]([https://github.com/ollydev/Simba](https://github.com/Villavu/Simba/releases/tag/simba1400-release)) and [SRL-Development](https://github.com/Villavu/SRL-Development).
 
  If you are having problems I suggest you try [my fork of SRL-Development](https://github.com/Torwent/SRL) due to code changing too frequently in Olly's SRL-Development and something might be incompatible for a while.

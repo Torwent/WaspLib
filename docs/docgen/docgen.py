@@ -9,10 +9,8 @@ import re
 import os, sys
 
 DOCNAME         = 'WaspLib'
-IGNORE_FOLDERS  = ['.git', 'docgen']
-FILE_EXTENSIONS = ['.simba'] 
-SHORT_RST       = [('.. code-block:: pascal\n\n', '.. pascal::'), 
-                   ('Example\n-------\n.. code-block:: pascal  ', 'Example\n-------')]
+IGNORE_FOLDERS  = ['.git', '.github', 'docgen']
+FILE_EXTENSIONS = ['.simba']
 
 commentregex = re.compile('\(\*.+?\*\)', re.DOTALL)
 
@@ -40,7 +38,7 @@ def generate_index_rst(TOC):
       Generates the index.rst file 
       Builds a table of contents for every seperate folder
     '''
-    index = 'Welcome to %s documentation!\n=================================\n\n' %  (DOCNAME,)
+    index = 'Welcome to %s documentation!\n===============================\n\n' %  (DOCNAME,)
     
     for dir,value in TOC:
       # print('Linking: ' + dir)
@@ -58,7 +56,7 @@ def generate_index_rst(TOC):
     
 def generate(root):
     ''' 
-      Generates RST by walking the specified directly
+      Generates md by walking the specified directly
     '''
     
     if not os.path.exists('source'):
@@ -96,13 +94,11 @@ def generate(root):
         continue
       
       # generate a output file
-      out = open('source/%s.rst' % name, 'w+')
+      out = open('source/%s.md' % name, 'w+')
       
       # write the rst-style'd comments to the output file
       for doc in res:
         doc = doc[2:][:-2];
-        for ptrn in SHORT_RST:
-          doc = doc.replace(ptrn[1], ptrn[0])
         
         out.write(doc)
         out.write('\n\n')

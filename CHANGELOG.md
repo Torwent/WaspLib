@@ -1,3 +1,12 @@
+## [16.11.15](https://github.com/Torwent/WaspLib/compare/v16.11.14...v16.11.15) (2024-02-03)
+
+
+### Bug Fixes
+
+* force bump ([cd32b9b](https://github.com/Torwent/WaspLib/commit/cd32b9b9f94747efbfa408c288ab451511c333b5))
+
+
+
 ## [16.11.14](https://github.com/Torwent/WaspLib/compare/v16.11.13...v16.11.14) (2024-02-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([48edd4c](https://github.com/Torwent/WaspLib/commit/48edd4c459b12f53e01301eb92c48c7cbb4fb867))
-
-
-
-## [16.11.10](https://github.com/Torwent/WaspLib/compare/v16.11.9...v16.11.10) (2024-02-01)
-
-
-### Bug Fixes
-
-* **RSRegions:** is now a regular record without class vars ([8e57df6](https://github.com/Torwent/WaspLib/commit/8e57df62e504f0057c940df7abab22736b41d03b))
 
 
 

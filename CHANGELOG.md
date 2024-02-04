@@ -1,3 +1,12 @@
+## [16.11.16](https://github.com/Torwent/WaspLib/compare/v16.11.15...v16.11.16) (2024-02-04)
+
+
+### Bug Fixes
+
+* removed a duplicate anvil file in the gametabs directory(!?) and more docs fixes ([751e9c4](https://github.com/Torwent/WaspLib/commit/751e9c4f4c61294f72c48d02c49e44f554edec11))
+
+
+
 ## [16.11.15](https://github.com/Torwent/WaspLib/compare/v16.11.14...v16.11.15) (2024-02-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **POHHandler:** read notes ([5fc3504](https://github.com/Torwent/WaspLib/commit/5fc3504b81296c739c7e19d7be9b41dc237f68ad))
-
-
-
-## [16.11.11](https://github.com/Torwent/WaspLib/compare/v16.11.10...v16.11.11) (2024-02-02)
-
-
-### Bug Fixes
-
-* read notes ([48edd4c](https://github.com/Torwent/WaspLib/commit/48edd4c459b12f53e01301eb92c48c7cbb4fb867))
 
 
 

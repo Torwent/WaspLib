@@ -1,3 +1,12 @@
+## [16.11.18](https://github.com/Torwent/WaspLib/compare/v16.11.17...v16.11.18) (2024-02-04)
+
+
+### Bug Fixes
+
+* **poh:**  cleanup and some docs added ([45d9990](https://github.com/Torwent/WaspLib/commit/45d99906523477e5a7041351213293b9148bfb6e))
+
+
+
 ## [16.11.17](https://github.com/Torwent/WaspLib/compare/v16.11.16...v16.11.17) (2024-02-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **docs:** documentation migration to use markdown with sphinx myst parser ([3b5a65a](https://github.com/Torwent/WaspLib/commit/3b5a65aee976f65e0ef89921e8f47ba14675dcb8))
-
-
-
-## [16.11.13](https://github.com/Torwent/WaspLib/compare/v16.11.12...v16.11.13) (2024-02-02)
-
-
-### Bug Fixes
-
-* **pohhandler:** improved api for interacting with house objects ([b8e7f45](https://github.com/Torwent/WaspLib/commit/b8e7f45853123fbabc17be7b8f9556b1fddea7dc))
 
 
 

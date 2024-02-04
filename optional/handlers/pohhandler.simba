@@ -1,5 +1,30 @@
 (*
 # POHHandler
+The POH Handler is a handler responsible for making sense of a player's POH (Player Owned House) without
+knowing any info about it's setup in advance.
+
+```{note}
+:class: dropdown
+The POH Handler is optional and has to be explicitly included.
+You can include it by either including all optional files which is not recommended:
+  ```pascal
+  {$I WaspLib/optional.simba}
+  ```
+Or include just the POHHandler file which is the recommended way to include it:
+  ```pascal
+  {$I WaspLib/optional/handlers/poh.simba}
+  ```
+```
+
+Several rooms in a POH are unique on the minimap, with windows and/or doors of several sizes and different places.
+By having this rooms saved in the following format:
+```{figure} ../../../osr/walker/poh.png
+Most relevant rooms for a POH stripped of their floor colors
+```
+We can attempt to match what we have on the minimap to those rooms and slowly build a map of the POH.
+
+Some rooms share the same room layout or are very similar to others and for those we use some mainscreen information to make up what the room is,
+e.g., Nexus room, Combat Hall and Quest Hall are all identical.
 *)
 
 {$DEFINE WL_POH_HANDLER_INCLUDED}
@@ -19,35 +44,48 @@ type
     COSTUME, ALTAR, PORTAL, WORKSHOP
   );
 
-  ERSHouseRoomArray = array of ERSHouseRoom;
-  E2DRSHouseRoomArray = array of ERSHouseRoomArray;
-
   TRSPOHHandler = record
     AMOUNT, SIZE: Int32;
     RoomsMap, Map: TMufasaBitmap;
     RoomsBitmaps: array [ERSHouseRoom] of TMufasaBitmap;
-    Rooms: E2DRSHouseRoomArray;
+    Rooms: array of array of ERSHouseRoom;
     RoomObjects: array [ERSRoomObject] of TRoomObject;
     GrassColor: Int32;
     Similarity: Double;
   end;
 {$SCOPEDENUMS OFF}
 
+(*
+# POH.Free()
+```pascal
+procedure TRSPOHHandler.Free();
+```
+Internal method automatically called for your on script termination.
+You do not have to call it yourself.
+*)
 procedure TRSPOHHandler.Free();
 var
   room: ERSHouseRoom;
 begin
   Self.Map.Free();
   Self.RoomsMap.Free();
-  for room := ERSHouseRoom(0) to ERSHouseRoom(High(ERSHouseRoom)) do
+  for room := Low(ERSHouseRoom) to High(ERSHouseRoom) do
     if Self.RoomsBitmaps[room] <> nil then
       Self.RoomsBitmaps[room].Free();
 end;
 
+(*
+# POH.Init()
+```pascal
+procedure TRSPOHHandler.Init();
+```
+Internal method automatically called for your on script startup along with SRL.Setup().
+You do not have to call it yourself.
+*)
 procedure TRSPOHHandler.Init();
 var
   i: Int32;
-  obj: TRoomObject;
+  obj: ERSRoomObject;
 begin
   Self.SIZE := 32;
   Self.AMOUNT := 12;
@@ -58,31 +96,35 @@ begin
 
   Self.RoomsMap.Init();
   Self.RoomsMap.LoadFromFile(WALKER_DIR + 'poh.png');
+
   SetLength(Self.Rooms, Self.AMOUNT);
   for i := 0 to High(Self.Rooms) do
     SetLength(Self.Rooms[i], Self.AMOUNT);
 
   AddOnTerminate(@Self.Free);
 
-  obj.Setup(['pool'], [1.5, 1.5, 6], [4,4]);
-  obj.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
-  Self.RoomObjects[ERSRoomObject.POOL] := obj;
-
-  obj.Setup(['Fairy', 'Tree'], [1.5, 1.5, 6], [16,16]);
-  obj.Finder.Colors := [CTS2(7307158, 15, 0.48, 0.69)];
-  Self.RoomObjects[ERSRoomObject.FAIRY_TREE] := obj;
-
-  obj.Setup(['Jewellery', 'Box'], [2, 2, 6], [4,4]);
-  obj.Finder.Colors := [CTS2(1287353, 17, 0.02, 0.72), CTS2(530791, 8, 0.24, 2.28)];
-  Self.RoomObjects[ERSRoomObject.JEWELLERY_BOX] := obj;
+  for obj := Low(ERSRoomObject) to High(ERSRoomObject) do
+    Self.RoomObjects[obj].Setup(obj);
 end;
 
-function TRSPOHHandler.GetRoom(i: Int32): ERSHouseRoom;
+(*
+# POH.GetRoomBitmapBox()
+```pascal
+function TRSPOHHandler.GetRoomBitmapBox(room: ERSHouseRoom): TBox;
+```
+Internal method used to get the box of the `ERSHouseRoom` you pass in.
+This box is a box of the following image:
+```{figure} ../../../osr/walker/poh.png
+```
+Example:
+```pascal
+{$I WaspLib/optional/handlers/poh.simba}
 begin
-  Result := ERSHouseRoom((i div Self.SIZE) + 1);
+  WriteLn POH.GetRoomBitmapBox(ERSHouseRoom.SUPERIOR_GARDEN);
 end;
-
-function TRSPOHHandler.GetRoomBox(room: ERSHouseRoom): TBox;
+```
+*)
+function TRSPOHHandler.GetRoomBitmapBox(room: ERSHouseRoom): TBox;
 var
   i: Int32;
 begin
@@ -90,13 +132,31 @@ begin
   Result := [i * Self.SIZE, 0, i * Self.SIZE + Self.SIZE - 1, Self.SIZE-1];
 end;
 
+(*
+# POH.GetRoomBitmap()
+```pascal
+function TRSPOHHandler.GetRoomBitmap(room: ERSHouseRoom; color: Int32 = -1): TMufasaBitmap;
+```
+Internal method used to retrieve a bitmap of the `ERSHouseRoom` you pass in.
+Example:
+```pascal
+{$I WaspLib/optional/handlers/poh.simba}
+var
+  bmp: TMufasaBitmap;
+begin
+  bmp := POH.GetRoomBitmapBox(ERSHouseRoom.SUPERIOR_GARDEN);
+  bmp.Debug();
+  bmp.Free();
+end;
+```
+*)
 function TRSPOHHandler.GetRoomBitmap(room: ERSHouseRoom; color: Int32 = -1): TMufasaBitmap;
 var
   b: TBox;
 begin
   if Self.RoomsBitmaps[room] = nil then
   begin
-    b := Self.GetRoomBox(room);
+    b := Self.GetRoomBitmapBox(room);
     Result := Self.RoomsMap.Copy(b.X1, b.Y1, b.X2, b.Y2);
     Self.RoomsBitmaps[room] := Result.Copy();
   end
@@ -108,39 +168,79 @@ begin
 end;
 
 
+(*
+# POH.WriteRoom()
+```pascal
+procedure TRSPOHHandler.WriteRoom(room: ERSHouseRoom; index: TPoint);
+```
+Internal method used to write a room to `POH.Rooms` cache.
+This uses an `TPoint` as a room `index` in a 2D array of `ERSHouseRoom`.
 
-procedure TRSPOHHandler.WriteRoom(room: ERSHouseRoom; x, y: Int32);
+Unless you know what you are doing, you definitly should not use this for anything.
+
+Example:
+```pascal
+POH.WriteRoom(ERSHouseRoom.SUPERIOR_GARDEN, [3,3]);
+```
+*)
+procedure TRSPOHHandler.WriteRoom(room: ERSHouseRoom; index: TPoint);
 begin
-  if not InRange(x, 0, High(Self.Rooms)) then
-    TerminateScript('x has to be between 0 and ' + ToStr(High(Self.Rooms)) + ', got: ' + ToStr(x));
-  if not InRange(y, 0, High(Self.Rooms[0])) then
-    TerminateScript('y has to be between 0 and ' + ToStr(High(Self.Rooms[0])) + ', got: ' + ToStr(y));
+  if not InRange(index.X, 0, High(Self.Rooms)) then
+    TerminateScript('index.X is not between 0 and ' + ToStr(High(Self.Rooms)) + ', got ' + ToStr(index));
+  if not InRange(index.Y, 0, High(Self.Rooms[0])) then
+    TerminateScript('index.Y is not between 0 and ' + ToStr(High(Self.Rooms[0])) + ', got: ' + ToStr(index));
 
-  Self.Rooms[y,x] := room;
+  Self.Rooms[index.Y,index.X] := room;
 end;
 
-procedure TRSPOHHandler.WriteRoom(room: ERSHouseRoom; p: TPoint); overload;
+(*
+# POH.ReadRoom()
+```pascal
+function TRSPOHHandler.ReadRoom(index: TPoint): ERSHouseRoom;
+```
+Internal method used to read a cached room in `POH.Rooms`.
+This uses an `TPoint` as a room `index`.
+
+Unless you know what you are doing, you don't need this, but there's no harm in using it.
+
+Example:
+```pascal
+WriteLn POH.ReadRoom([3,3]);
+```
+*)
+function TRSPOHHandler.ReadRoom(index: TPoint): ERSHouseRoom;
 begin
-  Self.WriteRoom(room, p.X, p.Y);
+  if not InRange(index.X, 0, High(Self.Rooms)) then
+    TerminateScript('p.X is not between 0 and ' + ToStr(High(Self.Rooms)) + ', got ' + ToStr(index));
+  if not InRange(index.Y, 0, High(Self.Rooms[0])) then
+    TerminateScript('p.Y is not between 0 and ' + ToStr(High(Self.Rooms[0])) + ', got: ' + ToStr(index));
+
+  Result := Self.Rooms[index.Y,index.X];
 end;
 
-function TRSPOHHandler.ReadRoom(x, y: Int32): ERSHouseRoom;
-begin
-  if not InRange(x, 0, High(Self.Rooms)) then
-    TerminateScript('x has to be between 0 and ' + ToStr(High(Self.Rooms)) + ', got: ' + ToStr(x));
-  if not InRange(y, 0, High(Self.Rooms[0])) then
-    TerminateScript('y has to be between 0 and ' + ToStr(High(Self.Rooms[0])) + ', got: ' + ToStr(y));
 
-  Result := Self.Rooms[y,x];
-end;
+(*
+# POH.PrintRooms()
+```pascal
+procedure TRSPOHHandler.PrintRooms();
+```
+Debugging helper method used to read a cached rooms in `POH.Rooms`.
+This will print the whole cache nicely formated in a way that is human friendly like you were looking at the house map.
 
-function TRSPOHHandler.ReadRoom(p: TPoint): ERSHouseRoom; overload;
-begin
-  Result := Self.ReadRoom(p.X, p.Y);
-end;
+Unless you know what you are doing, you don't need this, but there's no harm in using it.
 
+```{note}
+:class: dropdown
+It's a extremely useful debugging tool when paired with `POH.Map.Debug()`.
+```
 
-procedure TRSPOHHandler.PrintRooms(); //for debugging...
+Example:
+```pascal
+POH.Setup();
+POH.PrintRooms();
+```
+*)
+procedure TRSPOHHandler.PrintRooms();
 var
   str: String;
   i, j: Int32;
@@ -164,59 +264,112 @@ begin
   WriteLn str;
 end;
 
+(*
+# POH.DrawMap()
+```pascal
+procedure TRSPOHHandler.DrawMap(bmp: TMufasaBitmap; room: ERSHouseRoom; p: TPoint);
+procedure TRSPOHHandler.DrawMap(room: ERSHouseRoom; color: Int32; p: TPoint); overload;
+```
+Methods used to draw the POH map and cache the rooms drawn in `POH.Rooms`.
 
-
-procedure TRSPOHHandler.DrawMap(bmp: TMufasaBitmap; room: ERSHouseRoom; x, y: Int32);
+Example:
+```pascal
+POH.DrawMap(ERSHouseRoom.SUPERIOR_GARDEN, POH.GrassColor, [3,3]);
+```
+*)
+procedure TRSPOHHandler.DrawMap(bmp: TMufasaBitmap; room: ERSHouseRoom; p: TPoint);
 begin
-  Self.WriteRoom(room, x, y);
-  Self.Map.DrawBitmap(bmp, [Self.SIZE * x, Self.SIZE * y]);
+  Self.WriteRoom(room, p);
+  Self.Map.DrawBitmap(bmp, [Self.SIZE * p.X, Self.SIZE * p.Y]);
 end;
 
-procedure TRSPOHHandler.DrawMap(bmp: TMufasaBitmap; room: ERSHouseRoom; p: TPoint); overload;
-begin
-  Self.DrawMap(bmp, room, p.X, p.Y);
-end;
-
-procedure TRSPOHHandler.DrawMap(room: ERSHouseRoom; color: Int32; x, y: Int32); overload;
+procedure TRSPOHHandler.DrawMap(room: ERSHouseRoom; color: Int32; p: TPoint); overload;
 var
   bmp: TMufasaBitmap;
 begin
   bmp := Self.GetRoomBitmap(room, color);
-  Self.DrawMap(bmp, room, x, y);
+  Self.DrawMap(bmp, room, p);
   bmp.Free();
 end;
 
-procedure TRSPOHHandler.DrawMap(room: ERSHouseRoom; color: Int32; p: TPoint); overload;
-begin
-  Self.DrawMap(room, color, p.X, p.Y);
-end;
 
+(*
+# POH.GetPointIndex()
+```pascal
+function TRSPOHHandler.GetPointIndex(p: TPoint): TPoint;
+```
+Helper method that converts a normal TPoint to a index used by {ref}`POH.ReadRoom()`.
 
-
-function TRSPOHHandler.GetMappedRoom(p: TPoint): ERSHouseRoom;
-begin
-  Result := Self.ReadRoom(p.X div Self.SIZE, p.Y div Self.SIZE);
-end;
-
-function TRSPOHHandler.GetMappedRoomIndices(p: TPoint): TPoint;
+Example:
+```pascal
+WriteLn POH.GetPointIndex(POH.GetPos());
+```
+*)
+function TRSPOHHandler.GetPointIndex(p: TPoint): TPoint;
 begin
   Result := [p.X div Self.SIZE, p.Y div Self.SIZE];
 end;
 
+(*
+# POH.GetMappedRoom()
+```pascal
+function TRSPOHHandler.GetMappedRoom(p: TPoint): ERSHouseRoom;
+```
+Helper method that returns the cached room in `POH.Rooms`with the help of
+{ref}`POH.GetPointIndex()` and {ref}`POH.ReadRoom()`.
+
+Example:
+```pascal
+WriteLn POH.GetMappedRoom(POH.GetPos());
+```
+*)
+function TRSPOHHandler.GetMappedRoom(p: TPoint): ERSHouseRoom;
+begin
+  Result := Self.ReadRoom(Self.GetPointIndex(p));
+end;
+
+(*
+# POH.GetMappedRoomTopLeft()
+```pascal
+function TRSPOHHandler.GetMappedRoomTopLeft(p: TPoint): TPoint;
+```
+Helper method that returns the top left point of a mapped room that the specified `p` belongs to.
+This is required to do accurate "room math".
+
+Example:
+```pascal
+WriteLn POH.GetMappedRoomTopLeft(POH.GetPos());
+```
+*)
 function TRSPOHHandler.GetMappedRoomTopLeft(p: TPoint): TPoint;
 begin
   Result := [p.X div Self.SIZE * Self.SIZE, p.Y div Self.SIZE * Self.SIZE];
 end;
 
-
+(*
+# POH.GetAdjacentRoomsMinimap()
+```pascal
+function TRSPOHHandler.GetAdjacentRoomsMinimap(p: TPoint): TPointArray;
+```
+Helper method that returns coordinates that belong to the north, west, south and east rooms of the point passed in.
+This assumes the compass is set to `0` (North) or that you've rotated your coordinates so the math works as if you had the compass set that way.
+Ideally, you will want to pass in a room top left corner to this to get the top left corner of each adjacent room.
+*)
 function TRSPOHHandler.GetAdjacentRoomsMinimap(p: TPoint): TPointArray;
 begin
   Result := [p.Offset(-32,0), p.Offset(32, 0), p.Offset(0, -32), p.Offset(0, 32)];
 end;
 
-function TRSPOHHandler.GetAdjacentRoomsIndices(p: TPoint): TPointArray;
+(*
+# POH.GetAdjacentRoomsIndices()
+```pascal
+function TRSPOHHandler.GetAdjacentRoomsIndices(index: TPoint): TPointArray;
+```
+Helper method that returns indices of the adjacent rooms (north, west, south and east) on the `POH.Rooms` cache.
+*)
+function TRSPOHHandler.GetAdjacentRoomsIndices(index: TPoint): TPointArray;
 begin
-  Result := [p.Offset(-1,0), p.Offset(1, 0), p.Offset(0, -1), p.Offset(0, 1)];
+  Result := [index.Offset(-1,0), index.Offset(1, 0), index.Offset(0, -1), index.Offset(0, 1)];
 end;
 
 
@@ -430,7 +583,7 @@ end;
 procedure TRSPOHHandler.Setup();
 var
   minimapBMP: TMufasaBitmap;
-  center, topLeft: TPoint;
+  p, center, topLeft: TPoint;
   angle: Double;
 begin
   minimapBMP := TRSPOHHandler.GetCleanMinimap(angle);
@@ -440,9 +593,10 @@ begin
 
   Self.Map.ReplaceColor(0, Self.GrassColor);
 
-  Self.DrawMap(ERSHouseRoom.GARDEN, Self.GrassColor, Self.AMOUNT div 2, Self.AMOUNT div 2);
+  p := [Self.AMOUNT div 2, Self.AMOUNT div 2];
+  Self.DrawMap(ERSHouseRoom.GARDEN, Self.GrassColor, p);
   topLeft := center.Offset(-14, -10);
-  Self.MapAdjacentRooms(minimapBMP, topLeft, [Self.AMOUNT div 2, Self.AMOUNT div 2], angle);
+  Self.MapAdjacentRooms(minimapBMP, topLeft, p, angle);
 
   minimapBMP.Free();
 end;
@@ -454,7 +608,7 @@ var
 begin
   topLeft := p - Self.GetMappedRoomTopLeft(p);
   topLeft := minimapBMP.getCenter() - topLeft - [1,0];
-  Self.MapAdjacentRooms(minimapBMP, topLeft, Self.GetMappedRoomIndices(p), angle);
+  Self.MapAdjacentRooms(minimapBMP, topLeft, Self.GetPointIndex(p), angle);
 end;
 
 
@@ -659,5 +813,7 @@ begin
   POH.Click(ERSRoomObject.POOL);
   Wait(5000);
   POH.Click(ERSRoomObject.JEWELLERY_BOX);
+  while True do
+    POH.DebugPos();
 end;
 *)

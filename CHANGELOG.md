@@ -1,3 +1,12 @@
+## [16.11.17](https://github.com/Torwent/WaspLib/compare/v16.11.16...v16.11.17) (2024-02-04)
+
+
+### Bug Fixes
+
+* **POH:** `POHHandle`r variable was renamed to` POH` and more methods added ([232e878](https://github.com/Torwent/WaspLib/commit/232e878f161a981b714c8abbd5917c4e7c3302b5))
+
+
+
 ## [16.11.16](https://github.com/Torwent/WaspLib/compare/v16.11.15...v16.11.16) (2024-02-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **pohhandler:** improved api for interacting with house objects ([b8e7f45](https://github.com/Torwent/WaspLib/commit/b8e7f45853123fbabc17be7b8f9556b1fddea7dc))
-
-
-
-## [16.11.12](https://github.com/Torwent/WaspLib/compare/v16.11.11...v16.11.12) (2024-02-02)
-
-
-### Bug Fixes
-
-* **POHHandler:** read notes ([5fc3504](https://github.com/Torwent/WaspLib/commit/5fc3504b81296c739c7e19d7be9b41dc237f68ad))
 
 
 

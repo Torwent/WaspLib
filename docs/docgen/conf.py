@@ -45,6 +45,7 @@ extensions = [
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
     'sphinx_copybutton',
+    'sphinx_togglebutton',
     'myst_parser'
 ]
 
@@ -160,6 +161,7 @@ texinfo_documents = [(master_doc, project, project+' Documentation', author, pro
 # -- Extension configuration -------------------------------------------------
 
 myst_enable_extensions = [
- 'linkify'
+ 'linkify',
+ 'colon_fence'
 ]
 sphinxemoji_style = 'twemoji'

@@ -4,7 +4,7 @@
 {$ENDIF}
 
 type
-  ERSRoomObject = (POOL, FAIRY_TREE, JEWELERY_BOX, ALTAR);
+  ERSRoomObject = (POOL, FAIRY_TREE, JEWELLERY_BOX, PRAYER_ALTAR, MAGIC_ALTAR, LARDER, LECTERN, MYTH_CAPE, NEXUS, PORTAL);
 
   TRoomObject = record
     Coordinates: TPointArray;
@@ -13,8 +13,6 @@ type
     Finder: TRSObjectFinder;
     RoomOffset: TPoint;
   end;
-
-  TRoomObjectArray = array [ERSRoomObject] of TRoomObject;
 
 procedure TRoomObject.Setup(upText: TStringArray; shape: Vector3; roomOffset: TPoint);
 begin
@@ -31,3 +29,41 @@ procedure TRoomObject.AddCoordinates(coordinates: TPointArray);
 begin
   Self.Coordinates += coordinates;
 end;
+
+
+function TRoomObject.Hover(mmPoints: TPointArray; radians: Double): Boolean;
+var
+  i: Int32;
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  cuboids: TCuboidExArray;
+begin
+  cuboids := Minimap.GetCuboidArrayMS(mmPoints, Self.Shape, [0,0], radians);
+
+  for i := 0 to High(cuboids) do
+  begin
+    atpa := MainScreen.FindObject(Self.Finder, cuboids[i].Bounds());
+
+    if atpa <> [] then
+    begin
+      tpa := atpa[0];
+      Mouse.Move(tpa[Random(0, High(tpa))]);
+      if MainScreen.IsUpText(Self.UpText) then
+        Exit(True);
+    end;
+  end;
+end;
+
+function TRoomObject.Click(mmPoints: TPointArray; radians: Double): Boolean;
+begin
+  if not Self.Hover(mmPoints, radians) then
+    Exit;
+  Mouse.Click(MOUSE_LEFT);
+  Result := MainScreen.DidRedClick();
+end;
+
+function TRoomObject.Select(options: TStringArray; mmPoints: TPointArray; radians: Double): Boolean;
+begin
+  Result := Self.Hover(mmPoints, radians) and ChooseOption.Select(options);
+end;
+

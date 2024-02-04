@@ -27,7 +27,7 @@ type
     RoomsMap, Map: TMufasaBitmap;
     RoomsBitmaps: array [ERSHouseRoom] of TMufasaBitmap;
     Rooms: E2DRSHouseRoomArray;
-    RoomObjects: array [ERSHouseRoom] of TRoomObjectArray;
+    RoomObjects: array [ERSRoomObject] of TRoomObject;
     GrassColor: Int32;
     Similarity: Double;
   end;
@@ -66,15 +66,15 @@ begin
 
   obj.Setup(['pool'], [1.5, 1.5, 6], [4,4]);
   obj.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
-  Self.RoomObjects[ERSHouseRoom.SUPERIOR_GARDEN][ERSRoomObject.POOL] := obj;
+  Self.RoomObjects[ERSRoomObject.POOL] := obj;
 
   obj.Setup(['Fairy', 'Tree'], [1.5, 1.5, 6], [16,16]);
   obj.Finder.Colors := [CTS2(7307158, 15, 0.48, 0.69)];
-  Self.RoomObjects[ERSHouseRoom.SUPERIOR_GARDEN][ERSRoomObject.FAIRY_TREE] := obj;
+  Self.RoomObjects[ERSRoomObject.FAIRY_TREE] := obj;
 
   obj.Setup(['Jewellery', 'Box'], [2, 2, 6], [4,4]);
   obj.Finder.Colors := [CTS2(1287353, 17, 0.02, 0.72), CTS2(530791, 8, 0.24, 2.28)];
-  Self.RoomObjects[ERSHouseRoom.ACHIEVEMENT_GALLERY][ERSRoomObject.JEWELERY_BOX] := obj;
+  Self.RoomObjects[ERSRoomObject.JEWELLERY_BOX] := obj;
 end;
 
 function TRSPOHHandler.GetRoom(i: Int32): ERSHouseRoom;
@@ -245,19 +245,18 @@ begin
 end;
 
 
-function TRSPOHHandler.Contains(room: ERSHouseRoom; objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+function TRSPOHHandler.Contains(objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
 var
   obj: TRoomObject;
   cuboid: TCuboidEx;
 begin
-  obj := Self.RoomObjects[room][objType];
+  obj := Self.RoomObjects[objType];
   if obj.Coordinates <> [] then
     Exit;
 
   cuboid := Self.GetCuboid(topLeft, obj.RoomOffset, obj.Shape, angle, rotation);
   Result := MainScreen.FindObject(obj.Finder, cuboid.Bounds()) <> [];
 end;
-
 
 procedure TRSPOHHandler.MapRoomObjects(room: ERSHouseRoom; topLeft: TPoint; roomIndex: TPoint; angle: Double);
 var
@@ -274,16 +273,16 @@ begin
       for rotation := 0 to 3 do
       begin
         obj := ERSRoomObject.POOL;
-        if Self.Contains(room, obj, topLeft, angle, rotation) then
+        if Self.Contains(obj, topLeft, angle, rotation) then
         begin
-          p := roomIndex + Self.RoomObjects[room][obj].RoomOffset;
+          p := roomIndex + Self.RoomObjects[obj].RoomOffset;
           p := p.Rotate(PI/2*rotation, center);
-          Self.RoomObjects[room][obj].AddCoordinates([p]);
+          Self.RoomObjects[obj].AddCoordinates([p]);
         end;
 
         obj := ERSRoomObject.FAIRY_TREE;
-        if Self.Contains(room, obj, topLeft, angle, rotation) then
-          Self.RoomObjects[room][obj].AddCoordinates([center]);
+        if Self.Contains(obj, topLeft, angle, rotation) then
+          Self.RoomObjects[obj].AddCoordinates([center]);
       end;
     end;
 
@@ -294,13 +293,13 @@ begin
 
       for rotation := 0 to 3 do
       begin
-        obj := ERSRoomObject.JEWELERY_BOX;
-        if Self.Contains(room, obj, topLeft, angle, rotation) then
+        obj := ERSRoomObject.JEWELLERY_BOX;
+        if Self.Contains(obj, topLeft, angle, rotation) then
         begin
-          p := roomIndex + Self.RoomObjects[room][obj].RoomOffset;
+          p := roomIndex + Self.RoomObjects[obj].RoomOffset;
           p := p.Rotate(PI/2*rotation, center);
 
-          Self.RoomObjects[room][obj].AddCoordinates([p]);
+          Self.RoomObjects[obj].AddCoordinates([p]);
         end;
       end;
     end;
@@ -367,8 +366,8 @@ begin
         rotated := Self.RotateRoom(sample, r);
 
         case j of
-          2: hasCoreObject := Self.Contains(ERSHouseRoom(j), ERSRoomObject.POOL, p, angle, r);
-          7: hasCoreObject := Self.Contains(ERSHouseRoom(j), ERSRoomObject.JEWELERY_BOX, p, angle, r);
+          2: hasCoreObject := Self.Contains(ERSRoomObject.POOL, p, angle, r);
+          7: hasCoreObject := Self.Contains(ERSRoomObject.JEWELLERY_BOX, p, angle, r);
         end;
 
         matrix := crop.MatchTemplate(rotated, TM_CCOEFF_NORMED);
@@ -594,49 +593,71 @@ begin
   Result := Self.MapToMM(Self.GetPos(), tpa, Minimap.GetCompassAngle(False));
 end;
 
-function TRSPOHHandler.HoverObject(room: ERSHouseRoom; objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.Hover(objType: ERSRoomObject): Boolean;
 var
   obj: TRoomObject;
-  i: Int32;
-  mmPoints, tpa: TPointArray;
-  atpa: T2DPointArray;
-  cuboids: TCuboidExArray;
+  mmPoints: TPointArray;
   radians: Double;
   me: TPoint;
 begin
   me := Self.GetPos();
-
-  obj := Self.RoomObjects[room][objType];
+  obj := Self.RoomObjects[objType];
   if obj.Coordinates = [] then
     Exit;
 
   radians := Minimap.GetCompassAngle(False);
   mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
-  cuboids := Minimap.GetCuboidArrayMS(mmPoints, obj.Shape, [0,0], radians);
-
-  for i := 0 to High(cuboids) do
-  begin
-    atpa := MainScreen.FindObject(obj.Finder, cuboids[i].Bounds());
-
-    if atpa <> [] then
-    begin
-      tpa := atpa[0];
-      Mouse.Move(tpa[Random(0, High(tpa))]);
-      if MainScreen.IsUpText(obj.UpText) then
-        Exit(True);
-    end;
-  end;
+  Result := obj.Hover(mmPoints, radians);
 end;
 
+function TRSPOHHandler.Click(objType: ERSRoomObject): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.GetPos();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
+  Result := obj.Click(mmPoints, radians);
+end;
+
+function TRSPOHHandler.Select(objType: ERSRoomObject; options: TStringArray): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.GetPos();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
+  Result := obj.Select(options, mmPoints, radians);
+end;
 
 var
-  POHHandler: TRSPOHHandler;
+  POH: TRSPOHHandler;
 
 procedure TSRL.Setup(); override;
 begin
   inherited;
-
-  POHHandler.Init();
+  POH.Init();
 end;
 
 (*
+begin
+  POH.Setup();
+  POH.Click(ERSRoomObject.POOL);
+  Wait(5000);
+  POH.Click(ERSRoomObject.JEWELLERY_BOX);
+end;
+*)

@@ -347,65 +347,6 @@ begin
     Exit(True);
 end;
 
-function TUniversalTransport.findFairyRingMiddle(fairyRing: TTeleportLocation): TPoint;
-var
-  fairyRingGreen: TCTS2Color := CTS2(4089424, 10, 0.14, 0.19);
-  fairyRingBrown: TCTS2Color := CTS2(4807548, 17, 0.07, 0.21);
-  fairyRingButterflyWhite: TCTS2Color := CTS2(14476264, 4, 0.36, 0.64);
-  brownTPA: TPointArray;
-  greenTPA: TPointArray;
-  butteryflyTPA: TPointArray;
-  searchBox: TBox := Mainscreen.Bounds();
-  nearbyColorPoints: TPointArray;
-begin
-  SRL.FindColors(greenTPA, fairyRingGreen, searchBox);
-  SRL.FindColors(brownTPA, fairyRingBrown, searchBox);
-  nearbyColorPoints := brownTPA.Grow(2).PointsInRangeOf(greenTPA.Grow(2), 1, 10);
-  if (Length(nearbyColorPoints) > 0) then
-    Exit(nearbyColorPoints.Grow(50).Erode(30).MinAreaCircle().mean());
-
-  SRL.FindColors(butteryflyTPA, fairyRingButterflyWhite, searchBox);
-  if (Length(butteryflyTPA) > 0) then
-    Exit(butteryflyTPA.RandomValue());
-
-  Exit(ScriptWalker^.GetTileMS(fairyRing.worldPoint).mean());
-end;
-
-function TUniversalTransport.getFairyDialTeleportBox(): TBox;
-var
-  teleportBox: TBox;
-  attempt: Int32;
-begin
-  for attempt in [1..5] do
-  begin
-    OCR.LocateText(MainScreen.Bounds, 'Teleport to this location', RS_FONT_QUILL_8, TOCRColorFilter.Create([8256]), teleportBox);
-    Wait(300, 500);
-    if not (Result = teleportBox) then Exit(teleportBox);
-  end;
-  raise 'Unable to find fairy dial teleport box in 5 tries';
-end;
-
-function TUniversalTransport.getWalkableFairyRing(maximumDistance: Int32): TTeleportLocation;
-var
-  sortedWalkableRings: array of TTeleportLocation;
-  ringTeleport: TTeleportLocation;
-  myPos: TPoint := ScriptWalker^.GetMyPos();
-begin
-  try
-    sortedWalkableRings := self.getConnectingTeleports(myPos, RSTeleports.FairyRingTeleports);
-  except
-    Self.DebugLn('There is not a walkable ring nearby.');
-  end;
-  if Length(sortedWalkableRings) > 0 then
-  begin
-    for ringTeleport in sortedWalkableRings do
-      if (self.pathLength(ringTeleport.worldPoint, myPos) < maximumDistance)
-      and ringTeleport.dispatcherRing then
-        Exit(ringTeleport);
-    Self.DebugLn('There is no walkable fairy ring');
-  end;
-end;
-
 function TUniversalTransport.handleFairyRingTeleport(teleportLocation: TTeleportLocation): Boolean;
 var
   endLocation: TBox := Box(teleportLocation.worldPoint, 200, 200);

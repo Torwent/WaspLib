@@ -13,14 +13,6 @@ type
     fairyTeleportItem: EFairyTeleportItem;
   end;
 
-procedure TUniversalTransport.Init(fairyTeleportItem: EFairyTeleportItem; ardougneCape: TRSItem); overload;
-begin
-  Self.Name := 'UniversalTransport';
-  self.fairyTeleportItem := fairyTeleportItem;
-  self.ardougneCape := ardougneCape;
-end;
-
-
 function TUniversalTransport.pathLength(path: TPointArray): Int32;
 var
   total: Double;
@@ -347,214 +339,16 @@ begin
     Exit(True);
 end;
 
-function TUniversalTransport.findFairyRingMiddle(fairyRing: TTeleportLocation): TPoint;
-var
-  fairyRingGreen: TCTS2Color := CTS2(4089424, 10, 0.14, 0.19);
-  fairyRingBrown: TCTS2Color := CTS2(4807548, 17, 0.07, 0.21);
-  fairyRingButterflyWhite: TCTS2Color := CTS2(14476264, 4, 0.36, 0.64);
-  brownTPA: TPointArray;
-  greenTPA: TPointArray;
-  butteryflyTPA: TPointArray;
-  searchBox: TBox := Mainscreen.Bounds();
-  nearbyColorPoints: TPointArray;
-begin
-  SRL.FindColors(greenTPA, fairyRingGreen, searchBox);
-  SRL.FindColors(brownTPA, fairyRingBrown, searchBox);
-  nearbyColorPoints := brownTPA.Grow(2).PointsInRangeOf(greenTPA.Grow(2), 1, 10);
-  if (Length(nearbyColorPoints) > 0) then
-    Exit(nearbyColorPoints.Grow(50).Erode(30).MinAreaCircle().mean());
-
-  SRL.FindColors(butteryflyTPA, fairyRingButterflyWhite, searchBox);
-  if (Length(butteryflyTPA) > 0) then
-    Exit(butteryflyTPA.RandomValue());
-
-  Exit(ScriptWalker^.GetTileMS(fairyRing.worldPoint).mean());
-end;
-
-function TUniversalTransport.getFairyDialTeleportBox(): TBox;
-var
-  teleportBox: TBox;
-  attempt: Int32;
-begin
-  for attempt in [1..5] do
-  begin
-    OCR.LocateText(MainScreen.Bounds, 'Teleport to this location', RS_FONT_QUILL_8, TOCRColorFilter.Create([8256]), teleportBox);
-    Wait(300, 500);
-    if not (Result = teleportBox) then Exit(teleportBox);
-  end;
-  raise 'Unable to find fairy dial teleport box in 5 tries';
-end;
-
-function TUniversalTransport.getWalkableFairyRing(maximumDistance: Int32): TTeleportLocation;
-var
-  sortedWalkableRings: array of TTeleportLocation;
-  ringTeleport: TTeleportLocation;
-  myPos: TPoint := ScriptWalker^.GetMyPos();
-begin
-  try
-    sortedWalkableRings := self.getConnectingTeleports(myPos, RSTeleports.FairyRingTeleports);
-  except
-    Self.DebugLn('There is not a walkable ring nearby.');
-  end;
-  if Length(sortedWalkableRings) > 0 then
-  begin
-    for ringTeleport in sortedWalkableRings do
-      if (self.pathLength(ringTeleport.worldPoint, myPos) < maximumDistance)
-      and ringTeleport.dispatcherRing then
-        Exit(ringTeleport);
-    Self.DebugLn('There is no walkable fairy ring');
-  end;
-end;
-
 function TUniversalTransport.handleFairyRingTeleport(teleportLocation: TTeleportLocation): Boolean;
-const
-  TEXT_COLORS: TIntegerArray = [4145151, 8355839];
 var
-  travelLog: TBox;
-  fairyCodeTextBox: TBox;
-  redTPA: TPointArray;
-  walkableFairyRing: TTeleportLocation;
-  canFairyTeleport: Boolean := self.fairyTeleportItem = EFairyTeleportItem.DIARY;
-  travelLogOpen: Boolean;
-  outerAttempt, innerAttempt: Int32;
-  fairyTeleportStaff: TRSItem;
-  fairyRingChooseOption: TRSChooseOption_Option;
-  usedChooseOptionTeleport: Boolean;
+  endLocation: TBox := Box(teleportLocation.worldPoint, 200, 200);
 begin
-  travelLog := Logout.Bounds();
-  travelLog.Y1 += 40;
-  travelLog.X2 -= 36;
+  if FairyRing.WalkOpen() then
+    FairyRing.ClickLogCode(teleportLocation.destination);
 
-  // make sure dramen is equipped
-  Self.DebugLn('Searching for dramen staff');
-  if not canFairyTeleport then
-  for outerAttempt := 0 to 3 do
-  begin
-    case self.fairyTeleportItem of
-      EFairyTeleportItem.DRAMEN: fairyTeleportStaff := 'Dramen staff';
-      EFairyTeleportItem.LUNAR: fairyTeleportStaff := 'Lunar staff';
-      EFairyTeleportItem.UNAVAILABLE: raise 'You either need to configure a method for fairy teleports (dramen/lunar/diary) or not use them.';
-    end;
-
-    canFairyTeleport := Inventory.ClickItem(fairyTeleportStaff) or Equipment.ContainsItem(fairyTeleportStaff);
-
-    Self.DebugLn('Is it equipped? ' + ToString(canFairyTeleport));
-
-    if not canFairyTeleport then
-    begin
-      if outerAttempt = 3 then
-        raise "We could not find a dramen staff.";
-
-      // maybe remove this whole part and just raise no item in inventory; leave it up the caller to get the fairy teleport item
-      Self.DebugLn('Opening Bank');
-      // teleport nearby bank if possible
-      self.genericJewelleryBankTeleport();
-      if not Bank.WalkOpen() then
-        raise "We can't get to a bank from here: " + ToString(ScriptWalker^.GetMyPos()) + ". Consider adding some jewellery to teleport with.";
-      // TO DO ^ maybe add desperate teleports to banks like home teleport
-      Self.DebugLn('Withdrawing ', fairyTeleportStaff);
-      if not WaitUntil(Bank.WithdrawItem(fairyTeleportStaff, False), 200, 5000) then
-        raise "You do not have a dramen/lunar staff. You can turn off fairy teleports";
-    end;
-  end;
-
-  Self.DebugLn('Getting walkable fairy ring');
-
-  for outerAttempt := 0 to 3 do
-  begin
-    walkableFairyRing := self.getWalkableFairyRing(500);
-
-    // try to use ardy cloak if available
-    if (ToString(self.ardougneCape) <> '') and (walkableFairyRing.worldPoint = [0,0]) then
-    begin
-      Self.DebugLn('Looking for ', ToString(self.ardougneCape));
-      if not Equipment.ClickItem(self.ardougneCape, 'Monastery') then
-        if not (Inventory.Open() and Inventory.ClickItem(self.ardougneCape, 'Monastery')) then
-          raise "Couldn't find " + self.ardougneCape + " in inventory or equipment";
-
-      Wait(SRL.TruncatedGauss(4000, 5500));
-    end;
-
-    // walk to nearest fairy ring
-    if (outerAttempt = 3) and (walkableFairyRing.worldPoint = [0,0]) then
-      raise 'Fairy ring ' + walkableFairyRing.destination + ' is not configured properly';
-  end;
-
-  Self.DebugLn('We are going to walk to ' + ToString(walkableFairyRing.worldPoint));
-  ScriptWalker^.WebWalk(walkableFairyRing.worldPoint, 40);
- 
-  // open fairy ring teleports
-  Self.DebugLn("opening fairy ring teleports");
-  for outerAttempt := 0 to 3 do
-  begin
-    for innerAttempt := 0 to 3 do
-    begin
-      Mouse.Move(findFairyRingMiddle(walkableFairyRing));
-      if not MainScreen.IsUpText("y ring") then
-        Antiban.RandomRotate();
-      if MainScreen.IsUpText("y ring") then
-        Break;
-
-      travelLogOpen := SRL.FindColors(redTPA, TEXT_COLORS, travelLog) > 1;
-      if travelLogOpen then
-        Break(2);
-    end;
-
-    Mouse.click(MOUSE_RIGHT);
-    Self.DebugLn('Selecting configure or previous ring');
-    // handle zanaris cause it's weird
-    if teleportLocation = RSTeleports.BKS_ZANARIS then
-      usedChooseOptionTeleport := ChooseOption.Select('Zanaris')
-    else
-      for fairyRingChooseOption in ChooseOption.GetOptions() do
-        if Between('(',')', fairyRingChooseOption.Text) = teleportLocation.destination.Replace(' ', '') then
-          usedChooseOptionTeleport := ChooseOption.Select(fairyRingChooseOption.Text);
- 
-    if not usedChooseOptionTeleport then
-      ChooseOption.Select('Configure', MOUSE_LEFT);
-
-    travelLogOpen := WaitUntil((SRL.FindColors(redTPA, TEXT_COLORS, travelLog) > 1), 300, 5000);
-    if travelLogOpen or usedChooseOptionTeleport then
-      Break;
-    if outerAttempt = 3 then
-      raise "Got stuck!";
-  end;
-
-  if usedChooseOptionTeleport then
-    Exit(True);
-
-  Self.DebugLn('Scrolling to top of fairy rings');
-  // scroll to top of fairy rings
-  Mouse.Move(travelLog, True);
-  Mouse.Scroll(SRL.TruncatedGauss(30, 50), False);
-
-  for outerAttempt := 0 to 3 do
-  begin
-    // look for given teleport in travel log
-    OCR.LocateText(travelLog, teleportLocation.destination, RS_FONT_PLAIN_12, TOCRColorFilter.Create(TEXT_COLORS), fairyCodeTextBox);
-
-    if fairyCodeTextBox.Area() > 5 then
-      Break;
-
-    Self.DebugLn('Scrolling down fairy rings');
-    Mouse.Move(travelLog, True);
-    Mouse.Scroll(Random(1, 3), True);
-
-    for innerAttempt := 0 to 3 do
-    begin
-      Mouse.Move(fairyCodeTextBox);
-      if MainScreen.IsUpText(teleportLocation.destination) then
-        Break;
-    end;
-  end;
-
-  // click the given teleport in travel log
-  Mouse.Click(fairyCodeTextBox, MOUSE_LEFT);
-
-  // click the confirm teleport in middle of screen
-  Mouse.Move(self.getFairyDialTeleportBox());
-  if WaitUntil(MainScreen.IsUpText("Confirm"), 200, 5000) then
-    Mouse.click(MOUSE_LEFT);
+  if WaitUntil(FairyRing.GetCurrentCode() = teleportLocation.destination, 200, 5000) then
+    FairyRing.ClickTeleportButton();
+  Result := WaitUntil(endLocation.Contains(ScriptWalker^.GetMyPos()), 200, 5000);
 end;
 
 function TUniversalTransport.nearGE(): Boolean;
@@ -689,7 +483,6 @@ end;
 //begin
 //  try
 //    rsw.Setup();
-//    Transport.Init(EFairyTeleportItem.DRAMEN, 'ardougne cloak 2');
 //    if not Transport.run(teleportLocation) then
 //    begin
 //      Transport.desperateBankOpen();

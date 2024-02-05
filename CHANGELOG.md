@@ -1,3 +1,12 @@
+# [16.12.0](https://github.com/Torwent/WaspLib/compare/v16.11.18...v16.12.0) (2024-02-05)
+
+
+### Features
+
+* **poh:** finished. read notes ([1e2ad53](https://github.com/Torwent/WaspLib/commit/1e2ad5323718f9d9e40cfe4ebd89db6ea5c50382))
+
+
+
 ## [16.11.18](https://github.com/Torwent/WaspLib/compare/v16.11.17...v16.11.18) (2024-02-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([cd32b9b](https://github.com/Torwent/WaspLib/commit/cd32b9b9f94747efbfa408c288ab451511c333b5))
-
-
-
-## [16.11.14](https://github.com/Torwent/WaspLib/compare/v16.11.13...v16.11.14) (2024-02-03)
-
-
-### Bug Fixes
-
-* **docs:** documentation migration to use markdown with sphinx myst parser ([3b5a65a](https://github.com/Torwent/WaspLib/commit/3b5a65aee976f65e0ef89921e8f47ba14675dcb8))
 
 
 

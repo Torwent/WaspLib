@@ -1,3 +1,12 @@
+## [16.12.1](https://github.com/Torwent/WaspLib/compare/v16.12.0...v16.12.1) (2024-02-05)
+
+
+### Bug Fixes
+
+* force bump ([c738543](https://github.com/Torwent/WaspLib/commit/c738543962dc6b8cfaf8814d9a7e21d547a9cf86))
+
+
+
 # [16.12.0](https://github.com/Torwent/WaspLib/compare/v16.11.18...v16.12.0) (2024-02-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * removed a duplicate anvil file in the gametabs directory(!?) and more docs fixes ([751e9c4](https://github.com/Torwent/WaspLib/commit/751e9c4f4c61294f72c48d02c49e44f554edec11))
-
-
-
-## [16.11.15](https://github.com/Torwent/WaspLib/compare/v16.11.14...v16.11.15) (2024-02-03)
-
-
-### Bug Fixes
-
-* force bump ([cd32b9b](https://github.com/Torwent/WaspLib/commit/cd32b9b9f94747efbfa408c288ab451511c333b5))
 
 
 

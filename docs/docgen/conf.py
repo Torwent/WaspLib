@@ -44,6 +44,7 @@ extensions = [
     'sphinx.ext.autodoc',
     'sphinx.ext.autosummary',
     'sphinx.ext.autosectionlabel',
+    'sphinx.ext.intersphinx',
     'sphinx_copybutton',
     'sphinx_togglebutton',
     'myst_parser'
@@ -159,9 +160,10 @@ texinfo_documents = [(master_doc, project, project+' Documentation', author, pro
 
 
 # -- Extension configuration -------------------------------------------------
+intersphinx_mapping = {'SRL-T': ('https://torwent.github.io/SRL-T', None)}
+intersphinx_disabled_reftypes = ["*"]
 
 myst_enable_extensions = [
  'linkify',
  'colon_fence'
 ]
-sphinxemoji_style = 'twemoji'

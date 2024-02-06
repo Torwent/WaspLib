@@ -1,3 +1,12 @@
+## [16.12.3](https://github.com/Torwent/WaspLib/compare/v16.12.2...v16.12.3) (2024-02-06)
+
+
+### Bug Fixes
+
+* Bank.WalkOpen() should open the bank on NPCs again ([e2f7488](https://github.com/Torwent/WaspLib/commit/e2f7488b73b871f64cdd23704fd3dd0d6e1d3d87))
+
+
+
 ## [16.12.2](https://github.com/Torwent/WaspLib/compare/v16.12.1...v16.12.2) (2024-02-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **poh:**  cleanup and some docs added ([45d9990](https://github.com/Torwent/WaspLib/commit/45d99906523477e5a7041351213293b9148bfb6e))
-
-
-
-## [16.11.17](https://github.com/Torwent/WaspLib/compare/v16.11.16...v16.11.17) (2024-02-04)
-
-
-### Bug Fixes
-
-* **POH:** `POHHandle`r variable was renamed to` POH` and more methods added ([232e878](https://github.com/Torwent/WaspLib/commit/232e878f161a981b714c8abbd5917c4e7c3302b5))
 
 
 

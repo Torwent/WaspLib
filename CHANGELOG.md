@@ -1,3 +1,12 @@
+## [16.12.2](https://github.com/Torwent/WaspLib/compare/v16.12.1...v16.12.2) (2024-02-06)
+
+
+### Bug Fixes
+
+* make sure WaspLib is properly included when compiling from the file ([5e8b948](https://github.com/Torwent/WaspLib/commit/5e8b948373785420e8cf202fad03e68e9c3b8af8))
+
+
+
 ## [16.12.1](https://github.com/Torwent/WaspLib/compare/v16.12.0...v16.12.1) (2024-02-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **POH:** `POHHandle`r variable was renamed to` POH` and more methods added ([232e878](https://github.com/Torwent/WaspLib/commit/232e878f161a981b714c8abbd5917c4e7c3302b5))
-
-
-
-## [16.11.16](https://github.com/Torwent/WaspLib/compare/v16.11.15...v16.11.16) (2024-02-04)
-
-
-### Bug Fixes
-
-* removed a duplicate anvil file in the gametabs directory(!?) and more docs fixes ([751e9c4](https://github.com/Torwent/WaspLib/commit/751e9c4f4c61294f72c48d02c49e44f554edec11))
 
 
 

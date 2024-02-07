@@ -1,3 +1,17 @@
+# [17.0.0](https://github.com/Torwent/WaspLib/compare/v16.13.1...v17.0.0) (2024-02-07)
+
+
+### Bug Fixes
+
+* removed the "compability layer" ([53c3d16](https://github.com/Torwent/WaspLib/commit/53c3d160d32e1d2fdeb4d1dcd599f9d30361d4b9))
+
+
+### BREAKING CHANGES
+
+* This will require the latest SRL-T and some of my scripts will need to be updated.
+
+
+
 ## [16.13.1](https://github.com/Torwent/WaspLib/compare/v16.13.0...v16.13.1) (2024-02-07)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * make sure WaspLib is properly included when compiling from the file ([5e8b948](https://github.com/Torwent/WaspLib/commit/5e8b948373785420e8cf202fad03e68e9c3b8af8))
-
-
-
-## [16.12.1](https://github.com/Torwent/WaspLib/compare/v16.12.0...v16.12.1) (2024-02-05)
-
-
-### Bug Fixes
-
-* force bump ([c738543](https://github.com/Torwent/WaspLib/commit/c738543962dc6b8cfaf8814d9a7e21d547a9cf86))
 
 
 

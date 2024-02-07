@@ -1,42 +1,43 @@
-name: Bump version
-on:   
+name: Release Version
+on:
   workflow_run:
-    workflows: ["Compile test"]
+    workflows: ["Compile Test"]
     branches: [master]
     types:
       - completed
-      
+
 jobs:
-  build:
+  version:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3.2.0
-                    
-    - name: Generate changelog
-      id: changelog
-      uses: TriPSs/conventional-changelog-action@v3.18.0
-      with:
-        github-token: ${{ secrets.GITHUB_TOKEN }}
-        git-message: 'chore(release): {version}'
-        preset: 'angular'
-        tag-prefix: 'v'
-        output-file: 'CHANGELOG.md'
-        skip-version-file: 'true'
-        skip-on-empty: 'true'
-        skip-commit: 'false'
-            
-    - name: Create release
-      uses: actions/create-release@v1.1.4
-      if: ${{ steps.changelog.outputs.skipped == 'false' }}
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ steps.changelog.outputs.tag }}
-        release_name: ${{ steps.changelog.outputs.tag }}
-        body: ${{ steps.changelog.outputs.clean_changelog }}
-          
-    - name: Discord notification
-      uses: rguillaume/discord-action-embed@v1.0.4
-      with:
-        webhook: ${{ secrets.UPDATES_WEBHOOK }}
-        embed: '{"title": "Update: ${{ github.event.repository.name }}", "description": ${{ toJSON(github.event.workflow_run.head_commit.message) }}, "url": "${{ github.event.workflow_run.repository.html_url }}/commit/${{ github.event.workflow_run.head_commit.id }}", "footer": {"text": "Committer: ${{ github.event.workflow_run.head_commit.author.name }}"}, "color": "16776960"}'
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Generate changelog
+        id: changelog
+        uses: TriPSs/conventional-changelog-action@v3.18.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          git-message: "chore(release): {version}"
+          preset: "angular"
+          tag-prefix: "v"
+          output-file: "CHANGELOG.md"
+          skip-version-file: "true"
+          skip-on-empty: "true"
+          skip-commit: "false"
+
+      - name: Create release
+        uses: actions/create-release@v1.1.4
+        if: ${{ steps.changelog.outputs.skipped == 'false' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.changelog.outputs.tag }}
+          release_name: ${{ steps.changelog.outputs.tag }}
+          body: ${{ steps.changelog.outputs.clean_changelog }}
+
+      - name: Discord notification
+        uses: rguillaume/discord-action-embed@v1.0.4
+        with:
+          webhook: ${{ secrets.UPDATES_WEBHOOK }}
+          embed: '{"title": "Update: ${{ github.event.repository.name }}", "description": ${{ toJSON(github.event.workflow_run.head_commit.message) }}, "url": "${{ github.event.workflow_run.repository.html_url }}/commit/${{ github.event.workflow_run.head_commit.id }}", "footer": {"text": "Committer: ${{ github.event.workflow_run.head_commit.author.name }}"}, "color": "16776960"}'

@@ -16,10 +16,8 @@ commentregex = re.compile('\(\*.+?\*\)', re.DOTALL)
 
 def get_files(root): 
     ''' recursively walks every and graps every file name and path '''
-
     lst = os.listdir(root)
-    result = []
-    
+    result = [] 
     for name in lst:
       if os.path.isdir(root+os.sep+name):
         if not name in IGNORE_FOLDERS:
@@ -29,53 +27,98 @@ def get_files(root):
       _,ext = os.path.splitext(name)
       if ext.lower() in FILE_EXTENSIONS:
         result.append(root+os.sep+name)
-    
     return result
-
 
 def generate_index_rst(TOC):
     ''' 
       Generates the index.rst file 
+
       Builds a table of contents for every seperate folder
     '''
-    index = 'Welcome to %s documentation!\n===============================\n\n' %  (DOCNAME,)
-    
-    for dir,value in TOC:
-      # print('Linking: ' + dir)
-      index += '.. toctree::\n   :maxdepth: 2\n\n	:caption: %s\n\n' % (dir.upper().replace(os.sep,' -> '),)
-      
-      for name in value:
-        # print('   * ' + name)
-        index += '   ' + name + '\n' 
-      index += '\n-----------\n\n'
 
-    i = open('source/index.rst', 'w+')
+    index = "Welcome to |:bee:| %s documentation" %  (DOCNAME,)
+    index += "\n"+ ("="*len(index)) + "\n\n" 
+  
+    class rstFile:
+      def __init__(self, r, t):
+        self.Root = r
+        self.Text = t
+        
+    fileArr = []
+    index += ".. toctree::\n    :titlesonly:\n"
+
+    for dir,value in TOC:  
+
+      print('Value: ' + str(value))
+      fileName = os.path.splitext(dir)[0].split(os.sep)[0]
+      if fileName == "root":
+        continue
+
+      fileRST = "source/" + fileName + ".rst"
+
+      hasElement = False
+      for f in fileArr:
+        if f.Root == fileRST:
+          hasElement = True
+          break
+
+      fileText = ""
+
+      if not hasElement:
+        fileArr.append(rstFile(fileRST, ""))
+        if fileName != "root":
+          index += "\n    " + fileName
+      else:
+        fileText += "\n\n-----------\n\n"
+         
+      if fileName != "root":   
+        fileText += ".. toctree::\n  :maxdepth: 2\n  :caption: %s\n" % (dir.upper().replace(os.sep," -> "),)
+
+      for name in value:
+        fileText += "\n  " + name
+
+
+      for f in fileArr:
+        if f.Root == fileRST:
+          f.Text += fileText
+          break
+
+    for f in fileArr:
+      fileName = os.path.splitext(os.path.basename(f.Root))[-2]
+      mdFile = "source" + os.sep + fileName + ".md"
+      if os.path.exists(mdFile):
+        tmp = open(mdFile, "a")
+        tmp.write("\n" + "```{eval-rst}\n" + f.Text + "\n```")
+      else:
+        tmp = open(f.Root, "w+")
+        title = os.path.splitext(os.path.basename(f.Root).upper())[0]
+        title += "\n" + ("=" * len(title)) + "\n\n"
+        tmp.write(title + f.Text)  
+      tmp.close()
+
+
+    i = open("source/index.rst", "w+")
+
     i.write(index)
     i.close()
-    
-    
+
 def generate(root):
     ''' 
       Generates md by walking the specified directly
-    '''
-    
+    '''   
     if not os.path.exists('source'):
-        os.mkdir('source')
+      os.mkdir('source')
     
     paths = get_files(root)
     NameToID = {}
-    TOC = []
-    
+    TOC = []  
     added = set()
     
     for filename in paths:
-      # print(filename)
-    
-      # extract path, directory name, and filename without extension
       path = os.path.dirname(filename)
       dir  = path[len(root)+1:]
       name = os.path.basename(os.path.splitext(filename)[0])
-    
+
       # read in the sourcefile
       with open(filename, 'r') as f:
         contents = f.read()
@@ -86,23 +129,21 @@ def generate(root):
         name = name + '('+dir.replace(os.sep,'_')+')'
       added.add(name)
       
-      
       # extract all comments
       res = commentregex.findall(contents)
       if len(res) == 0:
-        print('WARNING: ', name, ' is not documented')
+        print("WARNING: ", name, " is not documented")
         continue
       
       # generate a output file
-      out = open('source/%s.md' % name, 'w+')
-      
-      # write the rst-style'd comments to the output file
-      for doc in res:
-        doc = doc[2:][:-2];
-        
+      out = open("source/%s.md" % name, "w+")
+      # write the markdown-style'd comments to the output file
+      for comment in res:  
+        doc = comment[2:][:-2];
         out.write(doc)
-        out.write('\n\n')
-        out.write('------------\n')
+        if comment != res[-1]:
+          out.write('\n\n')
+          out.write('- - -\n')
       out.close()
       
       # Table of Contents
@@ -114,14 +155,11 @@ def generate(root):
 
     # finally build the index file
     generate_index_rst(TOC)
-    
     os.system('sphinx-build source build -c .')
-	
+
 if __name__ == '__main__':
     generate(sys.argv[1])
-    
     if os.path.exists('source'):
         for filename in os.listdir('source'):
-            os.remove('source' + os.sep + filename)
-            
-        os.rmdir('source') 
+            os.remove('source' + os.sep + filename)      
+        os.rmdir('source')

@@ -47,6 +47,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     'sphinx_copybutton',
     'sphinx_togglebutton',
+    'sphinxemoji.sphinxemoji',
     'myst_parser'
 ]
 
@@ -70,7 +71,7 @@ master_doc = 'index'
 #
 # This is also used if you do content translation via gettext catalogs.
 # Usually you set "language" from the command line for these cases.
-language = None
+language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
@@ -93,7 +94,7 @@ html_theme = 'furo'
 # documentation.
 #
 html_theme_options = {
-	'navigation_depth': 2,
+	
 }
 
 # Add any paths that contain custom static files (such as style sheets) here,
@@ -164,6 +165,6 @@ intersphinx_mapping = {'SRL-T': ('https://torwent.github.io/SRL-T', None)}
 intersphinx_disabled_reftypes = ["*"]
 
 myst_enable_extensions = [
- 'linkify',
- 'colon_fence'
+ 'linkify', 'colon_fence', 'substitution'
 ]
+sphinxemoji_style = 'twemoji'

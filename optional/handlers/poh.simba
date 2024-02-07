@@ -520,6 +520,7 @@ type
   TRSPOHHandler = record
     Map: TPOHMap;
     RoomObjects: array [ERSRoomObject] of TRoomObject;
+    EnableRunAtEnergy: Int32;
     Similarity: Double;
   end;
 ```
@@ -528,6 +529,9 @@ The core record used to handle navigating a POH.
   TRSPOHHandler = record
     Map: TPOHMap;
     RoomObjects: array [ERSRoomObject] of TRoomObject;
+
+    EnableRunAtEnergy: Int32;
+    Walking: Boolean;
     Similarity: Double;
   end;
 
@@ -993,6 +997,83 @@ end;
 function TRSPOHHandler.MapToMM(tpa: TPointArray): TPointArray; overload;
 begin
   Result := Self.MapToMM(Self.GetPos(), tpa, Minimap.GetCompassAngle(False));
+end;
+
+
+(*
+## POH.CheckRunEnergy
+```pascal
+procedure TRSPOHHandler.CheckRunEnergy();
+```
+Internal method used to check and enable the player run.
+You will probably never need to call this directly.
+
+The values used are hardcoded and if you don't like them, it's recommended you override the method.
+The following example shows how one could override the function to enable run at 50% energy everytime, keep in mind though, you shouldn't do this, you should add randomness to it!
+*)
+procedure TRSPOHHandler.CheckRunEnergy();
+begin
+  if Minimap.IsRunEnabled() or (Minimap.GetRunEnergy() < Self.EnableRunAtEnergy) then
+    Exit;
+
+  Self.EnableRunAtEnergy := SRL.SkewedRand(40, 10, 100);
+
+  Minimap.EnableRun();
+end;
+
+(*
+## POH.WaitMoving
+```pascal
+procedure TRSPOHHandler.WaitMoving(destination: TPoint; WaitUntilDistance: Int32);
+```
+Internal method used to wait while we are moving using walker.
+You will probably never need to call this directly.
+
+This is where TRSWalker.OnWalkingEvent are called.
+*)
+procedure TRSPOHHandler.WaitMoving(destination: TPoint; WaitUntilDistance: Int32);
+var
+  Timeout, Countdown: TCountDown;
+  Position: record
+    Current, Previous: TPoint;
+  end;
+begin
+  Timeout.Init(Round(SRL.TruncatedGauss(20000, 25000)));
+
+  Countdown.Init(Round(SRL.TruncatedGauss(500, 1500)));
+
+  // initial timeout needs to be longer, as we might not have started walking yet.
+  Countdown.Timeout := GetTickCount() + Round(SRL.TruncatedGauss(2500, 3500));
+
+  Position.Previous := Self.GetPos();
+  Position.Current := Position.Previous;
+
+  // Break from the loop if:
+  // - Haven't moved in 500ms
+  // - Been walking for over 20 seconds
+  // - Within `WaitUntilDistance` to the destination
+  repeat
+    Self.CheckRunEnergy();
+
+    Position.Previous := Position.Current;
+    Position.Current := Self.GetPos();
+    if Position.Current <> Position.Previous then
+      Countdown.Restart();
+    {
+    if (Self.AdaptiveWalk) and (GetTickCount() > awct) then
+    begin
+      Self.AdaptiveWalkCheck(Position.Current);
+      awct := GetTickCount() + 1000;
+    end;
+
+    if Self.FancyMouse then
+      Self.DoMouseAhead(Position.Current);
+    }
+    if not Self.Walking then
+      Break;
+
+    Wait(100);
+  until Timeout.IsFinished() or Countdown.IsFinished() or (Position.Current.DistanceTo(Destination) <= WaitUntilDistance);
 end;
 
 

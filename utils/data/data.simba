@@ -12,7 +12,6 @@ This file has methods to fetch information about items, monsters and weapons.
 const
   ITEM_DATA_VERSION = '1';
   MONSTER_DATA_VERSION = '1';
-  OBJECTS_JSON  = {$macro CURRENT_DIRECTORY} + '/objects.json';
 
 (*
 ## const PRICES_URL
@@ -950,96 +949,3 @@ end;
 
 var
   {$H-}WeaponData: TWeaponData;{$H+}
-
-type
-  TRSObjectData = record
-    Data: TJSONObject;
-    IsSetup: Boolean;
-  end;
-
-(*
-## ObjectData.Setup()
-```pascal
-procedure TRSObjectData.Setup();
-```
-Internal method to setup the TRSObjectData record.
-*)
-procedure TRSObjectData.Setup();
-begin
-  if Self.IsSetup then
-    Exit;
-
-  WriteLn('Loading objects.json.');
-  Self.Data.Init(ReadFileContents(OBJECTS_JSON));
-  AddOnTerminate(@Self.Data.Free);
-
-  Self.IsSetup := True;
-end;
-
-(*
-## ObjectData.GetJSONObject()
-```pascal
-function TRSObjectData.GetJSONObject(Monster, Key: String): TJSONObject;
-```
-Internal method to get a TJSONObject value from monsters.json.
-*)
-function TRSObjectData.GetObject(RSObject: String): TJSONObject;
-begin
-  if not Self.IsSetup then
-    Self.Setup;
-
-  Result := Self.Data.getJSONObject(RSObject);
-end;
-
-function TRSObjectData.GetObject(RSObject, Id: String): TJSONObject; overload;
-begin
-  if not Self.IsSetup then
-    Self.Setup;
-
-  Result := Self.Data.getJSONObject(RSObject).getJSONObject(Id);
-end;
-
-(*
-## ObjectData.GetJSONObject()
-```pascal
-function TRSObjectData.GetJSONObject(Monster, Key: String): TJSONObject;
-```
-
-Internal method to get a TJSONObject value from monsters.json.
-*)
-function TRSObjectData.GetObjectIDs(RSObject: String): TStringArray;
-begin
-  if not Self.IsSetup then
-    Self.Setup;
-
-  Result := Self.Data.getJSONObject(RSObject).keys.ToStringArray();
-end;
-
-function TRSObjectData.GetObjectShapes(RSObject: String): array of Vector3;
-var
-  RSObjectJSON: TJSONObject;
-  TempJSONShape: TJSONArray;
-  Id: String;
-  V3: Vector3;
-begin
-  if not Self.IsSetup then
-    Self.Setup;
-
-  RSObjectJSON := Self.GetObject(RSObject);
-  for Id in RSObjectJSON.keys.ToStringArray() do
-  begin
-    TempJSONShape := RSObjectJSON.getJSONObject(Id).getJSONArray('shape');
-    V3 := [TempJSONShape.getInt(0), TempJSONShape.getInt(1), TempJSONShape.getInt(2)];
-    Result += V3;
-  end;
-end;
-
-
-(*
-## var ObjectData
-  Global ObjectData variable.
-*)
-{$H-}
-var
-  ObjectData: TRSObjectData;
-{$H+}

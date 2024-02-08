@@ -1,3 +1,12 @@
+## [17.1.1](https://github.com/Torwent/WaspLib/compare/v17.1.0...v17.1.1) (2024-02-08)
+
+
+### Bug Fixes
+
+* **POH:** added the nexus `TRoomObject`as another example of how to setup `TRoomObjects` ([17ab285](https://github.com/Torwent/WaspLib/commit/17ab285d652ac54f2548d54e6a1b18e495863271))
+
+
+
 # [17.1.0](https://github.com/Torwent/WaspLib/compare/v17.0.0...v17.1.0) (2024-02-08)
 
 
@@ -36,15 +45,6 @@
 ### Features
 
 * docs - read notes ([15841fc](https://github.com/Torwent/WaspLib/commit/15841fcdf6e4c0a86785b89e04d9bed73df93550))
-
-
-
-## [16.12.3](https://github.com/Torwent/WaspLib/compare/v16.12.2...v16.12.3) (2024-02-06)
-
-
-### Bug Fixes
-
-* Bank.WalkOpen() should open the bank on NPCs again ([e2f7488](https://github.com/Torwent/WaspLib/commit/e2f7488b73b871f64cdd23704fd3dd0d6e1d3d87))
 
 
 

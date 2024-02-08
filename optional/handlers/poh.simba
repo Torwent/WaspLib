@@ -188,6 +188,16 @@ function TRSPOHHandler.ContainsObject(objType: ERSRoomObject; topLeft: TPoint; a
 ```
 Checks if a {ref}`TRoomObject` stored in `POH.RoomObjects` exists in a room at a given `rotation`.
 *)
+function TRSPOHHandler.ContainsObjectEx(obj: TRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+var
+  cuboid: TCuboidEx;
+  atpa: T2DPointArray;
+begin
+  cuboid := TRSPOHHandler.GetCuboid(topLeft, obj.RoomOffset, obj.Shape, angle, rotation);
+  atpa := MainScreen.FindObject(obj.Finder, cuboid.Bounds());
+  Result := atpa <> [];
+end;
+
 function TRSPOHHandler.ContainsObject(objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
 var
   obj: TRoomObject;
@@ -197,8 +207,7 @@ begin
   if obj.Coordinates <> [] then
     Exit;
 
-  cuboid := TRSPOHHandler.GetCuboid(topLeft, obj.RoomOffset, obj.Shape, angle, rotation);
-  Result := MainScreen.FindObject(obj.Finder, cuboid.Bounds()) <> [];
+  Result := Self.ContainsObjectEx(obj, topLeft, angle, rotation);
 end;
 
 (*
@@ -324,14 +333,19 @@ begin
         rotated := TPOHMap.RotateBitmap(sample, r);
 
         case j of
-          2: hasCoreObject := Self.ContainsObject(ERSRoomObject.POOL, p, angle, r);
-          7: hasCoreObject := Self.ContainsObject(ERSRoomObject.JEWELLERY_BOX, p, angle, r);
+          2: hasCoreObject := Self.ContainsObjectEx(Self.RoomObjects[ERSRoomObject.POOL], p, angle, r);
+          7: hasCoreObject := Self.ContainsObjectEx(Self.RoomObjects[ERSRoomObject.JEWELLERY_BOX], p, angle, r);
+          8: hasCoreObject := Self.ContainsObjectEx(Self.RoomObjects[ERSRoomObject.NEXUS], p, angle, r);
         end;
 
         matrix := crop.MatchTemplate(rotated, TM_CCOEFF_NORMED);
         match := matrix.Max();
+
         if hasCoreObject then
+        begin
+          hasCoreObject := False;
           match += 0.2;
+        end;
 
         if match > bestMatch then
         begin
@@ -341,6 +355,7 @@ begin
           bestBMP := rotated;
           bestMatch := match;
           bestRoom := ERSHouseRoom(j);
+
           Continue;
         end;
 

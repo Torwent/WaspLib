@@ -1,3 +1,12 @@
+# [17.1.0](https://github.com/Torwent/WaspLib/compare/v17.0.0...v17.1.0) (2024-02-08)
+
+
+### Features
+
+* **POH:** walking ([734ec6a](https://github.com/Torwent/WaspLib/commit/734ec6a7e7c718a16e3dc83d58d376571e01d22e))
+
+
+
 # [17.0.0](https://github.com/Torwent/WaspLib/compare/v16.13.1...v17.0.0) (2024-02-07)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * Bank.WalkOpen() should open the bank on NPCs again ([e2f7488](https://github.com/Torwent/WaspLib/commit/e2f7488b73b871f64cdd23704fd3dd0d6e1d3d87))
-
-
-
-## [16.12.2](https://github.com/Torwent/WaspLib/compare/v16.12.1...v16.12.2) (2024-02-06)
-
-
-### Bug Fixes
-
-* make sure WaspLib is properly included when compiling from the file ([5e8b948](https://github.com/Torwent/WaspLib/commit/5e8b948373785420e8cf202fad03e68e9c3b8af8))
 
 
 

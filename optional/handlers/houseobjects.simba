@@ -15,7 +15,10 @@ type
 ERSRoomObject = (POOL, FAIRY_TREE, JEWELLERY_BOX, PRAYER_ALTAR, MAGIC_ALTAR, LARDER, LECTERN, MYTH_CAPE, NEXUS, PORTAL);
 ```
 *)
-  ERSRoomObject = (POOL, FAIRY_TREE, JEWELLERY_BOX, PRAYER_ALTAR, MAGIC_ALTAR, LARDER, LECTERN, MYTH_CAPE, NEXUS, PORTAL);
+  ERSRoomObject = (
+    POOL, FAIRY_TREE, JEWELLERY_BOX, PRAYER_ALTAR, MAGIC_ALTAR,
+    LARDER, LECTERN, MYTH_CAPE, NEXUS, PORTAL, EXIT_PORTAL
+  );
 
 (*
 ## TRoomObject
@@ -92,6 +95,43 @@ begin
       Self.Init(['Jewellery', 'Box'], [2, 2, 6], [4,4]);
       Self.Finder.Colors := [CTS2(1287353, 17, 0.02, 0.72), CTS2(530791, 8, 0.24, 2.28)];
     end;
+
+    ERSRoomObject.NEXUS:
+    begin
+      Self.Init(['Nexus'], [2, 2, 6], [16,16]);
+      Self.Finder.Colors := [CTS2(8761902, 27, 0.27, 1.43)];
+    end;
+
+    ERSRoomObject.EXIT_PORTAL:
+    begin
+      Self.Init(['nter Portal'], [2, 2, 6], [16,16]);
+      Self.Finder.Colors := [CTS2(11552664, 13, 0.20, 2.43)];
+    end;
+
+    ERSRoomObject.MAGIC_ALTAR:
+    begin
+      Self.Init(['Venerate', 'ltar'], [2, 2, 6], [4,12]);
+      Self.Finder.Colors := [CTS2(9325426, 11, 0.72, 2.12), CTS2(9805728, 7, 0.25, 0.32)];
+    end;
+
+    ERSRoomObject.MYTH_CAPE:
+    begin
+      Self.Init(['Myth'], [1, 1, 6], [24,2]);
+      Self.Finder.Colors := [CTS2(14211548, 14, 0.31, 0.42)];
+    end;
+
+    ERSRoomObject.LARDER:
+    begin
+      Self.Init(['Larder'], [2, 2, 6], [4,4]);
+      Self.Finder.Colors := [CTS2(5929362, 6, 0.06, 0.19), CTS2(7838639, 11, 0.04, 0.90)];
+    end;
+
+    ERSRoomObject.LECTERN:
+    begin
+      Self.Init(['Lectern'], [1, 1, 6], [20,8]);
+      Self.Finder.Colors := [CTS2(7838639, 11, 0.04, 0.90)];
+    end;
+
   end;
 end;
 
@@ -120,6 +160,75 @@ end;
 
 
 (*
+## TRoomObject.Find
+```pascal
+function TRoomObject.FindEx(mmPoints: TPointArray; radians: Double; out cuboids: TCuboidExArray; out atpa: T2DPointArray; stopAfter: Int32 = 0): Boolean;
+function TRoomObject.FindAny(mmPoints: TPointArray; radians: Double; out atpa: T2DPointArray): Boolean;
+function TRoomObject.FindAll(mmPoints: TPointArray; radians: Double; out atpa: T2DPointArray): Boolean;
+```
+Find a {ref}`TRoomObject`. You may choose to find any occurence of the object or all available.
+The extended version of the method is mostly for debugging.
+*)
+function TRoomObject.FindEx(mmPoints: TPointArray; radians: Double; out cuboids: TCuboidExArray; out atpa: T2DPointArray; stopAfter: Int32 = 0): Boolean;
+var
+  i: Int32;
+  tmp: T2DPointArray;
+begin
+  cuboids := Minimap.GetCuboidArrayMS(mmPoints, Self.Shape, [0,0], radians);
+
+  for i := 0 to High(cuboids) do
+  begin
+    tmp := MainScreen.FindObject(Self.Finder, cuboids[i].Bounds());
+    if tmp <> [] then
+    begin
+      atpa += tmp.Merge();
+      if (stopAfter > 0) and (Length(atpa) >= stopAfter) then
+        Exit(True);
+    end;
+  end;
+
+  Result := atpa <> [];
+end;
+
+function TRoomObject.FindAny(mmPoints: TPointArray; radians: Double; out tpa: TPointArray): Boolean;
+var
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+begin
+  Result := Self.FindEx(mmPoints, radians, cuboids, atpa, 1);
+  if Result then
+    tpa := atpa[0];
+end;
+
+function TRoomObject.FindAll(mmPoints: TPointArray; radians: Double; out atpa: T2DPointArray): Boolean;
+var
+  cuboids: TCuboidExArray;
+begin
+  Result := Self.FindEx(mmPoints, radians, cuboids, atpa);
+end;
+
+(*
+## TRoomObject.Draw
+```pascal
+procedure TRoomObject.Draw(out bitmap: TMufasaBitmap; mmPoints: TPointArray; radians: Double);
+```
+Internal method used to draw found {ref}`TRoomObject` in a TMufasaBitmap.
+*)
+procedure TRoomObject.Draw(out bitmap: TMufasaBitmap; mmPoints: TPointArray; radians: Double);
+var
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+begin
+  Self.FindEx(mmPoints, radians, cuboids, atpa);
+  bitmap.DrawATPA(atpa);
+  if atpa <> [] then
+    bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
+end;
+
+
+
+(*
 ## TRoomObject.Interact
 ```pascal
 function TRoomObject.Hover(mmPoints: TPointArray; radians: Double): Boolean;
@@ -143,8 +252,8 @@ begin
 
     if atpa <> [] then
     begin
-      tpa := atpa[0];
-      Mouse.Move(tpa[Random(0, High(tpa))]);
+      tpa := atpa.Merge();
+      Mouse.Move(tpa);
       if MainScreen.IsUpText(Self.UpText) then
         Exit(True);
     end;

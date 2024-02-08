@@ -1,5 +1,5 @@
 (*
-# TRSWalkerObject
+# Walker Objects
 Methods to handle TRSWalkerObjects.
 TRSWalkerObject can be anything that you want to interact with on the mainscreen.
 They are divided in 2 main categories and one of them in 3 sub-categories but the usage is only limited by your imagination:
@@ -49,28 +49,33 @@ const
 
 type
 (*
+(TRSWalkerObject)=
 ## type TRSWalkerObject
 ```pascal
 TRSWalkerObject = record
-Filter: record
-Walker:     Boolean;
-MinimapDot: Boolean;
-Finder:     Boolean;
-UpText:     Boolean;
-Skip:       Boolean;
-end;
-ShapeArray: TRSMainScreenShapeArray;
-Coordinates: TPointArray;
-Finder: TRSObjectFinder;
-UpText: TStringArray;
-ActionUpText: TStringArray;
-class var
-CurrentUpText: TStringArray;
-RedClicked: Boolean;
-Walker: PRSWalker;
-end;
-```
+  Filter: record
+    Walker:     Boolean;
+    MinimapDot: Boolean;
+    Finder:     Boolean;
+    UpText:     Boolean;
+    Skip:       Boolean;
+  end;
 
+  ShapeArray: TRSMainScreenShapeArray;
+  Coordinates: TPointArray;
+
+  Finder: TRSObjectFinder;
+  UpText: TStringArray;
+  ActionUpText: TStringArray;
+class var
+  CurrentUpText: TStringArray;
+  CurrentActionUpText: TStringArray;
+  RedClicked: Boolean;
+end;
+
+PWalkerObjectArray = array of Pointer;
+PRSWalkerObject = ^TRSWalkerObject;
+```
 Parent record of all TRSWalkerObjects.
 *)
   TRSWalkerObject = record
@@ -111,8 +116,6 @@ know what we are looking for while walking. Once we click the target TRSWalkerOb
 function TRSWalker.Click(minimapPoint: TPoint; Randomness: Int32): Boolean; override;
 var
   p: TPoint;
-  line: TPointArray;
-  i, j: Int32;
   hoveringTarget: Boolean;
   msUpText, str: String;
 begin
@@ -127,20 +130,9 @@ begin
 
   if Self.ScreenWalk then
   begin
-    repeat
-      i += 1;
-      p := minimapPoint.Random(-randomness, randomness);
-      if i >= 15 then
-      begin
-        line := TPointArray.CreateFromLine(p, Minimap.Center());
-        for j := 0 to High(line) do
-          if Minimap.PointInZoomRectangle(line[j]) then
-          begin
-            p := line[j];
-            Break;
-          end;
-      end;
-    until Minimap.PointInZoomRectangle(p);
+    p := Minimap.RandomPointInZoomRectangle(minimapPoint, randomness);
+    if p = [0, 0] then
+      Exit;
 
     Mouse.Move(Minimap.PointToMsRect(p).Mean());
     msUpText := MainScreen.GetUpText();
@@ -175,9 +167,9 @@ begin
   end
   else
   begin
-    repeat
-      P := minimapPoint.Random(-Randomness, Randomness);
-    until Minimap.IsPointOn(P);
+    p := Minimap.RandomPointOn(minimapPoint, randomness);
+    if p = [0, 0] then
+      Exit;
 
     Mouse.Move(P);
   end;
@@ -292,31 +284,12 @@ end;
 (*
 ## TRSWalkerObject.GetCuboidArray
 ```pascal
-function TRSWalkerObject.GetCuboidArrayEx(out floorTiles, roofTiles: TRectArray): TCuboidArray;
 function TRSWalkerObject.GetCuboidArray(): TCuboidArray;
 ```
-
 Internal TRSWalkerObject method responsible for returning a TCuboidArray of our target on the 3D world (on mainscreen and outside of it).
 You will probably never need to use this directly.
 You can visually see this in action by using the `Debug()` methods, this is responsible for the white lines surounding the targets.
 *)
-function TRSWalkerObject.GetCuboidArrayEx(out floorTiles, roofTiles: TRectArray): TCuboidExArray;
-var
-  me: TPoint;
-begin
-  me := ScriptWalker^.GetMyPos();
-
-  floorTiles := ScriptWalker^.GetTileArrayMS(me, Self.Coordinates, Self.ShapeArray.GetShape(0));
-  if not Self.ShapeArray.ZeroHeight() then
-  begin
-    roofTiles := ScriptWalker^.GetTileArrayMS(me, Self.Coordinates, Self.ShapeArray);
-    Exit(floorTiles.GetCuboids(roofTiles));
-  end;
-
-  roofTiles := floorTiles;
-  Result := floorTiles.GetCuboids();
-end;
-
 function TRSWalkerObject.GetCuboidArray(me: TPoint = []): TCuboidExArray;
 var
   coordinates: TPointArray;
@@ -627,8 +600,13 @@ type
 (*
 (TRSObject)=
 ## type TRSObject
-
-TRSObjects are a type of TRSWalkerObject.
+```pascal
+TRSObject = type TRSWalkerObject;
+TRSObjectArray = array of TRSObject;
+PRSObject = ^TRSObject;
+PRSObjectArray = array of PRSObject;
+```
+TRSObjects are a type of {ref}`TRSWalkerObject`.
 This are meant to be TRSWalkerObjects that do not have a minimap dot so TRSObject.Filter.MinimapDot is False by default and shouldn't be changed.
 *)
   TRSObject = type TRSWalkerObject;
@@ -682,43 +660,13 @@ end;
 
 
 (*
-## TRSObject.FindEx
-```pascal
-function TRSObject.FindEx(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
-```
-
-TRSObject method used to find a TRSObject. If found returns true, if not returns false.
-This "extended" method in particular is only meant for debugging and should be avoided outside of development/debugging.
-This is what is used when you call `Debug(TRSObject)`.
-
-*)
-function TRSObject.FindEx(out floorTiles, roofTiles: TRectArray; out cuboidArray: TCuboidExArray; out atpa: T2DPointArray): Boolean;
-begin
-  MM2MS.SetupZoom();
-
-  if Self.Filter.Walker then
-  begin
-    cuboidArray := Self.GetCuboidArrayEx(floorTiles, roofTiles);
-
-    if cuboidArray = [] then
-      Exit;
-
-    atpa := Self.FindOnMainScreen(cuboidArray);
-  end
-
-  else if Self.Filter.Finder then
-    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
-
-  Result := atpa <> [];
-end;
-
-(*
 ## TRSObject.Find
 ```pascal
-function TRSObject.Find(out atpa: T2DPointArray): Boolean; overload;
-function TRSObject.Find(): Boolean; overload;
+function TRSObject.FindEx(out cuboids: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TRSObject.Find(out atpa: T2DPointArray): Boolean;
 ```
-{ref}`TRSObject` methods used to find a {ref}`TRSObject`. If found returns true, if not returns false.
+TRSObject method used to find a {ref}`TRSObject`. If found returns true, if not returns false.
+The "extended" method in particular is mostly meant for debugging and is the one used when you call `Debug(TRSObject)`.
 
 Example:
 ```pascal
@@ -726,19 +674,17 @@ WriteLn RSObjects.GEBank.Find(atpa); //Be in ge and with a walker setup there.
 Debug(atpa);
 ```
 *)
-function TRSObject.Find(out atpa: T2DPointArray): Boolean;
-var
-  cuboidArray: TCuboidExArray;
+function TRSObject.FindEx(out cuboids: TCuboidExArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
   if Self.Filter.Walker then
   begin
-    cuboidArray := Self.GetCuboidArray();
-    if cuboidArray = [] then
+    cuboids := Self.GetCuboidArray();
+    if cuboids = [] then
       Exit;
 
-    atpa := Self.FindOnMainScreen(cuboidArray);
+    atpa := Self.FindOnMainScreen(cuboids);
   end
   else if Self.Filter.Finder then
     atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
@@ -746,20 +692,39 @@ begin
   Result := atpa <> [];
 end;
 
-function TRSObject.IsVisible(): Boolean; overload;
+function TRSObject.Find(out atpa: T2DPointArray): Boolean;
 var
-  cuboidArray: TCuboidExArray;
+  cuboids: TCuboidExArray;
+begin
+  Result := Self.FindEx(cuboids, atpa);
+end;
+
+(*
+## TRSObject.IsVisible
+```pascal
+function TRSObject.IsVisible(): Boolean;
+```
+TRSObject method used to find a {ref}`TRSObject`. If found returns true, if not returns false.
+
+Example:
+```pascal
+WriteLn RSObjects.GEBank.IsVisible(); //Be in ge and with a walker setup there.
+```
+*)
+function TRSObject.IsVisible(): Boolean;
+var
+  cuboids: TCuboidExArray;
 begin
   MM2MS.SetupZoom();
 
   if Self.Filter.Walker then
   begin
-    cuboidArray := Self.GetCuboidArray();
+    cuboids := Self.GetCuboidArray();
 
-    if cuboidArray = [] then
+    if cuboids = [] then
       Exit;
 
-    Exit(Self.OnMainScreen(cuboidArray));
+    Exit(Self.OnMainScreen(cuboids));
   end;
 
   if Self.Filter.Finder then
@@ -811,23 +776,16 @@ Bitmap.Free();
 *)
 procedure TRSObject.Draw(out bitmap: TMufasaBitmap);
 var
-  floorTiles, roofTiles: TRectArray;
-  cuboidArray: TCuboidExArray;
+  cuboids: TCuboidExArray;
   atpa: T2DPointArray;
-  i: Int32;
 begin
-  Self.FindEx(floorTiles, roofTiles, cuboidArray, atpa);
+  Self.FindEx(cuboids, atpa);
 
   bitmap.DrawATPA(atpa);
   if atpa <> [] then
     bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
 
-  for i := 0 to High(floorTiles) do
-  begin
-    bitmap.DrawRect(floorTiles[i], SRLColors.WHITE);
-    bitmap.DrawRect(roofTiles[i], SRLColors.WHITE);
-    bitmap.DrawTPA(cuboidArray[i].Edges(), SRLColors.YELLOW);
-  end;
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
 end;
 
 (*
@@ -1367,17 +1325,18 @@ begin
 end;
 
 (*
-## TRSMMDot._GetWMMPolys
+## TRSMMDot._GetCuboids
 ```pascal
-function TRSMMDot._GetWMMPolys(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles, roofTiles: TRectArray): TCuboidArray;
+function TRSMMDot._GetWMMCuboids(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray): TCuboidExArray;
+function TRSMMDot._GetMMCuboids(out dots: TPointArray): TCuboidExArray;
 ```
-
-Internal helper TRSMMDot method used for debugging.
-You probably dont need to use this directly. You can see what this does in action by calling `Debug(TRSMMDot)`.
+Internal helper {ref}`TRSMMDot` method used for debugging.
+You probably dont need to use this directly.
+You can see what this does in action by calling `Debug(TRSMMDot)`.
 *)
-function TRSMMDot._GetWMMPolys(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles, roofTiles: TRectArray): TCuboidExArray;
+function TRSMMDot._GetWMMCuboids(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray): TCuboidExArray;
 var
-  me, offset: TPoint;
+  me: TPoint;
   angle: Double;
 begin
   me := ScriptWalker^.GetMyPos();
@@ -1387,30 +1346,11 @@ begin
 
   dotFilters := ScriptWalker^.WorldToMM(me, Self.DotFilter, angle);
   dots := Minimap.GetFilteredDotArray(Self.DotType, dotFilters);
-  offset := [2, 2];
-  floorTiles := Minimap.GetTileArrayMS(dots, Self.ShapeArray.GetShape(0), offset, angle);
 
-  if not Self.ShapeArray.ZeroHeight() then
-  begin
-    roofTiles := Minimap.GetTileArrayMS(dots, Self.ShapeArray, offset, angle);
-    Exit(floorTiles.GetCuboids(roofTiles));
-  end;
-
-  roofTiles := floorTiles;
-  Result := floorTiles.GetCuboids();
+  Result := Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2], angle);
 end;
 
-(*
-## TRSMMDot._GetMMPolys
-```pascal
-function TRSMMDot._GetMMPolys(out dots: TPointArray; out floorTiles, roofTiles: TRectArray): TCuboidArray;
-```
-
-Internal helper TRSMMDot method used for debugging.
-You probably dont need to use this directly. You can see what this does in action by calling `Debug(TRSMMDot)`.
-This is used instead of TRSMMDot._GetWMMPolys() when TRSMMDot.Filter.Walker is disabled.
-*)
-function TRSMMDot._GetMMPolys(out dots: TPointArray; out floorTiles, roofTiles: TRectArray): TCuboidExArray;
+function TRSMMDot._GetMMCuboids(out dots: TPointArray): TCuboidExArray;
 var
   angle: Double;
   offset: TPoint;
@@ -1419,15 +1359,8 @@ begin
 
   dots := Minimap.Getdots(Self.DotType);
   offset := [2,2];
-  floorTiles := Minimap.GetTileArrayMS(dots, Self.ShapeArray.GetShape(0), offset, angle);
 
-  if not Self.ShapeArray.ZeroHeight() then
-  begin
-    roofTiles := Minimap.GetTileArrayMS(dots, Self.ShapeArray, offset, angle);
-    Exit(floorTiles.GetCuboids(roofTiles));
-  end;
-
-  Result := floorTiles.GetCuboids();
+  Result := Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2], angle);
 end;
 
 
@@ -1443,16 +1376,16 @@ This uses the previous 2 helper methods to do this.
 You will probably never need to use this directly.
 You can visually see this in action by using the `Debug()` methods, this is responsible for the white lines surounding the targets.
 *)
-function TRSMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray): TCuboidExArray; overload;
+function TRSMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TRSDotFilterArray): TCuboidExArray; overload;
 begin
   if Self.Filter.Walker and Self.Filter.MinimapDot then
-    Exit(Self._GetWMMPolys(mmTPA, dots, dotFilters, floorTiles, roofTiles));
+    Exit(Self._GetWMMCuboids(mmTPA, dots, dotFilters));
 
   if Self.Filter.Walker then
-    Exit(Self.GetCuboidArrayEx(floorTiles, roofTiles));
+    Exit(Self.GetCuboidArray());
 
   if Self.Filter.MinimapDot then
-    Exit(Self._GetMMPolys(dots, floorTiles, roofTiles));
+    Exit(Self._GetMMCuboids(dots));
 end;
 
 function TRSMMDot.GetCuboidArray(me: TPoint = []): TCuboidExArray; override;
@@ -1503,20 +1436,18 @@ TRSMMDot methods used to find a TRSMMDot. If found returns true, if not returns 
 This "extended" method in particular is only meant for debugging and should be avoided outside of development/debugging.
 This is what is used when you call `Debug(TRSMMDot)`.
 *)
-function TRSMMDot.FindEx(out mmPoints, dots: TPointArray; out DotFilters: TRSDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidExArray; out atpa: T2DPointArray): Boolean;
+function TRSMMDot.FindEx(out mmPoints, dots: TPointArray; out dotFilters: TRSDotFilterArray; out cuboids: TCuboidExArray; out atpa: T2DPointArray): Boolean;
 begin
   MM2MS.SetupZoom();
 
   if Self.Filter.Walker or Self.Filter.MinimapDot then
   begin
-    cuboidArray := Self.GetCuboidArrayEx(mmPoints, dots, dotFilters, floorTiles, roofTiles);
-
-    if cuboidArray = [] then
+    cuboids := Self.GetCuboidArrayEx(mmPoints, dots, dotFilters);
+    if cuboids = [] then
       Exit;
 
-    atpa := Self.FindOnMainScreen(cuboidArray);
+    atpa := Self.FindOnMainScreen(cuboids);
   end
-
   else if Self.Filter.Finder then
     atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
 
@@ -1617,12 +1548,11 @@ procedure TRSMMDot.Draw(out Bitmap: TMufasaBitmap);
 var
   mmPoints, dots: TPointArray;
   dotFilters: TRSDotFilterArray;
-  floorTiles, roofTiles: TRectArray;
-  cuboidArray: TCuboidExArray;
+  cuboids: TCuboidExArray;
   atpa: T2DPointArray;
   i: Int32;
 begin
-  Self.FindEx(mmPoints, dots, dotFilters, floorTiles, roofTiles, cuboidArray, atpa);
+  Self.FindEx(mmPoints, dots, dotFilters, cuboids, atpa);
 
   //Minimap drawing
   for i := 0 to High(mmPoints) do
@@ -1653,14 +1583,7 @@ begin
   bitmap.DrawATPA(atpa);
   if atpa <> [] then
     bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
-
-  for i := 0 to High(dots) do
-  begin
-    bitmap.DrawCrosshairs(dots[i], 2, SRLColors.GREEN_SPRING);
-    bitmap.DrawRect(floorTiles[i], SRLColors.WHITE);
-    bitmap.DrawRect(roofTiles[i], SRLColors.WHITE);
-    bitmap.DrawTPA(cuboidArray[i].Edges(), SRLColors.YELLOW);
-  end;
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
 end;
 
 
@@ -2257,16 +2180,13 @@ end;
 procedure Debug(rsobject: TRSObject); overload;
 procedure Debug(mmdot: TRSMMDot); overload;
 ```
-
 Methods used to debug TRSObjects and TRSMMDots.
 
 Example:
 ```pascal
-//Run in ge with a walker map setup there.
-Debug(RSObjects.GEBank);
+Debug(RSObjects.GEBank); //Run in ge with a walker map setup there.
 
-//Run in Lumbridge castle with a walker map setup there.
-Debug(RSNPCs.LumbridgeCook);
+Debug(RSNPCs.LumbridgeCook); //Run in Lumbridge castle with a walker map setup there.
 ```
 *)
 procedure Debug(rsobject: TRSObject); overload;

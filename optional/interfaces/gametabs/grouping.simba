@@ -1,0 +1,454 @@
+{$DEFINE WL_GROUPING_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+//Made by CJ
+type
+  ERSGroupingTab = (
+    CHAT_CHANNEL,
+    YOUR_CLAN,
+    ANOTHER_CLAN,
+    ACTIVITY
+  );
+
+  ERSGroupingButton = (
+    PVP_ARENA,
+    JOIN,
+    TELEPORT
+  );
+
+  ERSHouseGroupingButton = (
+    CLOSE,
+    VIEWER,
+    EXPEL,
+    SERVANT,
+    LEAVE
+  );
+
+  TRSGrouping = type TRSInterface;
+
+procedure TRSGrouping.Setup; override;
+begin
+  inherited;
+
+  Self.Name := 'Grouping';
+  Self.ButtonColors += CTS1(2700606, 1);
+  Self.ButtonColors += CTS0(5334130, 1);
+end;
+
+function TRSGrouping.ScrollAreaFunction(): TBox;
+begin
+  Result := Self.Bounds();
+  Result.X1 += 3;
+  Result.Y1 += 69;
+  Result.X2 -= 3;
+  Result.Y2 -= 47;
+end;
+
+procedure TRSGrouping.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  Self.Alignment.Left := [@GameTab.X1];
+  Self.Alignment.Right := [@GameTab.X2];
+  Self.Alignment.Top := [@GameTab.Y1];
+  Self.Alignment.Bottom := [@GameTab.Y2];
+  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
+end;
+
+function TRSGrouping.IsOpen: Boolean;
+begin
+  Result := (GameTabs.GetCurrentTab = ERSGameTab.CLAN);
+end;
+
+function TRSGrouping.Open: Boolean;
+begin
+  Result := GameTabs.Open(ERSGameTab.CLAN);
+end;
+
+function TRSGrouping.GetGroupingButtons: TRSButtonArray;
+begin
+    Result := Self.FindButtons([[66, 18]]);//, Self.Bounds());
+end;
+
+function TRSGrouping.DoesActivityHaveTeleport(activity : string) : Boolean;
+const
+  VALID_TELEPORTS : TStringArray := ['barbarian assault', 'games room', 'castle wars', 'clan wars', 'fish trawler', "giants' foundry", "guardians of the rift", "last man standing", "nightmare zone", "pest control", "rat pits", "shades of mort'ton", "soul wars", "tithe farm", "trouble brewing", "tzhaar fight pit" ];
+var
+  i : Int32;
+  tempStr : string;
+begin
+
+  for tempStr in VALID_TELEPORTS do
+  begin
+    if tempStr.Contains(activity) then
+      Exit(true);
+  end;
+end;
+
+function TRSGrouping.SelectActivity(activity : string) : Boolean;
+var
+  dropDowns : TRSDropDownArray;
+  activityScrollBar : TRSScrollBar;
+  textBounds : TBoxArray;
+  foundStrings : TStringArray;
+  i : Int32;
+  scrollArea : TBox;
+  stringFound: Boolean;
+  selectedString, endString : string;
+  scrollDirection : Int32;
+  searchTimer : TCountdown;
+begin
+
+  if activity.Len() < 2 then
+    Exit;
+
+  if not Self.DoesActivityHaveTeleport(activity) then
+  begin
+    Writeln("Activity: ", activity, " does not have a valid teleport");
+    Exit(false);
+  end;
+
+  if Self.GetCurrentTab() <> ERSGroupingTab.ACTIVITY then
+  begin
+    if not WaitUntil(Self.OpenTab(ERSGroupingTab.ACTIVITY), 200, 1000) then
+    begin
+      Writeln("Activity Tab not open");
+      Exit;
+    end;
+  end;
+
+  while Length(dropDowns) < 1 do
+  begin
+    dropdowns := Self.FindDropDown([[178, 20]], CTS0(4148568, 1));
+    Wait(35);
+  end;
+  activity := activity.ToLower();
+  selectedString := OCR.Recognize(dropDowns[0].Bounds, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12);
+  selectedString := selectedString.ToLower();
+
+  if selectedString.Contains(activity) then
+    Exit(true);
+
+  activityScrollbar := Self.GetScrollBar();
+  //Check if scroll area already open
+  if InRange(activityScrollBar.Slider.Height(), activityScrollBar.SliderRegion.Height() - 3,  activityScrollBar.SliderRegion.Height() + 3) then
+  begin
+    Mouse.Click(dropDowns[0].Bounds, MOUSE_LEFT);
+    activityScrollbar := Self.GetScrollBar();
+  end;
+
+  scrollArea := Self.GetScrollAreaFunction();
+  Mouse.Move(scrollArea, false, EMouseDistribution.MOUSE_DISTRIBUTION_GAUSS);
+  Wait(Random(120, 450));
+  foundStrings := OCR.RecognizeLines(scrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
+
+  scrollDirection := 1;
+  endString := "Volcanic Mines";
+
+  if not selectedString.Contains("Select") then
+  begin
+    //The group list is sorted so if the first letter we find is higher than the activity's first letter, we scroll down.
+    if Byte(activity[1]) < Byte(selectedString[1]) then
+    begin
+      scrollDirection := -1;
+      endString := "Barbarian Assault"
+    end;
+  end;
+
+  searchTimer.Init(6500);
+
+  while (not searchTimer.IsFinished()) and not foundStrings.Contains(endString) do
+  begin
+    foundStrings := OCR.RecognizeLines(scrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
+    for i := 0 to High(foundStrings) do
+    begin
+      selectedString := foundStrings[i].ToLower();
+
+      if selectedString.Contains(activity) then
+      begin
+        stringFound := true;
+        break;
+      end;
+    end;
+
+    if stringFound then
+      break;
+
+    Self.SetScrollPosition(Self.GetScrollPosition() + (scrollDirection * 1));
+    Wait(Random(500, 800));
+  end;
+
+  if not stringFound or searchTimer.IsFinished() then
+    Exit;
+
+  if stringFound then
+    Mouse.Click(textBounds[i], MOUSE_LEFT);
+
+  //Verify we selected the correct thing.
+  selectedString := OCR.Recognize(dropDowns[0].Bounds, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12);
+  selectedString := selectedString.ToLower();
+  Result := selectedString.Contains(activity);
+end;
+
+function TRSGrouping.GetButtons: TRSButtonArray;
+begin
+  Result := Self.FindButtons([[38,38]]);
+end;
+
+function TRSGrouping.GetButton(Button: ERSGroupingButton): TRSButton;
+var
+  Buttons: TRSButtonArray := Self.GetButtons;
+begin
+  if Length(Buttons) = Length(ERSGroupingButton) then
+    Result := Buttons[Button];
+end;
+
+function TRSGrouping.GetTabs: TBoxArray;
+begin
+  Result := Grid(4, 1, 41, 20, [5], [Self.X1 + 2, Self.Y1 + 4])
+end;
+
+function TRSGrouping.GetCurrentTab: ERSGroupingTab;
+var
+  Tabs: TBoxArray;
+  I: Int32;
+begin
+  Tabs := Self.GetTabs;
+
+  for I := 0 to High(Tabs) do
+  begin
+    if SRL.CountColor(2700606, Tabs[I]) > 50 then //finds the one without the bottom white line
+      Exit(ERSGroupingTab(I));
+  end
+end;
+
+function TRSGrouping.OpenTab(Tab: ERSGroupingTab): Boolean;
+begin
+  if Self.GetCurrentTab = Tab then
+    Exit(True);
+
+  Mouse.Click(Self.GetTabs[Tab], MOUSE_LEFT);
+
+  Result := WaitUntil(Self.GetCurrentTab = Tab, SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+function TRSInterface.FindDropDown(Dimensions: TRSButtonDimensions; borderColor : TCTS0Color): TRSDropDownArray; overload;
+  function FindArrow(B: TBox; Color: TCTS0Color; Dimensions: TRSButtonDimensions): Boolean;
+  var
+    TPA: TPointArray;
+    ATPA: T2DPointArray;
+    I, W, H: Int32;
+    Boxes: TBoxArray;
+  begin
+    if SRL.FindColors(TPA, Color, B) > 0 then
+      ATPA += TPA;
+
+    ATPA := ATPA.Merge.Cluster(1);
+
+    for TPA in ATPA do
+    begin
+      if Length(TPA) < 50 then
+        Continue;
+
+      B := TPA.Bounds;
+      B.GetDimensions(W, H);
+
+      for I := 0 to High(Dimensions) do
+      begin
+        if ((W = Dimensions[I].Width) or (Dimensions[I].Width = 0)) and
+           ((H = Dimensions[I].Height) or (Dimensions[I].Height = 0)) and
+            (TPA.Frameness = 100) then
+          Boxes += B;
+      end;
+    end;
+
+    Result := Length(Boxes) = 1;
+  end;
+
+var
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
+  I, W, H: Int32;
+  B: TBox;
+  Boxes: TBoxArray;
+begin
+  B := Self.Bounds;
+
+  if SRL.FindColors(TPA, borderColor, B) > 0 then
+    ATPA += TPA;
+
+  ATPA := ATPA.Merge.Cluster(1);
+  for TPA in ATPA do
+  begin
+    if Length(TPA) < 50 then
+    begin
+      Continue;
+    end;
+
+    B := TPA.Bounds;
+    B.GetDimensions(W, H);
+    for I := 0 to High(Dimensions) do
+    begin
+      if ((W = Dimensions[I].Width) or (Dimensions[I].Width = 0)) and
+         ((H = Dimensions[I].Height) or (Dimensions[I].Height = 0)) and
+         (TPA.Frameness > 91) and FindArrow(B, CTS0(65536, 1), [[16, 16]]) then
+        Boxes += B;
+    end;
+  end;
+
+  Boxes.SortByXY(10);
+
+  SetLength(Result, Length(Boxes));
+  for I := 0 to High(Boxes) do
+  begin
+    Result[I].Index := I;
+    Result[I].Bounds := Boxes[I];
+    Result[I].Middle := Boxes[I].Middle;
+    Result[I].PParent := @Self;
+  end;
+end;
+
+procedure TRSGrouping.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawBoxes(Self.GetTabs, $00FFFF);
+  Bitmap.DrawButtons(Self.GetButtons);
+end;
+
+var
+  Grouping: TRSGrouping;
+
+function TRSGameTabs.GetCurrentTab: ERSGameTab; override;
+begin
+  Result := inherited;
+
+  if (Result = ERSGameTab.UNKNOWN) then
+    Result := ERSGameTab.CLAN;
+end;
+
+procedure TRSClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  Grouping.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  Grouping.Setup;
+end;
+
+function TRSGrouping.TeleportToActivity(activity : string) : Boolean;
+  function GetTeleportTestCoords() : TPointArray;
+  const
+  NPC_DOT_COLOR := CTS2(66030, 7, 2.43, 0.13);
+  ITEM_DOT_COLOR := CTS2(66038, 12, 0.01, 0.14);
+  PLAYER_DOT_COLOR := CTS2(14869218, 12, 0.01, 0.01);
+  BOX_SCALE : Int32 := 25;
+  var
+    tpa, mmPoints, mmTemp : TPointArray;
+    testColors : TIntegerArray;
+    filterColors : array of TCTS2Color;
+    mmC : TPoint;
+    searchBox : TBox;
+    i : Int32;
+  begin
+    mmC := Minimap.Center();
+    searchBox := Box(mmC, BOX_SCALE, BOX_SCALE);
+    tpa := searchBox.ToRectangle().ToTPA().Connect();
+    tpa.Fill();
+    filterColors := [NPC_DOT_COLOR, ITEM_DOT_COLOR, PLAYER_DOT_COLOR];
+
+    for i := 0 to High(filterColors) do
+    begin
+      SRL.FindColors(mmTemp, filterColors[i], searchBox);
+      mmPoints += mmTemp;
+    end;
+
+    tpa := tpa.Difference(mmPoints);
+    tpa.SortFrom();
+
+    for 1 to 5 do
+    begin
+      Result += tpa.RandomValue();
+    end;
+  end;
+
+var
+  buttons : TRSButtonArray;
+  testPoints : TPointArray;
+  teleportColorMean : Double;
+  teleportTimer : TCountDown;
+begin
+
+  if not Self.Open() then
+    Exit;
+
+  if not Self.SelectActivity(activity) then
+  begin
+    Writeln("Could not select activity: ", activity);
+    Exit;
+  end;
+
+  Wait(Random(110, 421));
+
+  buttons := Self.GetGroupingButtons();
+
+  if buttons = [] then
+  begin
+    Writeln("No grouping buttons!");
+    Exit;
+  end;
+
+  Mouse.Click(buttons[ERSGroupingButton.TELEPORT].Bounds, MOUSE_LEFT);
+  Result := true;
+  (*
+  testPoints := GetTeleportTestCoords();
+  teleportColorMean := GetColors(testPoints).Mean();
+  teleportTimer.Init(Random(16000, 20000));
+  if WaitUntil(GetColors(testPoints).Mean() <> teleportColorMean, 150, teleportTimer.Length) then
+  begin
+    Result := true;
+  end;
+  *)
+end;
+
+function TRSGrouping.TeleportToActivtyWithChat(activity, chatOption : string; closeIfNotFound : Boolean = true) : Boolean;
+begin
+  if (Length(activity) < 2) or (Length(chatOption) < 2) then
+    Exit;
+
+  if not Self.TeleportToActivity(activity) then
+    Exit;
+
+  if not WaitUntil(Chat.IsOpen(), 200, 1400) then
+  begin
+    Writeln("Failed to open chat");
+    Exit;
+  end;
+
+  chatOption := chatOption.Capitalize();
+
+  if WaitUntil(Chat.HasContinue(), 120, 1200) then
+    Chat.ClickContinue(false);
+
+  Result := WaitUntil(not Chat.IsOpen() or Chat.ClickOption(chatOption, false), 200, 1500);
+
+  if not Result and closeIfNotFound then
+    Keyboard.PressKey(VK_ESCAPE);
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Grouping.Draw(Bitmap);
+end;

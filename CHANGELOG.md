@@ -1,3 +1,12 @@
+## [17.1.4](https://github.com/Torwent/WaspLib/compare/v17.1.3...v17.1.4) (2024-02-10)
+
+
+### Bug Fixes
+
+* bump version ([70887ad](https://github.com/Torwent/WaspLib/commit/70887ad552ec39cd6c7214e2fdb439833705585c))
+
+
+
 ## [17.1.3](https://github.com/Torwent/WaspLib/compare/v17.1.2...v17.1.3) (2024-02-10)
 
 
@@ -31,20 +40,6 @@
 ### Features
 
 * **POH:** walking ([734ec6a](https://github.com/Torwent/WaspLib/commit/734ec6a7e7c718a16e3dc83d58d376571e01d22e))
-
-
-
-# [17.0.0](https://github.com/Torwent/WaspLib/compare/v16.13.1...v17.0.0) (2024-02-07)
-
-
-### Bug Fixes
-
-* removed the "compability layer" ([53c3d16](https://github.com/Torwent/WaspLib/commit/53c3d160d32e1d2fdeb4d1dcd599f9d30361d4b9))
-
-
-### BREAKING CHANGES
-
-* This will require the latest SRL-T and some of my scripts will need to be updated.
 
 
 

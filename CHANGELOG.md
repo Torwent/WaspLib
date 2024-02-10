@@ -1,3 +1,12 @@
+## [17.1.3](https://github.com/Torwent/WaspLib/compare/v17.1.2...v17.1.3) (2024-02-10)
+
+
+### Bug Fixes
+
+* **optional:** removing forgotten leftover copy pasted code ([b8feba0](https://github.com/Torwent/WaspLib/commit/b8feba03232bc0e6656f086df962e1d16fee4b89))
+
+
+
 ## [17.1.2](https://github.com/Torwent/WaspLib/compare/v17.1.1...v17.1.2) (2024-02-08)
 
 
@@ -36,15 +45,6 @@
 ### BREAKING CHANGES
 
 * This will require the latest SRL-T and some of my scripts will need to be updated.
-
-
-
-## [16.13.1](https://github.com/Torwent/WaspLib/compare/v16.13.0...v16.13.1) (2024-02-07)
-
-
-### Bug Fixes
-
-* fix the compile test github action that had been broken for over a year now ([9bc2b34](https://github.com/Torwent/WaspLib/commit/9bc2b34fbcf8a6b73a73fba613738769e5794cf6))
 
 
 

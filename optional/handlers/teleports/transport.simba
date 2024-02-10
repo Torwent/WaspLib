@@ -10,6 +10,9 @@
 {$IFNDEF SKUNK_TELEPORTS}
   {$I WaspLib/optional/handlers/teleports/rsteleports.simba}
 {$ENDIF}  
+{$IFNDEF WL_GROUPING_INCLUDED}
+  {$I WaspLib/optional/interfaces/gametabs/grouping.simba}
+{$ENDIF}
 
 type
   TUniversalTransport = record(TSRLBaseRecord)
@@ -292,6 +295,14 @@ begin
   end;
 end;
 
+function TUniversalTransport.handleMinigameTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  startPosition: TPoint := ScriptWalker^.GetMyPos();
+begin
+  if Grouping.TeleportToActivity(teleportLocation.destination) then
+    Result := WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 23000);
+end;
+
 function TUniversalTransport.withdrawTeleportItem(teleportLocation: TTeleportLocation): Boolean;
 var
   bankItem: TRSBankItem;
@@ -438,6 +449,7 @@ begin
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
     ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
+    ETeleportType.MINIGAME: didTeleport := self.handleMinigameTeleport(teleportLocation);
   end;
 
   Exit(didTeleport);
@@ -480,23 +492,23 @@ end;
 
 // example usage/test
 //
-//var
-//  rsw: TRSWalker;
-//  Transport: TUniversalTransport;
-//  teleportLocation: TTeleportLocation := RSTeleports.GRAND_EXCHANGE;
-//begin
-//  try
-//    rsw.Setup();
-//    if not Transport.run(teleportLocation) then
-//    begin
-//      Transport.desperateBankOpen();
-//      if not Transport.withdrawTeleportItem(teleportLocation) then
-//        raise 'You dont have the item needed for ' + teleportLocation.destination
-//      else Bank.Close(True);
-//      Transport.run(teleportLocation);
-//    end;
-//  except
-//    WriteLn 'We ending';
-//    WriteLn GetExceptionMessage();
-//  end;
-//end;
+// var
+//   rsw: TRSWalker;
+//   Transport: TUniversalTransport;
+//   teleportLocation: TTeleportLocation := RSTeleports.MINIGAME_NIGHTMARE_ZONE;
+// begin
+//   try
+//     rsw.Setup();
+//     if not Transport.run(teleportLocation) then
+//     begin
+//       Transport.desperateBankOpen();
+//       if not Transport.withdrawTeleportItem(teleportLocation) then
+//         raise 'You dont have the item needed for ' + teleportLocation.destination
+//       else Bank.Close(True);
+//       Transport.run(teleportLocation);
+//     end;
+//   except
+//     WriteLn 'We ending';
+//     WriteLn GetExceptionMessage();
+//   end;
+// end;

@@ -1,3 +1,12 @@
+# [17.2.0](https://github.com/Torwent/WaspLib/compare/v17.1.5...v17.2.0) (2024-02-15)
+
+
+### Features
+
+* **TWaspConfig:** New record to help write and read from json files. ([883c6ad](https://github.com/Torwent/WaspLib/commit/883c6ad4a0ebeacec9045aca6560e1ab5e87d5f2))
+
+
+
 ## [17.1.5](https://github.com/Torwent/WaspLib/compare/v17.1.4...v17.1.5) (2024-02-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **POH:** small oversight that made mainscreen info irrelevant while building the POH map ([842ddee](https://github.com/Torwent/WaspLib/commit/842ddee442fe02b162efe63eb95933cb028fd714))
-
-
-
-## [17.1.1](https://github.com/Torwent/WaspLib/compare/v17.1.0...v17.1.1) (2024-02-08)
-
-
-### Bug Fixes
-
-* **POH:** added the nexus `TRoomObject`as another example of how to setup `TRoomObjects` ([17ab285](https://github.com/Torwent/WaspLib/commit/17ab285d652ac54f2548d54e6a1b18e495863271))
 
 
 

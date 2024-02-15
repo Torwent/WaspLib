@@ -1,0 +1,380 @@
+(*
+# Config
+A full featured JSON config writer and reader.
+*)
+
+{$DEFINE WL_CONFIG_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type
+(*
+(Config)=
+## type TWaspConfig
+```pascal
+TWaspConfig = record
+  Path: String;
+  JSON: TJSONObject;
+end;
+```
+*)
+  TWaspConfig = record
+    Path: String;
+    JSON: TJSONObject;
+  end;
+
+(*
+## Config.GeTWaspConfig()
+```pascal
+function TWaspConfig.GeTWaspConfig(): TJSONObject;
+```
+Helper method to return the current TWaspConfig.Path file as a TJSONObject.
+You probably don't need to use this directly.
+*)
+function TWaspConfig.GeTWaspConfig(): TJSONObject;
+var
+  str: String;
+begin
+  if FileExists(Self.Path) then
+  begin
+    str := ReadFileContents(Self.Path);
+    if str <> '' then
+    begin
+      Result.Init(str);
+      Exit;
+    end;
+  end;
+
+  Result.Init();
+end;
+
+(*
+## Config.Setup()
+```pascal
+procedure TWaspConfig.Setup(jsonFile: String);
+```
+Main method to setup your `TWaspConfig`
+*)
+procedure TWaspConfig.Setup(jsonFile: String = ScriptName);
+begin
+  Self.Path := WL_DATAPATH + 'configs' + DirectorySeparator;
+  if not ForceDirectories(Self.Path) then
+    TerminateScript('Can''t create configs directory.');
+
+  if not jsonFile.EndsWith('.json') then
+    jsonFile += '.json';
+  Self.Path += jsonFile;
+
+  Self.JSON := Self.GeTWaspConfig();
+  AddOnTerminate(@Self.JSON.Free);
+end;
+
+(*
+## Config.SaveConfig()
+```pascal
+procedure TWaspConfig.SaveConfig();
+```
+Used to save your `TWaspConfig`.
+By default, this is always called automatically whenever the config is modified by the {ref}`TWaspConfig.Put()` methods.
+*)
+procedure TWaspConfig.SaveConfig();
+begin
+  if Self.JSON = nil then
+    TerminateScript('You need to use TWaspConfig.Setup() before trying to save it into a config file.');
+  if not WriteFileContents(Self.Path, json.toString(), False) then
+    TerminateScript('Failed to save config.');
+end;
+
+
+(*
+## Config.Put()
+```pascal
+procedure TWaspConfig.Put(key, value: String; save: Boolean = True);
+procedure TWaspConfig.Put(key: String; value: Int32; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; value: Double; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; value: Boolean; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; values: TStringArray; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; values: TIntegerArray; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; values: TDoubleArray; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; values: TBoolArray; save: Boolean = True); overload;
+procedure TWaspConfig.Put(key: String; value: Pointer; save: Boolean = True); overload;
+```
+This should be self explanatory. Put a `key` and a `value` pair into your `TWaspConfig`.
+The `pointer` version of the method is the only one that might need a little bit more knowledge of
+Simba's lower JSON methods and/or pointers but you can use it to place a value that is another JSON object or a JSON array.
+*)
+procedure TWaspConfig.Put(key, value: String; save: Boolean = True);
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TWaspConfig.Put(key: String; value: Int32; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TWaspConfig.Put(key: String; value: Double; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TWaspConfig.Put(key: String; value: Boolean; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TWaspConfig.Put(key: String; values: TStringArray; save: Boolean = True); overload;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+
+  tmp.Init();
+  for i := 0 to High(values) do
+    tmp.Put(values[i]);
+
+  Self.JSON.Put(key, tmp);
+
+  if save then
+    Self.SaveConfig();
+  tmp.Free();
+end;
+
+procedure TWaspConfig.Put(key: String; values: TIntegerArray; save: Boolean = True); overload;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+
+  tmp.Init();
+  for i := 0 to High(values) do
+    tmp.Put(values[i]);
+
+  Self.JSON.Put(key, tmp);
+
+  if save then
+    Self.SaveConfig();
+  tmp.Free();
+end;
+
+procedure TWaspConfig.Put(key: String; values: TDoubleArray; save: Boolean = True); overload;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+
+  tmp.Init();
+  for i := 0 to High(values) do
+    tmp.Put(values[i]);
+
+  Self.JSON.Put(key, tmp);
+
+  if save then
+    Self.SaveConfig();
+  tmp.Free();
+end;
+
+procedure TWaspConfig.Put(key: String; values: TBoolArray; save: Boolean = True); overload;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+
+  tmp.Init();
+  for i := 0 to High(values) do
+    tmp.Put(values[i]);
+
+  Self.JSON.Put(key, tmp);
+
+  if save then
+    Self.SaveConfig();
+  tmp.Free();
+end;
+
+procedure TWaspConfig.Put(key: String; value: Pointer; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+
+  Self.JSON.put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+
+(*
+## Config.Get()
+```pascal
+function TWaspConfig.GetString(key: String): String;
+function TWaspConfig.GetInt(key: String): Int32;
+function TWaspConfig.GetDouble(key: String): Double;
+function TWaspConfig.GetBoolean(key: String): Boolean;
+function TWaspConfig.GetStringArray(key: String): TStringArray;
+function TWaspConfig.GetIntArray(key: String): TIntegerArray;
+function TWaspConfig.GetDoubleArray(key: String): TDoubleArray;
+function TWaspConfig.GetBooleanArray(key: String): TBoolArray;
+function TWaspConfig.GetObject(key: String): TJSONObject;
+```
+This should be self explanatory. Returns the value of a `key` in your `TWaspConfig`.
+The `Object` version of the method is the only one that might need a little bit more knowledge of
+Simba's lower JSON methods and/or pointers but you can use it to return a JSON object or a TJSONArray of TJSONObjects.
+*)
+function TWaspConfig.GetString(key: String): String;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+    Result := Self.JSON.getString(key);
+end;
+
+function TWaspConfig.GetInt(key: String): Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+    Result := Self.JSON.getInt(key);
+end;
+
+function TWaspConfig.GetDouble(key: String): Double;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+    Result := Self.JSON.getDouble(key);
+end;
+
+function TWaspConfig.GetBoolean(key: String): Boolean;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+    Result := Self.JSON.getBoolean(key);
+end;
+
+function TWaspConfig.GetStringArray(key: String): TStringArray;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+  begin
+    tmp := Self.JSON.getJSONArray(key);
+    for i := 0 to tmp.length()-1 do
+      Result += tmp.getString(i);
+  end;
+end;
+
+function TWaspConfig.GetIntArray(key: String): TIntegerArray;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+  begin
+    tmp := Self.JSON.getJSONArray(key);
+    for i := 0 to tmp.length()-1 do
+      Result += tmp.getInt(i);
+  end;
+end;
+
+function TWaspConfig.GetDoubleArray(key: String): TDoubleArray;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+  begin
+    tmp := Self.JSON.getJSONArray(key);
+    for i := 0 to tmp.length()-1 do
+      Result += tmp.getDouble(i);
+  end;
+end;
+
+function TWaspConfig.GetBooleanArray(key: String): TBoolArray;
+var
+  tmp: TJSONArray;
+  i: Int32;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+  begin
+    tmp := Self.JSON.getJSONArray(key);
+    for i := 0 to tmp.length()-1 do
+      Result += tmp.getBoolean(i);
+  end;
+end;
+
+function TWaspConfig.GetObject(key: String): TJSONObject;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) then
+    Result := Self.JSON.getJSONObject(key);
+end;
+
+
+(*
+## Config.Remove()
+```pascal
+procedure TWaspConfig.Remove(key: String);
+```
+Remove a `key` and it's respective `value` from your `TWaspConfig`.
+*)
+procedure TWaspConfig.Remove(key: String);
+begin
+  if Self.JSON = nil then
+    TerminateScript('You need to use TWaspConfig.Setup() before trying to delete a key on it.');
+  Self.JSON.remove(key);
+  Self.SaveConfig();
+end;
+
+(*
+## Config.ToString()
+```pascal
+function TWaspConfig.ToString(indentFactor: Int32 = 0): String;
+```
+Returns a string version of your `TWaspConfig`.
+
+Example:
+```pascal
+WriteLn MyConfig.ToString();
+```
+*)
+function TWaspConfig.ToString(indentFactor: Int32 = 0): String;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Result := Self.JSON.ToString(indentFactor);
+end;

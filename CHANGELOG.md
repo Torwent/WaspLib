@@ -1,3 +1,12 @@
+## [17.2.1](https://github.com/Torwent/WaspLib/compare/v17.2.0...v17.2.1) (2024-02-16)
+
+
+### Bug Fixes
+
+* **LampHandler:** small tweaks to CJ's lamphandler ([8db2dfd](https://github.com/Torwent/WaspLib/commit/8db2dfd10311e2cd971005dd38d78f63b10a1a8f))
+
+
+
 # [17.2.0](https://github.com/Torwent/WaspLib/compare/v17.1.5...v17.2.0) (2024-02-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **optional:** removing forgotten leftover copy pasted code ([b8feba0](https://github.com/Torwent/WaspLib/commit/b8feba03232bc0e6656f086df962e1d16fee4b89))
-
-
-
-## [17.1.2](https://github.com/Torwent/WaspLib/compare/v17.1.1...v17.1.2) (2024-02-08)
-
-
-### Bug Fixes
-
-* **POH:** small oversight that made mainscreen info irrelevant while building the POH map ([842ddee](https://github.com/Torwent/WaspLib/commit/842ddee442fe02b162efe63eb95933cb028fd714))
 
 
 

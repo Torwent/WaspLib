@@ -1,3 +1,12 @@
+## [17.2.2](https://github.com/Torwent/WaspLib/compare/v17.2.1...v17.2.2) (2024-02-17)
+
+
+### Bug Fixes
+
+* **TWaspConfig:** check for null values ([fdabf4e](https://github.com/Torwent/WaspLib/commit/fdabf4e5b3b5cd9be4155e27890e901a310bef66))
+
+
+
 ## [17.2.1](https://github.com/Torwent/WaspLib/compare/v17.2.0...v17.2.1) (2024-02-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * bump version ([70887ad](https://github.com/Torwent/WaspLib/commit/70887ad552ec39cd6c7214e2fdb439833705585c))
-
-
-
-## [17.1.3](https://github.com/Torwent/WaspLib/compare/v17.1.2...v17.1.3) (2024-02-10)
-
-
-### Bug Fixes
-
-* **optional:** removing forgotten leftover copy pasted code ([b8feba0](https://github.com/Torwent/WaspLib/commit/b8feba03232bc0e6656f086df962e1d16fee4b89))
 
 
 

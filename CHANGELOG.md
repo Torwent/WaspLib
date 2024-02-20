@@ -1,3 +1,12 @@
+## [17.2.5](https://github.com/Torwent/WaspLib/compare/v17.2.4...v17.2.5) (2024-02-20)
+
+
+### Bug Fixes
+
+* **poh:** added the rest of the walking methods. Also added POH.WalkInteract methods ([3f404be](https://github.com/Torwent/WaspLib/commit/3f404be97db9074a697c82e3ae2cdc8d50eeb046))
+
+
+
 ## [17.2.4](https://github.com/Torwent/WaspLib/compare/v17.2.3...v17.2.4) (2024-02-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **LampHandler:** small tweaks to CJ's lamphandler ([8db2dfd](https://github.com/Torwent/WaspLib/commit/8db2dfd10311e2cd971005dd38d78f63b10a1a8f))
-
-
-
-# [17.2.0](https://github.com/Torwent/WaspLib/compare/v17.1.5...v17.2.0) (2024-02-15)
-
-
-### Features
-
-* **TWaspConfig:** New record to help write and read from json files. ([883c6ad](https://github.com/Torwent/WaspLib/commit/883c6ad4a0ebeacec9045aca6560e1ab5e87d5f2))
 
 
 

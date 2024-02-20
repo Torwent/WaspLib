@@ -84,17 +84,19 @@ type
 ```
 The core record used to handle navigating a POH.
 *)
-  TRSPOHHandler = record
+  TRSPOHHandler = record(TSRLBaseRecord)
     Map: TPOHMap;
     RoomObjects: array [ERSRoomObject] of TRoomObject;
 
     EnableRunAtEnergy, Randomness, MouseAheadTimer: Int32;
-    AdaptiveWalk, ScreenWalk, FancyMouse, Walking: Boolean;
+    AdaptiveWalk, ScreenWalk, FancyMouse, NearZoomMode, Walking: Boolean;
     Similarity: Double;
 
     AdaptiveToggleDistances: TPoint;
     Path: TPointArray;
     PathIndex: Int32;
+
+    WebGraph: TWebGraph;
 
     OnWalk: TRSPOH_OnWalkEvent;
     OnWalking: TRSPOH_OnWalkEvent;
@@ -201,7 +203,6 @@ end;
 function TRSPOHHandler.ContainsObject(objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
 var
   obj: TRoomObject;
-  cuboid: TCuboidEx;
 begin
   obj := Self.RoomObjects[objType];
   if obj.Coordinates <> [] then
@@ -706,21 +707,6 @@ begin
     Self.MouseAheadTimer += SRL.SkewedRand(0,50,500);
 end;
 
-function TRSPOHHandler.IsWalkable(pohPoint: TPoint; playerPoint: TPoint; Angle: Double): Boolean;
-var
-  minimapPoint: TPoint;
-  b: TBox;
-begin
-  minimapPoint := Self.MapToMM(playerPoint, pohPoint, Angle);
-
-  if not Self.ScreenWalk then
-    Exit(Minimap.IsPointOn(minimapPoint, -1));
-
-  b := Minimap.PointToMSRect(minimapPoint, 1, 1, Angle).Bounds();
-  if MainScreen.IsVisible(B.Middle) then
-    Result := CountColor($000000, B.Expand(0, MainScreen.Bounds())) = 0; // Client doesn't always render everything when zoomed out
-end;
-
 (*
 ## POH.WaitMoving
 ```pascal
@@ -833,17 +819,15 @@ begin
 end;
 
 (*
-## POH.WalkFinalStep
+## POH.WalkStepHelper()
 ```pascal
-function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; WaitUntilDistance: Int32): Boolean;
+function TRSPOHHandler.WalkStepHelper(playerPoint, pohPoint: TPoint; out minimapPoint: TPoint): Boolean;
 ```
-
-Internal method used by POH Handler when finishing walking a path.
-You will probably never need to call this directly but it can be used to take a single step.
+Internal method used by the POH to help walking steps.
+You will probably never need to call this directly.
 *)
-function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; WaitUntilDistance: Int32): Boolean;
+function TRSPOHHandler.WalkStepHelper(playerPoint, pohPoint: TPoint; out minimapPoint: TPoint): Boolean;
 var
-  minimapPoint: TPoint;
   event_time: Int64;
 begin
   event_time := GetTickCount();
@@ -857,11 +841,39 @@ begin
     playerPoint := Self.GetPos();
 
   if not Self.Walking then
-    Exit(True);
+    Exit;
 
-  minimapPoint := Self.MapTOMM(playerPoint, pohPoint, Minimap.GetCompassAngle(False));
-  if (not Minimap.IsPointOn(minimapPoint)) then
-    Exit(False);
+  minimapPoint := Self.MapToMM(playerPoint, pohPoint, Minimap.GetCompassAngle(False));
+
+  if Self.ScreenWalk then
+  begin
+    if (Self.ScreenWalk and not Minimap.PointInZoomRectangle(minimapPoint)) then
+      Exit;
+  end
+  else
+  begin
+    if (not Minimap.IsPointOn(minimapPoint)) then
+      Exit;
+  end;
+
+  Result := True;
+end;
+
+(*
+## POH.WalkFinalStep
+```pascal
+function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; WaitUntilDistance: Int32): Boolean;
+```
+Internal method used by POH Handler when finishing walking a path.
+You will probably never need to call this directly but it can be used to take a single step.
+*)
+function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; WaitUntilDistance: Int32): Boolean;
+var
+  minimapPoint: TPoint;
+begin
+  if not Self.WalkStepHelper(playerPoint, pohPoint, minimapPoint) then
+    Exit(not Self.Walking);
+
   if (Minimap.Center.DistanceTo(minimapPoint) < 5) then
     Exit(True);
 
@@ -883,24 +895,10 @@ function TRSPOHHandler.WalkStep(playerPoint, pohPoint: TPoint): Boolean;
 var
   minimapPoint: TPoint;
   waitUntilDistance: Int32;
-  event_time: Int64;
 begin
-  event_time := GetTickCount();
+  if not Self.WalkStepHelper(playerPoint, pohPoint, minimapPoint) then
+    Exit(not Self.Walking);
 
-  // run events
-  if (@Self.OnWalk <> nil) then
-    Self.OnWalk(@Self, playerPoint, pohPoint);
-
-  // in case the events used a bit of time, while our character was moving towards a point, we have to update the current position.
-  if GetTickCount() - event_time > 100 then
-    playerPoint := Self.GetPos();
-
-  if not Self.Walking then
-    Exit(True);
-
-  minimapPoint := Self.MapToMM(playerPoint, pohPoint, Minimap.GetCompassAngle(False));
-  if (not Minimap.IsPointOn(minimapPoint)) then
-    Exit(False);
   if (Minimap.Center.DistanceTo(minimapPoint) < 5) then
     Exit(True);
 
@@ -917,6 +915,289 @@ begin
   end;
 end;
 
+(*
+## POH.IsWalkable()
+```pascal
+function TRSPOHHandler.IsWalkable(pohPoint: TPoint; playerPoint: TPoint; angle: Double): Boolean;
+```
+Internal method used by walker to decide if the destination point is within 1 click reach.
+You will probably never need to call this directly.
+*)
+function TRSPOHHandler.IsWalkable(pohPoint: TPoint; playerPoint: TPoint; angle: Double): Boolean;
+var
+  mmPoint: TPoint;
+  r: TRectangle;
+begin
+  mmPoint := Self.MapToMM(playerPoint, pohPoint, angle);
+
+  Result := Minimap.IsPointOn(mmPoint, -1);
+  if not ScreenWalk or not Result then
+    Exit;
+
+  r := Minimap.PointToMSRect(mmPoint, 1, 1, angle);
+  Result := MainScreen.IsVisible(r.mean()) and (CountColor($000000, r.Bounds.Expand(0, MainScreen.Bounds())) = 0);
+end;
+
+
+(*
+## POH.WalkPath()
+```pascal
+function TRSPOHHandler.WalkPath(path: TPointArray; waitUntilDistance: Int32 = 0): Boolean;
+```
+Walks a path of points taken from the loaded map. We advice that WaitUntilDistance is not 0.
+
+Parameters:
+- Path
+	Array of points taken from the loaded map to walk. Must be ordered from start to finish.
+- WaitUntilDistance
+	Determines when the method returns once the final point has been clicked. Default value: 0.
+	| *WaitUntilDistance=0* waits until the player has reached the final point.
+	| *WaitUntilDistance=20* waits until the player is within 20 pixels of the final point.
+
+Example:
+```pascal
+Walker.WalkPath([[100,100],[120,120],[140,140],[160,160],[180,180]]);
+```
+*)
+function TRSPOHHandler.WalkPath(path: TPointArray; WaitUntilDistance: Int32 = 0): Boolean;
+
+  function BuildPath(TPA: TPointArray): TPointArray;
+  var
+    I, J: Int32;
+    Line: TPointArray;
+  begin
+    for I := 1 to High(TPA) do
+    begin
+      Line := TPAFromLine(TPA[I-1], TPA[I]);
+
+      J := 0;
+      while J < High(Line) do
+      begin
+        Result += Line[J];
+
+        // keep the steps low, as mainscreen walking might just have a few tiles visible when NearZoomMode is set True
+        if (Self.NearZoomMode) and ((Self.ScreenWalk) or (Self.AdaptiveWalk)) then
+          Inc(J, Random(1, 4))
+        else
+          Inc(J, Random(3, 12));
+      end;
+    end;
+
+    Result += TPA[High(TPA)];
+  end;
+
+  function AdvancePath(var Index: Int32; playerPoint: TPoint): Boolean;
+  var
+    Angle: Double := Minimap.GetCompassAngle(False);
+    Previous: Int32 := Index;
+    Nearest, Furthest: Int32;
+  begin
+    Nearest := Self.Path.Find(Self.Path.Sorted(playerPoint)[0]);
+    Self.PathIndex := Nearest;
+
+    while (Nearest < High(Self.Path)) and (not Self.IsWalkable(Self.Path[Nearest+1], playerPoint, Angle)) do
+      Inc(Nearest);
+
+    Furthest := Nearest;
+    while (Furthest < High(Self.Path)) and Self.IsWalkable(Self.Path[Furthest+1], playerPoint, Angle) do
+      Inc(Furthest);
+
+    Index := Furthest;
+
+    // do the result check before randomness to avoid false error
+    Result := (Index > Previous);
+
+    // 15% chance of randomness else furthest
+    if Random() < 0.15 then
+      Index := Random(Nearest, Furthest);
+  end;
+
+var
+  playerPoint: TPoint;
+  Index, Fails: Int32;
+begin
+  Self.Walking := True;
+  playerPoint := Self.GetPos();
+  Self.Path := BuildPath([playerPoint] + path);
+
+  if Self.AdaptiveWalk then
+  begin
+    Self.AdaptiveToggleDistances.X := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.X + Random(-6,6);
+    Self.AdaptiveToggleDistances.Y := RSW_ADAPTIVE_SCREEN_TOGGLE_DISTANCES.Y + Random(-16,16);
+    Self.AdaptiveWalkCheck(playerPoint);
+  end;
+
+  while Self.Walking and (Fails < 10) do
+  begin
+    playerPoint := Self.GetPos();
+
+    if AdvancePath(Index, playerPoint) then
+      Fails := 0
+    else
+    begin
+      Inc(Fails);
+
+      // Likely haven't moved far enough to advance to next point
+      if (Fails < 5) then begin
+        Wait(300);
+        Continue;
+      end else begin
+        // screen walking struggles, so disable it
+        if Self.AdaptiveWalk then
+          Self.ScreenWalk := False
+        else if (Fails = 5) then
+          case SRL.Dice(50) of
+            True:  Minimap.SetCompassAngle(Minimap.GetCompassAngle() - SRL.TruncatedGauss(30, 360, 3));
+            False: Minimap.SetCompassAngle(Minimap.GetCompassAngle() + SRL.TruncatedGauss(30, 360, 3));
+          end;
+      end;
+
+      if (Fails mod 2 = 0) then
+        Minimap.WaitFlag();
+    end;
+
+    if Index = High(Self.Path) then
+    begin
+      if Self.WalkFinalStep(playerPoint, Self.Path[Index], WaitUntilDistance) then
+        Exit(True);
+    end else
+      Self.WalkStep(playerPoint, Self.Path[Index]);
+  end;
+
+  if Fails = 10 then
+    Self.DebugLn('Failed to advance path');
+end;
+
+(*
+## POH.WalkBlind
+```pascal
+function TRSPOHHandler.WalkBlind(Destination: TPoint; WaitUntilDistance: Int32 = 0): Boolean;
+```
+"Blindly" walks to a point taken from the loaded map.
+A straight line is generated between the player's position and destination which is then walked.
+
+Parameters:
+- Destination
+  Destination point taken from the loaded map.
+- WaitUntilDistance
+	Determines when the method returns once the final point has been clicked. Default value: 0.
+	| *WaitUntilDistance=0* waits until the player has reached the final point.
+	| *WaitUntilDistance=20* waits until the player is within 20 pixels of the final point.
+
+Example:
+```pascal
+Walker.WalkBlind([300, 300]);
+```
+*)
+function TRSPOHHandler.WalkBlind(Destination: TPoint; WaitUntilDistance: Int32 = 0): Boolean;
+begin
+  Result := Self.WalkPath([Destination], WaitUntilDistance);
+end;
+
+(*
+## TRSWalker.GetClosestPoint
+```pascal
+function TRSWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
+```
+
+method used to get the closest Point to the Player out of a TPA.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
+*)
+function TRSPOHHandler.GetClosestPoint(destinations: TPointArray): TPoint;
+var
+  paths, shortPaths: T2DPointArray;
+  path: TPointArray;
+  shortest: Int32;
+  me, destination: TPoint;
+begin
+  me := Self.GetPos();
+  for destination in destinations do
+  begin
+    path := [];
+
+    try
+      path := Self.WebGraph.PathBetween(me, destination, 0);
+    except
+    end;
+
+    if (path <> []) and not paths.Contains(path) then
+      paths += path;
+  end;
+
+  if paths = [] then
+    Exit(destinations.NearestPoint(me));
+
+  shortest := Round(paths.ShortestDistance());
+
+  for path in paths do
+    if InRange(path.TotalDistance(), shortest-15, shortest+15) then
+      shortPaths += path;
+
+  Result := shortPaths.RandomValue().Last();
+end;
+
+(*
+## POH.WebWalk
+```pascal
+function TRSPOHHandler.WebWalk(Destination: TPoint; WaitUntilDistance: Int32 = 0; PathRandomness: Double = 0): Boolean;
+```
+Web walks to the destination point on the loaded map. Does **not** handle any obstacles.
+Please run ``webber.simba`` to see how webgraphs are built.
+
+Pre built webgraphs are available for "World" and "Zeah" when used.
+
+Parameters:
+- Destination
+	Destination point taken from the loaded map.
+- WaitUntilDistance
+	Determines when the method returns once the final point has been clicked. Default value: 0.
+	| *WaitUntilDistance=0* waits until the player has reached the final point.
+	| *WaitUntilDistance=20* waits until the player is within 20 pixels of the final point.
+- PathRandomness
+	Randomness to add to the path so the absoulte shortest path isn't always taken. Must be between 0..1
+
+Example:
+```pascal
+var Walker: TRSWalker;
+
+Walker.Setup('world');
+Walker.WebWalk([4595, 3575]); // Lumbridge
+
+// Or use a location from the webgraph
+Walker.WebWalk(WorldWeb.LOCATION_LUMBRIDGE);
+```
+*)
+function TRSPOHHandler.WebWalk(destination: TPoint; waitUntilDistance: Int32 = 0; pathRandomness: Double = 0): Boolean;
+var
+  path: TPointArray;
+begin
+  if not InRange(pathRandomness, 0, 1) then
+    Self.Fatal('TRSWalker.WebWalk `pathRandomness` must be within 0..1');
+
+  path   := Self.WebGraph.PathBetween(Self.GetPos(), destination, pathRandomness);
+  Result := Self.WalkPath(path, waitUntilDistance);
+end;
+
+(*
+## TRSWalker.WebWalk
+```pascal
+function TRSWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Double = 0): Boolean; overload;
+```
+
+method used to webwalk to the closest Point to the player.
+An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
+You will likely want to use the closest bank booth to you, so you use this.
+
+This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
+*)
+function TRSPOHHandler.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Double = 0): Boolean; overload;
+var
+  destination: TPoint;
+begin
+  destination := Self.GetClosestPoint(destinations);
+  Result := Self.WebWalk(destination, waitUntilDistance, pathRandomness);
+end;
 
 (*
 # POH Objects
@@ -987,7 +1268,7 @@ end;
 
 
 (*
-## TRSPOHHandler.Draw
+## TRSPOHHandler.Draw()
 ```pascal
 procedure TRSPOHHandler.Draw(out bitmap: TMufasaBitmap; objType: ERSRoomObject);
 ```
@@ -1071,6 +1352,88 @@ begin
 
   radians := Minimap.GetCompassAngle(False);
   mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
+  Result := obj.Select(options, mmPoints, radians);
+end;
+
+(*
+## POH.WalkInteract
+```pascal
+function TRSPOHHandler.WalkHover(objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.WalkClick(objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray): Boolean;
+```
+Method used to walk and interact with a {ref}`TRoomObject` by specifying a {ref}`ERSRoomObject`.
+The interactions are self explanatory.
+
+Example:
+```pascal
+POH.Setup(); //call from the northwest tile of your exit portal.
+WriteLn POH.Hover(ERSRoomObject.POOL); //pool has to be on the same room, north, west, south or east.
+```
+*)
+function TRSPOHHandler.WalkHover(objType: ERSRoomObject): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.GetPos();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
+  mmPoints := mmPoints.Sorted(Minimap.Center());
+
+  if not Minimap.PointInZoomRectangle(mmPoints[0]) then
+    Self.WebWalk(obj.Coordinates, 12, 0.2);
+
+  Result := Self.Hover(objType);
+end;
+
+function TRSPOHHandler.WalkClick(objType: ERSRoomObject): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.GetPos();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
+  mmPoints := mmPoints.Sorted(Minimap.Center());
+
+  if not Minimap.PointInZoomRectangle(mmPoints[0]) then
+    Self.WebWalk(obj.Coordinates, 12, 0.2);
+
+  Result := Self.Click(objType);
+end;
+
+function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.GetPos();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
+  mmPoints := mmPoints.Sorted(Minimap.Center());
+
+  if not Minimap.PointInZoomRectangle(mmPoints[0]) then
+    Self.WebWalk(obj.Coordinates, 12, 0.2);
+
   Result := obj.Select(options, mmPoints, radians);
 end;
 

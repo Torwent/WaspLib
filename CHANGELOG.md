@@ -1,3 +1,12 @@
+## [17.2.4](https://github.com/Torwent/WaspLib/compare/v17.2.3...v17.2.4) (2024-02-20)
+
+
+### Bug Fixes
+
+* removed a walker override that now lives in SRL-T ([97bb2b8](https://github.com/Torwent/WaspLib/commit/97bb2b86e08e517d20686eab716025f70686f918))
+
+
+
 ## [17.2.3](https://github.com/Torwent/WaspLib/compare/v17.2.2...v17.2.3) (2024-02-19)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TWaspConfig:** New record to help write and read from json files. ([883c6ad](https://github.com/Torwent/WaspLib/commit/883c6ad4a0ebeacec9045aca6560e1ab5e87d5f2))
-
-
-
-## [17.1.5](https://github.com/Torwent/WaspLib/compare/v17.1.4...v17.1.5) (2024-02-12)
-
-
-### Bug Fixes
-
-* several coordinate tweaks to improve scripts reliability ([fc40112](https://github.com/Torwent/WaspLib/commit/fc401121c76716ab46ee5d42f678da473ae0e024))
 
 
 

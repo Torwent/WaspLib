@@ -794,23 +794,14 @@ begin
 
   if Self.ScreenWalk then
   begin
-    p := Minimap.RandomPointInZoomRectangle(minimapPoint, randomness);
-    if p = [0, 0] then
-      Exit;
-
+    p := Minimap.RandomPointOn(minimapPoint, randomness);
     Mouse.Move(Minimap.PointToMsRect(p).Mean());
     msUpText := MainScreen.GetUpText();
     if not ('Walk here' in msUpText) then
       Exit(ChooseOption.Select('Walk here'));
   end
   else
-  begin
-    p := Minimap.RandomPointOn(minimapPoint, randomness);
-    if p = [0, 0] then
-      Exit;
-
-    Mouse.Move(P);
-  end;
+    Mouse.Move(Minimap.RandomPointOn(minimapPoint, randomness));
 
   if randomness > 0 then
     Antiban.BioClick(MOUSE_LEFT)
@@ -847,12 +838,12 @@ begin
 
   if Self.ScreenWalk then
   begin
-    if (Self.ScreenWalk and not Minimap.PointInZoomRectangle(minimapPoint)) then
+    if not Minimap.PointOnZoomRectangle(minimapPoint) then
       Exit;
   end
   else
   begin
-    if (not Minimap.IsPointOn(minimapPoint)) then
+    if not Minimap.IsPointOn(minimapPoint) then
       Exit;
   end;
 
@@ -867,19 +858,19 @@ function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; WaitUntilDis
 Internal method used by POH Handler when finishing walking a path.
 You will probably never need to call this directly but it can be used to take a single step.
 *)
-function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; WaitUntilDistance: Int32): Boolean;
+function TRSPOHHandler.WalkFinalStep(playerPoint, pohPoint: TPoint; waitUntilDistance: Int32): Boolean;
 var
   minimapPoint: TPoint;
 begin
   if not Self.WalkStepHelper(playerPoint, pohPoint, minimapPoint) then
     Exit(not Self.Walking);
 
-  if (Minimap.Center.DistanceTo(minimapPoint) < 5) then
+  if (Minimap.Center().DistanceTo(minimapPoint) < 5) then
     Exit(True);
 
   Result := Self.MouseClick(minimapPoint, 0);
   if Result then
-    Self.WaitMoving(pohPoint, WaitUntilDistance);
+    Self.WaitMoving(pohPoint, waitUntilDistance);
 end;
 
 (*
@@ -899,7 +890,7 @@ begin
   if not Self.WalkStepHelper(playerPoint, pohPoint, minimapPoint) then
     Exit(not Self.Walking);
 
-  if (Minimap.Center.DistanceTo(minimapPoint) < 5) then
+  if (Minimap.Center().DistanceTo(minimapPoint) < 5) then
     Exit(True);
 
   Result := Self.MouseClick(minimapPoint, Self.Randomness);
@@ -935,7 +926,10 @@ begin
     Exit;
 
   r := Minimap.PointToMSRect(mmPoint, 1, 1, angle);
-  Result := MainScreen.IsVisible(r.mean()) and (CountColor($000000, r.Bounds.Expand(0, MainScreen.Bounds())) = 0);
+  if not MainScreen.IsVisible(r.mean()) then
+    Exit;
+
+  Result := CountColor($000000, r.Bounds().Expand(0, MainScreen.Bounds())) = 0;
 end;
 
 
@@ -1387,7 +1381,7 @@ begin
   mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
   mmPoints := mmPoints.Sorted(Minimap.Center());
 
-  if not Minimap.PointInZoomRectangle(mmPoints[0]) then
+  if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
     Self.WebWalk(obj.Coordinates, 12, 0.2);
 
   Result := Self.Hover(objType);
@@ -1409,7 +1403,7 @@ begin
   mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
   mmPoints := mmPoints.Sorted(Minimap.Center());
 
-  if not Minimap.PointInZoomRectangle(mmPoints[0]) then
+  if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
     Self.WebWalk(obj.Coordinates, 12, 0.2);
 
   Result := Self.Click(objType);
@@ -1431,7 +1425,7 @@ begin
   mmPoints := Self.MapToMM(me, obj.Coordinates, radians);
   mmPoints := mmPoints.Sorted(Minimap.Center());
 
-  if not Minimap.PointInZoomRectangle(mmPoints[0]) then
+  if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
     Self.WebWalk(obj.Coordinates, 12, 0.2);
 
   Result := obj.Select(options, mmPoints, radians);

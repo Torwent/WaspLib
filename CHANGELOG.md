@@ -1,3 +1,12 @@
+## [17.2.8](https://github.com/Torwent/WaspLib/compare/v17.2.7...v17.2.8) (2024-02-21)
+
+
+### Bug Fixes
+
+* **walker:** compatibility with latest SRL-T ([0cc4082](https://github.com/Torwent/WaspLib/commit/0cc4082e79e9c7b8334532f8b9f1bbb355367f5d))
+
+
+
 ## [17.2.7](https://github.com/Torwent/WaspLib/compare/v17.2.6...v17.2.7) (2024-02-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * removed a walker override that now lives in SRL-T ([97bb2b8](https://github.com/Torwent/WaspLib/commit/97bb2b86e08e517d20686eab716025f70686f918))
-
-
-
-## [17.2.3](https://github.com/Torwent/WaspLib/compare/v17.2.2...v17.2.3) (2024-02-19)
-
-
-### Bug Fixes
-
-* **TWaspConfig:** added `.Has(key)` method and `.GetNull(key)` to check for key existance and or null values ([f55f2d7](https://github.com/Torwent/WaspLib/commit/f55f2d77370846c40015d96cbe8af8f81620782e))
 
 
 

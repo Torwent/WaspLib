@@ -1,3 +1,12 @@
+## [17.2.6](https://github.com/Torwent/WaspLib/compare/v17.2.5...v17.2.6) (2024-02-21)
+
+
+### Bug Fixes
+
+* reverting recent walker changes that use the "ZoomRectangle" for random point generation ([b0e9e1c](https://github.com/Torwent/WaspLib/commit/b0e9e1c883d2173f4784fd41a94b9dee62f84f67))
+
+
+
 ## [17.2.5](https://github.com/Torwent/WaspLib/compare/v17.2.4...v17.2.5) (2024-02-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TWaspConfig:** check for null values ([fdabf4e](https://github.com/Torwent/WaspLib/commit/fdabf4e5b3b5cd9be4155e27890e901a310bef66))
-
-
-
-## [17.2.1](https://github.com/Torwent/WaspLib/compare/v17.2.0...v17.2.1) (2024-02-16)
-
-
-### Bug Fixes
-
-* **LampHandler:** small tweaks to CJ's lamphandler ([8db2dfd](https://github.com/Torwent/WaspLib/commit/8db2dfd10311e2cd971005dd38d78f63b10a1a8f))
 
 
 

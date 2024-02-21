@@ -1,3 +1,12 @@
+## [17.2.7](https://github.com/Torwent/WaspLib/compare/v17.2.6...v17.2.7) (2024-02-21)
+
+
+### Bug Fixes
+
+* read notes ([80279bc](https://github.com/Torwent/WaspLib/commit/80279bcfc8cc01ea95295c9dad30d90951b99c98))
+
+
+
 ## [17.2.6](https://github.com/Torwent/WaspLib/compare/v17.2.5...v17.2.6) (2024-02-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TWaspConfig:** added `.Has(key)` method and `.GetNull(key)` to check for key existance and or null values ([f55f2d7](https://github.com/Torwent/WaspLib/commit/f55f2d77370846c40015d96cbe8af8f81620782e))
-
-
-
-## [17.2.2](https://github.com/Torwent/WaspLib/compare/v17.2.1...v17.2.2) (2024-02-17)
-
-
-### Bug Fixes
-
-* **TWaspConfig:** check for null values ([fdabf4e](https://github.com/Torwent/WaspLib/commit/fdabf4e5b3b5cd9be4155e27890e901a310bef66))
 
 
 

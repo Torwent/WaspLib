@@ -59,12 +59,7 @@ begin
     Result := Self.GetNext(Result, down);
 end;
 
-
-function TRSMouseZoom.GetZoomLevel(): Int32; //Declared here to be used by the next functions but overriden later.
-begin
-  Result := -1;
-end;
-
+function TRSMouseZoom.GetZoomLevel(): Int32; forward;
 
 (*
 ## RSMouseZoom.Level2Slider
@@ -108,7 +103,6 @@ end;
 ```pascal
 function TRSMouseZoom.Slider2Level(value: Int32 = -1): Int32;
 ```
-
 As the name implies, this method is used to convert MM2MS.ZoomLevel to RSMouseZoom.ZoomLevel levels (0..100 to 0..768).
 Unlike the previous method though, this one is not 100% accurate but good enough.
 
@@ -130,17 +124,14 @@ begin
   if value < 0 then
     value := MM2MS.ZoomLevel;
 
-  if value >= 13 then
-    value -= 1;
-
-  if value >= 37 then
-    value -= 1;
-
-  if value >= 63 then
-    value -= 1;
-
-  if value >= 87 then
-    value -= 1;
+  //handling "dead" levels of the zoom slider.
+  //Despite we using a 0..100 range, the slider only has 97 positions.
+  case value of
+    13.. 36: Dec(value);
+    37.. 62: Dec(value, 2);
+    63.. 86: Dec(value, 3);
+    87..100: Dec(value, 4);
+  end;
 
   Result := EnsureRange(value * 8, 0, Self.MAX_ZOOM);
 end;
@@ -256,20 +247,14 @@ end;
 ```pascal
 function TRSMouseZoom.GetZoomLevel(): Int32;
 ```
-```pascal
-function TRSMouseZoom.GetZoomLevel(): Int32; override;
-```
-
-This method is pre-declared to be used by other methods that require it but it's functionality required said methods to work therefor it's overriden.
-
-Anyway, this simply returns RSMouseZoom.ZoomLevel if it is already set, if it's not set, it will attempt to set it up.
+This simply returns RSMouseZoom.ZoomLevel if it is already set, if it's not set, it will attempt to set it up.
 
 Example:
 ```pascal
 WriteLn RSMouseZoom.GetZoomLevel();
 ```
 *)
-function TRSMouseZoom.GetZoomLevel(): Int32; override;
+function TRSMouseZoom.GetZoomLevel(): Int32;
 begin
   if (Self.ZoomLevel > -1) then
     Exit(Self.ZoomLevel);
@@ -281,15 +266,14 @@ begin
   end;
 
   case Random(3) of
-    0:
-      begin
-        Self.DebugLn('Unknown zoom level, reading from options...');
-        Self.ZoomLevel := Self.Slider2Level(MM2MS.GetZoomLevel());
-        Self.DebugLn('Current zoom level: ' + ToString(Self.ZoomLevel));
-      end;
-    1:  Options.SetZoomLevel(Random(101));
+    0: Options.SetZoomLevel(Random(101));
+    1: Self.MaxZoomBlind(SRL.Dice(50));
     else
-      Self.MaxZoomBlind(SRL.Dice(50));
+    begin
+      Self.DebugLn('Unknown zoom level, reading from options...');
+      Self.ZoomLevel := Self.Slider2Level(MM2MS.GetZoomLevel());
+      Self.DebugLn('Current zoom level: ' + ToString(Self.ZoomLevel));
+    end;
   end;
 
   Result := Self.ZoomLevel;

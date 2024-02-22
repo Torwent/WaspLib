@@ -1,3 +1,12 @@
+# [17.3.0](https://github.com/Torwent/WaspLib/compare/v17.2.8...v17.3.0) (2024-02-22)
+
+
+### Features
+
+* **tools:** s2scompiler ([45094c4](https://github.com/Torwent/WaspLib/commit/45094c4dc55f2c451f30b534ce4d9c82100d28d1))
+
+
+
 ## [17.2.8](https://github.com/Torwent/WaspLib/compare/v17.2.7...v17.2.8) (2024-02-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **poh:** added the rest of the walking methods. Also added POH.WalkInteract methods ([3f404be](https://github.com/Torwent/WaspLib/commit/3f404be97db9074a697c82e3ae2cdc8d50eeb046))
-
-
-
-## [17.2.4](https://github.com/Torwent/WaspLib/compare/v17.2.3...v17.2.4) (2024-02-20)
-
-
-### Bug Fixes
-
-* removed a walker override that now lives in SRL-T ([97bb2b8](https://github.com/Torwent/WaspLib/commit/97bb2b86e08e517d20686eab716025f70686f918))
 
 
 

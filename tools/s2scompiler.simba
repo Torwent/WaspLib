@@ -1,14 +1,30 @@
 (*
 # S2SCompiler
 A "Simba to Simba compiler" that compiles multiple scripts into a single one.
-This is a very basic script and won't understand things like "IF" compiler directives.
+This is a very basic script and won't understand things like
+"IF" compiler directives.
+
+- `FILE_NAME` is the base file name you want to compile.
+- `PATH` is the path to `FILE_NAME`
+- `ERASE_DIRECTIVE` is a line you might want to remove from every file,
+  leave blank is you don't want to delete anything.
+
+The final result will be placed along thing script with `FILE_NAME` or if
+`FILE_NAME` is in the same directory, it will be named:
+```pascal
+FILE_NAME.Replace('.simba', '-compiled.simba')
+```
 *)
 {$I SRL-T/osr.simba}
 
 const
   FILE_NAME: String = 'launcher.simba';
-  PATH: String = {$macro CURRENT_DIRECTORY}; //Change to project path or drop this in your project folder.
-  ERASE_DIRECTIVE: String = '{$IFNDEF WS_CORE}{$I core.simba}{$ENDIF}';
+  PATH: String = {$macro CURRENT_DIRECTORY} + 'launcher' + DirectorySeparator;
+  ERASE_DIRECTIVE_REGEX: TStringArray = [
+    '\{\$IFNDEF WS_CORE\}([\s\S]*?\{\$ENDIF\})',
+    '\{\$IFNDEF SRL_OSR\}([\s\S]*?\{\$ENDIF\})',
+    '\{\$IFNDEF WL_OSR\}([\s\S]*?\{\$ENDIF\})'
+  ];
 
 const INCLUDE_DIRECTIVES: TStringArray = ['{$I ', '{$INCLUDE', '{$i ', '$include'];
 
@@ -22,11 +38,20 @@ end;
 
 function GetIncludeContent(content: String; directiveIndex: Int32): String;
 var
-  filePath: String;
+  filePath, regex: String;
 begin
   filePath := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}');
   Result := ReadFileContents(PATH + filePath);
-  Result := Result.Replace(ERASE_DIRECTIVE, '');
+  for regex in ERASE_DIRECTIVE_REGEX do
+    Result := ReplaceRegExpr(regex, Result, '', True);
+
+  filePath := ExtractFilePath(PATH + filePath).Replace(AppPath, "AppPath + '") + "'";
+  filePath := filePath.Replace(DirectorySeparator, "' + DirectorySeparator + '");
+  filePath := filePath.Replace(" + ''", '');
+
+  Result := Result.Replace('{$macro CURRENT_DIRECTORY}', filePath);
+  Result := Result.Replace('{$MACRO CURRENT_DIRECTORY}', filePath);
+
   Result := LineEnding + Result + LineEnding;
 end;
 
@@ -53,5 +78,8 @@ begin
     index := GetDirectiveIndex(content);
   end;
 
-  WriteFileContents(PATH + FILE_NAME.Replace('.simba', '-compiled.simba'), content, False);
+  if PATH = {$macro CURRENT_DIRECTORY} then
+    WriteFileContents(PATH + FILE_NAME.Replace('.simba', '-compiled.simba'), content, False)
+  else
+    WriteFileContents({$macro CURRENT_DIRECTORY} + FILE_NAME, content, False);
 end;

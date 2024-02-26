@@ -1,3 +1,12 @@
+## [17.3.1](https://github.com/Torwent/WaspLib/compare/v17.3.0...v17.3.1) (2024-02-26)
+
+
+### Bug Fixes
+
+* read notes ([dff17f9](https://github.com/Torwent/WaspLib/commit/dff17f963cf665bbddaac30f78e3bfc07afc9016))
+
+
+
 # [17.3.0](https://github.com/Torwent/WaspLib/compare/v17.2.8...v17.3.0) (2024-02-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * reverting recent walker changes that use the "ZoomRectangle" for random point generation ([b0e9e1c](https://github.com/Torwent/WaspLib/commit/b0e9e1c883d2173f4784fd41a94b9dee62f84f67))
-
-
-
-## [17.2.5](https://github.com/Torwent/WaspLib/compare/v17.2.4...v17.2.5) (2024-02-20)
-
-
-### Bug Fixes
-
-* **poh:** added the rest of the walking methods. Also added POH.WalkInteract methods ([3f404be](https://github.com/Torwent/WaspLib/commit/3f404be97db9074a697c82e3ae2cdc8d50eeb046))
 
 
 

@@ -1,3 +1,12 @@
+## [17.3.2](https://github.com/Torwent/WaspLib/compare/v17.3.1...v17.3.2) (2024-02-28)
+
+
+### Bug Fixes
+
+* **RSObjects:** fix fossil island bank chest up text ([1ccb37a](https://github.com/Torwent/WaspLib/commit/1ccb37ab5562b4f26d3033e39e6a51fd4ccb7df4))
+
+
+
 ## [17.3.1](https://github.com/Torwent/WaspLib/compare/v17.3.0...v17.3.1) (2024-02-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([80279bc](https://github.com/Torwent/WaspLib/commit/80279bcfc8cc01ea95295c9dad30d90951b99c98))
-
-
-
-## [17.2.6](https://github.com/Torwent/WaspLib/compare/v17.2.5...v17.2.6) (2024-02-21)
-
-
-### Bug Fixes
-
-* reverting recent walker changes that use the "ZoomRectangle" for random point generation ([b0e9e1c](https://github.com/Torwent/WaspLib/commit/b0e9e1c883d2173f4784fd41a94b9dee62f84f67))
 
 
 

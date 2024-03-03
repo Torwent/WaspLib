@@ -1,3 +1,12 @@
+## [17.3.5](https://github.com/Torwent/WaspLib/compare/v17.3.4...v17.3.5) (2024-03-03)
+
+
+### Bug Fixes
+
+* .gitattributes remove png and zip diff change ([1706573](https://github.com/Torwent/WaspLib/commit/1706573ecbe230604e0859b80ef134b742eedbdd))
+
+
+
 ## [17.3.4](https://github.com/Torwent/WaspLib/compare/v17.3.3...v17.3.4) (2024-03-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([dff17f9](https://github.com/Torwent/WaspLib/commit/dff17f963cf665bbddaac30f78e3bfc07afc9016))
-
-
-
-# [17.3.0](https://github.com/Torwent/WaspLib/compare/v17.2.8...v17.3.0) (2024-02-22)
-
-
-### Features
-
-* **tools:** s2scompiler ([45094c4](https://github.com/Torwent/WaspLib/commit/45094c4dc55f2c451f30b534ce4d9c82100d28d1))
 
 
 

@@ -9,6 +9,41 @@ A full featured JSON config writer and reader.
 {$ENDIF}
 
 type
+  TJSONArrayObject = record
+    Key: String;
+    JSONArray: TJSONArray;
+  end;
+
+  TJSONArrayObjectArray = array of TJSONArrayObject;
+
+function TJSONArrayObjectArray.Find(key: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Key = key then
+      Exit;
+  Result := -1;
+end;
+
+function TJSONArrayObjectArray.Put(key: String): Int32;
+begin
+  Result := Length(Self);
+  Self += [key, nil];
+end;
+
+function TJSONArrayObjectArray.Get(key: String): Int32;
+begin
+  Result := Self.Find(key);
+  if Result > -1 then
+  begin
+    Self[Result].JSONArray.Free();
+    Self[Result].JSONArray := nil;
+    Exit;
+  end;
+  Result := Self.Put(key);
+end;
+
+
+type
 (*
 (Config)=
 ## type TWaspConfig
@@ -22,6 +57,8 @@ end;
   TWaspConfig = record
     Path: String;
     JSON: TJSONObject;
+    _ArrayHelper: TJSONArrayObjectArray;
+    IsSetup, OnTerminate: Boolean;
   end;
 
 (*
@@ -50,6 +87,27 @@ begin
 end;
 
 (*
+## Config.Free()
+```pascal
+procedure TWaspConfig.Free();
+```
+Used to free your `TWaspConfig`.
+It's automatically called on script termination, but you may call it sooner if
+you wish to unlock the ram used by this (which should be minimal).
+*)
+procedure TWaspConfig.Free();
+begin
+  if not Self.IsSetup then
+    Exit;
+
+  Self.JSON.Free();
+  Self.JSON := nil;
+  Self._ArrayHelper := [];
+
+  Self.IsSetup := False;
+end;
+
+(*
 ## Config.Setup()
 ```pascal
 procedure TWaspConfig.Setup(jsonFile: String);
@@ -67,7 +125,26 @@ begin
   Self.Path += jsonFile;
 
   Self.JSON := Self.GetConfig();
-  AddOnTerminate(@Self.JSON.Free);
+  Self.IsSetup := True;
+
+  if not Self.OnTerminate then
+  begin
+    AddOnTerminate(@Self.Free);
+    Self.OnTerminate := True;
+  end;
+end;
+
+(*
+## Config.DeleteConfig()
+```pascal
+procedure TWaspConfig.DeleteConfig();
+```
+Delete your `TWaspConfig` from disk.
+*)
+procedure TWaspConfig.DeleteConfig();
+begin
+  if not DeleteFile(Self.Path) then
+    TerminateScript('Failed to delete: ' + Self.Path);
 end;
 
 (*
@@ -82,7 +159,7 @@ procedure TWaspConfig.SaveConfig();
 begin
   if Self.JSON = nil then
     TerminateScript('You need to use TWaspConfig.Setup() before trying to save it into a config file.');
-  if not WriteFileContents(Self.Path, json.toString(), False) then
+  if not WriteFileContents(Self.Path, json.toString(2), False) then
     TerminateScript('Failed to save config.');
 end;
 
@@ -146,82 +223,82 @@ end;
 
 procedure TWaspConfig.Put(key: String; values: TStringArray; save: Boolean = True); overload;
 var
-  tmp: TJSONArray;
-  i: Int32;
+  i, j: Int32;
 begin
   if Self.JSON = nil then
     Exit;
 
-  tmp.Init();
-  for i := 0 to High(values) do
-    tmp.Put(values[i]);
+  i := Self._ArrayHelper.Get(key);
+  Self._ArrayHelper[i].JSONArray.Init();
+
+  for j := 0 to High(values) do
+    Self._ArrayHelper[i].JSONArray.Put(values[j]);
 
   Self.JSON.Remove(key);
-  Self.JSON.Put(key, tmp);
+  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
 
   if save then
     Self.SaveConfig();
-  tmp.Free();
 end;
 
 procedure TWaspConfig.Put(key: String; values: TIntegerArray; save: Boolean = True); overload;
 var
-  tmp: TJSONArray;
-  i: Int32;
+  i, j: Int32;
 begin
   if Self.JSON = nil then
     Exit;
 
-  tmp.Init();
-  for i := 0 to High(values) do
-    tmp.Put(values[i]);
+  i := Self._ArrayHelper.Get(key);
+  Self._ArrayHelper[i].JSONArray.Init();
+
+  for j := 0 to High(values) do
+    Self._ArrayHelper[i].JSONArray.Put(values[j]);
 
   Self.JSON.Remove(key);
-  Self.JSON.Put(key, tmp);
+  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
 
   if save then
     Self.SaveConfig();
-  tmp.Free();
 end;
 
 procedure TWaspConfig.Put(key: String; values: TDoubleArray; save: Boolean = True); overload;
 var
-  tmp: TJSONArray;
-  i: Int32;
+  i, j: Int32;
 begin
   if Self.JSON = nil then
     Exit;
 
-  tmp.Init();
-  for i := 0 to High(values) do
-    tmp.Put(values[i]);
+  i := Self._ArrayHelper.Get(key);
+  Self._ArrayHelper[i].JSONArray.Init();
+
+  for j := 0 to High(values) do
+    Self._ArrayHelper[i].JSONArray.Put(values[j]);
 
   Self.JSON.Remove(key);
-  Self.JSON.Put(key, tmp);
+  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
 
   if save then
     Self.SaveConfig();
-  tmp.Free();
 end;
 
 procedure TWaspConfig.Put(key: String; values: TBoolArray; save: Boolean = True); overload;
 var
-  tmp: TJSONArray;
-  i: Int32;
+  i, j: Int32;
 begin
   if Self.JSON = nil then
     Exit;
 
-  tmp.Init();
-  for i := 0 to High(values) do
-    tmp.Put(values[i]);
+  i := Self._ArrayHelper.Get(key);
+  Self._ArrayHelper[i].JSONArray.Init();
+
+  for j := 0 to High(values) do
+    Self._ArrayHelper[i].JSONArray.Put(values[j]);
 
   Self.JSON.Remove(key);
-  Self.JSON.Put(key, tmp);
+  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
 
   if save then
     Self.SaveConfig();
-  tmp.Free();
 end;
 
 procedure TWaspConfig.Put(key: String; value: Pointer; save: Boolean = True); overload;
@@ -400,7 +477,7 @@ end;
 (*
 ## Config.ToString()
 ```pascal
-function TWaspConfig.ToString(indentFactor: Int32 = 0): String;
+function TWaspConfig.ToString(indentFactor: Int32 = 2): String;
 ```
 Returns a string version of your `TWaspConfig`.
 
@@ -409,7 +486,7 @@ Example:
 WriteLn MyConfig.ToString();
 ```
 *)
-function TWaspConfig.ToString(indentFactor: Int32 = 0): String;
+function TWaspConfig.ToString(indentFactor: Int32 = 2): String;
 begin
   if Self.JSON = nil then
     Exit;

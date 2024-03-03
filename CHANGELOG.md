@@ -1,3 +1,12 @@
+## [17.3.3](https://github.com/Torwent/WaspLib/compare/v17.3.2...v17.3.3) (2024-03-02)
+
+
+### Bug Fixes
+
+* **TWaspConfig:** Fixed some pointer issues with arrays ([72c9956](https://github.com/Torwent/WaspLib/commit/72c995614e6c10dd29b65d1173cd4fed7f23550c))
+
+
+
 ## [17.3.2](https://github.com/Torwent/WaspLib/compare/v17.3.1...v17.3.2) (2024-02-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **walker:** compatibility with latest SRL-T ([0cc4082](https://github.com/Torwent/WaspLib/commit/0cc4082e79e9c7b8334532f8b9f1bbb355367f5d))
-
-
-
-## [17.2.7](https://github.com/Torwent/WaspLib/compare/v17.2.6...v17.2.7) (2024-02-21)
-
-
-### Bug Fixes
-
-* read notes ([80279bc](https://github.com/Torwent/WaspLib/commit/80279bcfc8cc01ea95295c9dad30d90951b99c98))
 
 
 

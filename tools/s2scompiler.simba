@@ -6,8 +6,9 @@ This is a very basic script and won't understand things like
 
 - `FILE_NAME` is the base file name you want to compile.
 - `PATH` is the path to `FILE_NAME`
-- `ERASE_DIRECTIVE` is a line you might want to remove from every file,
-  leave blank is you don't want to delete anything.
+- `ERASE_DIRECTIVE_REGEX` is a regex for the lines you want this to ignore when "compiling" your script.
+  This is because if you have multiple files including the same file, you will get stuck in a recursive loop.
+  Should be easy to modify this to use simple strings instead of regex.
 
 The final result will be placed along thing script with `FILE_NAME` or if
 `FILE_NAME` is in the same directory, it will be named:
@@ -21,9 +22,11 @@ const
   FILE_NAME: String = 'launcher.simba';
   PATH: String = {$macro CURRENT_DIRECTORY} + 'launcher' + DirectorySeparator;
   ERASE_DIRECTIVE_REGEX: TStringArray = [
-    '\{\$IFNDEF WS_CORE\}([\s\S]*?\{\$ENDIF\})',
+    '\{\$IFNDEF WS_LAUNCHER\}([\s\S]*?\{\$ENDIF\})',
     '\{\$IFNDEF SRL_OSR\}([\s\S]*?\{\$ENDIF\})',
-    '\{\$IFNDEF WL_OSR\}([\s\S]*?\{\$ENDIF\})'
+    '\{\$IFNDEF SRL_UTILS\}([\s\S]*?\{\$ENDIF\})',
+    '\{\$IFNDEF WL_OSR\}([\s\S]*?\{\$ENDIF\})',
+    '\{\$IFNDEF WL_UTILS\}([\s\S]*?\{\$ENDIF\})'
   ];
 
 const INCLUDE_DIRECTIVES: TStringArray = ['{$I ', '{$INCLUDE', '{$i ', '$include'];
@@ -41,7 +44,12 @@ var
   filePath, regex: String;
 begin
   filePath := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}');
-  Result := ReadFileContents(PATH + filePath);
+
+  if filePath.StartsWith('WaspLib') or filePath.StartsWith('SRL-T') then
+    Result := ReadFileContents(IncludePath + filePath)
+  else
+    Result := ReadFileContents(PATH + filePath);
+
   for regex in ERASE_DIRECTIVE_REGEX do
     Result := ReplaceRegExpr(regex, Result, '', True);
 

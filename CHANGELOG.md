@@ -1,3 +1,12 @@
+## [17.3.6](https://github.com/Torwent/WaspLib/compare/v17.3.5...v17.3.6) (2024-03-04)
+
+
+### Bug Fixes
+
+* **s2scompiler:** just some tweaks ([66ef891](https://github.com/Torwent/WaspLib/commit/66ef891be7446b87e5d8987f8316cd05f995341a))
+
+
+
 ## [17.3.5](https://github.com/Torwent/WaspLib/compare/v17.3.4...v17.3.5) (2024-03-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSObjects:** fix fossil island bank chest up text ([1ccb37a](https://github.com/Torwent/WaspLib/commit/1ccb37ab5562b4f26d3033e39e6a51fd4ccb7df4))
-
-
-
-## [17.3.1](https://github.com/Torwent/WaspLib/compare/v17.3.0...v17.3.1) (2024-02-26)
-
-
-### Bug Fixes
-
-* read notes ([dff17f9](https://github.com/Torwent/WaspLib/commit/dff17f963cf665bbddaac30f78e3bfc07afc9016))
 
 
 

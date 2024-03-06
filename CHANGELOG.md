@@ -1,3 +1,12 @@
+## [17.3.7](https://github.com/Torwent/WaspLib/compare/v17.3.6...v17.3.7) (2024-03-06)
+
+
+### Bug Fixes
+
+* **progress:** it's now easy to change both the background image and text color of the progress HUD ([f2482fe](https://github.com/Torwent/WaspLib/commit/f2482fe59079edbbe3b35ed74cd7f713df4a9bef))
+
+
+
 ## [17.3.6](https://github.com/Torwent/WaspLib/compare/v17.3.5...v17.3.6) (2024-03-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TWaspConfig:** Fixed some pointer issues with arrays ([72c9956](https://github.com/Torwent/WaspLib/commit/72c995614e6c10dd29b65d1173cd4fed7f23550c))
-
-
-
-## [17.3.2](https://github.com/Torwent/WaspLib/compare/v17.3.1...v17.3.2) (2024-02-28)
-
-
-### Bug Fixes
-
-* **RSObjects:** fix fossil island bank chest up text ([1ccb37a](https://github.com/Torwent/WaspLib/commit/1ccb37ab5562b4f26d3033e39e6a51fd4ccb7df4))
 
 
 

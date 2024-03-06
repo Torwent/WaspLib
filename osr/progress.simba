@@ -23,10 +23,12 @@ Type responsible for handling the HUDProgressReport, also commonly called as "Pa
 *)
 type
   TRSProgressReport = record
+    ImagePath: String;
+
     BGImg: TMufasaBitmap;
     ClientImg: TMufasaBitmap;
 
-    TextColor, PadLength: Int32;
+    TextColor, AdColor, PadLength: Int32;
 
     Timer: TTimer;
     UsernameBox: TBox;
@@ -44,7 +46,6 @@ end;
 ```pascal
 procedure ProgressReport.Terminate();
 ```
-
 Internal method called automatically on termination. This will do things such as free used assetsa and clear the progress report from the game screen.
 *)
 procedure TRSProgressReport.Terminate();
@@ -66,7 +67,9 @@ Internal method called when we need to setup TRSProgressReport.
 procedure TRSProgressReport.Setup();
 begin
   Self.BGImg.Init();
-  Self.BGImg.SetName('Progress report background');
+  Self.BGImg.SetName('proggy');
+  if Self.ImagePath = '' then
+    Self.ImagePath := {$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png';
 
   Self.TopLeft := [Chat.Bounds().X1, Chat.Bounds().Y1 - 12];
   if WLSettings.RemoteInput.HUDTransparent then
@@ -75,7 +78,7 @@ begin
     Self.BGImg.SetSize(Chat.Width(), Chat.Height() + 12);
   end
   else
-    Self.BGImg.LoadFromFile({$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png');
+    Self.BGImg.LoadFromFile(Self.ImagePath);
 
 
   Self.BGImg.setFontAntialiasing(True);
@@ -93,7 +96,10 @@ begin
     Self.ClientImg.setFontName('Consolas');
   end;
 
-  Self.TextColor := $006CFF;
+  if Self.TextColor = 0 then
+    Self.TextColor := $006CFF - $C8D100;
+  if Self.AdColor = 0 then
+    Self.AdColor := $006CFF - $90A301;
   Self.UsernameBox := Chat.GetDisplayNameBox();
 
   AddOnTerminate(@Self.Terminate);
@@ -107,23 +113,22 @@ procedure TRSProgressReport.DrawBackground(fontColor: Int32);
 Method that handles drawing the background of our Self.
 Usually called internally by Self.Update().
 *)
-procedure TRSProgressReport.DrawBackground(fontColor: Int32);
+procedure TRSProgressReport.DrawBackground();
 var
   hi: String;
 begin
   if not Self.IsSetup then
   begin
     Self.BGImg.setFontSize(18);
-    Self.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(Self.BGImg.GetWidth()/2) + 25, 7], FontColor, WLSettings.RemoteInput.HUDTransparent);
+    Self.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(Self.BGImg.GetWidth()/2) + 25, 7], Self.TextColor, WLSettings.RemoteInput.HUDTransparent);
 
     Self.BGImg.setFontSize(14);
-    fontColor -= $90A301 - $C8D100;
 
     hi := Self.ProgressArray[High(Self.ProgressArray)];
     if WLSettings.RemoteInput.HUDTransparent then
-      Self.BGImg.DrawTextShadow(hi, [10, 135], fontColor, True)
+      Self.BGImg.DrawTextShadow(hi, [10, 135], Self.AdColor, True)
     else
-      Self.BGImg.DrawText(hi, [10, 135], fontColor);
+      Self.BGImg.DrawText(hi, [10, 135], Self.AdColor);
     Self.IsSetup := True;
   end;
 
@@ -138,7 +143,7 @@ procedure TRSProgressReport.DrawProgress(fontColor: Int32);
 Method that handles drawing the text of our Self.
 Usually called internally by TRSProgressReport.Update().
 *)
-procedure TRSProgressReport.DrawProgress(fontColor: Int32);
+procedure TRSProgressReport.DrawProgress();
 var
   p, q: TPoint;
   i: Int32;
@@ -148,18 +153,16 @@ begin
     p.Y -= 12;
   q := [Round(Chat.Bounds().Width()/2) + 20, p.Y];
 
-  fontColor -= $C8D100;
-
   for i := 0 to High(ProgressArray) - 1 do
   begin
     if Frac(i/2) = 0 then
     begin
-      ClientImg.DrawTextShadow(ProgressArray[i], p, fontColor, WLSettings.RemoteInput.HUDTransparent);
+      ClientImg.DrawTextShadow(ProgressArray[i], p, Self.TextColor, WLSettings.RemoteInput.HUDTransparent);
       p.Y += 20;
     end
     else
     begin
-      ClientImg.DrawTextShadow(ProgressArray[i], q, fontColor, WLSettings.RemoteInput.HUDTransparent);
+      ClientImg.DrawTextShadow(ProgressArray[i], q, Self.TextColor, WLSettings.RemoteInput.HUDTransparent);
       q.Y += 20;
     end;
   end;
@@ -200,8 +203,8 @@ procedure TRSProgressReport.Update();
 begin
   Self.ClientImg.Clear();
   //Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);
-  Self.DrawBackground(Self.TextColor);
-  Self.DrawProgress(Self.TextColor);
+  Self.DrawBackground();
+  Self.DrawProgress();
 end;
 
 {$ENDIF}

@@ -1,3 +1,12 @@
+## [18.0.1](https://github.com/Torwent/WaspLib/compare/v18.0.0...v18.0.1) (2024-03-07)
+
+
+### Bug Fixes
+
+* **antiban:** tweak for backwards compatibility ([4955426](https://github.com/Torwent/WaspLib/commit/4955426654c78eab04a1615f80ccab4e7c8f4100))
+
+
+
 # [18.0.0](https://github.com/Torwent/WaspLib/compare/v17.3.8...v18.0.0) (2024-03-07)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **s2scompiler:** just some tweaks ([66ef891](https://github.com/Torwent/WaspLib/commit/66ef891be7446b87e5d8987f8316cd05f995341a))
-
-
-
-## [17.3.5](https://github.com/Torwent/WaspLib/compare/v17.3.4...v17.3.5) (2024-03-03)
-
-
-### Bug Fixes
-
-* .gitattributes remove png and zip diff change ([1706573](https://github.com/Torwent/WaspLib/commit/1706573ecbe230604e0859b80ef134b742eedbdd))
 
 
 

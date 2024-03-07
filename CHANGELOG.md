@@ -1,3 +1,12 @@
+## [18.0.2](https://github.com/Torwent/WaspLib/compare/v18.0.1...v18.0.2) (2024-03-07)
+
+
+### Bug Fixes
+
+* **remoteinput:** Added an override to add GetKeyCode that is missing when RI is being used ([0e07202](https://github.com/Torwent/WaspLib/commit/0e072022eeb6006b527e287d81ab39680b0b140b))
+
+
+
 ## [18.0.1](https://github.com/Torwent/WaspLib/compare/v18.0.0...v18.0.1) (2024-03-07)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **progress:** it's now easy to change both the background image and text color of the progress HUD ([f2482fe](https://github.com/Torwent/WaspLib/commit/f2482fe59079edbbe3b35ed74cd7f713df4a9bef))
-
-
-
-## [17.3.6](https://github.com/Torwent/WaspLib/compare/v17.3.5...v17.3.6) (2024-03-04)
-
-
-### Bug Fixes
-
-* **s2scompiler:** just some tweaks ([66ef891](https://github.com/Torwent/WaspLib/commit/66ef891be7446b87e5d8987f8316cd05f995341a))
 
 
 

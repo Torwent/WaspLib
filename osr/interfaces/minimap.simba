@@ -9,102 +9,21 @@ Methods to handle Minimap. Extends SRL's Minimap.
 {$ENDIF}
 
 function TRSMinimap.PercentBlack(): Integer;
-var TPA: TPointArray;
-begin
-  SRL.FindColors(TPA, CTS1(0,0), Self.Bounds());
-  if Length(TPA) < 1 then Exit;
-  FilterPointsPie(TPA, 0, 360, 0, 73, Self.Center.X, Self.Center.Y);
-  Result := ceil((Length(TPA) * 100) / ((Pi * (73 * 73)) * ((360 - 0) / 360.0)-((Pi * 0) * 1)));
-end;
-
-(*
-## Minimap.SetCompassAngle
-```pascal
-procedure TRSMinimap.SetCompassAngle(Degrees: Double; Accuracy: Double = 5); override;
-```
-
-Overrides SRL's default **Minimap.SetCompassAngle()** to check if we are logged in and log back in if it times out.
-*)
-procedure TRSMinimap.SetCompassAngle(Degrees: Double; Accuracy: Double = 5); override;
-const
-  DEG_PER_PIXEL = 2.83;
 var
-  Available: TBox;
-  Remaining: Int32;
-  LeftToRight: Boolean;
-  Destination: TPoint;
-  MousePosition: TPoint;
-  Pixels: Int32;
-  T: UInt64;
-  CustomMouse: TMouse;
+  tpa: TPointArray;
 begin
-  CustomMouse := Mouse;
-  CustomMouse.MissChance := 0;
-  CustomMouse.IdleInterval := 0;
-
-  Available := GetClientBounds().Expand(-10);
-  Degrees := FixD(Degrees);
-  Remaining := Round(Self.GetCompassAngle() - Degrees);
-
-  T := GetTickCount() + Round(SRL.TruncatedGauss(6000, 8000));
-
-  while (Abs(Remaining) > Accuracy) do
-  begin
-    if (GetTickCount() > T) then
-    begin
-      Self.DebugLn('SetCompassAngle timed out.');
-      if not RSClient.IsLoggedIn() then
-        Login.LoginPlayer()
-      else
-        Self.DebugLn('Make sure the setting "Middle mouse button controls the camera" is enabled in the game settings.');
-      Exit;
-    end;
-
-    Pixels := Round(Abs(SRL.DeltaAngle(Self.GetCompassAngle(), Degrees)) * DEG_PER_PIXEL);
-    LeftToRight := ((Remaining > 0) and (Abs(Remaining) <= 180)) or ((Remaining < 0) and (Abs(Remaining) > 180));
-
-    MousePosition := CustomMouse.Position();
-
-    if LeftToRight then
-    begin
-      if (not Available.Contains(MousePosition)) or ((MousePosition.Y + 200 > Available.Y2) or (MousePosition.X + Pixels > Available.X2)) then
-      begin
-        CustomMouse.Move([Available.X1, Available.Y1, Available.X1 + 200, Available.Y1 + 200]);
-
-        MousePosition := CustomMouse.Position();
-      end;
-
-      Destination.X := MousePosition.X + Pixels;
-      Destination.Y := Random(MousePosition.Y + 100, Available.Y2);
-    end else
-    begin
-      if (not Available.Contains(MousePosition)) or ((MousePosition.Y + 200 > Available.Y2) or (MousePosition.X - Pixels < Available.X1)) then
-      begin
-        CustomMouse.Move([Available.X2 - 200, Available.Y1, Available.X2, Available.Y1 + 200]);
-
-        MousePosition := CustomMouse.Position();
-      end;
-
-      Destination.X := MousePosition.X - Pixels;
-      Destination.Y := Random(MousePosition.Y + 200, Available.Y2);
-    end;
-
-    CustomMouse.Hold(MOUSE_MIDDLE);
-    CustomMouse.Move(Destination);
-    CustomMouse.Release(MOUSE_MIDDLE);
-
-    Wait(100, 1000, wdLeft);
-
-    Remaining := Round(Self.GetCompassAngle() - Degrees);
-  end;
+  SRL.FindColors(tpa, CTS1(0,0), Self.Bounds());
+  if Length(tpa) < 1 then Exit;
+  FilterPointsPie(tpa, 0, 360, 0, 73, Self.Center.X, Self.Center.Y);
+  Result := ceil((Length(tpa) * 100) / ((Pi * (73 * 73)) * ((360 - 0) / 360.0)-((Pi * 0) * 1)));
 end;
+
 
 (*
 ## Minimap.WaitMoving
 ```pascal
 procedure TRSMinimap.WaitMoving(doAntiban: Boolean = True);
 ```
-
 Gives **Minimap.WaitPlayerMoving** the ability to perform antiban tasks while moving.
 
 Example:
@@ -124,7 +43,7 @@ begin
 
   repeat
     if doAntiban then
-      Antiban.WalkingTasks();
+      Antiban.WalkingTasks(nil, [], []);
 
     moving := Self.IsPlayerMoving();
 

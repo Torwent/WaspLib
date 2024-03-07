@@ -1,3 +1,12 @@
+## [17.3.8](https://github.com/Torwent/WaspLib/compare/v17.3.7...v17.3.8) (2024-03-07)
+
+
+### Bug Fixes
+
+* saving screenshots doesn't crash anymore if the screenshot has a period in it's name ([64bc0be](https://github.com/Torwent/WaspLib/commit/64bc0befb5408f159cc0be2876ece635522fba12))
+
+
+
 ## [17.3.7](https://github.com/Torwent/WaspLib/compare/v17.3.6...v17.3.7) (2024-03-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * removed from gitattributes the plugins and .exe ([3088aaa](https://github.com/Torwent/WaspLib/commit/3088aaafb72e4c01279d0d7d30f7fadf35ebd2b9))
-
-
-
-## [17.3.3](https://github.com/Torwent/WaspLib/compare/v17.3.2...v17.3.3) (2024-03-02)
-
-
-### Bug Fixes
-
-* **TWaspConfig:** Fixed some pointer issues with arrays ([72c9956](https://github.com/Torwent/WaspLib/commit/72c995614e6c10dd29b65d1173cd4fed7f23550c))
 
 
 

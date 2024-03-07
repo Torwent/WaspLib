@@ -1,3 +1,17 @@
+# [18.0.0](https://github.com/Torwent/WaspLib/compare/v17.3.8...v18.0.0) (2024-03-07)
+
+
+### Bug Fixes
+
+* **TRSWalker:** OnWalkEvents are now all procedures of object ([47ef959](https://github.com/Torwent/WaspLib/commit/47ef959bf6c2b6bcb3cf1fb765b7fdddf931d2a5))
+
+
+### BREAKING CHANGES
+
+* **TRSWalker:** WaspLib will have to be updated. No community script should break.
+
+
+
 ## [17.3.8](https://github.com/Torwent/WaspLib/compare/v17.3.7...v17.3.8) (2024-03-07)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * .gitattributes remove png and zip diff change ([1706573](https://github.com/Torwent/WaspLib/commit/1706573ecbe230604e0859b80ef134b742eedbdd))
-
-
-
-## [17.3.4](https://github.com/Torwent/WaspLib/compare/v17.3.3...v17.3.4) (2024-03-03)
-
-
-### Bug Fixes
-
-* removed from gitattributes the plugins and .exe ([3088aaa](https://github.com/Torwent/WaspLib/commit/3088aaafb72e4c01279d0d7d30f7fadf35ebd2b9))
 
 
 

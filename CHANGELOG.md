@@ -1,3 +1,12 @@
+## [18.0.3](https://github.com/Torwent/WaspLib/compare/v18.0.2...v18.0.3) (2024-03-08)
+
+
+### Bug Fixes
+
+* read notes ([b4a4d42](https://github.com/Torwent/WaspLib/commit/b4a4d42665680ae260586dd9d91280b3cfe11859))
+
+
+
 ## [18.0.2](https://github.com/Torwent/WaspLib/compare/v18.0.1...v18.0.2) (2024-03-07)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * saving screenshots doesn't crash anymore if the screenshot has a period in it's name ([64bc0be](https://github.com/Torwent/WaspLib/commit/64bc0befb5408f159cc0be2876ece635522fba12))
-
-
-
-## [17.3.7](https://github.com/Torwent/WaspLib/compare/v17.3.6...v17.3.7) (2024-03-06)
-
-
-### Bug Fixes
-
-* **progress:** it's now easy to change both the background image and text color of the progress HUD ([f2482fe](https://github.com/Torwent/WaspLib/commit/f2482fe59079edbbe3b35ed74cd7f713df4a9bef))
 
 
 

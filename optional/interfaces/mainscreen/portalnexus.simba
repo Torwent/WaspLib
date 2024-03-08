@@ -1,0 +1,325 @@
+(*
+# PortalNexus
+Portal Nexus interface by Reldnahc.
+*)
+
+{$DEFINE RELD_PORTALNEXUS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  ERSNexusDestination = (
+    ANNAKARL,
+    APE_ATOLL_DUNGEON,
+    ARCEUUS_LIBRARY,
+    EAST_ARDOUGNE,
+    BARROWS,
+    BATTLEFRONT,
+    CAMELOT,
+    SEERS_VILLAGE,
+    CARRALLANGER,
+    CATHERBY,
+    CEMETERY,
+    DRAYNOR_MANOR,
+    FALADOR,
+    FENKENSTRAINS_CASTLE,
+    FISHING_GUILD,
+    GHORROCK,
+    HARMONY_ISLAND,
+    MARIM,
+    SENNTISTEN,
+    KHARYRLL,
+    KOUREND_CASTLE,
+    LUMBRIDGE,
+    MIND_ALTAR,
+    LUNAR_ISLE,
+    SALVE_GRAVEYARD,
+    VARROCK,
+    GRAND_EXCHANGE,
+    TROLL_STRONGHOLD,
+    WATCHTOWER,
+    YANILLE,
+    WATERBIRTH_ISLAND,
+    WEISS,
+    WEST_ARDOUGNE
+  );
+
+function ERSNexusDestination.ToString(): String;
+begin
+  case Self of
+    ERSNexusDestination.SEERS_VILLAGE: Result := "Seers' Village";
+    ERSNexusDestination.FENKENSTRAINS_CASTLE: Result := "Fenken' Castle";
+    else Result := ToStr(Self).Replace('_', ' ').TitleCase();
+  end;
+end;
+
+type
+  TPortalNexusDestination = record
+    Name: String;
+    Scroll: Int32;
+    HotKey: Int32;
+  end;
+
+  TRSPortalNexus = record (TRSTitledInterface)
+    Destinations: array [ERSNexusDestination] of TPortalNexusDestination;
+  end;
+
+function TRSPortalNexus.ScrollAreaFunction(): TBox;
+begin
+  Result := Box(Self.Bounds().X1 + 29, Self.Bounds().Y1 + 49, Self.Bounds().X2 - 197, Self.Bounds().Y2 - 20);
+end;
+
+procedure TRSPortalNexus.Setup(); override;
+var
+  destination: ERSNexusDestination;
+begin
+  inherited;
+  Self.Name := 'Portal Nexus';
+  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
+
+  for destination in ERSNexusDestination do
+  begin
+   Self.Destinations[destination].Name := destination.ToString();
+   Self.Destinations[destination].Scroll := -1;
+  end;
+end;
+
+(*
+## TRSPortalNexus.ClickDestination
+```pascal
+function TRSPortalNexus.ClickDestination(destination: ERSNexusDestination, useKeyboard : Boolean = False): Boolean;
+function TRSPortalNexus.ClickDestination(destination: ERSNexusDestination; chance: Double = BioHash): Boolean; overload;
+```
+Finds the destination in the scroll area and clicks it.
+
+Example:
+```pascal
+ WriteLn TRSPortalNexus.ClickPortalDestination(ERSNexusDestination.FALADOR);
+```
+*)
+function TRSPortalNexus.ClickDestination(destination: ERSNexusDestination; useKeyboard : Boolean): Boolean;
+var
+  box: TBox;
+begin
+  if useKeyboard then
+  begin
+    if (Self.Destinations[destination].HotKey <> 0) or Self.FindPortalDestination(destination, box) then
+    begin
+      KeyBoard.PressKey(Self.Destinations[destination].HotKey);
+      KeyBoard.KeyUp(Self.Destinations[destination].HotKey);
+      Exit(True);
+    end;
+    Exit;
+  end;
+
+  if Self.Destinations[destination].Scroll > -1 then
+    Self.SetScrollPosition(Self.Destinations[destination].Scroll);
+
+  if Self.FindPortalDestination(destination, box) then
+  begin
+    Mouse.Move(box);
+    Mouse.Click(MOUSE_LEFT);
+    Result := True;
+  end;
+end;
+
+function TRSPortalNexus.ClickDestination(destination: ERSNexusDestination; chance: Double = BioHash): Boolean; overload;
+var
+  useKeyboard: Boolean;
+begin
+  if chance = BioHash then
+    useKeyboard := Antiban.BioDice(EBioBehavior.FKEY_CHANCE)
+  else
+    useKeyboard := SRL.Dice(chance);
+
+  Result := Self.ClickDestination(destination, useKeyboard);
+end;
+
+
+(*
+## TRSPortalNexus.FindDestinations
+```pascal
+function TRSPortalNexus.FindDestinations(out boxes: TBoxArray): TStringArray;
+```
+Returns the visible destinations in the portal nexus interface.
+
+Example:
+```pascal
+ WriteLn TRSPortalNexus.FindDestinations();
+```
+*)
+function TRSPortalNexus.FindDestinations(out boxes: TBoxArray; scroll: Int32): TStringArray; overload;
+const
+  COLORS := [2004990, 1803744, 14737632, 16711422];
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  i: Int32;
+  str: String;
+  destination: ERSNexusDestination;
+begin
+  if SRL.FindColors(tpa, CTS0(1937135, 15), Self.ScrollAreaFunction()) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(11, 1);
+  atpa.SortByY();
+
+  boxes := atpa.ToTBA();
+  for i := 0 to High(boxes) do
+  begin
+    boxes[i].Y1 := boxes[i].Y1 - 3;
+    boxes[i].Y2 := boxes[i].Y2 + 3;
+    boxes[i].X1 := boxes[i].X1 - 15;
+    boxes[i].X2 := boxes[i].X2 + 10;
+
+    str := OCR.Recognize(boxes[i], TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
+
+    for destination in ERSNexusDestination do
+      if str.Contains(Self.Destinations[destination].Name) then
+      begin
+        if Self.Destinations[destination].HotKey = 0 then
+        begin
+          Self.Destinations[destination].Scroll := scroll;
+          Self.Destinations[destination].HotKey := GetKeyCode(str[1]);
+        end;
+        Break;
+      end;
+
+    Result += str.After(': ');
+  end;
+end;
+
+(*
+## TRSPortalNexus.FindPortalDestination
+```pascal
+function TRSPortalNexus.FindPortalDestination(destination: ERSNexusDestination; out b: TBox): Boolean;
+function TRSPortalNexus.FindPortalDestination(destination: ERSNexusDestination): Boolean; overload;
+```
+Finds the destination specified in the portal nexus.
+
+Example:
+```pascal
+ WriteLn TRSPortalNexus.FindPortalDestination(ERSNexusDestination.FALADOR);
+```
+*)
+function TRSPortalNexus.FindPortalDestination(destination: ERSNexusDestination; out b: TBox): Boolean;
+  function _DoScrolling(destination: ERSNexusDestination; direction: Boolean; out b: TBox): Boolean;
+  var
+    limit, i, scroll: Int32;
+    boxes: TBoxArray;
+  begin
+    if direction then
+      limit := 100;
+
+    Mouse.Move(Self.ScrollAreaFunction(), True);
+    scroll := Self.GetScrollPosition();
+
+    while Self.CanScroll() and (scroll <> limit) do
+    begin
+      Mouse.Scroll(Antiban.GetUniqueInt(4, 2, 7), direction);
+      scroll := Self.GetScrollPosition();
+      i := Self.FindDestinations(boxes, scroll).Find(Self.Destinations[destination].Name);
+      if i > -1 then
+      begin
+        b := boxes[i];
+        Exit(True);
+      end;
+      Antiban.BioWait(150, 300);
+    end;
+  end;
+
+var
+  i, scroll: Int32;
+  direction: Boolean;
+  boxes: TBoxArray;
+begin
+  scroll := Self.GetScrollPosition();
+  i := Self.FindDestinations(boxes, scroll).Find(Self.Destinations[destination].Name);
+  if i > -1 then
+  begin
+    b := boxes[i];
+    Exit(True);
+  end;
+
+  direction := InRange(scroll, 0, 3);
+  if not direction then
+    direction := not InRange(scroll, 97, 100) and Antiban.BioDice();
+
+  if _DoScrolling(destination, direction, b) then
+    Exit(True);
+
+  if InRange(scroll, 0, 3) or InRange(scroll, 97, 100) then
+    Exit; //scrolled everything and was not found.
+
+  Result := _DoScrolling(destination, not direction, b);
+end;
+
+function TRSPortalNexus.FindPortalDestination(destination: ERSNexusDestination): Boolean; overload;
+var
+  b: TBox;
+begin
+  Result := Self.FindPortalDestination(destination, b);
+end;
+
+procedure TRSPortalNexus.SetupAlignment(mode: ERSClientMode); override;
+begin
+  inherited;
+
+  case mode of
+    ERSClientMode.FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 490;
+        Self.Alignment.Center.MaxHeight := 315;
+      end;
+
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 490;
+        Self.Alignment.Center.MaxHeight := 315;
+      end;
+  end;
+end;
+
+function TRSPortalNexus.IsOpen(): Boolean;
+begin
+  Result := Self.IsTitle(Self.Name);
+end;
+
+function TRSPortalNexus.IsOpen(waitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), waitTime);
+end;
+
+function TRSPortalNexus.Close(pressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+var
+ PortalNexus : TRSPortalNexus;
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  PortalNexus.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  PortalNexus.Setup();
+end;

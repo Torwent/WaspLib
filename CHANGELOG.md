@@ -1,45 +1,50 @@
-## [17.3.6](https://github.com/Torwent/WaspLib/compare/v17.3.5...v17.3.6) (2024-03-04)
+## [18.0.3](https://github.com/Torwent/WaspLib/compare/v18.0.2...v18.0.3) (2024-03-08)
 
 
 ### Bug Fixes
 
-* **s2scompiler:** just some tweaks ([66ef891](https://github.com/Torwent/WaspLib/commit/66ef891be7446b87e5d8987f8316cd05f995341a))
+* read notes ([b4a4d42](https://github.com/Torwent/WaspLib/commit/b4a4d42665680ae260586dd9d91280b3cfe11859))
 
 
 
-## [17.3.5](https://github.com/Torwent/WaspLib/compare/v17.3.4...v17.3.5) (2024-03-03)
-
-
-### Bug Fixes
-
-* .gitattributes remove png and zip diff change ([1706573](https://github.com/Torwent/WaspLib/commit/1706573ecbe230604e0859b80ef134b742eedbdd))
-
-
-
-## [17.3.4](https://github.com/Torwent/WaspLib/compare/v17.3.3...v17.3.4) (2024-03-03)
+## [18.0.2](https://github.com/Torwent/WaspLib/compare/v18.0.1...v18.0.2) (2024-03-07)
 
 
 ### Bug Fixes
 
-* removed from gitattributes the plugins and .exe ([3088aaa](https://github.com/Torwent/WaspLib/commit/3088aaafb72e4c01279d0d7d30f7fadf35ebd2b9))
+* **remoteinput:** Added an override to add GetKeyCode that is missing when RI is being used ([0e07202](https://github.com/Torwent/WaspLib/commit/0e072022eeb6006b527e287d81ab39680b0b140b))
 
 
 
-## [17.3.3](https://github.com/Torwent/WaspLib/compare/v17.3.2...v17.3.3) (2024-03-02)
-
-
-### Bug Fixes
-
-* **TWaspConfig:** Fixed some pointer issues with arrays ([72c9956](https://github.com/Torwent/WaspLib/commit/72c995614e6c10dd29b65d1173cd4fed7f23550c))
-
-
-
-## [17.3.2](https://github.com/Torwent/WaspLib/compare/v17.3.1...v17.3.2) (2024-02-28)
+## [18.0.1](https://github.com/Torwent/WaspLib/compare/v18.0.0...v18.0.1) (2024-03-07)
 
 
 ### Bug Fixes
 
-* **RSObjects:** fix fossil island bank chest up text ([1ccb37a](https://github.com/Torwent/WaspLib/commit/1ccb37ab5562b4f26d3033e39e6a51fd4ccb7df4))
+* **antiban:** tweak for backwards compatibility ([4955426](https://github.com/Torwent/WaspLib/commit/4955426654c78eab04a1615f80ccab4e7c8f4100))
+
+
+
+# [18.0.0](https://github.com/Torwent/WaspLib/compare/v17.3.8...v18.0.0) (2024-03-07)
+
+
+### Bug Fixes
+
+* **TRSWalker:** OnWalkEvents are now all procedures of object ([47ef959](https://github.com/Torwent/WaspLib/commit/47ef959bf6c2b6bcb3cf1fb765b7fdddf931d2a5))
+
+
+### BREAKING CHANGES
+
+* **TRSWalker:** WaspLib will have to be updated. No community script should break.
+
+
+
+## [17.3.8](https://github.com/Torwent/WaspLib/compare/v17.3.7...v17.3.8) (2024-03-07)
+
+
+### Bug Fixes
+
+* saving screenshots doesn't crash anymore if the screenshot has a period in it's name ([64bc0be](https://github.com/Torwent/WaspLib/commit/64bc0befb5408f159cc0be2876ece635522fba12))
 
 
 

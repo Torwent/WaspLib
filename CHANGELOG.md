@@ -1,3 +1,12 @@
+## [18.0.4](https://github.com/Torwent/WaspLib/compare/v18.0.3...v18.0.4) (2024-03-09)
+
+
+### Bug Fixes
+
+* **store:** add the ItemInterface offset ([9204896](https://github.com/Torwent/WaspLib/commit/9204896ca6033f30f81aaa0f4735a4fe6621e73e))
+
+
+
 ## [18.0.3](https://github.com/Torwent/WaspLib/compare/v18.0.2...v18.0.3) (2024-03-08)
 
 
@@ -36,15 +45,6 @@
 ### BREAKING CHANGES
 
 * **TRSWalker:** WaspLib will have to be updated. No community script should break.
-
-
-
-## [17.3.8](https://github.com/Torwent/WaspLib/compare/v17.3.7...v17.3.8) (2024-03-07)
-
-
-### Bug Fixes
-
-* saving screenshots doesn't crash anymore if the screenshot has a period in it's name ([64bc0be](https://github.com/Torwent/WaspLib/commit/64bc0befb5408f159cc0be2876ece635522fba12))
 
 
 

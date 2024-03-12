@@ -1,3 +1,12 @@
+## [18.0.5](https://github.com/Torwent/WaspLib/compare/v18.0.4...v18.0.5) (2024-03-12)
+
+
+### Bug Fixes
+
+* remove old compiler directives that are now irrelevant ([c885bf9](https://github.com/Torwent/WaspLib/commit/c885bf98d626d10a51cdbab3f67fff9144b9e45e))
+
+
+
 ## [18.0.4](https://github.com/Torwent/WaspLib/compare/v18.0.3...v18.0.4) (2024-03-09)
 
 
@@ -31,20 +40,6 @@
 ### Bug Fixes
 
 * **antiban:** tweak for backwards compatibility ([4955426](https://github.com/Torwent/WaspLib/commit/4955426654c78eab04a1615f80ccab4e7c8f4100))
-
-
-
-# [18.0.0](https://github.com/Torwent/WaspLib/compare/v17.3.8...v18.0.0) (2024-03-07)
-
-
-### Bug Fixes
-
-* **TRSWalker:** OnWalkEvents are now all procedures of object ([47ef959](https://github.com/Torwent/WaspLib/commit/47ef959bf6c2b6bcb3cf1fb765b7fdddf931d2a5))
-
-
-### BREAKING CHANGES
-
-* **TRSWalker:** WaspLib will have to be updated. No community script should break.
 
 
 

@@ -1,3 +1,12 @@
+## [18.0.6](https://github.com/Torwent/WaspLib/compare/v18.0.5...v18.0.6) (2024-03-13)
+
+
+### Bug Fixes
+
+* **WaspConfig:** improved behaviour for non wasplib scripts ([1793122](https://github.com/Torwent/WaspLib/commit/179312268e51597dfd829b9168baaaa904ad6546))
+
+
+
 ## [18.0.5](https://github.com/Torwent/WaspLib/compare/v18.0.4...v18.0.5) (2024-03-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **remoteinput:** Added an override to add GetKeyCode that is missing when RI is being used ([0e07202](https://github.com/Torwent/WaspLib/commit/0e072022eeb6006b527e287d81ab39680b0b140b))
-
-
-
-## [18.0.1](https://github.com/Torwent/WaspLib/compare/v18.0.0...v18.0.1) (2024-03-07)
-
-
-### Bug Fixes
-
-* **antiban:** tweak for backwards compatibility ([4955426](https://github.com/Torwent/WaspLib/commit/4955426654c78eab04a1615f80ccab4e7c8f4100))
 
 
 

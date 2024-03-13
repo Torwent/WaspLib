@@ -1,3 +1,12 @@
+## [18.0.7](https://github.com/Torwent/WaspLib/compare/v18.0.6...v18.0.7) (2024-03-13)
+
+
+### Bug Fixes
+
+* add smoke devils superior ([0c9a09f](https://github.com/Torwent/WaspLib/commit/0c9a09fffa0721fe2b6c98f3fad7159c80854437))
+
+
+
 ## [18.0.6](https://github.com/Torwent/WaspLib/compare/v18.0.5...v18.0.6) (2024-03-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([b4a4d42](https://github.com/Torwent/WaspLib/commit/b4a4d42665680ae260586dd9d91280b3cfe11859))
-
-
-
-## [18.0.2](https://github.com/Torwent/WaspLib/compare/v18.0.1...v18.0.2) (2024-03-07)
-
-
-### Bug Fixes
-
-* **remoteinput:** Added an override to add GetKeyCode that is missing when RI is being used ([0e07202](https://github.com/Torwent/WaspLib/commit/0e072022eeb6006b527e287d81ab39680b0b140b))
 
 
 

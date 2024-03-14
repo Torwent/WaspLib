@@ -18,9 +18,53 @@ end;
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+function TWaspLib.CountScriptThreads(): Int32; static;
+var
+  windows, simbas: TOSWindowArray;
+  win: TOSWindow;
+  pids: TIntegerArray;
+begin
+  windows := GetWindows();
+  simbas := windows.GetByTitleAndClass('Output,File Browser,Editor,Function List', 'Window');
+  windows := windows.GetByTitleAndClass('Simba', 'Window');
+
+  for win in windows do
+  begin
+    if win.GetChildren(True) <> [] then
+      Continue;
+    if win.GetBounds() <> [0,0,0,0] then
+      Continue;
+
+    pids += win.GetPID();
+  end;
+
+  pids.ClearDuplicates();
+  Result := Length(pids) - Length(simbas) + 1;
+end;
+
+procedure TWaspLib.CheckScriptThreads(); static;
+var
+  threads: Int32;
+begin
+  threads := TWaspLib.CountScriptThreads();
+
+  {%codetools off}
+  if threads >= %0111 then
+  {%codetools on}
+    TerminateScript(
+      'You seem to be running ' + ToStr(threads) + ' simba scripts.' +
+      LineEnding + 'The maximum allowed are 7 instances.' +
+      LineEnding + 'WaspLib is not meant for gold farming.'
+    );
+
+end;
+
+
 procedure TRSClient.Setup(); override;
 begin
   Self.Name := 'RSClient';
+
+  TWaspLib.CheckScriptThreads();
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
     {$IFNDEF SCRIPT_GUI}
@@ -89,54 +133,4 @@ procedure TRSClient.UpdateState();
 begin
   Self.DetectClientMode(True);
   Self.ClientModeChanged();
-end;
-
-function TWaspLib.CountScriptThreads(): Int32;
-var
-  processes, procArr: TOSWindowArray;
-  pids, mainPIDs: TIntegerArray;
-  i, pidCount, procCount: Int32;
-begin
-  processes := GetWindows();
-  for i := 0 to High(processes) do
-  begin
-    if 'simba' in LowerCase(processes[i].GetTitle()) then
-    begin
-      pids += processes[i].GetPID();
-      procArr += processes[i];
-    end;
-  end;
-
-  pids.Sort();
-  pids.ClearDuplicates();
-  pidCount := Length(pids);
-
-  pids := [];
-  for i := 0 to High(procArr) do
-    if procArr[i] = procArr[i].GetRootWindow() then
-      pids += procArr[i].GetPID();
-
-  mainPIDs := pids;
-  mainPIDs.ClearDuplicates();
-  procCount := Length(pids) - Length(mainPIDs);
-  Result := pidCount - procCount * 2;
-end;
-
-procedure TWaspLib.CheckScriptThreads();
-var
-  threads: Int32;
-begin
-  threads := Self.CountScriptThreads();
-
-  {%codetools off}
-  if threads >= %0111 then
-    TerminateScript(
-      'You seem to be running ' + ToString(threads) + ' simba scripts.' +
-      LINEENDING + 'The maximum allowed are 7 instances.' +
-      LINEENDING + 'WaspLib is not meant for gold farming. If this is not the case contact Torwent in discord.');
-  {%codetools on}
-end;
-
-begin
-  WL.CheckScriptThreads();
 end;

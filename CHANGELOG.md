@@ -1,3 +1,12 @@
+## [18.0.8](https://github.com/Torwent/WaspLib/compare/v18.0.7...v18.0.8) (2024-03-14)
+
+
+### Bug Fixes
+
+* much more accurate thread counting ([28393b4](https://github.com/Torwent/WaspLib/commit/28393b4ea6d41c911af96105a098c6915cbe8714))
+
+
+
 ## [18.0.7](https://github.com/Torwent/WaspLib/compare/v18.0.6...v18.0.7) (2024-03-13)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **store:** add the ItemInterface offset ([9204896](https://github.com/Torwent/WaspLib/commit/9204896ca6033f30f81aaa0f4735a4fe6621e73e))
-
-
-
-## [18.0.3](https://github.com/Torwent/WaspLib/compare/v18.0.2...v18.0.3) (2024-03-08)
-
-
-### Bug Fixes
-
-* read notes ([b4a4d42](https://github.com/Torwent/WaspLib/commit/b4a4d42665680ae260586dd9d91280b3cfe11859))
 
 
 

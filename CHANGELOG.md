@@ -1,3 +1,12 @@
+# [18.1.0](https://github.com/Torwent/WaspLib/compare/v18.0.11...v18.1.0) (2024-03-15)
+
+
+### Features
+
+* added a very simple too to compile test scripts in bulk ([b2217f9](https://github.com/Torwent/WaspLib/commit/b2217f97bcae4922258aa496178b9aa25457b09c))
+
+
+
 ## [18.0.11](https://github.com/Torwent/WaspLib/compare/v18.0.10...v18.0.11) (2024-03-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * much more accurate thread counting ([28393b4](https://github.com/Torwent/WaspLib/commit/28393b4ea6d41c911af96105a098c6915cbe8714))
-
-
-
-## [18.0.7](https://github.com/Torwent/WaspLib/compare/v18.0.6...v18.0.7) (2024-03-13)
-
-
-### Bug Fixes
-
-* add smoke devils superior ([0c9a09f](https://github.com/Torwent/WaspLib/commit/0c9a09fffa0721fe2b6c98f3fad7159c80854437))
 
 
 

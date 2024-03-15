@@ -1,3 +1,12 @@
+## [18.0.10](https://github.com/Torwent/WaspLib/compare/v18.0.9...v18.0.10) (2024-03-15)
+
+
+### Bug Fixes
+
+* forgot to remove this too ([c9b6903](https://github.com/Torwent/WaspLib/commit/c9b690323711bf460355e1d97e3151ae790576ed))
+
+
+
 ## [18.0.9](https://github.com/Torwent/WaspLib/compare/v18.0.8...v18.0.9) (2024-03-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **WaspConfig:** improved behaviour for non wasplib scripts ([1793122](https://github.com/Torwent/WaspLib/commit/179312268e51597dfd829b9168baaaa904ad6546))
-
-
-
-## [18.0.5](https://github.com/Torwent/WaspLib/compare/v18.0.4...v18.0.5) (2024-03-12)
-
-
-### Bug Fixes
-
-* remove old compiler directives that are now irrelevant ([c885bf9](https://github.com/Torwent/WaspLib/commit/c885bf98d626d10a51cdbab3f67fff9144b9e45e))
 
 
 

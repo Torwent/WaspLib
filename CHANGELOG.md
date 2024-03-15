@@ -1,3 +1,12 @@
+## [18.0.9](https://github.com/Torwent/WaspLib/compare/v18.0.8...v18.0.9) (2024-03-15)
+
+
+### Bug Fixes
+
+* removed the 7 client limit that has never worked properly ([6bc3d8c](https://github.com/Torwent/WaspLib/commit/6bc3d8c97030e452b75a8df3b42669e208e42bfd))
+
+
+
 ## [18.0.8](https://github.com/Torwent/WaspLib/compare/v18.0.7...v18.0.8) (2024-03-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * remove old compiler directives that are now irrelevant ([c885bf9](https://github.com/Torwent/WaspLib/commit/c885bf98d626d10a51cdbab3f67fff9144b9e45e))
-
-
-
-## [18.0.4](https://github.com/Torwent/WaspLib/compare/v18.0.3...v18.0.4) (2024-03-09)
-
-
-### Bug Fixes
-
-* **store:** add the ItemInterface offset ([9204896](https://github.com/Torwent/WaspLib/commit/9204896ca6033f30f81aaa0f4735a4fe6621e73e))
 
 
 

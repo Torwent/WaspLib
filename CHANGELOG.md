@@ -1,3 +1,12 @@
+## [18.0.11](https://github.com/Torwent/WaspLib/compare/v18.0.10...v18.0.11) (2024-03-15)
+
+
+### Bug Fixes
+
+* readd the simba instance counter throught remote input as per Olly suggestion ([64f0970](https://github.com/Torwent/WaspLib/commit/64f097095799b809be7b53285e1dbb283c0f051f))
+
+
+
 ## [18.0.10](https://github.com/Torwent/WaspLib/compare/v18.0.9...v18.0.10) (2024-03-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add smoke devils superior ([0c9a09f](https://github.com/Torwent/WaspLib/commit/0c9a09fffa0721fe2b6c98f3fad7159c80854437))
-
-
-
-## [18.0.6](https://github.com/Torwent/WaspLib/compare/v18.0.5...v18.0.6) (2024-03-13)
-
-
-### Bug Fixes
-
-* **WaspConfig:** improved behaviour for non wasplib scripts ([1793122](https://github.com/Torwent/WaspLib/commit/179312268e51597dfd829b9168baaaa904ad6546))
 
 
 

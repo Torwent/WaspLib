@@ -1,3 +1,12 @@
+## [18.2.2](https://github.com/Torwent/WaspLib/compare/v18.2.1...v18.2.2) (2024-03-20)
+
+
+### Bug Fixes
+
+* adjust edge/varrock sewers map bounds ([5b9e681](https://github.com/Torwent/WaspLib/commit/5b9e681c0a57c3709b42ab8e61735de6f4dae302))
+
+
+
 ## [18.2.1](https://github.com/Torwent/WaspLib/compare/v18.2.0...v18.2.1) (2024-03-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * readd the simba instance counter throught remote input as per Olly suggestion ([64f0970](https://github.com/Torwent/WaspLib/commit/64f097095799b809be7b53285e1dbb283c0f051f))
-
-
-
-## [18.0.10](https://github.com/Torwent/WaspLib/compare/v18.0.9...v18.0.10) (2024-03-15)
-
-
-### Bug Fixes
-
-* forgot to remove this too ([c9b6903](https://github.com/Torwent/WaspLib/commit/c9b690323711bf460355e1d97e3151ae790576ed))
 
 
 

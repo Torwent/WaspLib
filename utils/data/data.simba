@@ -46,7 +46,6 @@ type
 Static ItemData type, responsible to handle anything that is related to item data.
 *)
 type ItemData = record(TSRLBaseRecord) class var
-    ItemNames: TStringList;
     PriceData: TJSONObject;
     OSRSBoxData: TJSONObject;
     ReloadTimer: TCountDown;
@@ -74,8 +73,6 @@ var
 begin
   if not ItemData.PriceIsSetup then
   begin
-    ItemData.ItemNames := ItemFinder.ItemNames;
-
     AddOnTerminate(@ItemData.PriceData.Free);
     ItemData.PriceIsSetup := True;
     ItemData.ReloadTimer.Setup(20 * ONE_MINUTE);
@@ -101,37 +98,6 @@ begin
 
   ItemData.ReloadTimer.Restart();
 end;
-
-(*
-## ItemData.GetIDs
-```pascal
-function ItemData.GetIDs(Item: String): TStringArray;
-```
-
-Internal method called automatically when we require item data.
-This is based of ItemFinder.GetItemIDs() and it's used to retrieve item ids.
-*)
-function ItemData.GetIDs(item: String): TIntegerArray; static;
-var
-  itemID: Int32;
-begin
-  if item.IsDigit() then
-    Result := Result + Item.ExtractNumber()
-  else
-  begin
-    itemID := ItemData.ItemNames.IndexOfName(item);
-    if itemID = -1 then
-      Exit;
-
-    while SameText(item, ItemData.ItemNames.NameFromIndex(itemID)) do
-    begin
-      Result := Result + StrToInt(ItemData.ItemNames.ValueFromIndex(itemID));
-
-      Inc(itemID);
-    end;
-  end;
-end;
-
 
 (*
 ## ItemData.GetData
@@ -211,7 +177,7 @@ such as degraded items, ornamented items, etc.
 *)
 function ItemData.GetTradeableID(item: TRSItem): Integer; static;
 var
-  ids: TIntegerArray;
+  ids: TRSItemArray;
   id: Integer;
   osrsBoxJSON: TJSONObject;
 begin
@@ -223,7 +189,7 @@ begin
   if ToStr(item) = '' then
     Exit;
 
-  ids := ItemData.GetIDs(item);
+  ids := ItemFinder.GetItemIDs(item);
   for id in ids do
   begin
     osrsBoxJSON := ItemData.GetData(id);

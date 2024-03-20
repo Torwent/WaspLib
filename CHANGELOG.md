@@ -1,3 +1,12 @@
+## [18.2.1](https://github.com/Torwent/WaspLib/compare/v18.2.0...v18.2.1) (2024-03-20)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([e30fb26](https://github.com/Torwent/WaspLib/commit/e30fb26c36fc7e8a7282226eefd9fee91369be35))
+
+
+
 # [18.2.0](https://github.com/Torwent/WaspLib/compare/v18.1.0...v18.2.0) (2024-03-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * forgot to remove this too ([c9b6903](https://github.com/Torwent/WaspLib/commit/c9b690323711bf460355e1d97e3151ae790576ed))
-
-
-
-## [18.0.9](https://github.com/Torwent/WaspLib/compare/v18.0.8...v18.0.9) (2024-03-15)
-
-
-### Bug Fixes
-
-* removed the 7 client limit that has never worked properly ([6bc3d8c](https://github.com/Torwent/WaspLib/commit/6bc3d8c97030e452b75a8df3b42669e208e42bfd))
 
 
 

@@ -2,22 +2,26 @@
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
-
 {$IFNDEF WL_FAIRYRING_INCLUDED}
   {$I WaspLib/optional/interfaces/mainscreen/fairyring.simba}
 {$ENDIF}
-
 {$IFNDEF SKUNK_TELEPORTS}
   {$I WaspLib/optional/handlers/teleports/rsteleports.simba}
-{$ENDIF}  
+{$ENDIF}
 {$IFNDEF WL_GROUPING_INCLUDED}
   {$I WaspLib/optional/interfaces/gametabs/grouping.simba}
 {$ENDIF}
-
+{$IFNDEF RELD_PORTALNEXUS_INCLUDED}
+  {$I WaspLib/optional/interfaces/mainscreen/portalnexus.simba}
+{$ENDIF}
+{$IFNDEF WL_POH_HANDLER_INCLUDED}
+  {$I WaspLib/optional/handlers/poh.simba}
+{$ENDIF}
 type
   TUniversalTransport = record(TSRLBaseRecord)
     ardougneCape: TRSItem;
     fairyTeleportItem: EFairyTeleportItem;
+    PohSetup : Boolean;
   end;
 
 function TUniversalTransport.pathLength(path: TPointArray): Int32;
@@ -240,25 +244,33 @@ end;
 function TUniversalTransport.handleOtherTeleport(teleportLocation: TTeleportLocation): Boolean;
 var
   didTeleport: Boolean;
-  teleportItem: TRSItem := teleportLocation.item;
+  teleportItem: TRSItem;
+  teleportItems: TRSItemArray := teleportLocation.items;
   teleportDestination: String := teleportLocation.destination;
   startPosition: TPoint := ScriptWalker^.GetMyPos();
 begin
-  if Inventory.Open() and Inventory.ContainsItem(teleportItem) then
-  begin
-    Self.DebugLn("Searching for " + ToString(teleportItem) + " in inventory");
-    Self.DebugLn("Searching for " + ToString(teleportItem) + " teleportDestination");
-    didTeleport := WaitUntil(Inventory.ClickItem(teleportItem, teleportDestination), 200, 5000);
-  end
-  else if Equipment.Open() and Equipment.ContainsItem(teleportItem) then
-  begin
-    Self.DebugLn("Searching for " + ToString(teleportItem) + " in Equipment");
-    Self.DebugLn("Clicking " + ToString(teleportItem) + " " + teleportLocation.destination);
-    didTeleport := WaitUntil(Equipment.ClickItem(teleportItem, teleportLocation.destination), 200, 5000);
-  end;
+  for teleportItem in teleportItems do
+    if Inventory.Open() and Inventory.ContainsItem(teleportItem) then
+    begin
+      Self.DebugLn("Searching for " + ToString(teleportItem) + " in inventory");
+      Self.DebugLn("Searching for " + ToString(teleportItem) + " teleportDestination");
+      didTeleport := WaitUntil(Inventory.ClickItem(teleportItem, teleportDestination), 200, 5000);
+      if didTeleport then Break;
+    end;
+
+  if not didTeleport then
+    for teleportItem in teleportItems do
+      if Equipment.Open() and Equipment.ContainsItem(teleportItem) then
+      begin
+        Self.DebugLn("Searching for " + ToString(teleportItem) + " in Equipment");
+        Self.DebugLn("Clicking " + ToString(teleportItem) + " " + teleportLocation.destination);
+        didTeleport := WaitUntil(Equipment.ClickItem(teleportItem, teleportLocation.destination), 200, 5000);
+        if didTeleport then Break;
+      end;
 
   if didTeleport then
     Result := WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 300, 5000);
+
 end;
 
 function TUniversalTransport.handleDiaryTeleport(teleportLocation: TTeleportLocation): Boolean;
@@ -345,11 +357,121 @@ end;
 
 function TUniversalTransport.handleMagicTeleport(teleportLocation: TTeleportLocation): Boolean;
 var
+  startPosition: TPoint := ScriptWalker^.GetMyPos();
   teleportTabName: String := teleportLocation.destination.Lower() + " teleport";
+  teleportTabOption: String := 'Break';
+  spellBook : ERSSpellBook;
+  spell     : ERSSpell;
 begin
   Self.DebugLn('Looking for ' + teleportTabName);
-  if WaitUntil(Inventory.ClickItem(teleportTabName), 200, 5000) then
-    Exit(True);
+
+  case teleportLocation.destination of
+    'Watchtower Yanille':
+    begin
+      teleportTabName := 'watchtower teleport';
+      teleportTabOption := 'Yanille';
+    end;
+    //'Grand Exchange':
+    //begin
+    //  teleportTabName := 'varrock teleport';
+    //  teleportTabOption := 'Grand Exchange';
+    //end;
+    'Camelot Bank':
+     begin
+      teleportTabName := 'camelot teleport';
+      teleportTabOption := 'Seers'' Village';
+    end;
+    'House':
+     begin
+      teleportTabName := 'teleport to house';
+    end;
+  end;
+
+  if Inventory.ContainsItem(teleportTabName) then
+    if WaitUntil(Inventory.ClickItem(teleportTabName, teleportTabOption), 200, 5000) then
+      Exit(True);
+
+  Self.DebugLn(teleportTabName + ' not found. Trying with magic');
+  if Stats.GetLevel(ERSSkill.MAGIC) < teleportLocation.magicLevel then
+  begin
+    Self.DebugLn('Magic level not high enough');
+    Exit();
+  end;
+
+  case teleportLocation.teleportType of
+    ETeleportType.ANCIENT_MAGICKS: spellBook := ERSSpellBook.ANCIENT;
+    ETeleportType.ARCEUUS_MAGIC: spellBook := ERSSpellBook.ARCEUUS;
+    ETeleportType.LUNAR_MAGIC: spellBook := ERSSpellBook.LUNAR;
+    ETeleportType.NORMAL_MAGIC: spellBook := ERSSpellBook.STANDARD;
+  end;
+
+  if Magic.GetSpellBook <> spellBook then begin
+    Self.DebugLn('Not on the correct spellbook we need ' + ToStr(spellbook));
+
+    if (Stats.GetLevel(ERSSkill.MAGIC) >= 96) and (Magic.GetSpellBook = ERSSpellBook.LUNAR) then
+    begin
+      Self.DebugLn('Attempting to cast spellbook swap');
+      Magic.ClickSpell(ERSSpell.SPELLBOOK_SWAP);
+      if not WaitUntil(('spell' in Chat.GetChatTitle), 100, 3000) then begin
+        Self.DebugLn('Timed out casting spellbook swap');
+        Exit(False);
+      end;
+
+      Chat.ClickOption(ToStr(spellbook).PascalCase);
+
+      if not WaitUntil((Magic.GetSpellBook = spellbook), 100, 3000) then begin
+        Self.DebugLn('Timed out casting spellbook swap');
+        Exit(False);
+      end;
+    end
+      else
+    begin
+      raise 'We are not on the correct spellbook!';
+    end;
+  end;
+
+  case teleportLocation.destination of
+    'Watchtower Yanille': Exit(Magic.CastSpell(ERSSpell.WATCHTOWER_TELEPORT, 'Yanille'));
+    'Camelot Bank': Exit(Magic.CastSpell(ERSSpell.CAMELOT_TELEPORT, 'Seers'''));
+    //'Grand Exchange': Exit(Magic.CastSpell(ERSSpell.VARROCK_TELEPORT, 'Grand Exchange'));
+    else
+      for spell in ERSSPELL do
+        if teleportLocation.destination.Upper.Replace(' ', '').Replace('''', '') in ToStr(spell).Replace('_', '').Replace('''', '') then
+          Break;
+  end;
+
+  Magic.CastSpell(spell);
+  Exit(WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 5000));
+end;
+
+function TUniversalTransport.handlePortalNexusTeleport(teleportLocation: TTeleportLocation): Boolean;
+var
+  destination : ERSNexusDestination;
+begin
+
+  if not Minimap.InPOH() and not Self.Run(RSTeleports.HOUSE_CAPE) then
+    Self.run(RSTeleports.HOUSE);
+
+  WaitUntil(Minimap.InPOH(), 100, 5000);
+
+  if not Self.PohSetup then begin
+    POH.Setup();
+    Self.PohSetup := True;
+    //TODO walk around and see what we can find
+  end;
+
+  if POH.RoomObjects[ERSRoomObject.NEXUS].Coordinates = [] then
+    raise 'Your POH does not have a portal nexus';
+
+  POH.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu']);
+
+  PortalNexus.IsOpen(20000);
+
+  for destination in ERSNexusDestination do
+    if teleportLocation.destination.Upper().Replace(' ','_') = ToStr(destination) then
+      Break;
+
+  PortalNexus.ClickDestination(destination);
 end;
 
 function TUniversalTransport.handleFairyRingTeleport(teleportLocation: TTeleportLocation): Boolean;
@@ -448,6 +570,7 @@ begin
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
     ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
     ETeleportType.MINIGAME: didTeleport := self.handleMinigameTeleport(teleportLocation);
+    ETeleportType.PORTAL_NEXUS: didTeleport := self.handlePortalNexusTeleport(teleportLocation);
   end;
 
   Exit(didTeleport);

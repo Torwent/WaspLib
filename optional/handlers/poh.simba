@@ -1432,6 +1432,69 @@ begin
   Result := obj.Select(options, mmPoints, radians);
 end;
 
+
+function TRSPOHHandler.OpenNexus(): Boolean;
+begin
+  if MainScreen.HasInterface() then
+  begin
+    if PortalNexus.IsOpen() then
+      Exit(True);
+    MainScreen.CloseInterface();
+  end;
+
+  if Self.RoomObjects[ERSRoomObject.NEXUS].Coordinates = [] then
+    Self.Fatal('Your POH does not have a portal nexus');
+
+  Result := Self.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu']);
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := PortalNexus.IsOpen(3000);
+end;
+
+function TRSPOHHandler.NexusTeleport(destination: ERSNexusDestination): Boolean;
+begin
+  if Self.OpenNexus() then
+    Result := PortalNexus.ClickDestination(destination);
+end;
+
+
+function TRSPOHHandler.UsePool(): Boolean;
+  function IsMaxed(): Boolean;
+  begin
+    if Minimap.GetHPLevel() < Stats.GetLevel(ERSSkill.HITPOINTS) then
+      Exit;
+    if Minimap.GetPrayerLevel() < Stats.GetLevel(ERSSkill.PRAYER) then
+      Exit;
+
+    if Minimap.GetRunEnergy() <= 65 then
+      Exit;
+
+    if Minimap.GetSpecLevel() < 100 then
+      Exit;
+
+    if Minimap.IsPoisoned() or Minimap.IsEnvenomed() then
+      Exit;
+    Result := True;
+  end;
+begin
+  if IsMaxed() then
+    Exit(True);
+
+  if Self.RoomObjects[ERSRoomObject.POOL].Coordinates = [] then
+    Self.Fatal('Your POH does not have a pool');
+
+  Result := Self.WalkClick(ERSRoomObject.POOL);
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(IsMaxed(), 300, 3000);
+end;
+
+
+
 var
 (*
 ## var POH

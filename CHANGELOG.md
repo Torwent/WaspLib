@@ -1,3 +1,12 @@
+## [18.2.4](https://github.com/Torwent/WaspLib/compare/v18.2.3...v18.2.4) (2024-03-22)
+
+
+### Bug Fixes
+
+* **s2scompiler:** made it a little bit more verbose for terminal debugging ([87143d3](https://github.com/Torwent/WaspLib/commit/87143d329af468885d6ceff12ca509c84dfc5144))
+
+
+
 ## [18.2.3](https://github.com/Torwent/WaspLib/compare/v18.2.2...v18.2.3) (2024-03-22)
 
 
@@ -34,15 +43,6 @@
 ### Features
 
 * read notes ([f1dd269](https://github.com/Torwent/WaspLib/commit/f1dd2698014e38166db42f72fcc412bf6cc614ce))
-
-
-
-# [18.1.0](https://github.com/Torwent/WaspLib/compare/v18.0.11...v18.1.0) (2024-03-15)
-
-
-### Features
-
-* added a very simple too to compile test scripts in bulk ([b2217f9](https://github.com/Torwent/WaspLib/commit/b2217f97bcae4922258aa496178b9aa25457b09c))
 
 
 

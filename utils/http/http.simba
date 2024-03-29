@@ -8,108 +8,6 @@ Wrapper type with methods to interace with built in Simba http features.
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-type
-  THTTPClient = record(TSRLBaseRecord)
-    Client: Int32;
-    Server: String;
-  end;
-
-function THTTPClient.GetHTTPCode(): Int32;
-begin
-  Result := GetHTTPResponseCode(Self.Client);
-end;
-
-procedure THTTPClient.Free();
-begin
-  FreeHTTPClient(Self.Client);
-end;
-
-function THTTPClient.GET(route: String; debugTime, verbose: Boolean = True): String;
-var
-  time: UInt64;
-  print: String;
-begin
-  time := GetTickCount();
-  Result := GetHTTPPage(Self.Client, Self.Server + route);
-  Result := StringReplace(Result, '\u0020', ' ', [rfReplaceAll]);
-
-  if not verbose and not debugTime then
-    Exit;
-
-  print += 'HTTPCode: ' + ToStr(Self.GetHTTPCode());
-  if verbose then
-    print += ' - ' + Result;
-  if debugTime then
-   print += ' - Response took: ' + ToStr(GetTickCount() - time) + 'ms.';
-  Self.DebugLn(print);
-end;
-
-function THTTPClient.GETEx(route, destination: String; debugTime, verbose: Boolean = True): Boolean;
-var
-  time: UInt64;
-  response, print: String;
-begin
-  time := GetTickCount();
-  response := GetHTTPPage(Self.Client, Self.Server + route);
-  Result := (Self.GetHTTPCode() = 200) and WriteFileContents(destination, response, False);
-
-  if not verbose and not debugTime then
-    Exit;
-
-  print += 'HTTPCode: ' + ToStr(Self.GetHTTPCode());
-  if verbose then
-    print += ' - ' + ExtractFileName(destination);
-  if debugTime then
-    print += ' - Download took: ' + ToStr(GetTickCount() - time) + 'ms.';
-  Self.DebugLn(print);
-end;
-
-function THTTPClient.POST(route: String; debugTime, verbose: Boolean = True): String;
-var
-  time: UInt64;
-  print: String;
-begin
-  time := GetTickCount();
-  ClearPostData(Self.Client);
-  Result := PostHTTPPageEx(Self.Client, Self.Server + route);
-  Result := StringReplace(Result, '\u0020', ' ', [rfReplaceAll]);
-
-  if not verbose and not debugTime then
-    Exit;
-
-  print += 'HTTPCode: ' + ToStr(Self.GetHTTPCode());
-  if verbose then
-    print += ' - ' + Result;
-  if debugTime then
-   print += ' - Response took: ' + ToStr(GetTickCount() - time) + 'ms.';
-  Self.DebugLn(print);
-end;
-
-function THTTPClient.POST(route: String; payload: String; debugTime, verbose: Boolean = True): String; overload;
-var
-  time: UInt64;
-  print: String;
-begin
-  time := GetTickCount();
-  Result := PostHTTPPage(Self.Client, Self.Server + route, payload);
-  Result := StringReplace(Result, '\u0020', ' ', [rfReplaceAll]);
-
-  if not verbose and not debugTime then
-    Exit;
-
-  print += 'HTTPCode: ' + ToStr(Self.GetHTTPCode());
-  if verbose then
-    print += ' - ' + Result;
-  if debugTime then
-   print += ' - Response took: ' + ToStr(GetTickCount() - time) + 'ms.';
-  Self.DebugLn(print);
-end;
-
-function THTTPClient.POST(route: String; payload: TJSONObject; verbose: Boolean = True): String; overload;
-begin
-  Result := Self.POST(route, payload.toString(), verbose);
-end;
-
 (*
 # WaspClient
 Responsible for connecting to waspscripts.com database.
@@ -241,14 +139,12 @@ end;
 
 procedure TWaspClient.Setup();
 begin
-  Self.Name   := 'WaspClient';
-  Self.Server := 'https://db.waspscripts.com/';
+  Self.Init('WaspClient', 'https://db.waspscripts.com/');
   Self.APIKey := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVucWxwY2hvYm5peWx3cHNqY3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjM5MzIxMDAsImV4cCI6MTk3OTUwODEwMH0.WUiK6CteSjnOT8A9AcbUHnYyvWwDxlwUwq_ueifPAxY';
 
   Self.Config.Setup('api');
 
   Self.RefreshClient(False);
-  AddOnTerminate(@Self.Free);
   Self.LoadRefreshToken();
 end;
 

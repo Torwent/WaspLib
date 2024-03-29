@@ -1,3 +1,12 @@
+## [18.2.6](https://github.com/Torwent/WaspLib/compare/v18.2.5...v18.2.6) (2024-03-29)
+
+
+### Bug Fixes
+
+* wasplib base http client was moved to SRL-T ([df0e328](https://github.com/Torwent/WaspLib/commit/df0e32816b65acbf948607596a00c84520c5a0d6))
+
+
+
 ## [18.2.5](https://github.com/Torwent/WaspLib/compare/v18.2.4...v18.2.5) (2024-03-22)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * adjust edge/varrock sewers map bounds ([5b9e681](https://github.com/Torwent/WaspLib/commit/5b9e681c0a57c3709b42ab8e61735de6f4dae302))
-
-
-
-## [18.2.1](https://github.com/Torwent/WaspLib/compare/v18.2.0...v18.2.1) (2024-03-20)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([e30fb26](https://github.com/Torwent/WaspLib/commit/e30fb26c36fc7e8a7282226eefd9fee91369be35))
 
 
 

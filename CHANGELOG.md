@@ -1,3 +1,12 @@
+# [18.3.0](https://github.com/Torwent/WaspLib/compare/v18.2.6...v18.3.0) (2024-03-31)
+
+
+### Features
+
+* add new food and prayer items ([38ec907](https://github.com/Torwent/WaspLib/commit/38ec90718396b15b479b9918da7c336d3586bb4a))
+
+
+
 ## [18.2.6](https://github.com/Torwent/WaspLib/compare/v18.2.5...v18.2.6) (2024-03-29)
 
 
@@ -34,15 +43,6 @@
 * force bump ([2c9d713](https://github.com/Torwent/WaspLib/commit/2c9d71314b1190ef5bd749c629f0486dd93530ef))
 * **POH:** added an IsSetup variable to the POH ([3af7b0c](https://github.com/Torwent/WaspLib/commit/3af7b0ce26d7339e0ef2ea5d5b09dc6178e72bb7))
 * **s2scompiler:** small rework of things ([f62598d](https://github.com/Torwent/WaspLib/commit/f62598d8d9d0c7b855be5ad8e99922a3890a7311))
-
-
-
-## [18.2.2](https://github.com/Torwent/WaspLib/compare/v18.2.1...v18.2.2) (2024-03-20)
-
-
-### Bug Fixes
-
-* adjust edge/varrock sewers map bounds ([5b9e681](https://github.com/Torwent/WaspLib/commit/5b9e681c0a57c3709b42ab8e61735de6f4dae302))
 
 
 

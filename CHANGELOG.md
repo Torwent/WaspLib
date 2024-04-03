@@ -1,3 +1,12 @@
+## [18.3.4](https://github.com/Torwent/WaspLib/compare/v18.3.3...v18.3.4) (2024-04-03)
+
+
+### Bug Fixes
+
+* **optional:** fixed optional imports compilation issues ([e8da367](https://github.com/Torwent/WaspLib/commit/e8da3676688a9aa7593585e6d9035788b211cad2))
+
+
+
 ## [18.3.3](https://github.com/Torwent/WaspLib/compare/v18.3.2...v18.3.3) (2024-04-03)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add new food and prayer items ([38ec907](https://github.com/Torwent/WaspLib/commit/38ec90718396b15b479b9918da7c336d3586bb4a))
-
-
-
-## [18.2.6](https://github.com/Torwent/WaspLib/compare/v18.2.5...v18.2.6) (2024-03-29)
-
-
-### Bug Fixes
-
-* wasplib base http client was moved to SRL-T ([df0e328](https://github.com/Torwent/WaspLib/commit/df0e32816b65acbf948607596a00c84520c5a0d6))
 
 
 

@@ -1,3 +1,12 @@
+## [18.3.3](https://github.com/Torwent/WaspLib/compare/v18.3.2...v18.3.3) (2024-04-03)
+
+
+### Bug Fixes
+
+* compatibility with latest srl-t ([d8cb26a](https://github.com/Torwent/WaspLib/commit/d8cb26a8ba0f3c073a7c08ed622aadbc94d6eb3b))
+
+
+
 ## [18.3.2](https://github.com/Torwent/WaspLib/compare/v18.3.1...v18.3.2) (2024-04-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * wasplib base http client was moved to SRL-T ([df0e328](https://github.com/Torwent/WaspLib/commit/df0e32816b65acbf948607596a00c84520c5a0d6))
-
-
-
-## [18.2.5](https://github.com/Torwent/WaspLib/compare/v18.2.4...v18.2.5) (2024-03-22)
-
-
-### Bug Fixes
-
-* read notes ([7f54893](https://github.com/Torwent/WaspLib/commit/7f54893f5b53b2b21f8ac209adc9d91c005f19cb))
 
 
 

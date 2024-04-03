@@ -1,3 +1,12 @@
+## [18.3.2](https://github.com/Torwent/WaspLib/compare/v18.3.1...v18.3.2) (2024-04-03)
+
+
+### Bug Fixes
+
+* compatibility with latest srl-t ([4ce3802](https://github.com/Torwent/WaspLib/commit/4ce380221f77fc0f0ae1ad821ab2c58afa97d8f4))
+
+
+
 ## [18.3.1](https://github.com/Torwent/WaspLib/compare/v18.3.0...v18.3.1) (2024-04-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([7f54893](https://github.com/Torwent/WaspLib/commit/7f54893f5b53b2b21f8ac209adc9d91c005f19cb))
-
-
-
-## [18.2.4](https://github.com/Torwent/WaspLib/compare/v18.2.3...v18.2.4) (2024-03-22)
-
-
-### Bug Fixes
-
-* **s2scompiler:** made it a little bit more verbose for terminal debugging ([87143d3](https://github.com/Torwent/WaspLib/commit/87143d329af468885d6ceff12ca509c84dfc5144))
 
 
 

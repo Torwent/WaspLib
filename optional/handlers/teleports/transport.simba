@@ -354,7 +354,7 @@ begin
   end;
 end;
 
-function TUniversalTransport.handleMagicTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleMagicTeleport(teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean;
 var
   startPosition: TPoint := ScriptWalker^.GetMyPos();
   teleportTabName: String := teleportLocation.destination.Lower() + " teleport";
@@ -363,34 +363,38 @@ var
   spell     : ERSSpell;
 begin
   Self.DebugLn('Looking for ' + teleportTabName);
+  if not useMagic then
+  begin
+    case teleportLocation.destination of
+      'Watchtower Yanille':
+      begin
+        teleportTabName := 'watchtower teleport';
+        teleportTabOption := 'Yanille';
+      end;
+      //'Grand Exchange':
+      //begin
+      //  teleportTabName := 'varrock teleport';
+      //  teleportTabOption := 'Grand Exchange';
+      //end;
+      'Camelot Bank':
+       begin
+        teleportTabName := 'camelot teleport';
+        teleportTabOption := 'Seers'' Village';
+      end;
+      'House':
+       begin
+        teleportTabName := 'teleport to house';
+      end;
+    end;
 
-  case teleportLocation.destination of
-    'Watchtower Yanille':
-    begin
-      teleportTabName := 'watchtower teleport';
-      teleportTabOption := 'Yanille';
-    end;
-    //'Grand Exchange':
-    //begin
-    //  teleportTabName := 'varrock teleport';
-    //  teleportTabOption := 'Grand Exchange';
-    //end;
-    'Camelot Bank':
-     begin
-      teleportTabName := 'camelot teleport';
-      teleportTabOption := 'Seers'' Village';
-    end;
-    'House':
-     begin
-      teleportTabName := 'teleport to house';
-    end;
-  end;
-
-  if Inventory.ContainsItem(teleportTabName) then
-    if WaitUntil(Inventory.ClickItem(teleportTabName, teleportTabOption), 200, 5000) then
+    if Inventory.ContainsItem(teleportTabName)
+    and WaitUntil(Inventory.ClickItem(teleportTabName, teleportTabOption), 200, 5000) then
       Exit(True);
 
-  Self.DebugLn(teleportTabName + ' not found. Trying with magic');
+    self.DebugLn('wasn''t able to teleport with tablet');
+    Exit(False);
+  end;
+
   if Stats.GetLevel(ERSSkill.MAGIC) < teleportLocation.magicLevel then
   begin
     Self.DebugLn('Magic level not high enough');
@@ -545,7 +549,7 @@ begin
 end;
 
 
-function TUniversalTransport.run(teleportLocation: TTeleportLocation): Boolean; overload;
+function TUniversalTransport.run(teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean; overload;
 var
   didTeleport: Boolean;
 begin
@@ -556,7 +560,7 @@ begin
     ETeleportType.ANCIENT_MAGICKS,
     ETeleportType.ARCEUUS_MAGIC,
     ETeleportType.LUNAR_MAGIC,
-    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
+    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation, useMagic);
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
     ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
@@ -567,7 +571,7 @@ begin
   Exit(didTeleport);
 end;
 
-function TUniversalTransport.run(destination: TPoint): Boolean; overload;
+function TUniversalTransport.run(destination: TPoint; useMagic: Boolean = False): Boolean; overload;
 var
   teleportLocation: TTeleportLocation;
   didTeleport: Boolean;
@@ -581,7 +585,7 @@ begin
     ETeleportType.ANCIENT_MAGICKS,
     ETeleportType.ARCEUUS_MAGIC,
     ETeleportType.LUNAR_MAGIC,
-    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation);
+    ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation, useMagic);
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
     ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);

@@ -1,3 +1,12 @@
+# [18.4.0](https://github.com/Torwent/WaspLib/compare/v18.3.4...v18.4.0) (2024-04-06)
+
+
+### Features
+
+* read notes ([99cb275](https://github.com/Torwent/WaspLib/commit/99cb275e6b62286ad9a62db6711b4cdc30ed1e17))
+
+
+
 ## [18.3.4](https://github.com/Torwent/WaspLib/compare/v18.3.3...v18.3.4) (2024-04-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * tweaks to bankchestwood1 ([a7953b1](https://github.com/Torwent/WaspLib/commit/a7953b1a3c87a4503a16e8f4184c1af6558bf9d8))
-
-
-
-# [18.3.0](https://github.com/Torwent/WaspLib/compare/v18.2.6...v18.3.0) (2024-03-31)
-
-
-### Features
-
-* add new food and prayer items ([38ec907](https://github.com/Torwent/WaspLib/commit/38ec90718396b15b479b9918da7c336d3586bb4a))
 
 
 

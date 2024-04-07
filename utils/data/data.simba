@@ -570,6 +570,7 @@ begin
   if Self.IsSetup then
     Exit;
 
+  Self.Name := 'MonsterData';
   Self.MONSTERS_ZIP := {$macro CURRENT_DIRECTORY} + 'monsters.zip';
   Self.CACHE_PATH := CACHE_DIR + 'monsters' + DirectorySeparator +
                     SHA1File(Self.MONSTERS_ZIP).SubString(6) + DirectorySeparator;
@@ -586,9 +587,18 @@ begin
   Self.IsSetup := True;
 end;
 
+function TMonsterData.GetCachedID(id: Int32): TJSONObject;
+var
+  i: Int32;
+begin
+  for i := 0 to Self.Data.High() do
+    if Self.Data.getJSONObject(i).GetInt('id') = id then
+      Result := Self.Data.getJSONObject(i);
+end;
+
 function TMonsterData.GetIDs(monster: String): TIntegerArray;
 var
-  monsterID, i, intValue: Int32;
+  monsterID, intValue: Int32;
   value, path: String;
   json: TJSONObject;
 begin
@@ -604,9 +614,7 @@ begin
     value := Self.Names.ValueFromIndex(monsterID);
     intValue := StrToInt(value);
 
-    for i := 0 to Self.Data.High() do
-      if Self.Data.getJSONObject(i).GetInt('id') = intValue then
-        json := Self.Data.getJSONObject(i);
+    json := Self.GetCachedID(intValue);
 
     if json = nil then
     begin
@@ -656,12 +664,11 @@ WriteLn TMonsterData.GetInt('Cow', 'hitpoints'); //This will print 8.
 *)
 function TMonsterData.GetInt(monster, key: String): Int32;
 var
-  id, i: Int32;
+  json: TJSONObject;
 begin
-  id := Self.GetID(monster);
-  for i := 0 to Self.Data.High() do
-    if Self.Data.getJSONObject(i).GetInt('id') = id then
-      Exit(Self.Data.getJSONObject(i).getInt(key));
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getInt(key);
 end;
 
 (*
@@ -682,12 +689,11 @@ WriteLn TMonsterData.GetString('Cow', 'drops');
 *)
 function TMonsterData.GetString(monster, Key: String): String;
 var
-  id, i: Int32;
+  json: TJSONObject;
 begin
-  id := Self.GetID(monster);
-  for i := 0 to Self.Data.High() do
-    if Self.Data.getJSONObject(i).GetInt('id') = id then
-      Exit(Self.Data.getJSONObject(i).getString(key));
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getString(key);
 end;
 
 (*
@@ -704,12 +710,11 @@ WriteLn TMonsterData.IsAgressive('Cow'); //Will print False.
 *)
 function TMonsterData.IsAgressive(monster: String): Boolean;
 var
-  id, i: Int32;
+  json: TJSONObject;
 begin
-  id := Self.GetID(monster);
-  for i := 0 to Self.Data.High() do
-    if Self.Data.getJSONObject(i).GetInt('id') = id then
-      Exit(Self.Data.getJSONObject(i).getBoolean('aggressive'));
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getBoolean('aggressive');
 end;
 
 (*
@@ -721,12 +726,11 @@ Internal method to get a TJSONArray value from monsters.json.
 *)
 function TMonsterData.GetJSONArray(monster, Key: String): TJSONArray;
 var
-  id, i: Int32;
+  json: TJSONObject;
 begin
-  id := Self.GetID(monster);
-  for i := 0 to Self.Data.High() do
-    if Self.Data.getJSONObject(i).GetInt('id') = id then
-      Exit(Self.Data.getJSONObject(i).getJSONArray(key));
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getJSONArray(key);
 end;
 
 (*
@@ -755,13 +759,13 @@ Method used to get an array of ERSAttackType used by the specified monster.
 *)
 function TMonsterData.GetAttackTypes(monster: String): array of ERSAttackType;
 var
-  jsonArray: TJSONArray;
+  json: TJSONArray;
   i: Int32;
 begin
-  jsonArray := Self.GetJSONArray(monster, 'attack_type');
+  json := Self.GetJSONArray(monster, 'attack_type');
 
-  for i := 0 to jsonArray.length() - 1 do
-    case jsonArray.getString(i) of
+  for i := 0 to json.High() do
+    case json.getString(i) of
       'stab', 'slash', 'crush': Result += ERSAttackType.MELEE_ATTACK_TYPE;
       'ranged':   Result += ERSAttackType.RANGED_ATTACK_TYPE;
       'magic':    Result += ERSAttackType.MAGIC_ATTACK_TYPE;
@@ -778,17 +782,15 @@ Method to convert a monster json object to a TRSMonsterDrop.
 *)
 function TMonsterData.GetDrop(dropJSON: TJSONObject): TRSMonsterDrop;
 var
-  Str: String;
+  str: String;
 begin
   Result.ID := dropJSON.getString('id');
   Result.Item := dropJSON.getString('name');
-  Str := dropJSON.getString('quantity');
-  if Str.Contains('-') then
-  begin
-    Result.Quantity := Round(StrToInt(Str.Before('-')) + StrToInt(Str.After('-')) / 2);
-  end
+  str := dropJSON.getString('quantity');
+  if str.Contains('-') then
+    Result.Quantity := Round(StrToInt(str.Before('-')) + StrToInt(str.After('-')) / 2)
   else
-    Result.Quantity := StrToInt(Str);
+    Result.Quantity := StrToInt(str);
   Result.Noted := dropJSON.getBoolean('noted');
   Result.Stackable := Result.Noted;
 end;

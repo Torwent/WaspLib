@@ -1,3 +1,15 @@
+## [18.4.1](https://github.com/Torwent/WaspLib/compare/v18.4.0...v18.4.1) (2024-04-07)
+
+
+### Bug Fixes
+
+* force bump ([1d365a6](https://github.com/Torwent/WaspLib/commit/1d365a6f5537c7b7b3ea8d9045f8d0f1d2ee8337))
+* **MonsterData:** minor rework of monster data ([6f2eecb](https://github.com/Torwent/WaspLib/commit/6f2eecbaa19f34e7bf38c11631c434293b8b0fad))
+* **MonsterData:** should now work again ([e061cf8](https://github.com/Torwent/WaspLib/commit/e061cf8e6e767ac62dbf3ebd8c7baa65a357806a))
+* **transport:** workaround lape bug ([7dc2328](https://github.com/Torwent/WaspLib/commit/7dc2328f5de636a464f9e4298df3624334b6f823))
+
+
+
 # [18.4.0](https://github.com/Torwent/WaspLib/compare/v18.3.4...v18.4.0) (2024-04-06)
 
 
@@ -31,15 +43,6 @@
 ### Bug Fixes
 
 * compatibility with latest srl-t ([4ce3802](https://github.com/Torwent/WaspLib/commit/4ce380221f77fc0f0ae1ad821ab2c58afa97d8f4))
-
-
-
-## [18.3.1](https://github.com/Torwent/WaspLib/compare/v18.3.0...v18.3.1) (2024-04-01)
-
-
-### Bug Fixes
-
-* tweaks to bankchestwood1 ([a7953b1](https://github.com/Torwent/WaspLib/commit/a7953b1a3c87a4503a16e8f4184c1af6558bf9d8))
 
 
 

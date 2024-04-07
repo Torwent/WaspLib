@@ -21,7 +21,14 @@ type
     ardougneCape: TRSItem;
     fairyTeleportItem: EFairyTeleportItem;
     PohSetup : Boolean;
+    IsSetup: Boolean;
   end;
+
+procedure TUniversalTransport.Setup();
+begin
+  Self.Name := 'Transport';
+  Self.IsSetup := True;
+end;
 
 function TUniversalTransport.pathLength(path: TPointArray): Int32;
 var
@@ -148,7 +155,7 @@ begin
 end;
 
 // when location selection is in chat interface
-function TUniversalTransport.handleChatJewellery(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleChatJewellery(constref teleportLocation: TTeleportLocation): Boolean;
 begin
   if not (teleportLocation.teleportType = ETeleportType.JEWELLERY) then
     raise 'Requires teleport type jewellery. Got ' + ToStr(teleportLocation.teleportType);
@@ -160,7 +167,7 @@ begin
 end;
 
 // when location selection is in middle of screen
-function TUniversalTransport.handleMiddleScreenJewellery(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleMiddleScreenJewellery(constref teleportLocation: TTeleportLocation): Boolean;
 var
   textColor: TColor := 337970;
   textColorTPA: TPointArray;
@@ -197,7 +204,7 @@ begin
   raise 'Unable to find ' + teleportLocation.destination + ' in menu for ' + ToStr(teleportLocation.item);
 end;
 
-function TUniversalTransport.handleJewelleryTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleJewelleryTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   startPosition: TPoint := ScriptWalker^.GetMyPos();
   chargedJewellery: TRSItem;
@@ -212,6 +219,7 @@ begin
     begin
       Self.DebugLn("Searching for " + chargedJewellery + " Rub");
       WaitUntil(Inventory.ClickItem(chargedJewellery, "Rub"), 200, 5000);
+
       if middleScreenJewellery.Contains(ToStr(teleportLocation.item).Lower()) then
         didTeleport := self.handleMiddleScreenJewellery(teleportLocation)
       else
@@ -240,7 +248,7 @@ begin
   end;
 end;
 
-function TUniversalTransport.handleOtherTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleOtherTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   didTeleport: Boolean;
   teleportItem: TRSItem;
@@ -272,7 +280,7 @@ begin
 
 end;
 
-function TUniversalTransport.handleDiaryTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleDiaryTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   numberedItems: TRSItemArray := getNumberedDiaryItems(teleportLocation.item);
   numberedDiaryItem: TRSItem;
@@ -306,7 +314,7 @@ begin
   end;
 end;
 
-function TUniversalTransport.handleMinigameTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleMinigameTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   startPosition: TPoint := ScriptWalker^.GetMyPos();
 begin
@@ -314,7 +322,7 @@ begin
     Result := WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 23000);
 end;
 
-function TUniversalTransport.withdrawTeleportItem(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.withdrawTeleportItem(constref teleportLocation: TTeleportLocation): Boolean;
 var
   bankItem: TRSBankItem;
   chargedJewellery: TRSItem;
@@ -354,7 +362,7 @@ begin
   end;
 end;
 
-function TUniversalTransport.handleMagicTeleport(teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean;
+function TUniversalTransport.handleMagicTeleport(constref teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean;
 var
   startPosition: TPoint := ScriptWalker^.GetMyPos();
   teleportTabName: String := teleportLocation.destination.Lower() + " teleport";
@@ -447,7 +455,7 @@ begin
   Exit(WaitUntil(not ScriptWalker^.AtTile(startPosition, 10), 200, 5000));
 end;
 
-function TUniversalTransport.handlePortalNexusTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handlePortalNexusTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   destination : ERSNexusDestination;
 begin
@@ -469,7 +477,7 @@ begin
   Result := POH.NexusTeleport(destination);
 end;
 
-function TUniversalTransport.handleFairyRingTeleport(teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleFairyRingTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   endLocation: TBox := Box(teleportLocation.worldPoint, 200, 200);
 begin
@@ -497,6 +505,7 @@ begin
   else
     Result := self.run(RSTeleports.GRAND_EXCHANGE.worldPoint);
 end;
+
 
 function TUniversalTransport.getConnectingBank(position: TPoint): PRSObject;
 var
@@ -549,10 +558,13 @@ begin
 end;
 
 
-function TUniversalTransport.run(teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean; overload;
+function TUniversalTransport.run(constref teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean; overload;
 var
   didTeleport: Boolean;
 begin
+  if not Self.IsSetup then
+    Self.Setup();
+
   Self.DebugLn('Trying to teleport to: ' + ToString(teleportLocation));
 
   case teleportLocation.teleportType of
@@ -577,6 +589,9 @@ var
   didTeleport: Boolean;
   attempt: Int32;
 begin
+  if not Self.IsSetup then
+    Self.Setup();
+
   teleportLocation := self.getIdealTeleport(destination, RSTeleports.RSTeleportsArray);
   Self.DebugLn('Ideal teleport found to be: ' + ToString(teleportLocation));
 

@@ -1,3 +1,12 @@
+## [18.4.2](https://github.com/Torwent/WaspLib/compare/v18.4.1...v18.4.2) (2024-04-08)
+
+
+### Bug Fixes
+
+* **MonsterData:** the zip was missing the drops name field, oops ([74bc779](https://github.com/Torwent/WaspLib/commit/74bc779782afa198e69dc846268420e508b08cf8))
+
+
+
 ## [18.4.1](https://github.com/Torwent/WaspLib/compare/v18.4.0...v18.4.1) (2024-04-07)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * compatibility with latest srl-t ([d8cb26a](https://github.com/Torwent/WaspLib/commit/d8cb26a8ba0f3c073a7c08ed622aadbc94d6eb3b))
-
-
-
-## [18.3.2](https://github.com/Torwent/WaspLib/compare/v18.3.1...v18.3.2) (2024-04-03)
-
-
-### Bug Fixes
-
-* compatibility with latest srl-t ([4ce3802](https://github.com/Torwent/WaspLib/commit/4ce380221f77fc0f0ae1ad821ab2c58afa97d8f4))
 
 
 

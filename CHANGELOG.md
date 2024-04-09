@@ -1,3 +1,12 @@
+## [18.4.4](https://github.com/Torwent/WaspLib/compare/v18.4.3...v18.4.4) (2024-04-09)
+
+
+### Bug Fixes
+
+* **TTelportLocation:** made the setup methods setup the full TTeleportLocation ([95ec14f](https://github.com/Torwent/WaspLib/commit/95ec14fd4370aedeb0d885e15a7271ef31e16a73))
+
+
+
 ## [18.4.3](https://github.com/Torwent/WaspLib/compare/v18.4.2...v18.4.3) (2024-04-09)
 
 
@@ -34,15 +43,6 @@
 ### Features
 
 * read notes ([99cb275](https://github.com/Torwent/WaspLib/commit/99cb275e6b62286ad9a62db6711b4cdc30ed1e17))
-
-
-
-## [18.3.4](https://github.com/Torwent/WaspLib/compare/v18.3.3...v18.3.4) (2024-04-03)
-
-
-### Bug Fixes
-
-* **optional:** fixed optional imports compilation issues ([e8da367](https://github.com/Torwent/WaspLib/commit/e8da3676688a9aa7593585e6d9035788b211cad2))
 
 
 

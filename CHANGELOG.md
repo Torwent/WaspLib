@@ -1,3 +1,12 @@
+## [18.4.3](https://github.com/Torwent/WaspLib/compare/v18.4.2...v18.4.3) (2024-04-09)
+
+
+### Bug Fixes
+
+* **bank:** add fail safe to bank.depositrandomitems() ([b3f4724](https://github.com/Torwent/WaspLib/commit/b3f4724f508f2593c7c2816e0da0ec94b2faca14))
+
+
+
 ## [18.4.2](https://github.com/Torwent/WaspLib/compare/v18.4.1...v18.4.2) (2024-04-08)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * **optional:** fixed optional imports compilation issues ([e8da367](https://github.com/Torwent/WaspLib/commit/e8da3676688a9aa7593585e6d9035788b211cad2))
-
-
-
-## [18.3.3](https://github.com/Torwent/WaspLib/compare/v18.3.2...v18.3.3) (2024-04-03)
-
-
-### Bug Fixes
-
-* compatibility with latest srl-t ([d8cb26a](https://github.com/Torwent/WaspLib/commit/d8cb26a8ba0f3c073a7c08ed622aadbc94d6eb3b))
 
 
 

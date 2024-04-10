@@ -1,3 +1,12 @@
+## [18.4.5](https://github.com/Torwent/WaspLib/compare/v18.4.4...v18.4.5) (2024-04-10)
+
+
+### Bug Fixes
+
+* added zombie axe to weapons.json ([68d9eee](https://github.com/Torwent/WaspLib/commit/68d9eeefc1c924e5b3d28ecb14fa81ae89ec4ba7))
+
+
+
 ## [18.4.4](https://github.com/Torwent/WaspLib/compare/v18.4.3...v18.4.4) (2024-04-09)
 
 
@@ -34,15 +43,6 @@
 * **MonsterData:** minor rework of monster data ([6f2eecb](https://github.com/Torwent/WaspLib/commit/6f2eecbaa19f34e7bf38c11631c434293b8b0fad))
 * **MonsterData:** should now work again ([e061cf8](https://github.com/Torwent/WaspLib/commit/e061cf8e6e767ac62dbf3ebd8c7baa65a357806a))
 * **transport:** workaround lape bug ([7dc2328](https://github.com/Torwent/WaspLib/commit/7dc2328f5de636a464f9e4298df3624334b6f823))
-
-
-
-# [18.4.0](https://github.com/Torwent/WaspLib/compare/v18.3.4...v18.4.0) (2024-04-06)
-
-
-### Features
-
-* read notes ([99cb275](https://github.com/Torwent/WaspLib/commit/99cb275e6b62286ad9a62db6711b4cdc30ed1e17))
 
 
 

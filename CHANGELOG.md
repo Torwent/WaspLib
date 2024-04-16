@@ -1,3 +1,12 @@
+## [18.4.7](https://github.com/Torwent/WaspLib/compare/v18.4.6...v18.4.7) (2024-04-16)
+
+
+### Bug Fixes
+
+* **TRSMapChunks:** added helper collection of TRSMapChunks ([9635073](https://github.com/Torwent/WaspLib/commit/96350738a298391e2b961c64177fdf04ae1c4ec1))
+
+
+
 ## [18.4.6](https://github.com/Torwent/WaspLib/compare/v18.4.5...v18.4.6) (2024-04-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **bank:** add fail safe to bank.depositrandomitems() ([b3f4724](https://github.com/Torwent/WaspLib/commit/b3f4724f508f2593c7c2816e0da0ec94b2faca14))
-
-
-
-## [18.4.2](https://github.com/Torwent/WaspLib/compare/v18.4.1...v18.4.2) (2024-04-08)
-
-
-### Bug Fixes
-
-* **MonsterData:** the zip was missing the drops name field, oops ([74bc779](https://github.com/Torwent/WaspLib/commit/74bc779782afa198e69dc846268420e508b08cf8))
 
 
 

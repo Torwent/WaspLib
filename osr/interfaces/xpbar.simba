@@ -8,32 +8,6 @@ Extensions to SRL's {ref}`XPBar`
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-function TRSXPBar.EarnedXP(currentXP: Int32): Boolean;
-begin
-  Result := currentXP > WL.XP.Previous;
-
-  if Result then
-  begin
-    if WL.XP.Previous > 0 then
-      StatsPayload.Update(currentXP-WL.XP.Previous, 0, 0);
-    WL.Activity.Restart();
-    WL.XP.Previous := currentXP;
-  end;
-end;
-
-function TRSXPBar.EarnedXP(): Boolean; overload;
-begin
-  Result := Self.EarnedXP(Self.Read());
-end;
-
-function TRSXPBar.WaitXP(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
-begin
-  if (interval = -1) then
-    interval := SRL.TruncatedGauss(50, 200);
-
-  Result := WaitUntil(Self.EarnedXP(), interval, waitTime);
-end;
-
 function TRSXPBar.Read(): Int32; override;
 var
   i: Int32;
@@ -46,24 +20,22 @@ begin
 
   Result := OCR.RecognizeNumber(Self.Bounds(), TOCRColorFilter.Create([$FFFFFF]), Self.Font);
 
-  WL.XP.IsSetup := (Result > 0) and (Result >= WL.XP.Previous);
+  Self.Tracker.IsSetup := (Result > 0) and (Result >= Self.Tracker.Current);
 
-  if not WL.XP.IsSetup and (WL.XP.Previous = 0) and MainScreen.HasInterface() then
-  begin
+  if not Self.Tracker.IsSetup and (Self.Tracker.Current = 0) and MainScreen.HasInterface() then
     if MainScreen.CloseInterface() then
     begin
       Self.IsSetup := False;
       Exit(Self.Read());
     end;
-  end;
 
-  if WL.XP.IsSetup then
+  if Self.Tracker.IsSetup then
   begin
-    if WL.XP.Start = 0 then
-      WL.XP.Start := Result;
+    if Self.Tracker.Start = 0 then
+      Self.Tracker.Start := Result;
 
-    if WL.XP.Previous = 0 then
-      WL.XP.Previous := Result;
+    if (Self.Tracker.Current = 0) or (Result > Self.Tracker.Current) then
+      Self.Tracker.Current := Result;
 
     Exit;
   end;
@@ -83,10 +55,23 @@ begin
     until Self.Enable();
 
     Result := OCR.RecognizeNumber(Self.Bounds(), TOCRColorFilter.Create([$FFFFFF]), Self.Font);
-    WL.XP.IsSetup := (Result > 0) and (Result >= WL.XP.Previous);
+    Self.Tracker.IsSetup := (Result > 0) and (Result >= Self.Tracker.Current);
 
-    if not WL.XP.IsSetup then
+    if not Self.Tracker.IsSetup then
       XPBarSetup.Fix();
   end;
 end;
 
+function TRSXPBar.EarnedXP(): Boolean; override;
+var
+  previous: Int32;
+begin
+  previous := Self.Tracker.Current;
+  Result := Self.Read() > previous;
+
+  if Result and Self.Tracker.IsSetup then
+  begin
+    StatsPayload.Update(Self.Tracker.Current-previous, 0, 0);
+    WL.Activity.Restart();
+  end;
+end;

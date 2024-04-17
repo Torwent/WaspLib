@@ -1,3 +1,12 @@
+## [18.4.8](https://github.com/Torwent/WaspLib/compare/v18.4.7...v18.4.8) (2024-04-17)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T, read notes ([63f28e8](https://github.com/Torwent/WaspLib/commit/63f28e8acbef3697a128625863c6c99932622a90))
+
+
+
 ## [18.4.7](https://github.com/Torwent/WaspLib/compare/v18.4.6...v18.4.7) (2024-04-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TTelportLocation:** made the setup methods setup the full TTeleportLocation ([95ec14f](https://github.com/Torwent/WaspLib/commit/95ec14fd4370aedeb0d885e15a7271ef31e16a73))
-
-
-
-## [18.4.3](https://github.com/Torwent/WaspLib/compare/v18.4.2...v18.4.3) (2024-04-09)
-
-
-### Bug Fixes
-
-* **bank:** add fail safe to bank.depositrandomitems() ([b3f4724](https://github.com/Torwent/WaspLib/commit/b3f4724f508f2593c7c2816e0da0ec94b2faca14))
 
 
 

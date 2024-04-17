@@ -510,3 +510,111 @@ end;
 var
 {$H-}WaspConfig: TWaspConfig;{$H+}
 
+/////////////////////////-- INI Config --////////////////////////////////////////////
+
+type
+  TConfigINI = record
+    Path: String;
+    FileName: String;
+    FileContent: TStringArray;
+  end;
+
+// Initializes configuration path and filename
+procedure TConfigINI.Setup(FileName: String);
+begin
+  Self.FileName := FileName;
+  Self.Path := AppPath + 'Configs' + DirectorySeparator + FileName;;
+end;
+
+// Writes a single key-value pair to a specified section
+procedure TConfigINI.Put(Section, KeyName, Value: String);
+begin
+  WriteINI(Section, KeyName, Value, Self.Path);
+end;
+
+// Retrieves a single value by key from a specified section
+function TConfigINI.Get(Section, KeyName: String): String;
+begin
+  Result := ReadINI(Section, KeyName, Self.Path);
+end;
+
+// Removes a single key-value pair from a specified section
+procedure TConfigINI.Remove(Section, KeyName: String);
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+  DeleteINI(Section, KeyName, Self.Path);
+end;
+
+// Deletes the entire configuration file
+procedure TConfigINI.DeleteConfig();
+begin
+  if FileExists(Self.Path) then
+    DeleteFile(Self.Path)
+  else
+    RaiseException('File does not exist: ' + Self.Path);
+end;
+
+// Saves multiple items to a specific section
+procedure TConfigINI.SaveConfig(Section: String; Items: TRSBankItemArray);
+var
+  i: Int32;
+begin
+  for i := 0 to High(Items) do
+    WriteINI(Section, Items[i].Item, IntToStr(Items[i].Quantity), Self.Path);
+end;
+
+// Retrieves all keys from a specified section
+function TConfigINI.GetKeys(Section: String): TStringArray;
+var
+  i: Int32;
+  InSection: Boolean;
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+
+  FileContent := ReadFileContents(Self.Path).Split(#10);
+  while i < Length(FileContent) do begin
+    FileContent[i] := FileContent[i].Trim;
+    if FileContent[i].StartsWith('[') and FileContent[i].EndsWith(']') then begin
+      InSection := FileContent[i].Between('[', ']') = Section;
+    end else if InSection and FileContent[i].Contains('=') then begin
+      Result += FileContent[i].Before('=').Trim;
+    end;
+    Inc(i);
+  end;
+end;
+
+// Reads an entire section into an array of items
+function TConfigINI.ReadConfig(Section: String): TRSBankItemArray;
+var
+  i, NewItemIndex: Int32;
+  InSection: Boolean;
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+
+  FileContent := ReadFileContents(Self.Path).Split(#10);
+  while i < Length(FileContent) do begin
+    FileContent[i] := FileContent[i].Trim;
+    if FileContent[i].StartsWith('[') and FileContent[i].EndsWith(']') then begin
+      InSection := FileContent[i].Between('[', ']') = Section;
+      if InSection then
+        NewItemIndex := 0;
+    end else if InSection and FileContent[i].Contains('=') then begin
+      if Length(Result) <= NewItemIndex then
+        SetLength(Result, NewItemIndex + 1);
+
+      Result[NewItemIndex].Item := FileContent[i].Before('=').Trim;
+      Result[NewItemIndex].Quantity := StrToIntDef(FileContent[i].After('=').Trim, 0);
+      Inc(NewItemIndex);
+    end;
+    Inc(i);
+  end;
+end;
+
+Var
+  {$H-}ConfigINI: TConfigINI;{$H+}  
+
+
+

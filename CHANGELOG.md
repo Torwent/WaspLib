@@ -1,3 +1,12 @@
+## [18.4.9](https://github.com/Torwent/WaspLib/compare/v18.4.8...v18.4.9) (2024-04-18)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([475bd9e](https://github.com/Torwent/WaspLib/commit/475bd9ebfa935d536fac0e9b1e4e9266d8deb2b6))
+
+
+
 ## [18.4.8](https://github.com/Torwent/WaspLib/compare/v18.4.7...v18.4.8) (2024-04-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added zombie axe to weapons.json ([68d9eee](https://github.com/Torwent/WaspLib/commit/68d9eeefc1c924e5b3d28ecb14fa81ae89ec4ba7))
-
-
-
-## [18.4.4](https://github.com/Torwent/WaspLib/compare/v18.4.3...v18.4.4) (2024-04-09)
-
-
-### Bug Fixes
-
-* **TTelportLocation:** made the setup methods setup the full TTeleportLocation ([95ec14f](https://github.com/Torwent/WaspLib/commit/95ec14fd4370aedeb0d885e15a7271ef31e16a73))
 
 
 

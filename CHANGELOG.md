@@ -1,3 +1,12 @@
+## [18.4.14](https://github.com/Torwent/WaspLib/compare/v18.4.13...v18.4.14) (2024-04-18)
+
+
+### Bug Fixes
+
+* **APIClient:** benchmarking the connection was bugged ([83cfd55](https://github.com/Torwent/WaspLib/commit/83cfd55af10e8c284a9c770fce8481afed91a05f))
+
+
+
 ## [18.4.13](https://github.com/Torwent/WaspLib/compare/v18.4.12...v18.4.13) (2024-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **APIClient:** Minor api client refactor ([5941841](https://github.com/Torwent/WaspLib/commit/594184167fdfdbd3cca47387acb0a861baab4a74))
-
-
-
-## [18.4.9](https://github.com/Torwent/WaspLib/compare/v18.4.8...v18.4.9) (2024-04-18)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([475bd9e](https://github.com/Torwent/WaspLib/commit/475bd9ebfa935d536fac0e9b1e4e9266d8deb2b6))
 
 
 

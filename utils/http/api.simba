@@ -8,109 +8,12 @@ Methods related to wasp-api.
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-(*
-## type StatsPayload
-Type to help you handle stats submissions.
-*)
 type
-  TStatsPayload = record(TSRLBaseRecord)
-    ScriptID: String;
-    Username: String;
-    Password: String;
-    Experience: Int32;
-    Gold: Int32;
-    RunTime: Int64;
-  end;
+  TStatsPayload = type TSRLBaseRecord;
 
-(*
-## StatsPayload.Reset
-```pascal
-procedure TStatsPayload.Reset();
-```
-Resets StatsPayload. Automatically called by APIClient.SubmitStats() on a successful stats submission.
-*)
-procedure TStatsPayload.Reset();
+procedure TStatsPayload.Setup(id: String; user: String = ''); deprecated 'This is not needed anymore';
 begin
-  Self.Experience := 0;
-  Self.Gold := 0;
-  Self.RunTime := 0;
-end;
 
-(*
-## StatsPayload.SetUsername
-```pascal
-procedure TStatsPayload.SetUsername(user: String = '');
-```
-Sets StatsPayload username if it hasn't been set yet.
-*)
-procedure TStatsPayload.SetUsername(user: String = '');
-begin
-  if user = '' then
-    Exit;
-
-  Self.Username := user;
-  WriteConfigFile('stats_user', ['StatsPayload.SetUsername(''' + user + ''');']);
-end;
-
-(*
-## StatsPayload.Setup
-```pascal
-procedure TStatsPayload.Setup(id, pw: String; user: String = '');
-```
-Sets StatsPayload up.
-  - **id** should be your script id. If the script id is not in waspscripts.com database the submission will be rejected.
-  - **pw** should be your account password. Passwordless accounts can exist but then anyone can submit data to them.
-    A passwordless account will take in the first ever password submission it gets as it's password and will only accept future data
-    if that password is included.
-  - **user** sets a wasp-stats username.
-*)
-procedure TStatsPayload.Setup(id: String; user: String = '');
-begin
-  Self.ScriptID := id;
-  Self.SetUsername(user);
-end;
-
-
-(*
-## StatsPayload.Update
-```pascal
-procedure TStatsPayload.Update(xp, gp, time: Int32);
-```
-Update StatsPayload data for the next submission.
-You can update it several times before submitting it, however, keep in mind if the runtime is over 15mins the data will be rejected to
-avoid exploitation.
-Experience, Gold and Levels also have a limit of how much can be submitted on each request. This limit set by the scripter in waspscripts.com (not implemented yet... currently has some generous limits)
-
-You can set the account as banned for tracking ban rates but it's not fully implemented yet.
-If you set an account as banned you won't be able to submit more data to it until you set it as unbanned.
-*)
-procedure TStatsPayload.Update(xp, gp, time: Int32);
-begin
-  Self.Experience += xp;
-  Self.Gold += gp;
-  Self.RunTime += time;
-end;
-
-(*
-## StatsPayload.FormData
-```pascal
-function TStatsPayload.FormData(): TStringArray;
-```
-Transforms the data in StatsPayload into a TStringArray that can be used by a APIClient.
-*)
-function TStatsPayload.FormData(): TStringArray;
-begin
-  Result += 'script_id='  + Self.ScriptID;
-
-  if Self.Username <> '' then
-    Result += 'username='   + Self.Username;
-
-  if Self.Password <> '' then
-    Result += 'password='   + Self.Password;
-
-  Result += 'experience=' + ToStr(Self.Experience);
-  Result += 'gold='       + ToStr(Self.Gold);
-  Result += 'runtime='    + ToStr(Self.RunTime);
 end;
 
 var
@@ -482,7 +385,7 @@ begin
     Exit;
 
   time := GetTickCount();
-  StatsPayload.Update(0, 0, time - Self.TimeStamp);
+  Self.UpdatePayload(0, 0, time - Self.TimeStamp);
   Self.TimeStamp := time;
 
   msg := Self.POST(ROUTE, Self.Payload);
@@ -623,6 +526,16 @@ end;
 var
   APIClient: TAPICLient;
 
+
+procedure TStatsPayload.Update(xp, gp, time: Int32); deprecated 'Use APICLient.UpdatePayload() instead.';
+begin
+  APIClient.UpdatePayload(xp, gp, time);
+end;
+
+procedure TStatsPayload.SetUsername(user: String = ''); deprecated 'Use APICLient.SetUsername() instead.';
+begin
+  APIClient.SetUsername(user);
+end;
 procedure TSRL.Setup(); override;
 begin
   inherited;

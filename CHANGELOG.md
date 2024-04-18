@@ -1,3 +1,12 @@
+## [18.4.11](https://github.com/Torwent/WaspLib/compare/v18.4.10...v18.4.11) (2024-04-18)
+
+
+### Bug Fixes
+
+* deprecate StatsPayload ([018815e](https://github.com/Torwent/WaspLib/commit/018815e8f0e0579d67c0551e152c6f4c5dfe2782))
+
+
+
 ## [18.4.10](https://github.com/Torwent/WaspLib/compare/v18.4.9...v18.4.10) (2024-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSMapChunks:** added helper collection of TRSMapChunks ([9635073](https://github.com/Torwent/WaspLib/commit/96350738a298391e2b961c64177fdf04ae1c4ec1))
-
-
-
-## [18.4.6](https://github.com/Torwent/WaspLib/compare/v18.4.5...v18.4.6) (2024-04-16)
-
-
-### Bug Fixes
-
-* some typo fixes ([dfb8394](https://github.com/Torwent/WaspLib/commit/dfb8394dd68f83dd8400ca13082daf45b62bf2cf))
 
 
 

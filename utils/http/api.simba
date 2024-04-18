@@ -8,17 +8,6 @@ Methods related to wasp-api.
   {$I WaspLib/utils.simba}
 {$ENDIF}
 
-type
-  TStatsPayload = type TSRLBaseRecord;
-
-procedure TStatsPayload.Setup(id: String; user: String = ''); deprecated 'This is not needed anymore';
-begin
-
-end;
-
-var
-  StatsPayload: TStatsPayload;
-
 (*
 ## type APIClient
 ```pascal
@@ -375,7 +364,6 @@ function TAPIClient.SubmitStats(uuid: String): Boolean;
 const
   ROUTE: String := 'stats/' + uuid + '/';
 var
-  msg: String;
   time: UInt64;
 begin
   if Self.Disabled then
@@ -386,14 +374,24 @@ begin
 
   time := GetTickCount();
   Self.UpdatePayload(0, 0, time - Self.TimeStamp);
-  Self.TimeStamp := time;
 
-  msg := Self.POST(ROUTE, Self.Payload);
+  Self.POST(ROUTE, Self.Payload);
+  Self.TimeStamp := time;
+  Self.Benchmark += time;
 
   Result := (Self.GetHTTPCode() = 201) or (Self.GetHTTPCode() = 202);
 
   Self.ResetPayload();
   Self.Timer.Restart();
+
+  if (Length(Self.Benchmark) > 5) and (Self.Benchmark.Mean() > 3000) then
+  begin
+    if Length(Self.Benchmark) > 20 then
+      Delete(Self.Benchmark, 1, 1);
+    Self.DebugLn('Connection to ' + Self.Server + ' is slower than it should be. APIClient will be disabled.');
+    Self.Disabled := True;
+  end;
+
 
   if Result then
   begin
@@ -407,6 +405,7 @@ begin
     Self.Disabled := True;
   end;
 end;
+
 
 (*
 ## APIClient.GetScript
@@ -526,6 +525,14 @@ end;
 var
   APIClient: TAPICLient;
 
+{$H-}
+type
+  TStatsPayload = type TSRLBaseRecord;
+
+procedure TStatsPayload.Setup(id: String; user: String = ''); deprecated 'This is not needed anymore';
+begin
+
+end;
 
 procedure TStatsPayload.Update(xp, gp, time: Int32); deprecated 'Use APICLient.UpdatePayload() instead.';
 begin
@@ -536,6 +543,10 @@ procedure TStatsPayload.SetUsername(user: String = ''); deprecated 'Use APICLien
 begin
   APIClient.SetUsername(user);
 end;
+
+var
+  StatsPayload: TStatsPayload;
+{$H+}
 
 procedure TSRL.Setup(); override;
 begin

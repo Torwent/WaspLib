@@ -1,3 +1,12 @@
+## [18.4.10](https://github.com/Torwent/WaspLib/compare/v18.4.9...v18.4.10) (2024-04-18)
+
+
+### Bug Fixes
+
+* **APIClient:** Minor api client refactor ([5941841](https://github.com/Torwent/WaspLib/commit/594184167fdfdbd3cca47387acb0a861baab4a74))
+
+
+
 ## [18.4.9](https://github.com/Torwent/WaspLib/compare/v18.4.8...v18.4.9) (2024-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * some typo fixes ([dfb8394](https://github.com/Torwent/WaspLib/commit/dfb8394dd68f83dd8400ca13082daf45b62bf2cf))
-
-
-
-## [18.4.5](https://github.com/Torwent/WaspLib/compare/v18.4.4...v18.4.5) (2024-04-10)
-
-
-### Bug Fixes
-
-* added zombie axe to weapons.json ([68d9eee](https://github.com/Torwent/WaspLib/commit/68d9eeefc1c924e5b3d28ecb14fa81ae89ec4ba7))
 
 
 

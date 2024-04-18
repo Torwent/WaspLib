@@ -1,3 +1,12 @@
+## [18.4.12](https://github.com/Torwent/WaspLib/compare/v18.4.11...v18.4.12) (2024-04-18)
+
+
+### Bug Fixes
+
+* **xpbar:** typo ([85eb545](https://github.com/Torwent/WaspLib/commit/85eb545f6a515b1ca79645d4bd9180f5734a77a1))
+
+
+
 ## [18.4.11](https://github.com/Torwent/WaspLib/compare/v18.4.10...v18.4.11) (2024-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T, read notes ([63f28e8](https://github.com/Torwent/WaspLib/commit/63f28e8acbef3697a128625863c6c99932622a90))
-
-
-
-## [18.4.7](https://github.com/Torwent/WaspLib/compare/v18.4.6...v18.4.7) (2024-04-16)
-
-
-### Bug Fixes
-
-* **TRSMapChunks:** added helper collection of TRSMapChunks ([9635073](https://github.com/Torwent/WaspLib/commit/96350738a298391e2b961c64177fdf04ae1c4ec1))
 
 
 

@@ -1,3 +1,12 @@
+## [18.4.16](https://github.com/Torwent/WaspLib/compare/v18.4.15...v18.4.16) (2024-04-19)
+
+
+### Bug Fixes
+
+* **XPBar:** compatibility with latest SRL-T ([d2bae25](https://github.com/Torwent/WaspLib/commit/d2bae25e1c3781db8f5882c33bf5d230d536e1be))
+
+
+
 ## [18.4.15](https://github.com/Torwent/WaspLib/compare/v18.4.14...v18.4.15) (2024-04-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **xpbar:** typo ([85eb545](https://github.com/Torwent/WaspLib/commit/85eb545f6a515b1ca79645d4bd9180f5734a77a1))
-
-
-
-## [18.4.11](https://github.com/Torwent/WaspLib/compare/v18.4.10...v18.4.11) (2024-04-18)
-
-
-### Bug Fixes
-
-* deprecate StatsPayload ([018815e](https://github.com/Torwent/WaspLib/commit/018815e8f0e0579d67c0551e152c6f4c5dfe2782))
 
 
 

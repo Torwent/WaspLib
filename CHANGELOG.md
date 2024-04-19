@@ -1,3 +1,12 @@
+## [18.4.15](https://github.com/Torwent/WaspLib/compare/v18.4.14...v18.4.15) (2024-04-19)
+
+
+### Bug Fixes
+
+* **APIClient:** another minor logic bug ([4cde8bb](https://github.com/Torwent/WaspLib/commit/4cde8bbb192f68885a5c55edc59e8d4b69d87238))
+
+
+
 ## [18.4.14](https://github.com/Torwent/WaspLib/compare/v18.4.13...v18.4.14) (2024-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * deprecate StatsPayload ([018815e](https://github.com/Torwent/WaspLib/commit/018815e8f0e0579d67c0551e152c6f4c5dfe2782))
-
-
-
-## [18.4.10](https://github.com/Torwent/WaspLib/compare/v18.4.9...v18.4.10) (2024-04-18)
-
-
-### Bug Fixes
-
-* **APIClient:** Minor api client refactor ([5941841](https://github.com/Torwent/WaspLib/commit/594184167fdfdbd3cca47387acb0a861baab4a74))
 
 
 

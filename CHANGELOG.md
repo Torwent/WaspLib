@@ -1,3 +1,12 @@
+## [18.4.17](https://github.com/Torwent/WaspLib/compare/v18.4.16...v18.4.17) (2024-04-21)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([552cc72](https://github.com/Torwent/WaspLib/commit/552cc724a2a47a22e3e889cdc01048201ec70fae))
+
+
+
 ## [18.4.16](https://github.com/Torwent/WaspLib/compare/v18.4.15...v18.4.16) (2024-04-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * more APIClient fixes ([f330886](https://github.com/Torwent/WaspLib/commit/f330886aea3c9a40cc1ec8282d59a3d8ac826579))
-
-
-
-## [18.4.12](https://github.com/Torwent/WaspLib/compare/v18.4.11...v18.4.12) (2024-04-18)
-
-
-### Bug Fixes
-
-* **xpbar:** typo ([85eb545](https://github.com/Torwent/WaspLib/commit/85eb545f6a515b1ca79645d4bd9180f5734a77a1))
 
 
 

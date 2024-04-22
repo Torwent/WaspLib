@@ -503,3 +503,93 @@ end;
 var
   WaspConfig: TWaspConfig;
 
+////////////////////////////////// -- TConfigINI -- /////////////////////////////////////
+
+(*
+## ConfigINI Methods Description
+
+- `Setup(FileName: String)`: Initializes the configuration path for the INI file.
+- `Put(Section, KeyName, Value: String)`: Stores a key-value pair in a specified section.
+- `Get(Section, KeyName: String)`: Retrieves the value associated with a key from a section.
+- `GetKeys(Section: String)`: Lists all keys within a specified section.
+- `DeleteConfig()`: Deletes the configuration file.
+
+## Example Usage
+
+ConfigINI.Setup('MyScriptSettings.ini'); // Set file path
+
+ConfigINI.Put('GUISettings', 'UsePoolPOH', 'True'); // Write setting
+writeln(ConfigINI.Get('GUISettings', 'UsePoolPOH')); // Read setting
+
+writeln(ConfigINI.GetKeys('GUISettings')); // List all keys in 'GUISettings'
+*)
+
+type
+  TConfigINI = record
+    Path: String;
+    FileName: String;
+  end;
+
+// Initializes configuration path and filename
+procedure TConfigINI.Setup(ConfigName: String);
+begin
+  if not ConfigName.EndsWith('.ini') then
+    ConfigName += '.ini';
+  Self.FileName := ConfigName;
+  Self.Path := AppPath + 'Configs' + DirectorySeparator + Self.FileName;
+end;
+
+// Writes a single key-value pair to a specified section
+procedure TConfigINI.Put(Section, KeyName, Value: String);
+begin
+  WriteINI(Section, KeyName, Value, Self.Path);
+end;
+
+// Retrieves a single value by key from a specified section
+function TConfigINI.Get(Section, KeyName: String): String;
+begin
+  Result := ReadINI(Section, KeyName, Self.Path);
+end;
+
+// Removes a single key-value pair from a specified section
+procedure TConfigINI.Remove(Section, KeyName: String);
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+  DeleteINI(Section, KeyName, Self.Path);
+end;
+
+// Deletes the entire configuration file
+procedure TConfigINI.DeleteConfig();
+begin
+  if FileExists(Self.Path) then
+    DeleteFile(Self.Path)
+  else
+    RaiseException('File does not exist: ' + Self.Path);
+end;
+
+// Retrieves all keys from a specified section
+function TConfigINI.GetKeys(Section: String): TStringArray;
+var
+  FileContent: TStringArray;
+var
+  i: Int32;
+  InSection: Boolean;
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+
+  FileContent := ReadFileContents(Self.Path).Split(#10);
+  while i < Length(FileContent) do begin
+    FileContent[i] := FileContent[i].Trim;
+    if FileContent[i].StartsWith('[') and FileContent[i].EndsWith(']') then begin
+      InSection := FileContent[i].Between('[', ']') = Section;
+    end else if InSection and FileContent[i].Contains('=') then begin
+      Result += FileContent[i].Before('=').Trim;
+    end;
+    Inc(i);
+  end;
+end;
+
+Var
+  {$H-}ConfigINI: TConfigINI;{$H+} 

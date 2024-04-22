@@ -450,7 +450,6 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     new: String;
     password: String;
     success: Boolean;
-    settings: TStringArray;
   begin
     newUUIDEdit := TScriptForm.Form.GetChild('api_new_uuid_edit');
     oldUUIDEdit := TScriptForm.Form.GetChild('api_uuid_edit');
@@ -465,9 +464,9 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     if not InputQuery('Update UUID', 'Please enter the password of this UUID:', password) then
       Exit;
 
-    StatsPayload.Setup('tmp');
     success := APIClient.CheckPassword(new, password);
-    StatsPayload.Setup('');
+    if not success then
+      Exit;
 
     if MessageDlg('Update UUID', 'Are you sure?' + LINEENDING +
                   'This can''t be reversed!'     + LINEENDING +
@@ -479,14 +478,13 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     newPassEdit := TScriptForm.Form.GetChild('api_new_pass_edit');
     oldPassEdit := TScriptForm.Form.GetChild('api_pass_edit');
 
-    APIClient.UUID := new;
-    StatsPayload.Password := password;
-    settings += 'APIClient.UUID := ''' + APIClient.UUID + ''';';
-    settings += 'StatsPayload.Password := ''' + StatsPayload.Password + ''';';
-    WriteConfigFile('uuid', settings);
+    APIClient.Config.Put('uuid', new);
+    APIClient.Config.Put('password', password);
+    APIClient.Payload.Remove('password');
+    APIClient.Payload.Put('password', password);
 
-    oldUUIDEdit.setCaption(new);
-    oldPassEdit.setCaption(password);
+    oldUUIDEdit.SetText(new);
+    oldPassEdit.SetText(password);
     newUUIDEdit.Clear();
     newPassEdit.Clear();
   end;
@@ -501,12 +499,8 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     newEdit := TScriptForm.Form.GetChild('api_new_pass_edit');
     new := Trim(newEdit.getText());
 
-    if new = '' then
-      Exit;
-
-    StatsPayload.Setup('tmp');
-    success := APIClient.UpdatePassword(APIClient.GetUUID(), StatsPayload.Password, new);
-    StatsPayload.Setup('');
+    if new = '' then Exit;
+    success := APIClient.UpdatePassword(APIClient.GetUUID(), APIClient.GetPassword(), new);
 
     if not success then
     begin
@@ -523,7 +517,7 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
     user: TEdit;
   begin
     user := sender;
-    StatsPayload.SetUsername(Trim(user.getText()));
+    APIClient.SetUsername(Trim(user.getText()));
   end;
 
 var
@@ -570,7 +564,7 @@ begin
     SetLeft(space);
     SetTop(y + Caption.AdjustToDPI(50));
     SetWidth(w);
-    SetText(APIClient.UUID);
+    SetText(APIClient.GetUUID());
     Edit.SetOnClick(@Self._CopyToClipboard);
     Edit.SetCursor(crHandPoint);
     Edit.setReadOnly(True);
@@ -613,7 +607,7 @@ begin
     SetLeft(uuid.getLeft());
     SetTop(uuid.GetBottom() + TControl.AdjustToDPI(25));
     SetWidth(w);
-    SetText(StatsPayload.Password);
+    SetText(APIClient.GetPassword());
     Edit.SetOnClick(@Self._CopyToClipboard);
     Edit.SetCursor(crHandPoint);
     Edit.setReadOnly(True);
@@ -649,8 +643,8 @@ begin
     SetLeft(uuid.getLeft());
     SetTop(pass.GetBottom() + TControl.AdjustToDPI(25));
     SetWidth(w);
-    SetText(StatsPayload.Username);
-    SetTooltip('Your WaspStats displayed username.');
+    SetText(APIClient.GetUsername());
+    SetTooltip('Your WaspStats username.');
     Edit.setOnEditingDone(@Self._UserOnDone);
   end;
 end;

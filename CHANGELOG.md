@@ -1,3 +1,12 @@
+## [18.4.18](https://github.com/Torwent/WaspLib/compare/v18.4.17...v18.4.18) (2024-04-22)
+
+
+### Bug Fixes
+
+* read notes ([8c1dc77](https://github.com/Torwent/WaspLib/commit/8c1dc77a79eec982aa475a6d20ef8709449d649e))
+
+
+
 ## [18.4.17](https://github.com/Torwent/WaspLib/compare/v18.4.16...v18.4.17) (2024-04-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **APIClient:** benchmarking the connection was bugged ([83cfd55](https://github.com/Torwent/WaspLib/commit/83cfd55af10e8c284a9c770fce8481afed91a05f))
-
-
-
-## [18.4.13](https://github.com/Torwent/WaspLib/compare/v18.4.12...v18.4.13) (2024-04-18)
-
-
-### Bug Fixes
-
-* more APIClient fixes ([f330886](https://github.com/Torwent/WaspLib/commit/f330886aea3c9a40cc1ec8282d59a3d8ac826579))
 
 
 

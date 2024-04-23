@@ -503,10 +503,8 @@ end;
 var
   WaspConfig: TWaspConfig;
 
-////////////////////////////////// -- TConfigINI -- /////////////////////////////////////
-
 (*
-## ConfigINI Methods Description
+## INIConfig Methods Description
 
 - `Setup(FileName: String)`: Initializes the configuration path for the INI file.
 - `Put(Section, KeyName, Value: String)`: Stores a key-value pair in a specified section.
@@ -525,34 +523,44 @@ writeln(ConfigINI.GetKeys('GUISettings')); // List all keys in 'GUISettings'
 *)
 
 type
-  TConfigINI = record
+  TINIConfig = record
     Path: String;
     FileName: String;
   end;
 
 // Initializes configuration path and filename
-procedure TConfigINI.Setup(ConfigName: String);
+procedure TINIConfig.Setup(ConfigName: String);
 begin
+  if ConfigName.Contains(DirectorySeparator) then
+  begin
+    Self.Path := ExtractFilePath(ConfigName);
+    ConfigName := ExtractFileName(ConfigName);
+  end
+  else
+    Self.Path := AppPath + 'Configs' + DirectorySeparator;
+
+  if not ForceDirectories(Self.Path) then
+    TerminateScript('Can''t create configs directory.');
+
   if not ConfigName.EndsWith('.ini') then
     ConfigName += '.ini';
-  Self.FileName := ConfigName;
-  Self.Path := AppPath + 'Configs' + DirectorySeparator + Self.FileName;
+  Self.Path += ConfigName;
 end;
 
 // Writes a single key-value pair to a specified section
-procedure TConfigINI.Put(Section, KeyName, Value: String);
+procedure TINIConfig.Put(Section, KeyName, Value: String);
 begin
   WriteINI(Section, KeyName, Value, Self.Path);
 end;
 
 // Retrieves a single value by key from a specified section
-function TConfigINI.Get(Section, KeyName: String): String;
+function TINIConfig.Get(Section, KeyName: String): String;
 begin
   Result := ReadINI(Section, KeyName, Self.Path);
 end;
 
 // Removes a single key-value pair from a specified section
-procedure TConfigINI.Remove(Section, KeyName: String);
+procedure TINIConfig.Remove(Section, KeyName: String);
 begin
   if not FileExists(Self.Path) then
     RaiseException('File does not exist: ' + Self.Path);
@@ -560,7 +568,7 @@ begin
 end;
 
 // Deletes the entire configuration file
-procedure TConfigINI.DeleteConfig();
+procedure TINIConfig.DeleteConfig();
 begin
   if FileExists(Self.Path) then
     DeleteFile(Self.Path)
@@ -569,7 +577,7 @@ begin
 end;
 
 // Retrieves all keys from a specified section
-function TConfigINI.GetKeys(Section: String): TStringArray;
+function TINIConfig.GetKeys(Section: String): TStringArray;
 var
   FileContent: TStringArray;
 var
@@ -592,4 +600,4 @@ begin
 end;
 
 Var
-  {$H-}ConfigINI: TConfigINI;{$H+} 
+  {$H-}ConfigINI: TINIConfig;{$H+} 

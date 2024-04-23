@@ -1,3 +1,12 @@
+## [18.4.24](https://github.com/Torwent/WaspLib/compare/v18.4.23...v18.4.24) (2024-04-23)
+
+
+### Bug Fixes
+
+* more renamings ([cdf4ae3](https://github.com/Torwent/WaspLib/commit/cdf4ae305b9218931f4a03e83dd85bbf3f5ba69c))
+
+
+
 ## [18.4.23](https://github.com/Torwent/WaspLib/compare/v18.4.22...v18.4.23) (2024-04-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([410fd1d](https://github.com/Torwent/WaspLib/commit/410fd1d280ff53159e07cb13784eadae7a45df49))
-
-
-
-## [18.4.19](https://github.com/Torwent/WaspLib/compare/v18.4.18...v18.4.19) (2024-04-22)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([e4abe9a](https://github.com/Torwent/WaspLib/commit/e4abe9ae6bcef94c4776eedeb6d49b75f5831d58))
 
 
 

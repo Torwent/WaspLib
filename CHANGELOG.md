@@ -1,3 +1,12 @@
+## [18.4.22](https://github.com/Torwent/WaspLib/compare/v18.4.21...v18.4.22) (2024-04-23)
+
+
+### Bug Fixes
+
+* **hints:** change the since line/statement hint removal in favor of a global one ([8308d8d](https://github.com/Torwent/WaspLib/commit/8308d8d1de4a3823aaf1b1cbe9cbc9d72643fcee))
+
+
+
 ## [18.4.21](https://github.com/Torwent/WaspLib/compare/v18.4.20...v18.4.21) (2024-04-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8c1dc77](https://github.com/Torwent/WaspLib/commit/8c1dc77a79eec982aa475a6d20ef8709449d649e))
-
-
-
-## [18.4.17](https://github.com/Torwent/WaspLib/compare/v18.4.16...v18.4.17) (2024-04-21)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([552cc72](https://github.com/Torwent/WaspLib/commit/552cc724a2a47a22e3e889cdc01048201ec70fae))
 
 
 

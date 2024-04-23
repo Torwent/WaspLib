@@ -1,3 +1,12 @@
+## [18.4.20](https://github.com/Torwent/WaspLib/compare/v18.4.19...v18.4.20) (2024-04-23)
+
+
+### Bug Fixes
+
+* read notes ([410fd1d](https://github.com/Torwent/WaspLib/commit/410fd1d280ff53159e07cb13784eadae7a45df49))
+
+
+
 ## [18.4.19](https://github.com/Torwent/WaspLib/compare/v18.4.18...v18.4.19) (2024-04-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **XPBar:** compatibility with latest SRL-T ([d2bae25](https://github.com/Torwent/WaspLib/commit/d2bae25e1c3781db8f5882c33bf5d230d536e1be))
-
-
-
-## [18.4.15](https://github.com/Torwent/WaspLib/compare/v18.4.14...v18.4.15) (2024-04-19)
-
-
-### Bug Fixes
-
-* **APIClient:** another minor logic bug ([4cde8bb](https://github.com/Torwent/WaspLib/commit/4cde8bbb192f68885a5c55edc59e8d4b69d87238))
 
 
 

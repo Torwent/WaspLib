@@ -1,3 +1,12 @@
+## [18.4.21](https://github.com/Torwent/WaspLib/compare/v18.4.20...v18.4.21) (2024-04-23)
+
+
+### Bug Fixes
+
+* **TJSONConfig:** renamed TWaspConfig to TJSONConfig ([9acb68c](https://github.com/Torwent/WaspLib/commit/9acb68c38cc1361000d31eeb292907ce54af1a0c))
+
+
+
 ## [18.4.20](https://github.com/Torwent/WaspLib/compare/v18.4.19...v18.4.20) (2024-04-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([552cc72](https://github.com/Torwent/WaspLib/commit/552cc724a2a47a22e3e889cdc01048201ec70fae))
-
-
-
-## [18.4.16](https://github.com/Torwent/WaspLib/compare/v18.4.15...v18.4.16) (2024-04-19)
-
-
-### Bug Fixes
-
-* **XPBar:** compatibility with latest SRL-T ([d2bae25](https://github.com/Torwent/WaspLib/commit/d2bae25e1c3781db8f5882c33bf5d230d536e1be))
 
 
 

@@ -1,3 +1,12 @@
+## [18.4.26](https://github.com/Torwent/WaspLib/compare/v18.4.25...v18.4.26) (2024-04-24)
+
+
+### Bug Fixes
+
+* **tools:** webber should properly rewrite files now ([0738937](https://github.com/Torwent/WaspLib/commit/0738937bd9ea85fcc1511c422c393c014c67684d))
+
+
+
 ## [18.4.25](https://github.com/Torwent/WaspLib/compare/v18.4.24...v18.4.25) (2024-04-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **hints:** change the since line/statement hint removal in favor of a global one ([8308d8d](https://github.com/Torwent/WaspLib/commit/8308d8d1de4a3823aaf1b1cbe9cbc9d72643fcee))
-
-
-
-## [18.4.21](https://github.com/Torwent/WaspLib/compare/v18.4.20...v18.4.21) (2024-04-23)
-
-
-### Bug Fixes
-
-* **TJSONConfig:** renamed TWaspConfig to TJSONConfig ([9acb68c](https://github.com/Torwent/WaspLib/commit/9acb68c38cc1361000d31eeb292907ce54af1a0c))
 
 
 

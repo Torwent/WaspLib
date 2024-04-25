@@ -1,3 +1,12 @@
+## [18.4.27](https://github.com/Torwent/WaspLib/compare/v18.4.26...v18.4.27) (2024-04-25)
+
+
+### Bug Fixes
+
+* SRL-T compatibility update ([7683c7b](https://github.com/Torwent/WaspLib/commit/7683c7bfb5d36d2a78586250c0de5884564233b4))
+
+
+
 ## [18.4.26](https://github.com/Torwent/WaspLib/compare/v18.4.25...v18.4.26) (2024-04-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * renamed TINIConfig back to TConfigINI ([67eec6f](https://github.com/Torwent/WaspLib/commit/67eec6fa8c19794c2c831632b95e2818a4829620))
-
-
-
-## [18.4.22](https://github.com/Torwent/WaspLib/compare/v18.4.21...v18.4.22) (2024-04-23)
-
-
-### Bug Fixes
-
-* **hints:** change the since line/statement hint removal in favor of a global one ([8308d8d](https://github.com/Torwent/WaspLib/commit/8308d8d1de4a3823aaf1b1cbe9cbc9d72643fcee))
 
 
 

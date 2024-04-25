@@ -630,7 +630,6 @@ end;
 function TRSWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
 function TRSWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
 ```
-
 method used to quickly check if we are within distance of a certain **worldPoint**. This distance is measure in pixels and in a radial way.
 You can optionally pass in a TPA to check if the closest point is within distance.
 
@@ -641,7 +640,7 @@ var
   p: TPoint;
 begin
   p := Self.GetMyPos();
-  Result := p.WithinDistance(worldPoint, distance);
+  Result := p.InRange(worldPoint, distance);
 end;
 
 function TRSWalker.AtTile(worldPointArray: TPointArray; distance: Int32 = 4): Boolean; overload;
@@ -649,7 +648,7 @@ var
   p: TPoint;
 begin
   p := Self.GetMyPos();
-  Result := p.WithinDistance(worldPointArray, distance);
+  Result := p.AnyInRange(worldPointArray, distance);
 end;
 
 
@@ -666,33 +665,39 @@ This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
 *)
 function TRSWalker.GetClosestPoint(destinations: TPointArray): TPoint;
 var
-  paths, shortPaths: T2DPointArray;
+  shortPaths: T2DPointArray;
   path: TPointArray;
-  shortest: Int32;
+  shortest, dist: Int32;
   me, destination: TPoint;
 begin
   me := Self.GetMyPos();
+  shortest := $FFFFFF;
+
   for destination in destinations do
   begin
-    path := [];
-
     try
       path := Self.WebGraph.PathBetween(me, destination, 0);
     except
+      Continue;
     end;
 
-    if (path <> []) and not paths.Contains(path) then
-      paths += path;
+    if path = [] then
+      Continue;
+
+    dist := Floor(path.TotalDistance());
+    if dist < shortest then
+    begin
+      shortPaths := [path];
+      shortest := dist;
+    end
+    else if dist = shortest then
+      shortPaths += path;
+
+    path := [];
   end;
 
-  if paths = [] then
+  if shortPaths = [] then
     Exit(destinations.NearestPoint(me));
-
-  shortest := Round(paths.ShortestDistance());
-
-  for path in paths do
-    if InRange(path.TotalDistance(), shortest-15, shortest+15) then
-      shortPaths += path;
 
   Result := shortPaths.RandomValue().Last();
 end;
@@ -702,7 +707,6 @@ end;
 ```pascal
 function TRSWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Double = 0): Boolean; overload;
 ```
-
 method used to webwalk to the closest Point to the player.
 An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
 You will likely want to use the closest bank booth to you, so you use this.
@@ -728,7 +732,6 @@ function TRSWalker.WorldToMM(atpa: T2DPointArray): TPointArray; overload;
 function TRSWalker.WorldToMM(me: TPoint; dotFilter: TRSDotFilter; roll: Double = $FFFF): TRSDotFilter; overload;
 function TRSWalker.WorldToMM(dotFilterArray: TRSDotFilterArray; roll: Double = $FFFF): TRSDotFilterArray; overload;
 ```
-
 Overloaded methods required for ATPAs and TRSDotFilters. For more information on TRSDotFilter check their documentation.
 
 This is a TRSWalker method so it will exist both on TRSWalker and TRSWalker.
@@ -829,7 +832,6 @@ end;
 function TRSWalker.MakePointVisible(p: TPoint): Boolean;
 function TRSWalker.MakePointVisible(tpa: TPointArray): Boolean; overload;
 ```
-
 Wrapper function used to attempt to make a Point visible on the MainScreen.
 
 This are TRSWalker methods so they will exist both on TRSWalker and TRSWalker.

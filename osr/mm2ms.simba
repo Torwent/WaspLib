@@ -250,7 +250,6 @@ end;
 ```pascal
 procedure TMM2MS.SetupZoom;
 ```
-
 Wrapper procedure to easily setup MM2MS.ZoomLevel.
 
 Example:
@@ -275,7 +274,6 @@ end;
 ```pascal
 function TRSMinimap.GetFaceablePoints(): TPointArray;
 ```
-
 Gives the center point of the 8 tiles that are directly close to the player.
 This are the tiles the player can "face".
 *)
@@ -297,7 +295,6 @@ end;
 ```pascal
 function TRSMinimap.GetCardinalPoints(): TPointArray;
 ```
-
 Gives the center point of the 4 cardinal points (North, West, South and East) that are directly close to the player.
 This are the tiles the player can "face".
 *)
@@ -311,97 +308,11 @@ begin
 end;
 
 
-(*
-## Minimap.PointWithinZoom
-```pascal
-function TRSMinimap.PointWithinZoom(p: TPoint; out Corner: TPoint): Boolean;
-```
-```pascal
-function TRSMinimap.PointWithinZoom(p: TPoint): Boolean; overload;
-```
-```pascal
-function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
-```
-
-Method used to know if a point is within reach of the Zoom rectangle without adjusting the zoom level.
-Check TRSMinimap.GetZoomRectangle for information on the Zoom rectangle.
-
-Example:
-```pascal
-WriteLn Minimap.PointWithinZoom([620, 100]);
-```
-*)
-function TRSMinimap.PointWithinZoom(p: TPoint; out corner: TPoint): Boolean;
-var
-  tpa: TPointArray;
-begin
-  if not Self.IsPointOn(p) then
-    Exit;
-
-  tpa := Self.GetZoomRectangle().ToTPA().SortFrom(Self.Center());
-  corner := tpa[High(tpa)];
-
-  Result := Self.Center().DistanceTo(P) <= Self.Center().DistanceTo(corner);
-end;
-
-function TRSMinimap.PointWithinZoom(p: TPoint): Boolean; overload;
-var
-  corner: TPoint;
-begin
-  Result := Self.PointWithinZoom(p, corner);
-end;
-
-function TRSMinimap.PointWithinZoom(tpa: TPointArray): Boolean; overload;
-begin
-  if tpa = [] then
-    Exit;
-
-  tpa := tpa.SortFrom(Self.Center());
-  Result := Self.PointWithinZoom(tpa.First());
-end;
-
-
-(*
-## Minimap.GetZoomToPoint
-```pascal
-function TRSMinimap.GetZoomToPoint(p: TPoint; randomness: Int32 = 0): Int32;
-```
-
-TODO: THIS NEEDS TO BE REWORKED. IT'S NOT RELIABLE RIGHT NOW.
-
-This function gives us a zoom level where **P** would be visible in the MainScreen.
-
-Example:
-```pascal
-p := Minimap.GetDots(ERSMinimapDot.ITEM)[0]; //find an item dot and returns it's coodinates.
-Options.SetZoomLevel(Minimap.ZoomToVisiblePoint(p));
-```
-*)
-function TRSMinimap.GetZoomToPoint(p: TPoint; randomness: Int32 = 0): Int32;
-var
-  distance: Double;
-begin
-  distance := p.DistanceTo(Self.Center());
-
-  Result := Round((73 - distance) / 0.8);
-  Result := Result + randomness;
-end;
-
-(*
-## Minimap.SetZoomToPoint
-```pascal
-function TRSMinimap.SetZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
-```
-
-TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
-
-This function adjusts the zoom level so **P** TRSMinimap.PointWithinZoom() is true.
-*)
-function TRSMinimap.SetZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean;
+function TRSMinimap.SetZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean; override;
 var
   level: Int32;
 begin
-  if Self.PointWithinZoom(p) then
+  if Self.InZoomRange(p) then
     Exit(True);
 
   level := Self.GetZoomToPoint(p, randomness);
@@ -413,27 +324,4 @@ begin
     Result := RSMouseZoom.SetZoomLevel(level);
 end;
 
-
-(*
-## Minimap.MakePointVisible
-```pascal
-function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
-```
-```pascal
-function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;
-```
-
-TODO: ADD THIS TO SRL WHEN TRSMinimap.ZoomToVisiblePoint() WORKS PROPERLY.
-
-Uses both Minimap.ZoomToPoint() and Minimap.FacePoint() to make a point visible on the Mainscreen.
-*)
-function TRSMinimap.MakePointVisible(p: TPoint): Boolean;
-begin
-  Result := Self.SetZoomToPoint(p, Random(-5, 5)) and Self.FacePoint(p, Random(-3, 3));
-end;
-
-function TRSMinimap.MakePointVisible(tpa: TPointArray): Boolean; overload;
-begin
-  Result := Self.MakePointVisible(tpa.SortFrom(Self.Center()));
-end;
 

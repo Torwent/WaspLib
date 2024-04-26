@@ -1,3 +1,12 @@
+## [18.4.28](https://github.com/Torwent/WaspLib/compare/v18.4.27...v18.4.28) (2024-04-26)
+
+
+### Bug Fixes
+
+* make sure scripts don't crash when they don't have a script_id ([04eb7d4](https://github.com/Torwent/WaspLib/commit/04eb7d493a799dfab6fc012390a3dd2050ce843b))
+
+
+
 ## [18.4.27](https://github.com/Torwent/WaspLib/compare/v18.4.26...v18.4.27) (2024-04-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * more renamings ([cdf4ae3](https://github.com/Torwent/WaspLib/commit/cdf4ae305b9218931f4a03e83dd85bbf3f5ba69c))
-
-
-
-## [18.4.23](https://github.com/Torwent/WaspLib/compare/v18.4.22...v18.4.23) (2024-04-23)
-
-
-### Bug Fixes
-
-* renamed TINIConfig back to TConfigINI ([67eec6f](https://github.com/Torwent/WaspLib/commit/67eec6fa8c19794c2c831632b95e2818a4829620))
 
 
 

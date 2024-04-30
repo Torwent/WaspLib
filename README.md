@@ -10,7 +10,7 @@ If you are having problems I suggest you try [my fork of SRL-Development](https:
 # What is WaspLib for?
  As mentioned earlier, to bot OldSchool RuneScape. It's purpose is to make writting scripts faster as it includes lot's of commonly used code throughout my scripts.
  
- Some things in WaspLib could be coming to SRL in the future but others are just too custom to ever be accepted there and will remain here.
+Some things in WaspLib could be coming to SRL in the future but others are just too custom to ever be accepted there and will remain here.
 
  # What can I expect to get with WaspLib?
 

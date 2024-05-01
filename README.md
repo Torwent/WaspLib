@@ -3,7 +3,8 @@
  WaspLib v2 is intended to work with [Simba 1400]([https://github.com/ollydev/Simba](https://github.com/Villavu/Simba/releases/tag/simba1400-release)) and [SRL-Development](https://github.com/Villavu/SRL-Development).
 
 If you are having problems I suggest you try [my fork of SRL-Development](https://github.com/Torwent/SRL) due to code changing too frequently in Olly's SRL-Development and something might be incompatible for a while.
- I also recommend you join my site and discord server and ask around there for help: [WaspScripts](https://waspscripts.com).
+
+I also recommend you join my site and discord server and ask around there for help: [WaspScripts](https://waspscripts.com).
  
  For documentation refer to: [Documentation](https://torwent.github.io/WaspLib).
  

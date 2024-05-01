@@ -1,3 +1,12 @@
+## [18.4.31](https://github.com/Torwent/WaspLib/compare/v18.4.30...v18.4.31) (2024-05-01)
+
+
+### Bug Fixes
+
+* force bump ([67def3b](https://github.com/Torwent/WaspLib/commit/67def3ba7adef341f2e1c7250344a9ac931005eb))
+
+
+
 ## [18.4.30](https://github.com/Torwent/WaspLib/compare/v18.4.29...v18.4.30) (2024-04-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * SRL-T compatibility update ([7683c7b](https://github.com/Torwent/WaspLib/commit/7683c7bfb5d36d2a78586250c0de5884564233b4))
-
-
-
-## [18.4.26](https://github.com/Torwent/WaspLib/compare/v18.4.25...v18.4.26) (2024-04-24)
-
-
-### Bug Fixes
-
-* **tools:** webber should properly rewrite files now ([0738937](https://github.com/Torwent/WaspLib/commit/0738937bd9ea85fcc1511c422c393c014c67684d))
 
 
 

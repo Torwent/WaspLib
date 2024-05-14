@@ -59,7 +59,6 @@ end;
 ```pascal
 function TRSMinimap.OnGroundLevel(threshold: Int32 = 3300): Boolean;
 ```
-
 **Minimap.OnGroundLevel** returns true if we are likely to be on the ground level.
 This works by counting the amount of black in the minimap and might give false positives/negatives if there's more than 3500 black pixels on the minimap.
 A **threshold** can be set for this counting, the default being 3300.
@@ -89,7 +88,6 @@ end;
 ```pascal
 function TRSMinimap.InPOH();
 ```
-
 **Minimap.InPOH** returns true if we are in a POH.
 This might give false positives if you are upstairs or in a place with few colors on the minimap.
 It might also give false negatives if the POH is crowded.
@@ -119,24 +117,37 @@ end;
 
 
 (*
-## Minimap.FindRedArrow
+## Minimap.FindArrow
 ```pascal
 function TRSMinimap.FindRedArrow(out tpa: TPointArray): Boolean;
 function TRSMinimap.FindRedArrow(): Boolean; overload;
+function TRSMinimap.FindYellowArrow(out tpa: TPointArray): Boolean;
+function TRSMinimap.FindYellowArrow(): Boolean; overload;
+function TRSMinimap.FindArrow(out tpa: TPointArray): Boolean;
+function TRSMinimap.FindArrow(): Boolean; overload;
 ```
-Returns true if there's a red arrow on minimap.
+Returns true if there's a an arrow on minimap.
 If a TPointArray is passed as a parameter it will return with the location of the arrow.
 
 Example:
 ```pascal
-Writeln Minimap.FindRedArrow();
+Writeln Minimap.FindArrow();
 ```
 *)
 function TRSMinimap.FindRedArrow(out tpa: TPointArray): Boolean;
+const
+  RED: TCTS0Color = [255, 0];
+var
+  atpa: T2DPointArray;
 begin
-  Result := (SRL.FindColors(tpa, CTS0(255, 0), Self.Bounds()) > 0) and
-            (Length(tpa) <= 84);
+  if SRL.FindColors(tpa, RED, Self.Bounds()) = 0 then
+    Exit;
 
+  atpa := tpa.Cluster(1);
+
+  for tpa in atpa do
+    if InRange(Length(tpa), 30, 128) then
+      Exit(True);
 end;
 
 function TRSMinimap.FindRedArrow(): Boolean; overload;
@@ -146,20 +157,6 @@ begin
   Result := Self.FindRedArrow(tpa);
 end;
 
-(*
-## Minimap.FindYellowArrow
-```pascal
-function TRSMinimap.FindYellowArrow(out tpa: TPointArray): Boolean;
-function TRSMinimap.FindYellowArrow(): Boolean; overload;
-```
-Returns true if there's a yellow arrow on minimap.
-If a TPointArray is passed as a parameter it will return with the location of the arrow tip.
-
-Example:
-```pascal
-Writeln Minimap.FindYellowArrow();
-```
-*)
 function TRSMinimap.FindYellowArrow(out tpa: TPointArray): Boolean;
 begin
   Result := (SRL.FindColors(tpa, CTS0(1767418, 0), Self.Bounds) > 0) and
@@ -174,20 +171,6 @@ begin
   Result := Self.FindYellowArrow(tpa);
 end;
 
-(*
-## Minimap.FindArrow
-```pascal
-function TRSMinimap.FindArrow(out tpa: TPointArray): Boolean;
-function TRSMinimap.FindArrow(): Boolean; overload;
-```
-Returns true if there's a red or yellow arrow on the minimap.
-If a TPointArray is passed as a parameter it will return with the location of the arrow.
-
-Example:
-```pascal
-Writeln Minimap.FindArrow();
-```
-*)
 function TRSMinimap.FindArrow(out tpa: TPointArray): Boolean;
 begin
   Result := Self.FindYellowArrow(tpa) or Self.FindRedArrow(tpa);
@@ -200,18 +183,21 @@ end;
 
 
 (*
-## Minimap.WaitRedArrow
+## Minimap.WaitArrow
 ```pascal
 function TRSMinimap.WaitRedArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
 function TRSMinimap.WaitRedArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TRSMinimap.WaitYellowArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TRSMinimap.WaitYellowArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TRSMinimap.WaitArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TRSMinimap.WaitArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
 ```
-
-Waits **waitTime** for a Red arrow to appear on Minimap.
+Waits **waitTime** for a an arrow to appear on Minimap.
 If a TPointArray is passed as a parameter it will return with the location of the arrow tip.
 
 Example:
 ```pascal
-Writeln Minimap.WaitRedArrow();
+Writeln Minimap.WaitArrow();
 ```
 *)
 function TRSMinimap.WaitRedArrow(out tpa: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
@@ -229,21 +215,6 @@ begin
   Result := Self.WaitRedArrow(tpa, waitTime, interval);
 end;
 
-(*
-## Minimap.WaitYellowArrow
-```pascal
-function TRSMinimap.WaitYellowArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
-function TRSMinimap.WaitYellowArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
-```
-
-Waits **waitTime** for a yellow arrow to appear on Minimap.
-If a TPointArray is passed as a parameter it will return with the location of the arrow tip.
-
-Example:
-```pascal
-Writeln Minimap.WaitYellowArrow();
-```
-*)
 function TRSMinimap.WaitYellowArrow(out tpa: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
 begin
   if (interval = -1) then
@@ -259,21 +230,6 @@ begin
   Result := Self.WaitYellowArrow(tpa, waitTime, interval);
 end;
 
-(*
-## Minimap.WaitArrow
-```pascal
-function TRSMinimap.WaitArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
-function TRSMinimap.WaitArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
-```
-
-Waits **waitTime** for a yellow or red arrow to appear on Minimap.
-If a TPointArray is passed as a parameter it will return with the location of the arrow.
-
-Example:
-```pascal
-Writeln Minimap.WaitArrow();
-```
-*)
 function TRSMinimap.WaitArrow(out tpa: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
 begin
   if (interval = -1) then
@@ -294,7 +250,6 @@ end;
 ```pascal
 function TRSMinimap.HasDotUnder(): Boolean;
 ```
-
 Checks if the player has a dot under it. This will include all types of ERSMinimapDot.
 
 Example:

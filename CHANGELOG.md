@@ -1,3 +1,12 @@
+## [18.4.32](https://github.com/Torwent/WaspLib/compare/v18.4.31...v18.4.32) (2024-05-14)
+
+
+### Bug Fixes
+
+* **minimap:** findredarrow should ignore the walking flag now ([bd2b604](https://github.com/Torwent/WaspLib/commit/bd2b6046c4cece128e25a2de3c82966899a54c13))
+
+
+
 ## [18.4.31](https://github.com/Torwent/WaspLib/compare/v18.4.30...v18.4.31) (2024-05-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * make sure scripts don't crash when they don't have a script_id ([04eb7d4](https://github.com/Torwent/WaspLib/commit/04eb7d493a799dfab6fc012390a3dd2050ce843b))
-
-
-
-## [18.4.27](https://github.com/Torwent/WaspLib/compare/v18.4.26...v18.4.27) (2024-04-25)
-
-
-### Bug Fixes
-
-* SRL-T compatibility update ([7683c7b](https://github.com/Torwent/WaspLib/commit/7683c7bfb5d36d2a78586250c0de5884564233b4))
 
 
 

@@ -37,7 +37,7 @@ type
     TimeStamp: UInt64;
     Benchmark: TIntegerArray;
     Fails: Int32;
-    Disabled: Boolean;
+    Stopped, Disabled: Boolean;
     Config: TConfigJSON;
   end;
 
@@ -411,6 +411,46 @@ begin
     Self.DebugLn('Failed 3 times in a row, APIClient will be disabled.');
     Self.Disabled := True;
   end;
+end;
+
+
+(*
+## APIClient.Pause
+```pascal
+procedure TAPIClient.Pause();
+```
+Method used to pause the APIClient timers.
+*)
+procedure TAPIClient.Pause();
+var
+  time: UInt64;
+begin
+  if Self.Disabled or Self.Stopped then
+    Exit;
+
+  time := GetTickCount();
+  Self.UpdatePayload(0, 0, time - Self.TimeStamp);
+  Self.TimeStamp := time;
+  Self.Timer.Pause();
+  Self.Stopped := True;
+end;
+
+(*
+## APIClient.Resume
+```pascal
+procedure TAPIClient.Resume();
+```
+Method used to resume the APIClient timers.
+*)
+procedure TAPIClient.Resume();
+var
+  time: UInt64;
+begin
+  if Self.Disabled or not Self.Stopped then
+    Exit;
+  Self.TimeStamp := GetTickCount();
+  Self.Timer.Resume();
+  Self.Stopped := False;
 end;
 
 

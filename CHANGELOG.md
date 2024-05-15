@@ -1,3 +1,12 @@
+## [18.4.33](https://github.com/Torwent/WaspLib/compare/v18.4.32...v18.4.33) (2024-05-15)
+
+
+### Bug Fixes
+
+* **APIClient:** add Pause and Resume methods ([d14afff](https://github.com/Torwent/WaspLib/commit/d14afffdba6098d091c3a71fd83adb14a72fbe81))
+
+
+
 ## [18.4.32](https://github.com/Torwent/WaspLib/compare/v18.4.31...v18.4.32) (2024-05-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSChunks:** add MLM chunk ([40c1c0d](https://github.com/Torwent/WaspLib/commit/40c1c0da1e8e4f2917b46d32c8b7b2b59cfb1623))
-
-
-
-## [18.4.28](https://github.com/Torwent/WaspLib/compare/v18.4.27...v18.4.28) (2024-04-26)
-
-
-### Bug Fixes
-
-* make sure scripts don't crash when they don't have a script_id ([04eb7d4](https://github.com/Torwent/WaspLib/commit/04eb7d493a799dfab6fc012390a3dd2050ce843b))
 
 
 

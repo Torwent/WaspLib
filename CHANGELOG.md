@@ -1,3 +1,12 @@
+## [18.4.34](https://github.com/Torwent/WaspLib/compare/v18.4.33...v18.4.34) (2024-05-16)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([9c169f9](https://github.com/Torwent/WaspLib/commit/9c169f9fb38834d510f2f7e0c2bfd00e58374981))
+
+
+
 ## [18.4.33](https://github.com/Torwent/WaspLib/compare/v18.4.32...v18.4.33) (2024-05-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([d5d28ff](https://github.com/Torwent/WaspLib/commit/d5d28ffade34ec7af27fdf64a4337af9e0fd6323))
-
-
-
-## [18.4.29](https://github.com/Torwent/WaspLib/compare/v18.4.28...v18.4.29) (2024-04-26)
-
-
-### Bug Fixes
-
-* **TRSChunks:** add MLM chunk ([40c1c0d](https://github.com/Torwent/WaspLib/commit/40c1c0da1e8e4f2917b46d32c8b7b2b59cfb1623))
 
 
 

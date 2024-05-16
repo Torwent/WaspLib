@@ -49,7 +49,6 @@ type
 ```pascal
 function TRSHeightMap.GetColor(p: TPoint): Int64;
 ```
-
 Returns the color of the heightmap at the specified point.
 
 Example:
@@ -404,7 +403,6 @@ end;
 ```pascal
 function TRSWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
 ```
-
 Returns the height of the player at the specified coordinate with the help of TRSHeightMap.
 If p is [], which is the default then we will use our current position.
 global decides wether the coordinate is converted to global coordinates or internal walker coordinates (read about walker regions for more info).
@@ -439,7 +437,6 @@ end;
 ```pascal
 procedure TRSWalker.DebugHeightTiles(angle: Double = -1);
 ```
-
 Displays a debug image of the tiles visible on the mainscreen with their height adjusted according to the TRSHeightMap.
 This is very useful if you need to adjust TRSHeightMap.MaxHeight.
 
@@ -879,7 +876,7 @@ begin
   loc   := Self.WorldToMM(me, loc, Angle);
   if not RSHeightMap.Disabled then
     shape.Tile.Z -= Self.GetHeightDiff(me, loc);
-  Result := Minimap.GetCuboidMS(loc, shape, offset, angle);
+  Result := Minimap.GetCuboidMS(loc, shape, offset.ToVec3(), angle);
 end;
 
 function TRSWalker.GetCuboidMS(loc: TPoint; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]): TCuboidEx; overload;
@@ -894,7 +891,7 @@ begin
   Angle := Minimap.GetCompassAngle(False);
   loc   := Self.WorldToMM(me, loc, Angle);
 
-  Result := Minimap.GetCuboidMS(loc, tile, Offset, Angle);
+  Result := Minimap.GetCuboidMS(loc, tile, offset.ToVec3(), Angle);
 end;
 
 function TRSWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]): TCuboidEx; overload;
@@ -936,7 +933,7 @@ begin
 
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
-    Result += Minimap.GetTileMS(locArray[i], tmpShapes[i].Tile, offset, angle + tmpShapes[i].Angle);
+    Result += Minimap.GetTileMS(locArray[i], tmpShapes[i].Tile, offset.ToVec3(), angle + tmpShapes[i].Angle);
   end;
 end;
 
@@ -956,7 +953,7 @@ begin
      shape.Tile.Z -= Self.GetHeightDiff(locArray[i]);
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
-    Result += Minimap.GetTileMS(locArray[i], shape.Tile, offset, angle + shape.Angle);
+    Result += Minimap.GetTileMS(locArray[i], shape.Tile, offset.ToVec3(), angle + shape.Angle);
   end;
 end;
 
@@ -976,7 +973,7 @@ begin
       tile.Z -= Self.GetHeightDiff(locArray[i]);
     locArray[i] := Self.WorldToMM(me, locArray[i], angle);
 
-    Result += Minimap.GetTileMS(locArray[i], tile, offset, angle);
+    Result += Minimap.GetTileMS(locArray[i], tile, offset.ToVec3(), angle);
   end;
 end;
 
@@ -1003,58 +1000,59 @@ TPA := Minimap.GetDots(ERSMinimapDot.Player);   //find all player dots and retur
 Debug(Minimap.GetCuboidArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
 ```
 *)
-function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shapeArray: TRSMainScreenShapeArray; Offset: Vector2 = [0, 0]): TCuboidExArray;
+function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shapeArray: TRSMainScreenShapeArray; offset: Vector2 = [0, 0]): TCuboidExArray;
 var
   angle, meHeight: Double;
   i: Int32;
-  tmpArray: TPointArray;
-  heightArray: TDoubleArray;
+  p: TPoint;
+  vOffset: Vector3;
 begin
   angle := Minimap.GetCompassAngle(False);
-  tmpArray := Copy(locArray);
-  SetLength(heightArray, Length(shapeArray));
 
   if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
-  for i := 0 to High(tmpArray) do
+  vOffset := offset.ToVec3();
+  for i := 0 to High(locArray) do
   begin
+    vOffset.Z := 0;
     if not RSHeightMap.Disabled then
-      heightArray[i] -= meHeight - Self.GetHeight(locArray[i])
-    else
-      heightArray[i] := 0;
-    tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
-  end;
+      vOffset.Z -= meHeight - Self.GetHeight(locArray[i]);
 
-  Result := Minimap.GetCuboidArrayMSEx(tmpArray, shapeArray, heightArray, offset, angle);
+    p := Self.WorldToMM(me, locArray[i], angle);
+    if not Minimap.Bounds().Expand(10).Contains(p) then
+      Continue;
+
+    if Length(locArray) = Length(shapeArray) then
+      Result += Minimap.GetCuboidMS(p, shapeArray[i], vOffset, angle)
+    else
+      Result += Minimap.GetCuboidMS(p, shapeArray[0], vOffset, angle);
+  end;
 end;
 
 function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TRSMainScreenShape; offset: Vector2 = [0, 0]): TCuboidExArray; overload;
 var
   angle, meHeight: Double;
   i: Int32;
-  tmpArray: TPointArray;
-  shapeArray: TRSMainScreenShapeArray;
-  heightArray: TDoubleArray;
+  p: TPoint;
+  vOffset: Vector3;
 begin
   angle := Minimap.GetCompassAngle(False);
-  tmpArray := Copy(locArray);
-  SetLength(heightArray, Length(tmpArray));          
 
   if not RSHeightMap.Disabled then
     meHeight := Self.GetHeight(me);
 
-  for i := 0 to High(tmpArray) do
+  vOffset := offset.ToVec3();
+  for i := 0 to High(locArray) do
   begin
-    shapeArray += shape;
+    vOffset.Z := 0;
     if not RSHeightMap.Disabled then
-      heightArray[i] := meHeight - Self.GetHeight(locArray[i])
-    else
-      heightArray[i] := 0;
-    tmpArray[i] := Self.WorldToMM(me, locArray[i], angle);
-  end;
+      vOffset.Z -= meHeight - Self.GetHeight(locArray[i]);
 
-  Result := Minimap.GetCuboidArrayMSEx(tmpArray, shapeArray, heightArray, offset, angle);
+    p := Self.WorldToMM(me, locArray[i], angle);
+    if Minimap.Bounds().Expand(10).Contains(p) then
+      Result += Minimap.GetCuboidMS(p, shape, vOffset, angle);
+  end;
 end;
 
 function TRSWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TCuboidExArray; overload;

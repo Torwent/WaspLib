@@ -652,6 +652,7 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
   procedure TScriptForm._ClearInputs(sender: TObject);
   var
     edit: TCustomEdit;
+    btn: TButton;
   begin
     edit := TScriptForm.Form.GetChild('am_user_edit');
     edit.Clear();
@@ -664,6 +665,11 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
 
     edit := TScriptForm.Form.GetChild('am_worlds_memo');
     edit.Clear();
+
+    btn := TScriptForm.Form.GetChild('am_save_button');
+    btn.setEnabled(False);
+    btn := TScriptForm.Form.GetChild('am_delete_button');
+    btn.setEnabled(False);
   end;
 
   procedure TScriptForm._FillInputs(sender: TObject);
@@ -672,6 +678,7 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     worldsStr: String;
     user, pass, pin: TEdit;
     worlds: TMemo;
+    btn: TButton;
   begin
     idx := Login.PlayerIndex;
 
@@ -692,6 +699,11 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     end;
 
     worlds.SetText(worldsStr);
+
+    btn := TScriptForm.Form.GetChild('am_save_button');
+    btn.setEnabled(True);
+    btn := TScriptForm.Form.GetChild('am_delete_button');
+    btn.setEnabled(True);
   end;
 
   procedure TScriptForm._ReloadSelector(sender: TObject);
@@ -727,20 +739,22 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     selector := sender;
 
     i := selector.GetItemIndex();
-    if i = -1 then
-    begin
-      Login.PlayerIndex := 0;
-      Self._ClearInputs(selector);
-    end
-    else if (i > High(Login.Players)) then
-    begin
-      Login.PlayerIndex := i;
-      Self._ClearInputs(selector);
-    end
-    else
-    begin
-      Login.PlayerIndex := i;
-      Self._FillInputs(selector);
+    case i of
+      -1:
+      begin
+        Login.PlayerIndex := 0;
+        Self._ClearInputs(selector);
+      end;
+      0..High(Login.Players):
+      begin
+        Login.PlayerIndex := i;
+        Self._FillInputs(selector);
+      end;
+      else
+      begin
+        Login.PlayerIndex := i;
+        Self._ClearInputs(selector);
+      end;
     end;
 
     BioHash := 0;
@@ -862,7 +876,7 @@ begin
   end;
 
   fullWidth := Floor(Self.Size.X/2);
-  space := Floor(fullWidth * 0.1);
+  space := Floor(fullWidth * 0.08);
   w := fullWidth - (space * 2);
 
   passW := Floor(w * 0.6);
@@ -875,6 +889,7 @@ begin
     Create(Result);
     SetCaption('Current account:');
     SetName('am_selector');
+    SetTooltip('Currently selected account. Scripts will use this account to log in.');
     SetLeft(space);
     SetTop(y);
     SetStyle(csDropDownList);
@@ -887,6 +902,7 @@ begin
     Create(Result);
     SetCaption('Username:');
     SetName('am_user');
+    SetTooltip('Username or email of the current account.');
     SetLeft(space);
     SetTop(selector.GetBottom() + TControl.AdjustToDPI(2));
     SetWidth(w);
@@ -897,6 +913,7 @@ begin
     Create(Result);
     SetCaption('Password:');
     SetName('am_pass');
+    SetTooltip('Password of the current account.');
     SetLeft(space);
     SetTop(user.GetBottom() + TControl.AdjustToDPI(2));
     SetWidth(passW);
@@ -908,6 +925,7 @@ begin
     Create(Result);
     SetCaption('Bank pin:');
     SetName('am_pin');
+    SetTooltip('Bank pin of the current account.');
     SetLeft(selector.GetRight() - pinW);
     SetTop(pass.GetTop());
     SetWidth(pinW);
@@ -921,36 +939,40 @@ begin
     Create(Result);
     SetCaption('Worlds (separated by commas):');
     SetName('am_worlds');
-    SetLeft(fullWidth + space);
+    SetTooltip('World list of the current account. Ex. 302, 305, 309, 444, 573');
+    SetLeft(TControl.AdjustToDPI(375));
     SetTop(selector.GetTop());
     SetHeight(user.GetBottom());
-    SetWidth(w);
+    SetWidth(TControl.AdjustToDPI(336));
     Memo.setOnKeyPress(@Memo.NumberArrayField);
   end;
 
   fullWidth := Floor(worlds.GetWidth()/3);
-  space := Floor(fullWidth * 0.1);
-  w := fullWidth - (space * 2);
+  space := Floor(fullWidth * 0.02);
+  w := fullWidth - (space);
 
   with addButton do
   begin
     Create(Result);
-    SetCaption('Add');
+    SetCaption('Add Account');
     SetName('am_add_button');
-    SetLeft(worlds.GetLeft());
+    SetTooltip('Adds the currently input information into the credentials file if not already existing.');
+    SetLeft(worlds.GetLeft() - 1);   // Why is GetLeft() off by 1 pixel??
     SetWidth(w);
-    SetTop(pass.GetBottom() - GetHeight());
+    SetHeight(TControl.AdjustToDPI(27));
+    SetTop(pass.GetBottom() - GetHeight() + 1); // Off by 1 pixel again?
     setOnClick(@Self._OnAddClick);
   end;
 
   with saveButton do
   begin
     Create(Result);
-    SetCaption('Save');
+    SetCaption('Update Account'); //Only changing the display text of the button, not the underlying code.
     SetName('am_save_button');
-    SetLeft(addButton.GetRight() + space * 3);
+    SetTooltip('Updates account information of the selected account.');
+    SetLeft(addButton.GetRight() + space * 2);
     SetTop(addButton.GetTop());
-    SetWidth(w);
+    SetWidth(w );
     SetHeight(addButton.getHeight());
     setOnClick(@Self._OnSaveClick);
   end;
@@ -958,9 +980,10 @@ begin
   with deleteButton do
   begin
     Create(Result);
-    SetCaption('Delete');
+    SetCaption('Delete Account');
     SetName('am_delete_button');
-    SetLeft(saveButton.GetRight() + space * 3);
+    SetTooltip('Deletes the selected account from the credientials file.');
+    SetLeft(saveButton.GetRight() + space * 2);
     SetTop(addButton.GetTop());
     SetWidth(w);
     SetHeight(addButton.getHeight());
@@ -2118,4 +2141,3 @@ procedure TScriptForm.Run();
 begin
   Sync(@Self.Show);
 end;
-

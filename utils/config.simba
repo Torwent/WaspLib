@@ -9,43 +9,8 @@ A full featured JSON config writer and reader.
 {$ENDIF}
 
 type
-  TJSONArrayObject = record
-    Key: String;
-    JSONArray: TJSONArray;
-  end;
-
-  TJSONArrayObjectArray = array of TJSONArrayObject;
-
-function TJSONArrayObjectArray.Find(key: String): Int32;
-begin
-  for Result := 0 to High(Self) do
-    if Self[Result].Key = key then
-      Exit;
-  Result := -1;
-end;
-
-function TJSONArrayObjectArray.Put(key: String): Int32;
-begin
-  Result := Length(Self);
-  Self += [key, nil];
-end;
-
-function TJSONArrayObjectArray.Get(key: String): Int32;
-begin
-  Result := Self.Find(key);
-  if Result > -1 then
-  begin
-    Self[Result].JSONArray.Free();
-    Self[Result].JSONArray := nil;
-    Exit;
-  end;
-  Result := Self.Put(key);
-end;
-
-
-type
 (*
-(Config)=
+(TConfigJSON)=
 ## type TConfigJSON
 ```pascal
 TConfigJSON = record
@@ -57,14 +22,13 @@ end;
   TConfigJSON = record
     Path: String;
     JSON: TJSONObject;
-    _ArrayHelper: TJSONArrayObjectArray; //Don't touch.
     IsSetup, OnTerminate: Boolean;       //Don't touch.
   end;
 
 (*
-## Config.GeTConfigJSON()
+## TConfigJSON.GetConfig
 ```pascal
-function TConfigJSON.GeTConfigJSON(): TJSONObject;
+function TConfigJSON.GetConfig(): TJSONObject;
 ```
 Helper method to return the current TConfigJSON.Path file as a TJSONObject.
 You probably don't need to use this directly.
@@ -87,7 +51,7 @@ begin
 end;
 
 (*
-## Config.Free()
+## TConfigJSON.Free
 ```pascal
 procedure TConfigJSON.Free();
 ```
@@ -102,13 +66,12 @@ begin
 
   Self.JSON.Free();
   Self.JSON := nil;
-  Self._ArrayHelper := [];
 
   Self.IsSetup := False;
 end;
 
 (*
-## Config.Setup
+## TConfigJSON.Setup
 ```pascal
 procedure TConfigJSON.Setup(jsonFile: String);
 ```
@@ -142,7 +105,7 @@ begin
 end;
 
 (*
-## Config.DeleteConfig()
+## TConfigJSON.DeleteConfig
 ```pascal
 procedure TConfigJSON.DeleteConfig();
 ```
@@ -155,7 +118,7 @@ begin
 end;
 
 (*
-## Config.SaveConfig()
+## TConfigJSON.SaveConfig
 ```pascal
 procedure TConfigJSON.SaveConfig();
 ```
@@ -172,16 +135,12 @@ end;
 
 
 (*
-## Config.Put()
+## TConfigJSON.Put
 ```pascal
 procedure TConfigJSON.Put(key, value: String; save: Boolean = True);
 procedure TConfigJSON.Put(key: String; value: Int32; save: Boolean = True); overload;
 procedure TConfigJSON.Put(key: String; value: Double; save: Boolean = True); overload;
 procedure TConfigJSON.Put(key: String; value: Boolean; save: Boolean = True); overload;
-procedure TConfigJSON.Put(key: String; values: TStringArray; save: Boolean = True); overload;
-procedure TConfigJSON.Put(key: String; values: TIntegerArray; save: Boolean = True); overload;
-procedure TConfigJSON.Put(key: String; values: TDoubleArray; save: Boolean = True); overload;
-procedure TConfigJSON.Put(key: String; values: TBoolArray; save: Boolean = True); overload;
 procedure TConfigJSON.Put(key: String; value: Pointer; save: Boolean = True); overload;
 ```
 This should be self explanatory. Put a `key` and a `value` pair into your `TConfigJSON`.
@@ -228,86 +187,6 @@ begin
     Self.SaveConfig();
 end;
 
-procedure TConfigJSON.Put(key: String; values: TStringArray; save: Boolean = True); overload;
-var
-  i, j: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-
-  i := Self._ArrayHelper.Get(key);
-  Self._ArrayHelper[i].JSONArray.Init();
-
-  for j := 0 to High(values) do
-    Self._ArrayHelper[i].JSONArray.Put(values[j]);
-
-  Self.JSON.Remove(key);
-  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
-
-  if save then
-    Self.SaveConfig();
-end;
-
-procedure TConfigJSON.Put(key: String; values: TIntegerArray; save: Boolean = True); overload;
-var
-  i, j: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-
-  i := Self._ArrayHelper.Get(key);
-  Self._ArrayHelper[i].JSONArray.Init();
-
-  for j := 0 to High(values) do
-    Self._ArrayHelper[i].JSONArray.Put(values[j]);
-
-  Self.JSON.Remove(key);
-  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
-
-  if save then
-    Self.SaveConfig();
-end;
-
-procedure TConfigJSON.Put(key: String; values: TDoubleArray; save: Boolean = True); overload;
-var
-  i, j: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-
-  i := Self._ArrayHelper.Get(key);
-  Self._ArrayHelper[i].JSONArray.Init();
-
-  for j := 0 to High(values) do
-    Self._ArrayHelper[i].JSONArray.Put(values[j]);
-
-  Self.JSON.Remove(key);
-  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
-
-  if save then
-    Self.SaveConfig();
-end;
-
-procedure TConfigJSON.Put(key: String; values: TBoolArray; save: Boolean = True); overload;
-var
-  i, j: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-
-  i := Self._ArrayHelper.Get(key);
-  Self._ArrayHelper[i].JSONArray.Init();
-
-  for j := 0 to High(values) do
-    Self._ArrayHelper[i].JSONArray.Put(values[j]);
-
-  Self.JSON.Remove(key);
-  Self.JSON.Put(key, Self._ArrayHelper[i].JSONArray);
-
-  if save then
-    Self.SaveConfig();
-end;
-
 procedure TConfigJSON.Put(key: String; value: Pointer; save: Boolean = True); overload;
 begin
   if Self.JSON = nil then
@@ -322,7 +201,7 @@ end;
 
 
 (*
-## Config.Has()
+## TConfigJSON.Has
 ```pascal
 function TConfigJSON.Has(key: String; nullIsValid: Boolean = True): Boolean;
 ```
@@ -341,18 +220,15 @@ end;
 
 
 (*
-## Config.Get()
+## TConfigJSON.Get
 ```pascal
 function TConfigJSON.GetString(key: String): String;
 function TConfigJSON.GetInt(key: String): Int32;
 function TConfigJSON.GetDouble(key: String): Double;
 function TConfigJSON.GetBoolean(key: String): Boolean;
 function TConfigJSON.GetNull(key: String): Boolean;
-function TConfigJSON.GetStringArray(key: String): TStringArray;
-function TConfigJSON.GetIntArray(key: String): TIntegerArray;
-function TConfigJSON.GetDoubleArray(key: String): TDoubleArray;
-function TConfigJSON.GetBooleanArray(key: String): TBoolArray;
 function TConfigJSON.GetObject(key: String): TJSONObject;
+function TConfigJSON.GetArray(key: String): TJSONArray;
 ```
 This should be self explanatory. Returns the value of a `key` in your `TConfigJSON`.
 The `Object` version of the method is the only one that might need a little bit more knowledge of
@@ -397,66 +273,6 @@ begin
   Result := not Self.JSON.has(key) or Self.JSON.isNull(key);
 end;
 
-function TConfigJSON.GetStringArray(key: String): TStringArray;
-var
-  tmp: TJSONArray;
-  i: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
-  begin
-    tmp := Self.JSON.getJSONArray(key);
-    for i := 0 to tmp.length()-1 do
-      Result += tmp.getString(i);
-  end;
-end;
-
-function TConfigJSON.GetIntArray(key: String): TIntegerArray;
-var
-  tmp: TJSONArray;
-  i: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
-  begin
-    tmp := Self.JSON.getJSONArray(key);
-    for i := 0 to tmp.length()-1 do
-      Result += tmp.getInt(i);
-  end;
-end;
-
-function TConfigJSON.GetDoubleArray(key: String): TDoubleArray;
-var
-  tmp: TJSONArray;
-  i: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
-  begin
-    tmp := Self.JSON.getJSONArray(key);
-    for i := 0 to tmp.length()-1 do
-      Result += tmp.getDouble(i);
-  end;
-end;
-
-function TConfigJSON.GetBooleanArray(key: String): TBoolArray;
-var
-  tmp: TJSONArray;
-  i: Int32;
-begin
-  if Self.JSON = nil then
-    Exit;
-  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
-  begin
-    tmp := Self.JSON.getJSONArray(key);
-    for i := 0 to tmp.length()-1 do
-      Result += tmp.getBoolean(i);
-  end;
-end;
-
 function TConfigJSON.GetObject(key: String): TJSONObject;
 begin
   if Self.JSON = nil then
@@ -465,9 +281,17 @@ begin
     Result := Self.JSON.getJSONObject(key);
 end;
 
+function TConfigJSON.GetArray(key: String): TJSONArray;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getJSONArray(key);
+end;
+
 
 (*
-## Config.Remove()
+## TConfigJSON.Remove
 ```pascal
 procedure TConfigJSON.Remove(key: String);
 ```
@@ -481,8 +305,9 @@ begin
   Self.SaveConfig();
 end;
 
+
 (*
-## Config.ToString()
+## TConfigJSON.ToString
 ```pascal
 function TConfigJSON.ToString(indentFactor: Int32 = 2): String;
 ```
@@ -500,33 +325,41 @@ begin
   Result := Self.JSON.ToString(indentFactor);
 end;
 
-type TWaspConfig = TConfigJSON;
-
 type
 (*
-## INIConfig Methods Description
-
-- `Setup(FileName: String)`: Initializes the configuration path for the INI file.
-- `Put(Section, KeyName, Value: String)`: Stores a key-value pair in a specified section.
-- `Get(Section, KeyName: String)`: Retrieves the value associated with a key from a section.
-- `GetKeys(Section: String)`: Lists all keys within a specified section.
-- `DeleteConfig()`: Deletes the configuration file.
-
-## Example Usage
-
+(TConfigINI)=
+## type TConfigINI
+```pascal
+TConfigINI = record
+  Path: String;
+  FileName: String;
+end;
+```
+Example:
+```pascal
 ConfigINI.Setup('MyScriptSettings.ini'); // Set file path
-
 ConfigINI.Put('GUISettings', 'UsePoolPOH', 'True'); // Write setting
-writeln(ConfigINI.Get('GUISettings', 'UsePoolPOH')); // Read setting
-
-writeln(ConfigINI.GetKeys('GUISettings')); // List all keys in 'GUISettings'
+WriteLn(ConfigINI.Get('GUISettings', 'UsePoolPOH')); // Read setting
+WriteLn(ConfigINI.GetKeys('GUISettings')); // List all keys in 'GUISettings'
+```
 *)
   TConfigINI = record
     Path: String;
     FileName: String;
   end;
 
-// Initializes configuration path and filename
+(*
+## TConfigINI.Setup
+```pascal
+procedure TConfigINI.Setup(ConfigName: String);
+```
+Initializes configuration path and filename.
+
+Example:
+```pascal
+ConfigINI.Setup('MyScriptSettings.ini');
+```
+*)
 procedure TConfigINI.Setup(ConfigName: String);
 begin
   if ConfigName.Contains(DirectorySeparator) then
@@ -545,36 +378,54 @@ begin
   Self.Path += ConfigName;
 end;
 
-// Writes a single key-value pair to a specified section
+
+(*
+## TConfigINI.Put
+```pascal
+procedure TConfigINI.Put(Section, KeyName, Value: String);
+```
+Writes a single key-value pair to a specified section.
+
+Example:
+```pascal
+ConfigINI.Put('GUISettings', 'UsePoolPOH', 'True');
+```
+*)
 procedure TConfigINI.Put(Section, KeyName, Value: String);
 begin
   WriteINI(Section, KeyName, Value, Self.Path);
 end;
 
-// Retrieves a single value by key from a specified section
+
+(*
+## TConfigINI.Get
+```pascal
+function TConfigINI.Get(Section, KeyName: String): String;
+```
+Retrieves a single value by key from a specified section.
+
+Example:
+```pascal
+WriteLn(ConfigINI.Get('GUISettings', 'UsePoolPOH'));
+```
+*)
 function TConfigINI.Get(Section, KeyName: String): String;
 begin
   Result := ReadINI(Section, KeyName, Self.Path);
 end;
 
-// Removes a single key-value pair from a specified section
-procedure TConfigINI.Remove(Section, KeyName: String);
-begin
-  if not FileExists(Self.Path) then
-    RaiseException('File does not exist: ' + Self.Path);
-  DeleteINI(Section, KeyName, Self.Path);
-end;
+(*
+## TConfigINI.GetKeys
+```pascal
+function TConfigINI.GetKeys(Section: String): TStringArray;
+```
+Retrieves all keys from a specified section.
 
-// Deletes the entire configuration file
-procedure TConfigINI.DeleteConfig();
-begin
-  if FileExists(Self.Path) then
-    DeleteFile(Self.Path)
-  else
-    RaiseException('File does not exist: ' + Self.Path);
-end;
-
-// Retrieves all keys from a specified section
+Example:
+```pascal
+WriteLn(ConfigINI.GetKeys('GUISettings'));
+```
+*)
 function TConfigINI.GetKeys(Section: String): TStringArray;
 var
   FileContent: TStringArray;
@@ -597,3 +448,43 @@ begin
   end;
 end;
 
+
+(*
+## TConfigINI.Remove
+```pascal
+procedure TConfigINI.Remove(Section, KeyName: String);
+```
+Removes a single key-value pair from a specified section.
+
+Example:
+```pascal
+ConfigINI.Remove('GUISettings', 'UsePoolPOH'));
+```
+*)
+procedure TConfigINI.Remove(Section, KeyName: String);
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+  DeleteINI(Section, KeyName, Self.Path);
+end;
+
+
+(*
+## TConfigINI.DeleteConfig
+```pascal
+procedure TConfigINI.DeleteConfig();
+```
+Deletes the entire configuration file.
+
+Example:
+```pascal
+ConfigINI.DeleteConfig();
+```
+*)
+procedure TConfigINI.DeleteConfig();
+begin
+  if FileExists(Self.Path) then
+    DeleteFile(Self.Path)
+  else
+    RaiseException('File does not exist: ' + Self.Path);
+end;

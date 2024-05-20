@@ -21,6 +21,13 @@ type
     MAX_ZOOM: Int32 = 768;
   end;
 
+procedure TRSMouseZoom.Setup();
+begin
+  Self.Name := 'RSMouseZoom';
+  Self.ZoomLevel := -1;
+  WL.GameSettings.MouseWheel := True;
+end;
+
 (*
 ## RSMouseZoom.GetNext
 ```pascal
@@ -434,16 +441,6 @@ var
   i: Int32;
   levelTPA, zInTPA, zOutTPA, zSlider: TPointArray;
 begin
-  bmp.Init();
-  bmp.SetSize(Self.MAX_ZOOM+10, Self.MAX_ZOOM+10);
-
-  bmp.Invert();
-  //bmp.Fill($ECECEC); probably has the same effect I think.
-
-  for i:=0 to bmp.GetWidth() do
-    if Frac(i/2) = 0 then
-      bmp.LineTo([i,0], [i,bmp.GetHeight()], $F5F5F5); //This makes it easier to see... makes alternating gray scale columns.
-
   for i := 0 to Self.MAX_ZOOM do
   begin
     levelTPA += [i, i];
@@ -452,13 +449,11 @@ begin
     zSlider  += [i, Self.Level2Slider(i)];
   end;
 
-  bmp.DrawTPA(levelTPA, SRLColors.ORANGE);
-  bmp.DrawTPA(zInTPA, SRLColors.BLUE_OCEAN);
-  bmp.DrawTPA(zOutTPA, SRLColors.CYAN);
-  bmp.DrawTPA(zSlider, SRLColors.GREEN_SPRING);
-
-  bmp.Debug;
-  bmp.Free();
+  PlotGraph(
+    'Calculated', 'Zoom Level',
+    ['Level', 'In', 'Out', 'Slider'], [levelTPA, zInTPA, zOutTPA, zSlider],
+    [SRLColors.ORANGE, SRLColors.BLUE_OCEAN, SRLColors.CYAN, SRLColors.GREEN_SPRING]
+  );
 end;
 
 (*
@@ -468,10 +463,11 @@ end;
 var
   RSMouseZoom: TRSMouseZoom;
 
+procedure TSRL.Setup(); override;
 begin
-  RSMouseZoom.Name := 'RSMouseZoom';
-  RSMouseZoom.ZoomLevel := -1;
-  WL.GameSettings.MouseWheel := True;
+  inherited;
+
+  RSMouseZoom.Setup();
 end;
 
 function TRSOptions.SetZoomLevel(level: Int32): Boolean; override;

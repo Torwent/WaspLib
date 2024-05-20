@@ -1,3 +1,12 @@
+## [18.4.36](https://github.com/Torwent/WaspLib/compare/v18.4.35...v18.4.36) (2024-05-20)
+
+
+### Bug Fixes
+
+* **RSMouseZoom:** cleanup ([9eba2e4](https://github.com/Torwent/WaspLib/commit/9eba2e4fcfebb62330986cbd4d366e678f692052))
+
+
+
 ## [18.4.35](https://github.com/Torwent/WaspLib/compare/v18.4.34...v18.4.35) (2024-05-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **minimap:** findredarrow should ignore the walking flag now ([bd2b604](https://github.com/Torwent/WaspLib/commit/bd2b6046c4cece128e25a2de3c82966899a54c13))
-
-
-
-## [18.4.31](https://github.com/Torwent/WaspLib/compare/v18.4.30...v18.4.31) (2024-05-01)
-
-
-### Bug Fixes
-
-* force bump ([67def3b](https://github.com/Torwent/WaspLib/commit/67def3ba7adef341f2e1c7250344a9ac931005eb))
 
 
 

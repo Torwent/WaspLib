@@ -1,3 +1,18 @@
+# [18.5.0](https://github.com/Torwent/WaspLib/compare/v18.4.36...v18.5.0) (2024-05-20)
+
+
+### Bug Fixes
+
+* Account Manager UI - Read notes ([e458ecc](https://github.com/Torwent/WaspLib/commit/e458ecc6f5beb835a7aa7519f61b7d00566b44db))
+* SRL-T compatibility ([0c12fa3](https://github.com/Torwent/WaspLib/commit/0c12fa3eb27a6e6877e08e06aa4b30f1ef3f416b))
+
+
+### Features
+
+* **TScriptForm:** account manager buttons are now disabled when they shouldn't be interacted with ([c1760f6](https://github.com/Torwent/WaspLib/commit/c1760f6b7217e22c7d0c602c2c29c2fb499a10a6))
+
+
+
 ## [18.4.36](https://github.com/Torwent/WaspLib/compare/v18.4.35...v18.4.36) (2024-05-20)
 
 
@@ -31,15 +46,6 @@
 ### Bug Fixes
 
 * **APIClient:** add Pause and Resume methods ([d14afff](https://github.com/Torwent/WaspLib/commit/d14afffdba6098d091c3a71fd83adb14a72fbe81))
-
-
-
-## [18.4.32](https://github.com/Torwent/WaspLib/compare/v18.4.31...v18.4.32) (2024-05-14)
-
-
-### Bug Fixes
-
-* **minimap:** findredarrow should ignore the walking flag now ([bd2b604](https://github.com/Torwent/WaspLib/commit/bd2b6046c4cece128e25a2de3c82966899a54c13))
 
 
 

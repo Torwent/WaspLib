@@ -1,3 +1,12 @@
+## [18.5.1](https://github.com/Torwent/WaspLib/compare/v18.5.0...v18.5.1) (2024-05-21)
+
+
+### Bug Fixes
+
+* **MonsterData:** read notes ([d1ae5f3](https://github.com/Torwent/WaspLib/commit/d1ae5f33bedd56f1bdb4fb68d36f8bf3736ca7db))
+
+
+
 # [18.5.0](https://github.com/Torwent/WaspLib/compare/v18.4.36...v18.5.0) (2024-05-20)
 
 
@@ -37,15 +46,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([9c169f9](https://github.com/Torwent/WaspLib/commit/9c169f9fb38834d510f2f7e0c2bfd00e58374981))
-
-
-
-## [18.4.33](https://github.com/Torwent/WaspLib/compare/v18.4.32...v18.4.33) (2024-05-15)
-
-
-### Bug Fixes
-
-* **APIClient:** add Pause and Resume methods ([d14afff](https://github.com/Torwent/WaspLib/commit/d14afffdba6098d091c3a71fd83adb14a72fbe81))
 
 
 

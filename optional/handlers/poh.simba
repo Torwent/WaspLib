@@ -732,9 +732,9 @@ end;
 (*
 ## POH.WalkInteract
 ```pascal
-function TRSPOHHandler.WalkHover(objType: ERSRoomObject): Boolean;
-function TRSPOHHandler.WalkClick(objType: ERSRoomObject): Boolean;
-function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray): Boolean;
+function TRSPOHHandler.WalkHover(objType: ERSRoomObject; attempts: Int32): Boolean;
+function TRSPOHHandler.WalkClick(objType: ERSRoomObject; attempts: Int32): Boolean;
+function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray; attempts: Int32): Boolean;
 ```
 Method used to walk and interact with a {ref}`TRoomObject` by specifying a {ref}`ERSRoomObject`.
 The interactions are self explanatory.
@@ -745,7 +745,7 @@ POH.Setup(); //call from the northwest tile of your exit portal.
 WriteLn POH.Hover(ERSRoomObject.POOL); //pool has to be on the same room, north, west, south or east.
 ```
 *)
-function TRSPOHHandler.WalkHover(objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.WalkHover(objType: ERSRoomObject; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
@@ -763,11 +763,12 @@ begin
 
   if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
     Self.Walker.WebWalk(obj.Coordinates, 12, 0.2);
-
-  Result := Self.Hover(objType);
+  for attempts downto 0 do
+    if Self.Hover(objType) then
+      Exit(True);
 end;
 
-function TRSPOHHandler.WalkClick(objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.WalkClick(objType: ERSRoomObject; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
@@ -785,11 +786,12 @@ begin
 
   if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
     Self.Walker.WebWalk(obj.Coordinates, 12, 0.2);
-
-  Result := Self.Click(objType);
+  for attempts downto 0 do
+    if Self.Click(objType) then
+      Exit(True);
 end;
 
-function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray): Boolean;
+function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
@@ -807,12 +809,13 @@ begin
 
   if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
     Self.Walker.WebWalk(obj.Coordinates, 12, 0.2);
-
-  Result := obj.Select(options, mmPoints, radians);
+  for attempts downto 0 do
+    if obj.Select(options, mmPoints, radians) then
+      Exit(True);
 end;
 
 
-function TRSPOHHandler.OpenNexus(): Boolean;
+function TRSPOHHandler.OpenNexus(attempts: Int32 = 2): Boolean;
 begin
   if MainScreen.HasInterface() then
   begin
@@ -824,7 +827,7 @@ begin
   if Self.RoomObjects[ERSRoomObject.NEXUS].Coordinates = [] then
     Self.Fatal('Your POH does not have a portal nexus');
 
-  Result := Self.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu']);
+  Result := Self.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu'], attempts);
   if not Result then
     Exit;
 
@@ -832,14 +835,16 @@ begin
   Result := PortalNexus.IsOpen(3000);
 end;
 
-function TRSPOHHandler.NexusTeleport(destination: ERSNexusDestination): Boolean;
+function TRSPOHHandler.NexusTeleport(destination: ERSNexusDestination; attempts: Int32 = 2): Boolean;
 begin
-  if Self.OpenNexus() then
-    Result := PortalNexus.ClickDestination(destination);
+  if not Self.OpenNexus(attempts) then Exit(False);
+    for attempts downto 0 do
+      if PortalNexus.ClickDestination(destination) then
+        Exit(True);
 end;
 
 
-function TRSPOHHandler.UsePool(): Boolean;
+function TRSPOHHandler.UsePool(attempts: Int32 = 2): Boolean;
   function IsMaxed(): Boolean;
   begin
     if Minimap.GetHPLevel() < Stats.GetLevel(ERSSkill.HITPOINTS) then
@@ -864,7 +869,7 @@ begin
   if Self.RoomObjects[ERSRoomObject.POOL].Coordinates = [] then
     Self.Fatal('Your POH does not have a pool');
 
-  Result := Self.WalkClick(ERSRoomObject.POOL);
+  Result := Self.WalkClick(ERSRoomObject.POOL, attempts);
   if not Result then
     Exit;
 
@@ -906,4 +911,3 @@ begin
   bitmap.Debug();
   bitmap.Free();
 end;
-

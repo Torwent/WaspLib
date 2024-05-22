@@ -1,3 +1,12 @@
+## [18.5.3](https://github.com/Torwent/WaspLib/compare/v18.5.2...v18.5.3) (2024-05-22)
+
+
+### Bug Fixes
+
+* **poh:** disable codetools in the recently added for loops ([cae6cf9](https://github.com/Torwent/WaspLib/commit/cae6cf98c54dcf32e7476ff2fd350bffe5e4c011))
+
+
+
 ## [18.5.2](https://github.com/Torwent/WaspLib/compare/v18.5.1...v18.5.2) (2024-05-22)
 
 
@@ -37,15 +46,6 @@
 ### Bug Fixes
 
 * **RSMouseZoom:** cleanup ([9eba2e4](https://github.com/Torwent/WaspLib/commit/9eba2e4fcfebb62330986cbd4d366e678f692052))
-
-
-
-## [18.4.35](https://github.com/Torwent/WaspLib/compare/v18.4.34...v18.4.35) (2024-05-18)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([459a02d](https://github.com/Torwent/WaspLib/commit/459a02dbef0f55ac99bb110752390d967a53fd6a))
 
 
 

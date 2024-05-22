@@ -1,3 +1,12 @@
+## [18.5.4](https://github.com/Torwent/WaspLib/compare/v18.5.3...v18.5.4) (2024-05-22)
+
+
+### Bug Fixes
+
+* force bump ([ecf2dfa](https://github.com/Torwent/WaspLib/commit/ecf2dfa6f4a63b97d1a5d0a6693050a2f66fe785))
+
+
+
 ## [18.5.3](https://github.com/Torwent/WaspLib/compare/v18.5.2...v18.5.3) (2024-05-22)
 
 
@@ -37,15 +46,6 @@
 ### Features
 
 * **TScriptForm:** account manager buttons are now disabled when they shouldn't be interacted with ([c1760f6](https://github.com/Torwent/WaspLib/commit/c1760f6b7217e22c7d0c602c2c29c2fb499a10a6))
-
-
-
-## [18.4.36](https://github.com/Torwent/WaspLib/compare/v18.4.35...v18.4.36) (2024-05-20)
-
-
-### Bug Fixes
-
-* **RSMouseZoom:** cleanup ([9eba2e4](https://github.com/Torwent/WaspLib/commit/9eba2e4fcfebb62330986cbd4d366e678f692052))
 
 
 

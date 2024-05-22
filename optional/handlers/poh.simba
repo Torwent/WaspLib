@@ -678,55 +678,71 @@ POH.Setup(); //call from the northwest tile of your exit portal.
 WriteLn POH.Hover(ERSRoomObject.POOL); //pool has to be on the same room, north, west, south or east.
 ```
 *)
-function TRSPOHHandler.Hover(objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.Hover(objType: ERSRoomObject; angle: Single = $FFFF; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
-  radians: Double;
   me: TPoint;
 begin
-  me := Self.Position();
-  obj := Self.RoomObjects[objType];
-  if obj.Coordinates = [] then
-    Exit;
+  for attempts downto 0 do
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
 
-  radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
-  Result := obj.Hover(mmPoints, radians);
+    if angle = $FFFF then
+      angle := Minimap.GetCompassAngle(False);
+
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+
+    if obj.Hover(mmPoints, angle) then
+      Exit(True);
+  end;
 end;
 
-function TRSPOHHandler.Click(objType: ERSRoomObject): Boolean;
+function TRSPOHHandler.Click(objType: ERSRoomObject; angle: Single = $FFFF; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
-  radians: Double;
   me: TPoint;
 begin
-  me := Self.Position();
-  obj := Self.RoomObjects[objType];
-  if obj.Coordinates = [] then
-    Exit;
+  for attempts downto 0 do
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
 
-  radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
-  Result := obj.Click(mmPoints, radians);
+    if angle = $FFFF then
+      angle := Minimap.GetCompassAngle(False);
+
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    if obj.Click(mmPoints, angle) then
+      Exit(True);
+  end;
 end;
 
-function TRSPOHHandler.Select(objType: ERSRoomObject; options: TStringArray): Boolean;
+function TRSPOHHandler.Select(objType: ERSRoomObject; options: TStringArray; angle: Single = $FFFF; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
-  radians: Double;
   me: TPoint;
 begin
-  me := Self.Position();
-  obj := Self.RoomObjects[objType];
-  if obj.Coordinates = [] then
-    Exit;
+  for attempts downto 0 do
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
 
-  radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
-  Result := obj.Select(options, mmPoints, radians);
+    if angle = $FFFF then
+      angle := Minimap.GetCompassAngle(False);
+
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    if obj.Select(options, mmPoints, angle) then
+      Exit(True);
+  end;
 end;
 
 (*
@@ -749,73 +765,85 @@ function TRSPOHHandler.WalkHover(objType: ERSRoomObject; attempts: Int32 = 2): B
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
-  radians: Double;
+  angle: Double;
   me: TPoint;
 begin
-  me := Self.Position();
-  obj := Self.RoomObjects[objType];
-  if obj.Coordinates = [] then
-    Exit;
-
-  radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
-  mmPoints := mmPoints.Sorted(Minimap.Center());
-
-  if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
-    Self.Walker.WebWalk(obj.Coordinates, 12, 0.2);
   for attempts downto 0 do
-    if Self.Hover(objType) then
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    angle := Minimap.GetCompassAngle(False);
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    mmPoints := mmPoints.Sorted(Minimap.Center());
+
+    if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
+      if not Self.Walker.WebWalk(obj.Coordinates, 12, 0.2) then
+        Continue;
+
+    if Self.Hover(objType, angle, 0) then
       Exit(True);
+  end;
 end;
 
 function TRSPOHHandler.WalkClick(objType: ERSRoomObject; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
-  radians: Double;
+  angle: Double;
   me: TPoint;
 begin
-  me := Self.Position();
-  obj := Self.RoomObjects[objType];
-  if obj.Coordinates = [] then
-    Exit;
-
-  radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
-  mmPoints := mmPoints.Sorted(Minimap.Center());
-
-  if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
-    Self.Walker.WebWalk(obj.Coordinates, 12, 0.2);
   for attempts downto 0 do
-    if Self.Click(objType) then
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    angle := Minimap.GetCompassAngle(False);
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    mmPoints := mmPoints.Sorted(Minimap.Center());
+
+    if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
+      if not Self.Walker.WebWalk(obj.Coordinates, 12, 0.2) then
+        Continue;
+
+    if Self.Click(objType, angle, 0) then
       Exit(True);
+  end;
 end;
 
 function TRSPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray; attempts: Int32 = 2): Boolean;
 var
   obj: TRoomObject;
   mmPoints: TPointArray;
-  radians: Double;
+  angle: Double;
   me: TPoint;
 begin
-  me := Self.Position();
-  obj := Self.RoomObjects[objType];
-  if obj.Coordinates = [] then
-    Exit;
-
-  radians := Minimap.GetCompassAngle(False);
-  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
-  mmPoints := mmPoints.Sorted(Minimap.Center());
-
-  if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
-    Self.Walker.WebWalk(obj.Coordinates, 12, 0.2);
   for attempts downto 0 do
-    if obj.Select(options, mmPoints, radians) then
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    angle := Minimap.GetCompassAngle(False);
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    mmPoints := mmPoints.Sorted(Minimap.Center());
+
+    if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
+      if not Self.Walker.WebWalk(obj.Coordinates, 12, 0.2) then
+        Continue;
+
+    if Self.Select(objType, options, angle, 0) then
       Exit(True);
+  end;
 end;
 
 
-function TRSPOHHandler.OpenNexus(attempts: Int32 = 2): Boolean;
+function TRSPOHHandler.OpenNexus(): Boolean;
 begin
   if MainScreen.HasInterface() then
   begin
@@ -827,25 +855,21 @@ begin
   if Self.RoomObjects[ERSRoomObject.NEXUS].Coordinates = [] then
     Self.Fatal('Your POH does not have a portal nexus');
 
-  Result := Self.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu'], attempts);
-  if not Result then
-    Exit;
-
-  Minimap.WaitMoving();
-  Result := PortalNexus.IsOpen(3000);
+  if Self.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu']) then
+  begin
+    Minimap.WaitMoving();
+    Result := PortalNexus.IsOpen(3000);
+  end;
 end;
 
-function TRSPOHHandler.NexusTeleport(destination: ERSNexusDestination; attempts: Int32 = 2): Boolean;
+function TRSPOHHandler.NexusTeleport(destination: ERSNexusDestination): Boolean;
 begin
-  if not Self.OpenNexus(attempts) then Exit(False);
-    for attempts downto 0 do
-      if PortalNexus.ClickDestination(destination) then
-        Exit(True);
+  Result := Self.OpenNexus() and PortalNexus.ClickDestination(destination);
 end;
 
 
-function TRSPOHHandler.UsePool(attempts: Int32 = 2): Boolean;
-  function IsMaxed(): Boolean;
+function TRSPOHHandler.UsePool(): Boolean;
+  function _IsMaxed(): Boolean;
   begin
     if Minimap.GetHPLevel() < Stats.GetLevel(ERSSkill.HITPOINTS) then
       Exit;
@@ -863,20 +887,18 @@ function TRSPOHHandler.UsePool(attempts: Int32 = 2): Boolean;
     Result := True;
   end;
 begin
-  if IsMaxed() then
+  if _IsMaxed() then
     Exit(True);
 
   if Self.RoomObjects[ERSRoomObject.POOL].Coordinates = [] then
     Self.Fatal('Your POH does not have a pool');
 
-  Result := Self.WalkClick(ERSRoomObject.POOL, attempts);
-  if not Result then
-    Exit;
-
-  Minimap.WaitMoving();
-  Result := WaitUntil(IsMaxed(), 300, 3000);
+  if Self.WalkClick(ERSRoomObject.POOL) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil(_IsMaxed(), 300, 3000);
+  end;
 end;
-
 
 
 var

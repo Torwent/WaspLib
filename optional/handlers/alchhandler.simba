@@ -10,17 +10,35 @@ type
     Timer: TCountDown;
     SlotUnder, LowProfit, HighProfit, TotalProfit: Int32;
     Disabled: Boolean;
+    Config: TConfigJSON;
   end;
 
-procedure TRSAlchHandler.Setup();
+procedure TRSAlchHandler.SaveConfig();
 var
-  settings: TStringArray;
-  str: String;
   i: Int32;
+  arr: TJSONArray;
 begin
-  if Self.ItemArray <> []then
-    Exit;
+  if Self.Config.Has('items') then
+  begin
+    Self.Config.JSON.getJSONArray('items').Free();
+    Self.Config.Remove('items');
+  end;
 
+  arr.Init();
+
+  for i := 0 to High(Self.ItemArray) do
+    arr.Put(ToStr(Self.ItemArray[i]));
+  Self.Config.Put('items', arr);
+end;
+
+procedure TRSAlchHandler.AddItem(item: TRSItem);
+begin
+  Self.ItemArray += item;
+  Self.SaveConfig();
+end;
+
+procedure TRSAlchHandler.AddDefault();
+begin
   Self.ItemArray := [
     'abyssal bracelet(5)', 'adamant platebody', 'air battlestaff',
     'amulet of glory', 'amulet of glory(4)', 'black d''hide body',
@@ -28,7 +46,7 @@ begin
     'blue d''hide body', 'blue d''hide chaps', 'blue d''hide shield',
     'blue d''hide vambraces', 'combat bracelet', 'combat bracelet(4)',
     'diamond bracelet', 'dragon axe', 'dragon battleaxe', 'dragon cane',
-    'dragon chainbody', 'dragon dagger', 'dragon dagger(p+)', 'dragon halberd',
+    'dragon chainbody', 'dragon dagger', 'dragon halberd',
     'dragon hasta', 'dragon longsword', 'dragon mace', 'dragon med helm',
     'dragon platelegs', 'dragon plateskirt', 'dragon scimitar', 'dragon spear',
     'dragon sq shield', 'dragon sword', 'dragonstone ring', 'earth battlestaff',
@@ -99,18 +117,32 @@ begin
     'runite limbs', 'skills necklace', 'skills necklace(4)', 'steel platebody',
     'water battlestaff', 'yew longbow'
   ];
-
-  settings += 'RSAlchHandler.ItemArray := [';
-  for i := 0 to High(Self.ItemArray) do
-  begin
-    str := "    '" + ToString(Self.ItemArray[i]).Replace("'", "''") + "'";
-    if i < High(Self.ItemArray) then
-      str += ',';
-    settings += str;
-  end;
-  settings += '];';
-  WriteConfigFile('alch_handler', settings);
 end;
+
+procedure TRSAlchHandler.LoadItems();
+var
+  i: Int32;
+begin
+  for i := 0 to Self.Config.GetArray('items').High() do
+    Self.ItemArray += Self.Config.GetArray('items').getString(i);
+end;
+
+procedure TRSAlchHandler.Setup();
+begin
+  if Self.ItemArray <> []then
+    Exit;
+
+  Self.Config.Setup('alchhandler');
+  if not Self.Config.Has('items', False) then
+  begin
+    Self.AddDefault();
+    Self.SaveConfig();
+    Exit;
+  end;
+
+  Self.LoadItems();
+end;
+
 
 function TRSAlchHandler.GetAlchItem(): TRSItem;
 var
@@ -315,11 +347,10 @@ end;
 var
   RSAlchHandler: TRSAlchHandler;
 
-{$IFHASFILE Data/WaspLib/configs/alch_handler.simba}
-  {$I Data/WaspLib/configs/alch_handler.simba}
-{$ENDIF}
-
+procedure TSRL.Setup(); override;
 begin
+  inherited;
+
   RSAlchHandler.Setup();
 end;
 
@@ -379,7 +410,6 @@ begin
   end;
 end;
 
-
 function TScriptForm.CreateAlchemyPanel(): TTabSheet;
   type TListBox = TListBox;
   procedure TListBox._AddSorted(str: String);
@@ -421,23 +451,12 @@ function TScriptForm.CreateAlchemyPanel(): TTabSheet;
   procedure TListBox._ReWriteAlchConfig();
   var
     i, count: Int32;
-    str: String;
-    settings: TStringArray;
   begin
     RSAlchHandler.ItemArray := [];
-    settings += 'RSAlchHandler.ItemArray := [';
     count := Self.GetCount() - 1;
     for i := 0 to count do
-    begin
       RSAlchHandler.ItemArray += Self.getItems().GetStrings(i);
-      str := ToStr(RSAlchHandler.ItemArray[i]);
-      str := "    '" + str.Replace("'", "''") + "'";
-      if i < count then
-        str += ',';
-      settings += str;
-    end;
-    settings += '];';
-    WriteConfigFile('alch_handler', settings);
+    RSAlchHandler.SaveConfig();
   end;
 
   type TScriptForm = TScriptForm;

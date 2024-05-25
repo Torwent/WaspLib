@@ -1,3 +1,12 @@
+## [18.5.6](https://github.com/Torwent/WaspLib/compare/v18.5.5...v18.5.6) (2024-05-25)
+
+
+### Bug Fixes
+
+* **FairyRing:** .Teleport() now ensures we hover the ring ([cf29569](https://github.com/Torwent/WaspLib/commit/cf29569790bfbbc0d123381e75df664e88a11cd9))
+
+
+
 ## [18.5.5](https://github.com/Torwent/WaspLib/compare/v18.5.4...v18.5.5) (2024-05-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([17bb6de](https://github.com/Torwent/WaspLib/commit/17bb6ded22e155d0e5103ba8d3fbd567f4c8fdb0))
-
-
-
-## [18.5.1](https://github.com/Torwent/WaspLib/compare/v18.5.0...v18.5.1) (2024-05-21)
-
-
-### Bug Fixes
-
-* **MonsterData:** read notes ([d1ae5f3](https://github.com/Torwent/WaspLib/commit/d1ae5f33bedd56f1bdb4fb68d36f8bf3736ca7db))
 
 
 

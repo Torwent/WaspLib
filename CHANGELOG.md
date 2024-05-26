@@ -1,3 +1,12 @@
+## [18.5.7](https://github.com/Torwent/WaspLib/compare/v18.5.6...v18.5.7) (2024-05-26)
+
+
+### Bug Fixes
+
+* force bump ([0efd9f5](https://github.com/Torwent/WaspLib/commit/0efd9f5f31e33caf7fa3fb8b520ffbb0e4196f3f))
+
+
+
 ## [18.5.6](https://github.com/Torwent/WaspLib/compare/v18.5.5...v18.5.6) (2024-05-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **poh:** disable codetools in the recently added for loops ([cae6cf9](https://github.com/Torwent/WaspLib/commit/cae6cf98c54dcf32e7476ff2fd350bffe5e4c011))
-
-
-
-## [18.5.2](https://github.com/Torwent/WaspLib/compare/v18.5.1...v18.5.2) (2024-05-22)
-
-
-### Bug Fixes
-
-* read notes ([17bb6de](https://github.com/Torwent/WaspLib/commit/17bb6ded22e155d0e5103ba8d3fbd567f4c8fdb0))
 
 
 

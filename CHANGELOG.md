@@ -1,3 +1,12 @@
+# [18.6.0](https://github.com/Torwent/WaspLib/compare/v18.5.7...v18.6.0) (2024-05-27)
+
+
+### Features
+
+* **TScriptForm:** several settings are now saved ([083f84c](https://github.com/Torwent/WaspLib/commit/083f84c808cc5d43149b3810a0d4db1b684875d8))
+
+
+
 ## [18.5.7](https://github.com/Torwent/WaspLib/compare/v18.5.6...v18.5.7) (2024-05-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([ecf2dfa](https://github.com/Torwent/WaspLib/commit/ecf2dfa6f4a63b97d1a5d0a6693050a2f66fe785))
-
-
-
-## [18.5.3](https://github.com/Torwent/WaspLib/compare/v18.5.2...v18.5.3) (2024-05-22)
-
-
-### Bug Fixes
-
-* **poh:** disable codetools in the recently added for loops ([cae6cf9](https://github.com/Torwent/WaspLib/commit/cae6cf98c54dcf32e7476ff2fd350bffe5e4c011))
 
 
 

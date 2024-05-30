@@ -1,3 +1,12 @@
+## [18.6.1](https://github.com/Torwent/WaspLib/compare/v18.6.0...v18.6.1) (2024-05-30)
+
+
+### Bug Fixes
+
+* **tools:** s2scompiler now has a multi purpose replacer variable ([9d19d27](https://github.com/Torwent/WaspLib/commit/9d19d2734873c27fd284e975e0284de156ba5b5a))
+
+
+
 # [18.6.0](https://github.com/Torwent/WaspLib/compare/v18.5.7...v18.6.0) (2024-05-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **alchhandler:** now saves it's config as json instead of a weird simba file ([1a2bd63](https://github.com/Torwent/WaspLib/commit/1a2bd63a80fe8a66b58726ba3ca4f6f901ab8e81))
-
-
-
-## [18.5.4](https://github.com/Torwent/WaspLib/compare/v18.5.3...v18.5.4) (2024-05-22)
-
-
-### Bug Fixes
-
-* force bump ([ecf2dfa](https://github.com/Torwent/WaspLib/commit/ecf2dfa6f4a63b97d1a5d0a6693050a2f66fe785))
 
 
 

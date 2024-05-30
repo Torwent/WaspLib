@@ -1,3 +1,12 @@
+## [18.6.4](https://github.com/Torwent/WaspLib/compare/v18.6.3...v18.6.4) (2024-05-30)
+
+
+### Bug Fixes
+
+* **TScriptConfig:** some more fixes to saving settings ([9f1afeb](https://github.com/Torwent/WaspLib/commit/9f1afebcf24f7da2a314c2a737174c8eb78954b7))
+
+
+
 ## [18.6.3](https://github.com/Torwent/WaspLib/compare/v18.6.2...v18.6.3) (2024-05-30)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TScriptForm:** several settings are now saved ([083f84c](https://github.com/Torwent/WaspLib/commit/083f84c808cc5d43149b3810a0d4db1b684875d8))
-
-
-
-## [18.5.7](https://github.com/Torwent/WaspLib/compare/v18.5.6...v18.5.7) (2024-05-26)
-
-
-### Bug Fixes
-
-* force bump ([0efd9f5](https://github.com/Torwent/WaspLib/commit/0efd9f5f31e33caf7fa3fb8b520ffbb0e4196f3f))
 
 
 

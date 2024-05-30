@@ -1,3 +1,12 @@
+## [18.6.3](https://github.com/Torwent/WaspLib/compare/v18.6.2...v18.6.3) (2024-05-30)
+
+
+### Bug Fixes
+
+* **TScriptForm:** fixes to the saved settings features. ([8fa3c41](https://github.com/Torwent/WaspLib/commit/8fa3c4102ae3a89660d8bf4cdb35de8af841a97e))
+
+
+
 ## [18.6.2](https://github.com/Torwent/WaspLib/compare/v18.6.1...v18.6.2) (2024-05-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([0efd9f5](https://github.com/Torwent/WaspLib/commit/0efd9f5f31e33caf7fa3fb8b520ffbb0e4196f3f))
-
-
-
-## [18.5.6](https://github.com/Torwent/WaspLib/compare/v18.5.5...v18.5.6) (2024-05-25)
-
-
-### Bug Fixes
-
-* **FairyRing:** .Teleport() now ensures we hover the ring ([cf29569](https://github.com/Torwent/WaspLib/commit/cf29569790bfbbc0d123381e75df664e88a11cd9))
 
 
 

@@ -1,3 +1,12 @@
+## [18.6.2](https://github.com/Torwent/WaspLib/compare/v18.6.1...v18.6.2) (2024-05-30)
+
+
+### Bug Fixes
+
+* **tools:** s2scompiler smarter way to replace stuff ([30b7298](https://github.com/Torwent/WaspLib/commit/30b7298ef3f1f063616464b9088245ee2df39714))
+
+
+
 ## [18.6.1](https://github.com/Torwent/WaspLib/compare/v18.6.0...v18.6.1) (2024-05-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **FairyRing:** .Teleport() now ensures we hover the ring ([cf29569](https://github.com/Torwent/WaspLib/commit/cf29569790bfbbc0d123381e75df664e88a11cd9))
-
-
-
-## [18.5.5](https://github.com/Torwent/WaspLib/compare/v18.5.4...v18.5.5) (2024-05-24)
-
-
-### Bug Fixes
-
-* **alchhandler:** now saves it's config as json instead of a weird simba file ([1a2bd63](https://github.com/Torwent/WaspLib/commit/1a2bd63a80fe8a66b58726ba3ca4f6f901ab8e81))
 
 
 

@@ -1,3 +1,17 @@
+# [19.0.0](https://github.com/Torwent/WaspLib/compare/v18.6.4...v19.0.0) (2024-05-30)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([ffdbc05](https://github.com/Torwent/WaspLib/commit/ffdbc05d3c5f486a77a6c7de2cbcab7c91198278))
+
+
+### BREAKING CHANGES
+
+* Moving dot filters from WL to SRL-T is a breaking change.
+
+
+
 ## [18.6.4](https://github.com/Torwent/WaspLib/compare/v18.6.3...v18.6.4) (2024-05-30)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * **tools:** s2scompiler now has a multi purpose replacer variable ([9d19d27](https://github.com/Torwent/WaspLib/commit/9d19d2734873c27fd284e975e0284de156ba5b5a))
-
-
-
-# [18.6.0](https://github.com/Torwent/WaspLib/compare/v18.5.7...v18.6.0) (2024-05-27)
-
-
-### Features
-
-* **TScriptForm:** several settings are now saved ([083f84c](https://github.com/Torwent/WaspLib/commit/083f84c808cc5d43149b3810a0d4db1b684875d8))
 
 
 

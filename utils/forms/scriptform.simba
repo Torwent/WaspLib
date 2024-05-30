@@ -1272,6 +1272,7 @@ var
   str: String;
   combobox: TComboBox;
   json: TJSONObject;
+  checked: Boolean;
 begin
   Self.AddTab('Antiban Manager');
   Result := Self.Tabs[High(Self.Tabs)];
@@ -1426,10 +1427,11 @@ begin
     SetTop(sleeps.GetBottom() + TControl.AdjustToDPI(5));
 
     if Self.Config.GetObject('antiban').getJSONObject('sleep').has('biohash') then
-      SetChecked(Self.Config.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash'))
+      useBio.SetChecked(Self.Config.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash'))
     else
-      SetChecked(True);
+      useBio.SetChecked(True);
 
+    checked := useBio.IsChecked();
     CheckBox.setOnChange(@Self._SleepOnUseBioChange);
   end;
 
@@ -1445,7 +1447,7 @@ begin
     Edit.setOnKeyPress(@Edit.TimeField);
     Edit.setOnEditingDone(@Self._SleepHourOnChange);
 
-    if useBio.IsChecked() and Self.Config.GetObject('antiban').getJSONObject('sleep').has('hour') then
+    if not checked and Self.Config.GetObject('antiban').getJSONObject('sleep').has('hour') then
       SetText(Self.Config.GetObject('antiban').getJSONObject('sleep').getString('hour'))
     else
       SetText(WLSettings.Sleep.Hour);
@@ -1462,7 +1464,7 @@ begin
     Edit.setOnKeyPress(@Edit.NumberField);
     Edit.setOnChange(@Self._SleepLengthOnChange);
 
-    if useBio.IsChecked() and Self.Config.GetObject('antiban').getJSONObject('sleep').has('length') then
+    if not checked and Self.Config.GetObject('antiban').getJSONObject('sleep').has('length') then
       SetText(ToStr(Self.Config.GetObject('antiban').getJSONObject('sleep').getDouble('length')))
     else
       SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
@@ -1474,6 +1476,9 @@ begin
 
   if combobox <> nil then
     Self._SelectorOnChange(combobox);
+
+  useBio.SetChecked(checked);
+  Self._SleepOnUseBioChange(useBio.CheckBox);
 end;
 
 function TScriptForm.CreateConsumableSettings(owner: TControl; consumableType: ERSConsumable; addInfo: Boolean = True): TPanel;

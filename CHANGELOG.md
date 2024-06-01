@@ -1,3 +1,12 @@
+## [19.0.1](https://github.com/Torwent/WaspLib/compare/v19.0.0...v19.0.1) (2024-06-01)
+
+
+### Bug Fixes
+
+* **TConfigJSON:** will now reset the config if it's not a valid one for whatever reason ([597fc86](https://github.com/Torwent/WaspLib/commit/597fc8638a5fc250d600ff1a783d466e1787c993))
+
+
+
 # [19.0.0](https://github.com/Torwent/WaspLib/compare/v18.6.4...v19.0.0) (2024-05-30)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **tools:** s2scompiler smarter way to replace stuff ([30b7298](https://github.com/Torwent/WaspLib/commit/30b7298ef3f1f063616464b9088245ee2df39714))
-
-
-
-## [18.6.1](https://github.com/Torwent/WaspLib/compare/v18.6.0...v18.6.1) (2024-05-30)
-
-
-### Bug Fixes
-
-* **tools:** s2scompiler now has a multi purpose replacer variable ([9d19d27](https://github.com/Torwent/WaspLib/commit/9d19d2734873c27fd284e975e0284de156ba5b5a))
 
 
 

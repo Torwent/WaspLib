@@ -1,3 +1,12 @@
+## [19.0.2](https://github.com/Torwent/WaspLib/compare/v19.0.1...v19.0.2) (2024-06-01)
+
+
+### Bug Fixes
+
+* **loothandler:** ensure tridents are looted and not alched ([59554be](https://github.com/Torwent/WaspLib/commit/59554be6cce433936e4841521e78a194988c8e95))
+
+
+
 ## [19.0.1](https://github.com/Torwent/WaspLib/compare/v19.0.0...v19.0.1) (2024-06-01)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **TScriptForm:** fixes to the saved settings features. ([8fa3c41](https://github.com/Torwent/WaspLib/commit/8fa3c4102ae3a89660d8bf4cdb35de8af841a97e))
-
-
-
-## [18.6.2](https://github.com/Torwent/WaspLib/compare/v18.6.1...v18.6.2) (2024-05-30)
-
-
-### Bug Fixes
-
-* **tools:** s2scompiler smarter way to replace stuff ([30b7298](https://github.com/Torwent/WaspLib/commit/30b7298ef3f1f063616464b9088245ee2df39714))
 
 
 

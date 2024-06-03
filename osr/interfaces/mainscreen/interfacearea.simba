@@ -3,48 +3,19 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+
+function TRSInterfaceArea.ClickClose(pressEscape: Boolean = False): Boolean; override;
 var
-  EscapeCloseEnabled: Boolean;
-
-//Get buttons on any interface
-function TRSMainScreen.GetButton(): TRSButton;
-var
-  Buttons: TRSButtonArray := FindButtons([[21,21], [24,23]]);
-begin
-  if Buttons <> [] then
-    Result := Buttons[High(Buttons)];
-end;
-
-//Checks for open classic interface
-function TRSMainScreen.IsClassicOpen(): Boolean;
-begin
-  Result := (SRL.CountColor(CTS0(3358536, 2), InterfaceArea.Bounds()) > 10000);
-end;
-
-//Checks for open scroll interface
-function TRSMainScreen.IsScrollOpen(): Boolean;
-begin
-  Result := (SRL.CountColor(CTS2(8693433, 5, 0.10, 1.17), InterfaceArea.Bounds()) > 35000);
-end;
-
-//Checks for any open interface
-function TRSMainScreen.HasInterface: Boolean;
-begin
-  Result := Self.IsClassicOpen() or Self.IsScrollOpen();
-end;
-
-
-function TRSMainScreen.ClickCloseButton(pressEscape: Boolean = False): Boolean;
-var
-  CloseButton: TRSButton := Self.GetButton();
+  button: TRSButton;
   i: Int32;
 begin
-  Result := CloseButton <> [];
+  button := Self.GetCloseButton();
+  Result := button <> [];
 
   if not Result then
     Exit;
 
-  if (PressEscape and EscapeCloseEnabled) then
+  if (pressEscape and Self.EscapeEnabled) then
   begin
     Keyboard.PressKey(VK_ESCAPE);
 
@@ -75,24 +46,11 @@ begin
     Exit;
   end;
 
-  Result := CloseButton.Click();
+  Result := button.Click();
 end;
 
 
-//Close any open Interface
-function TRSMainScreen.CloseInterface(pressEscape: Boolean): Boolean;
-begin
-  if not MainScreen.HasInterface() then
-    Exit(True);
-
-  if Self.ClickCloseButton(pressEscape) then
-    Result := WaitUntil(not MainScreen.HasInterface(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
-
-  if (not Result and (pressEscape and EscapeCloseEnabled)) then
-    EscapeCloseEnabled := False;
-end;
-
-function TRSMainScreen.CloseInterface(chance: Double = BioHash): Boolean; overload;
+function TRSInterfaceArea.Close(chance: Double = BioHash): Boolean; overload;
 var
   pressEscape: Boolean;
 begin
@@ -101,12 +59,6 @@ begin
   else
     pressEscape := SRL.Dice(chance);
 
-  Result := Self.CloseInterface(pressEscape);
+  Result := Self.Close(pressEscape);
 end;
 
-procedure TSRL.Setup; override;
-begin
-  inherited;
-
-  EscapeCloseEnabled := True;
-end;

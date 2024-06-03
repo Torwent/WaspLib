@@ -1,3 +1,12 @@
+## [19.0.3](https://github.com/Torwent/WaspLib/compare/v19.0.2...v19.0.3) (2024-06-03)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([4d5b921](https://github.com/Torwent/WaspLib/commit/4d5b92124a92967da5e63f86747e31f83160f34b))
+
+
+
 ## [19.0.2](https://github.com/Torwent/WaspLib/compare/v19.0.1...v19.0.2) (2024-06-01)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * **TScriptConfig:** some more fixes to saving settings ([9f1afeb](https://github.com/Torwent/WaspLib/commit/9f1afebcf24f7da2a314c2a737174c8eb78954b7))
-
-
-
-## [18.6.3](https://github.com/Torwent/WaspLib/compare/v18.6.2...v18.6.3) (2024-05-30)
-
-
-### Bug Fixes
-
-* **TScriptForm:** fixes to the saved settings features. ([8fa3c41](https://github.com/Torwent/WaspLib/commit/8fa3c4102ae3a89660d8bf4cdb35de8af841a97e))
 
 
 

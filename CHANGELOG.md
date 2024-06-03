@@ -1,3 +1,12 @@
+## [19.0.4](https://github.com/Torwent/WaspLib/compare/v19.0.3...v19.0.4) (2024-06-03)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([1beee7d](https://github.com/Torwent/WaspLib/commit/1beee7d524d1de92df5a554c42b7dd203f97e96c))
+
+
+
 ## [19.0.3](https://github.com/Torwent/WaspLib/compare/v19.0.2...v19.0.3) (2024-06-03)
 
 
@@ -36,15 +45,6 @@
 ### BREAKING CHANGES
 
 * Moving dot filters from WL to SRL-T is a breaking change.
-
-
-
-## [18.6.4](https://github.com/Torwent/WaspLib/compare/v18.6.3...v18.6.4) (2024-05-30)
-
-
-### Bug Fixes
-
-* **TScriptConfig:** some more fixes to saving settings ([9f1afeb](https://github.com/Torwent/WaspLib/commit/9f1afebcf24f7da2a314c2a737174c8eb78954b7))
 
 
 

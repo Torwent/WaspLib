@@ -1,3 +1,12 @@
+## [19.0.6](https://github.com/Torwent/WaspLib/compare/v19.0.5...v19.0.6) (2024-06-04)
+
+
+### Bug Fixes
+
+* **RSChunks:** add priff chunk ([bc2952a](https://github.com/Torwent/WaspLib/commit/bc2952a91c11d070c8cf4c5bd535fa93c23df48b))
+
+
+
 ## [19.0.5](https://github.com/Torwent/WaspLib/compare/v19.0.4...v19.0.5) (2024-06-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **loothandler:** ensure tridents are looted and not alched ([59554be](https://github.com/Torwent/WaspLib/commit/59554be6cce433936e4841521e78a194988c8e95))
-
-
-
-## [19.0.1](https://github.com/Torwent/WaspLib/compare/v19.0.0...v19.0.1) (2024-06-01)
-
-
-### Bug Fixes
-
-* **TConfigJSON:** will now reset the config if it's not a valid one for whatever reason ([597fc86](https://github.com/Torwent/WaspLib/commit/597fc8638a5fc250d600ff1a783d466e1787c993))
 
 
 

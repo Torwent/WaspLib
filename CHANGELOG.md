@@ -1,3 +1,12 @@
+## [19.0.5](https://github.com/Torwent/WaspLib/compare/v19.0.4...v19.0.5) (2024-06-04)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([cedd2ee](https://github.com/Torwent/WaspLib/commit/cedd2ee5f6c202ba10a72918afa5474f4c93766a))
+
+
+
 ## [19.0.4](https://github.com/Torwent/WaspLib/compare/v19.0.3...v19.0.4) (2024-06-03)
 
 
@@ -31,20 +40,6 @@
 ### Bug Fixes
 
 * **TConfigJSON:** will now reset the config if it's not a valid one for whatever reason ([597fc86](https://github.com/Torwent/WaspLib/commit/597fc8638a5fc250d600ff1a783d466e1787c993))
-
-
-
-# [19.0.0](https://github.com/Torwent/WaspLib/compare/v18.6.4...v19.0.0) (2024-05-30)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([ffdbc05](https://github.com/Torwent/WaspLib/commit/ffdbc05d3c5f486a77a6c7de2cbcab7c91198278))
-
-
-### BREAKING CHANGES
-
-* Moving dot filters from WL to SRL-T is a breaking change.
 
 
 

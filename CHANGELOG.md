@@ -1,3 +1,12 @@
+# [19.1.0](https://github.com/Torwent/WaspLib/compare/v19.0.6...v19.1.0) (2024-06-05)
+
+
+### Features
+
+* **collectbox:** collectbox.openv2 ([3b39dae](https://github.com/Torwent/WaspLib/commit/3b39dae855c89bfb2e9c32c2be2e5c69e4ba6fdb))
+
+
+
 ## [19.0.6](https://github.com/Torwent/WaspLib/compare/v19.0.5...v19.0.6) (2024-06-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([4d5b921](https://github.com/Torwent/WaspLib/commit/4d5b92124a92967da5e63f86747e31f83160f34b))
-
-
-
-## [19.0.2](https://github.com/Torwent/WaspLib/compare/v19.0.1...v19.0.2) (2024-06-01)
-
-
-### Bug Fixes
-
-* **loothandler:** ensure tridents are looted and not alched ([59554be](https://github.com/Torwent/WaspLib/commit/59554be6cce433936e4841521e78a194988c8e95))
 
 
 

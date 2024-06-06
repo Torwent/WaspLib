@@ -1,3 +1,12 @@
+## [19.1.1](https://github.com/Torwent/WaspLib/compare/v19.1.0...v19.1.1) (2024-06-06)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** .HoverBank() now uses both TRSMap and TRSWalker depending whichever is loaded ([4772975](https://github.com/Torwent/WaspLib/commit/477297533cb03776d852214571e428bac77c75db))
+
+
+
 # [19.1.0](https://github.com/Torwent/WaspLib/compare/v19.0.6...v19.1.0) (2024-06-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([1beee7d](https://github.com/Torwent/WaspLib/commit/1beee7d524d1de92df5a554c42b7dd203f97e96c))
-
-
-
-## [19.0.3](https://github.com/Torwent/WaspLib/compare/v19.0.2...v19.0.3) (2024-06-03)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([4d5b921](https://github.com/Torwent/WaspLib/commit/4d5b92124a92967da5e63f86747e31f83160f34b))
 
 
 

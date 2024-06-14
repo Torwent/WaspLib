@@ -1,3 +1,12 @@
+## [19.1.2](https://github.com/Torwent/WaspLib/compare/v19.1.1...v19.1.2) (2024-06-14)
+
+
+### Bug Fixes
+
+* **alch handler:** add it's name ([d947e4f](https://github.com/Torwent/WaspLib/commit/d947e4f13c7902f9b969c3dd8f8df46326085f6a))
+
+
+
 ## [19.1.1](https://github.com/Torwent/WaspLib/compare/v19.1.0...v19.1.1) (2024-06-06)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([cedd2ee](https://github.com/Torwent/WaspLib/commit/cedd2ee5f6c202ba10a72918afa5474f4c93766a))
-
-
-
-## [19.0.4](https://github.com/Torwent/WaspLib/compare/v19.0.3...v19.0.4) (2024-06-03)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([1beee7d](https://github.com/Torwent/WaspLib/commit/1beee7d524d1de92df5a554c42b7dd203f97e96c))
 
 
 

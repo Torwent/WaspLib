@@ -1,3 +1,12 @@
+## [19.1.3](https://github.com/Torwent/WaspLib/compare/v19.1.2...v19.1.3) (2024-06-15)
+
+
+### Bug Fixes
+
+* **poh:** compatibility with latest TRSWalkerV2 ([08b5729](https://github.com/Torwent/WaspLib/commit/08b57298245722a2c91a83a19fc9cadefd1af875))
+
+
+
 ## [19.1.2](https://github.com/Torwent/WaspLib/compare/v19.1.1...v19.1.2) (2024-06-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSChunks:** add priff chunk ([bc2952a](https://github.com/Torwent/WaspLib/commit/bc2952a91c11d070c8cf4c5bd535fa93c23df48b))
-
-
-
-## [19.0.5](https://github.com/Torwent/WaspLib/compare/v19.0.4...v19.0.5) (2024-06-04)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([cedd2ee](https://github.com/Torwent/WaspLib/commit/cedd2ee5f6c202ba10a72918afa5474f4c93766a))
 
 
 

@@ -1,3 +1,12 @@
+## [19.1.4](https://github.com/Torwent/WaspLib/compare/v19.1.3...v19.1.4) (2024-06-16)
+
+
+### Bug Fixes
+
+* **walker:** old walker map tweaks for catacombs ([e34a618](https://github.com/Torwent/WaspLib/commit/e34a618eb6b12fedc075b66793814d2c05ee29ad))
+
+
+
 ## [19.1.3](https://github.com/Torwent/WaspLib/compare/v19.1.2...v19.1.3) (2024-06-15)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **collectbox:** collectbox.openv2 ([3b39dae](https://github.com/Torwent/WaspLib/commit/3b39dae855c89bfb2e9c32c2be2e5c69e4ba6fdb))
-
-
-
-## [19.0.6](https://github.com/Torwent/WaspLib/compare/v19.0.5...v19.0.6) (2024-06-04)
-
-
-### Bug Fixes
-
-* **RSChunks:** add priff chunk ([bc2952a](https://github.com/Torwent/WaspLib/commit/bc2952a91c11d070c8cf4c5bd535fa93c23df48b))
 
 
 

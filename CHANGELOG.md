@@ -1,3 +1,12 @@
+## [19.1.7](https://github.com/Torwent/WaspLib/compare/v19.1.6...v19.1.7) (2024-06-24)
+
+
+### Bug Fixes
+
+* **APIClient:** compatibility with recent API changes ([6757631](https://github.com/Torwent/WaspLib/commit/675763170a7b00a8ef6bc83d70c840d11dc0e034))
+
+
+
 ## [19.1.6](https://github.com/Torwent/WaspLib/compare/v19.1.5...v19.1.6) (2024-06-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **poh:** compatibility with latest TRSWalkerV2 ([08b5729](https://github.com/Torwent/WaspLib/commit/08b57298245722a2c91a83a19fc9cadefd1af875))
-
-
-
-## [19.1.2](https://github.com/Torwent/WaspLib/compare/v19.1.1...v19.1.2) (2024-06-14)
-
-
-### Bug Fixes
-
-* **alch handler:** add it's name ([d947e4f](https://github.com/Torwent/WaspLib/commit/d947e4f13c7902f9b969c3dd8f8df46326085f6a))
 
 
 

@@ -1,3 +1,12 @@
+## [19.1.9](https://github.com/Torwent/WaspLib/compare/v19.1.8...v19.1.9) (2024-07-08)
+
+
+### Bug Fixes
+
+* force bump ([3c9d266](https://github.com/Torwent/WaspLib/commit/3c9d266188b2d4e647b92741fd265a808b19056e))
+
+
+
 ## [19.1.8](https://github.com/Torwent/WaspLib/compare/v19.1.7...v19.1.8) (2024-07-06)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([5ec0e9e](https://github.com/Torwent/WaspLib/commit/5ec0e9e654e5e5a629b7e14fb5bbbf267d5374ed))
-
-
-
-## [19.1.4](https://github.com/Torwent/WaspLib/compare/v19.1.3...v19.1.4) (2024-06-16)
-
-
-### Bug Fixes
-
-* **walker:** old walker map tweaks for catacombs ([e34a618](https://github.com/Torwent/WaspLib/commit/e34a618eb6b12fedc075b66793814d2c05ee29ad))
 
 
 

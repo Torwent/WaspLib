@@ -1,3 +1,12 @@
+## [19.1.10](https://github.com/Torwent/WaspLib/compare/v19.1.9...v19.1.10) (2024-07-11)
+
+
+### Bug Fixes
+
+* **map:** update map ([34ef6aa](https://github.com/Torwent/WaspLib/commit/34ef6aa3a5c9f00d3c7e79be317e68350234c13c))
+
+
+
 ## [19.1.9](https://github.com/Torwent/WaspLib/compare/v19.1.8...v19.1.9) (2024-07-08)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([63df907](https://github.com/Torwent/WaspLib/commit/63df907f1db2cd4ab4927bf22b716ce322ca416b))
-
-
-
-## [19.1.5](https://github.com/Torwent/WaspLib/compare/v19.1.4...v19.1.5) (2024-06-19)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([5ec0e9e](https://github.com/Torwent/WaspLib/commit/5ec0e9e654e5e5a629b7e14fb5bbbf267d5374ed))
 
 
 

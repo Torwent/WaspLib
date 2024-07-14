@@ -404,9 +404,9 @@ end;
 
 
 (*
-## Antiban.SetSleepHour
+## Antiban.GetSleepHour
 ```pascal
-procedure TAntiban.SetSleepHour();
+function TAntiban.GetSleepHour(): String;
 ```
 Sets WLSettings.Sleep.Hour based on the current BioHash.
 WLSettings.Sleep.HourOverride will override this.
@@ -417,30 +417,26 @@ Antiban.SetSleepHour();
 WriteLn WLSettings.Sleep.Hour;
 ```
 *)
-procedure TAntiban.SetSleepHour();
+function TAntiban.GetSleepHour(): String;
 var
   sleep: UInt64;
 begin
-  if WLSettings.Sleep.HourOverride <> '' then
-  begin
-    WLSettings.Sleep.Hour := WLSettings.Sleep.HourOverride;
-    Exit;
-  end;
+  if not WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash') then
+    Exit(WLSettings.GetObject('antiban').getJSONObject('sleep').getString('hour'));
 
   sleep := 22 + Round(5 * BioHash * ONE_HOUR + 59 * BioHash * ONE_MINUTE);
 
-  if sleep > ONE_DAY then
-    sleep -= ONE_DAY;
+  if sleep > ONE_DAY then sleep -= ONE_DAY;
 
-  WLSettings.Sleep.Hour := SRL.MsToTime(sleep, Time_Bare);
+  Result := SRL.MsToTime(sleep, Time_Bare);
 end;
 
 (*
-## Antiban.SetSleepLength
+## Antiban.GetSleepLength
 ```pascal
-procedure TAntiban.SetSleepLength();
+function TAntiban.GetSleepLength(): Single;
 ```
-Sets WLSettings.Sleep.Length based on the current BioHash.
+Gets WLSettings.Sleep.Length based on the current BioHash.
 WLSettings.Sleep.LengthOverride will override this.
 
 Example:
@@ -449,15 +445,12 @@ Antiban.SetSleepLength();
 WriteLn WLSettings.Sleep.Length;
 ```
 *)
-procedure TAntiban.SetSleepLength();
+function TAntiban.GetSleepLength(): Single;
 begin
-  if WLSettings.Sleep.LengthOverride > 0 then
-  begin
-    WLSettings.Sleep.Length := WLSettings.Sleep.LengthOverride * ONE_HOUR;
-    Exit;
-  end;
+  if WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash') then
+    Exit(7 + Round(1.33 * BioHash, 3));
 
-  WLSettings.Sleep.Length := 7 * ONE_HOUR + Round(200 * ONE_MINUTE * BioHash, 3);
+  Result := WLSettings.GetObject('antiban').getJSONObject('sleep').getDouble('length');
 end;
 
 

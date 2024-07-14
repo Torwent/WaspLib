@@ -1741,3 +1741,89 @@ begin
   Self.SetCaption(caption);
 end;
 
+
+{$IFDEF WINDOWS}
+function ShowWindow(hwnd: TOSWindow; nCmdShow: UInt32): LongBool;
+external 'ShowWindow@user32.dll ' + WINAPI_CC;
+
+function SetWindowAttribute(hwnd: TOSWindow; dwAttribute: DWORD; pvAttribute: Pointer; cbAttribute: DWORD): UInt32;
+external 'DwmSetWindowAttribute@dwmapi.dll ' + WINAPI_CC;
+
+function SetWindowAttribute(hwnd: TOSWindow; dwAttribute: DWORD; pvAttribute: LongBool): UInt32; overload;
+begin
+  Result := SetWindowAttribute(hwnd, dwAttribute, @pvAttribute, SizeOf(pvAttribute));
+end;
+
+function SetWindowDarkTitleBar(hwnd: TOSWindow): UInt32;
+const WINDOWS_DARK_MODE_ATTRIBUTE = 20;
+begin
+  Result := SetWindowAttribute(hwnd, WINDOWS_DARK_MODE_ATTRIBUTE, True);
+end;
+
+
+function SetWindowTheme(hwnd: TOSWindow; pszSubAppName: PWideChar; pszSubIdList: PWideChar): UInt32;
+external 'SetWindowTheme@uxtheme.dll ' + WINAPI_CC;
+
+function SetWindowTheme(hwnd: TOSWindow; pszSubAppName: WideString; pszSubIdList: PWideChar = nil): UInt32; overload;
+begin
+  Result := SetWindowTheme(hwnd, PWideChar(pszSubAppName), pszSubIdList);
+end;
+
+function GetProcAddr(handle: PtrUInt; name: PChar): Pointer;
+external 'GetProcAddress@kernel32.dll '+ WINAPI_CC;
+{$ELSE}
+function ShowWindow(hwnd: TOSWindow; nCmdShow: UInt32): LongBool;
+begin
+  WriteLn('ShowWindow() is not implemented for this operating system!');
+  Result := False;
+end;
+
+function SetWindowAttribute(hwnd: TOSWindow; dwAttribute: DWORD; pvAttribute: Pointer; cbAttribute: DWORD): UInt32;
+begin
+  WriteLn('SetWindowAttribute() is not implemented for this operating system!');
+  Result := 0;
+end;
+
+function SetWindowAttribute(hwnd: TOSWindow; dwAttribute: DWORD; pvAttribute: LongBool): UInt32; overload;
+begin
+  WriteLn('SetWindowAttribute() is not implemented for this operating system!');
+  Result := 0;
+end;
+
+function SetWindowDarkTitleBar(hwnd: TOSWindow): UInt32;
+begin
+  WriteLn('SetWindowDarkTitleBar() is not implemented for this operating system!');
+  Result := 0;
+end;
+
+
+function SetWindowTheme(hwnd: TOSWindow; pszSubAppName: PWideChar; pszSubIdList: PWideChar): UInt32;
+begin
+  WriteLn('SetWindowTheme() is not implemented for this operating system!');
+  Result := 0;
+end;
+
+function SetWindowTheme(hwnd: TOSWindow; pszSubAppName: WideString; pszSubIdList: PWideChar = nil): UInt32; overload;
+begin
+  WriteLn('SetWindowTheme() is not implemented for this operating system!');
+  Result := 0;
+end;
+
+function GetProcAddr(handle: PtrUInt; name: PChar): Pointer;
+begin
+  WriteLn('GetProcAddr() is not implemented for this operating system!');
+  Result := nil;
+end;
+{$ENDIF}
+
+type
+  TPreferredAppMode = (Default, AllowDark, ForceDark, ForceLight, Max);
+
+var
+  ShouldAppUseDarkMode: function(): LongBool;
+  AllowDarkModeForWindow: function(hWnd: TOSWindow; allow: LongBool): LongBool;
+  AllowDarkModeForApp: function(allow: LongBool): LongBool;
+  SetPreferredAppMode: function(appMode: TPreferredAppMode): TPreferredAppMode;
+  FlushMenuThemes: procedure();
+  RefreshImmersiveColorPolicyState: procedure();
+

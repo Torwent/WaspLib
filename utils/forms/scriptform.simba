@@ -48,7 +48,7 @@ TScriptForm is the record responsible for handling the WaspLib form.
     PageControl: TPageControl;
     Tabs: array of TTabSheet;
     Start: TButton;
-    Config: TConfigJSON;
+    LightMode: Boolean;
   class var
     Form: TForm;
   end;
@@ -758,13 +758,7 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
       end;
     end;
 
-    BioHash := 0;
-    WLSettings.Sleep.HourOverride := '';
-    WLSettings.Sleep.LengthOverride := 0;
-
     Antiban.SetupBiometrics();
-    Antiban.SetSleepHour();
-    Antiban.SetSleepLength();
   end;
 
   procedure TScriptForm._OnAddClick(sender: TObject);
@@ -1069,19 +1063,10 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
       child.setEnabled(checked);
       panel := TScriptForm.Form.GetChild(arr[i] + '_group_panel');
       panel.setEnabled(checked);
-      WLSettings.Antiban.Enabled := checked;
-
-      case i of
-        0: WLSettings.Antiban.Camera   := checked and child.IsChecked();
-        1: WLSettings.Antiban.Mouse    := checked and child.IsChecked();
-        2: WLSettings.Antiban.Chat     := checked and child.IsChecked();
-        3: WLSettings.Antiban.GameTabs := checked and child.IsChecked();
-        4: WLSettings.Antiban.Bank     := checked and child.IsChecked();
-      end;
     end;
 
-    Self.Config.GetObject('antiban').getJSONObject('tasks').Put('enabled', checked);
-    Self.Config.SaveConfig();
+    WLSettings.GetObject('antiban').getJSONObject('tasks').Put('enabled', checked);
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._ABGroupOnChange(sender: TObject);
@@ -1089,16 +1074,8 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     checkbox: TCheckBox;
   begin
     checkbox := sender;
-    case checkbox.getName() of
-      'camera_group_checkbox':   WLSettings.Antiban.Camera   := checkbox.IsChecked();
-      'mouse_group_checkbox':    WLSettings.Antiban.Mouse    := checkbox.IsChecked();
-      'chat_group_checkbox':     WLSettings.Antiban.Chat     := checkbox.IsChecked();
-      'gametabs_group_checkbox': WLSettings.Antiban.GameTabs := checkbox.IsChecked();
-      'bank_group_checkbox':     WLSettings.Antiban.Bank     := checkbox.IsChecked();
-    end;
-
-    Self.Config.GetObject('antiban').getJSONObject('tasks').Put(checkbox.getName().Before('_'), checkbox.IsChecked());
-    Self.Config.SaveConfig();
+    WLSettings.GetObject('antiban').getJSONObject('tasks').Put(checkbox.getName().Before('_'), checkbox.IsChecked());
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._BreaksOnChange(sender: TObject);
@@ -1109,10 +1086,8 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     breaks := sender;
     checked := breaks.IsChecked();
 
-    WLSettings.Breaks := checked;
-
-    Self.Config.GetObject('antiban').Put('breaks', checked);
-    Self.Config.SaveConfig();
+    WLSettings.GetObject('antiban').Put('breaks', checked);
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._SleepsOnChange(sender: TObject);
@@ -1130,50 +1105,42 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     sleepHour.setEnabled(checked);
     sleepLength.setEnabled(checked);
     bio.getParent().setEnabled(checked);
-    WLSettings.Sleep.Enabled := checked;
 
-    Self.Config.GetObject('antiban').getJSONObject('sleep').Put('enabled', checked);
-    Self.Config.SaveConfig();
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('enabled', checked);
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._SleepOnUseBioChange(sender: TObject);
   var
+    checkbox: TCheckBox;
     edit: TEdit;
     checked: Boolean;
+    h: String;
+    l: Single;
   begin
-    checked := TCheckBox(sender).IsChecked();
+    checkbox := sender;
+    checked := checkbox.IsChecked();
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', checked);
 
     if checked then
     begin
-      WLSettings.Sleep.HourOverride := '';
-      WLSettings.Sleep.LengthOverride := 0;
       Antiban.SetupBiometrics();
-      Antiban.SetSleepHour();
-      Antiban.SetSleepLength();
+
+      h := Antiban.GetSleepHour();
+      WLSettings.GetObject('antiban').getJSONObject('sleep').Put('hour', h);
+      l := Antiban.GetSleepLength();
+      WLSettings.GetObject('antiban').getJSONObject('sleep').Put('length', l);
+      WLSettings.SaveConfig();
 
       edit := TScriptForm.Form.GetChild('ab_sleep_hour_edit');
-      if edit <> nil then
-      begin
-        if not checked and Self.Config.GetObject('antiban').getJSONObject('sleep').has('hour') then
-          edit.SetText(Self.Config.GetObject('antiban').getJSONObject('sleep').getString('hour'))
-        else
-          edit.SetText(WLSettings.Sleep.Hour);
-      end;
+      if edit <> nil then edit.SetText(h);
 
       edit := TScriptForm.Form.GetChild('ab_sleep_length_edit');
-      if edit <> nil then
-      begin
-        if not checked and Self.Config.GetObject('antiban').getJSONObject('sleep').has('length') then
-          edit.SetText(ToStr(Self.Config.GetObject('antiban').getJSONObject('sleep').getDouble('length')))
-        else
-          edit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
-      end;
+      if edit <> nil then edit.SetText(ToStr(l));
     end;
 
-    Self.Config.GetObject('antiban').getJSONObject('sleep').Put('biohash', checked);
-    Self.Config.SaveConfig();
-
-    TCheckBox(sender).SetChecked(checked);
+    WLSettings.SaveConfig();
+    checkbox.SetChecked(checked);
   end;
 
   procedure TScriptForm._SleepHourOnChange(sender: TObject);
@@ -1184,24 +1151,19 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
   begin
     edit := sender;
     text := edit.GetText();
+
     if not text.IsTime() then
     begin
-      text := WLSettings.Sleep.Hour;
+      text := Antiban.GetSleepHour();
       edit.setText(text);
     end;
 
-    WLSettings.Sleep.Hour := text;
-    WLSettings.Sleep.HourOverride := text;
-
     bio := TScriptForm.Form.GetChild('ab_sleep_bio_checkbox');
-    if bio <> nil then
-    begin
-      bio.SetChecked(False);
-      Self._SleepOnUseBioChange(@bio);
-    end;
+    if bio <> nil then bio.SetChecked(False);
 
-    Self.Config.GetObject('antiban').getJSONObject('sleep').Put('hour', text);
-    Self.Config.SaveConfig();
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', False);
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('hour', text);
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._SleepLengthOnChange(sender: TObject);
@@ -1213,25 +1175,17 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     edit := sender;
     len := Round(StrToFloat(edit.GetText()), 2);
 
-    WLSettings.Sleep.Length := len;
-    WLSettings.Sleep.LengthOverride := len;
-
     bio := TScriptForm.Form.GetChild('ab_sleep_bio_checkbox');
-    if bio <> nil then
-    begin
-      bio.SetChecked(False);
-      Self._SleepOnUseBioChange(@bio);
-    end;
+    if bio <> nil then bio.SetChecked(False);
 
-    Self.Config.GetObject('antiban').getJSONObject('sleep').Put('length', len);
-    Self.Config.SaveConfig();
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', False);
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('length', len);
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._SelectorOnChange(sender: TObject); override;
   var
     edit: TEdit;
-    bio: TCheckbox;
-    useSaved: Boolean;
   begin
     inherited;
 
@@ -1239,26 +1193,11 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     if edit <> nil then
       edit.setText(FormatFloat('0.000000000000000', BioHash));
 
-    bio := TScriptForm.Form.GetChild('ab_sleep_bio_checkbox');
-    useSaved := (bio = nil) or not bio.IsChecked();
-
     edit := TScriptForm.Form.GetChild('ab_sleep_hour_edit');
-    if edit <> nil then
-    begin
-      if useSaved and Self.Config.GetObject('antiban').getJSONObject('sleep').has('hour') then
-        edit.SetText(Self.Config.GetObject('antiban').getJSONObject('sleep').getString('hour'))
-      else
-        edit.SetText(WLSettings.Sleep.Hour);
-    end;
+    if edit <> nil then edit.SetText(Antiban.GetSleepHour());
 
     edit := TScriptForm.Form.GetChild('ab_sleep_length_edit');
-    if edit <> nil then
-    begin
-      if useSaved and Self.Config.GetObject('antiban').getJSONObject('sleep').has('length') then
-        edit.SetText(ToStr(Self.Config.GetObject('antiban').getJSONObject('sleep').getDouble('length')))
-      else
-        edit.SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
-    end;
+    if edit <> nil then edit.SetText(ToStr(Antiban.GetSleepLength()));
   end;
 
 var
@@ -1277,31 +1216,9 @@ begin
   Self.AddTab('Antiban Manager');
   Result := Self.Tabs[High(Self.Tabs)];
 
-  if not Self.Config.Has('antiban') then
-  begin
-    json.Init();
-    Self.Config.Put('antiban', json);
-  end;
-
-  if not Self.Config.GetObject('antiban').has('tasks') then
-  begin
-    json.Init();
-    Self.Config.GetObject('antiban').Put('tasks', json);
-  end;
-
-  if not Self.Config.GetObject('antiban').has('sleep') then
-  begin
-    json.Init();
-    Self.Config.GetObject('antiban').Put('sleep', json);
-  end;
-
   combobox := TScriptForm.Form.GetChild('am_selector_combobox');
   if combobox = nil then
-  begin
     Antiban.SetupBiometrics();
-    Antiban.SetSleepHour();
-    Antiban.SetSleepLength();
-  end;
 
   fullWidth := Self.Size.X;
   space := Floor(fullWidth * 0.1);
@@ -1359,26 +1276,12 @@ begin
     SetLeft(space);
     AddItemArray(arr);
 
-    if Self.Config.GetObject('antiban').getJSONObject('tasks').has('enabled') then
-      SetChecked(Self.Config.GetObject('antiban').getJSONObject('tasks').getBoolean('enabled'))
-    else
-      SetChecked(WLSettings.Antiban.Enabled);
+    SetChecked(WLSettings.GetObject('antiban').getJSONObject('tasks').getBoolean('enabled'));
 
     for i := 0 to High(arr) do
     begin
       str := LowerCase(arr[i]) + '_group';
-
-      if Self.Config.GetObject('antiban').getJSONObject('tasks').Has(LowerCase(arr[i])) then
-        SetCheckedChild(Self.Config.GetObject('antiban').getJSONObject('tasks').GetBoolean(LowerCase(arr[i])), str)
-      else
-        case i of
-          0: SetCheckedChild(WLSettings.Antiban.Camera, str);
-          1: SetCheckedChild(WLSettings.Antiban.Mouse, str);
-          2: SetCheckedChild(WLSettings.Antiban.Chat, str);
-          3: SetCheckedChild(WLSettings.Antiban.GameTabs, str);
-          4: SetCheckedChild(WLSettings.Antiban.Bank, str);
-        end;
-
+      SetCheckedChild(WLSettings.GetObject('antiban').getJSONObject('tasks').GetBoolean(LowerCase(arr[i])), str);
       GetChildCheckBox(str).setOnChange(@Self._ABGroupOnChange);
       Self._ABGroupOnChange(GetChildCheckBox(str));
     end;
@@ -1394,10 +1297,7 @@ begin
     SetLeft(fullWidth + space);
     SetTop(antibanGroup.GetTop());
 
-    if Self.Config.GetObject('antiban').Has('breaks') then
-      SetChecked(Self.Config.GetObject('antiban').getBoolean('breaks'))
-    else
-      SetChecked(WLSettings.Breaks);
+    SetChecked(WLSettings.GetObject('antiban').getBoolean('breaks'));
 
     CheckBox.setOnChange(@Self._BreaksOnChange);
     Self._BreaksOnChange(CheckBox);
@@ -1410,11 +1310,7 @@ begin
     SetLeft(fullWidth * 2 + space);
     SetTop(antibanGroup.GetTop());
 
-    if Self.Config.GetObject('antiban').getJSONObject('sleep').has('enabled') then
-      SetChecked(Self.Config.GetObject('antiban').getJSONObject('sleep').getBoolean('enabled'))
-    else
-      SetChecked(WLSettings.Sleep.Enabled);
-
+    SetChecked(WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('enabled'));
     CheckBox.setOnChange(@Self._SleepsOnChange);
   end;
 
@@ -1426,10 +1322,7 @@ begin
     SetLeft(sleeps.GetLeft() + TControl.AdjustToDPI(5));
     SetTop(sleeps.GetBottom() + TControl.AdjustToDPI(5));
 
-    if Self.Config.GetObject('antiban').getJSONObject('sleep').has('biohash') then
-      useBio.SetChecked(Self.Config.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash'))
-    else
-      useBio.SetChecked(True);
+    useBio.SetChecked(WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash'));
 
     checked := useBio.IsChecked();
     CheckBox.setOnChange(@Self._SleepOnUseBioChange);
@@ -1447,10 +1340,7 @@ begin
     Edit.setOnKeyPress(@Edit.TimeField);
     Edit.setOnEditingDone(@Self._SleepHourOnChange);
 
-    if not checked and Self.Config.GetObject('antiban').getJSONObject('sleep').has('hour') then
-      SetText(Self.Config.GetObject('antiban').getJSONObject('sleep').getString('hour'))
-    else
-      SetText(WLSettings.Sleep.Hour);
+    SetText(Antiban.GetSleepHour());
   end;
 
   with sleepLength do
@@ -1464,10 +1354,7 @@ begin
     Edit.setOnKeyPress(@Edit.NumberField);
     Edit.setOnChange(@Self._SleepLengthOnChange);
 
-    if not checked and Self.Config.GetObject('antiban').getJSONObject('sleep').has('length') then
-      SetText(ToStr(Self.Config.GetObject('antiban').getJSONObject('sleep').getDouble('length')))
-    else
-      SetText(ToStr(WLSettings.Sleep.Length / ONE_HOUR));
+    SetText(ToStr(Antiban.GetSleepLength()));
   end;
 
   Self._SleepsOnChange(sleeps.CheckBox);
@@ -1633,8 +1520,7 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
     combobox := sender;
     imgBox := TScriptForm.Form.GetChild('map_selector');
 
-    WLSettings.BankLocation := EWLBankLocation(combobox.getItemIndex());
-    b := RSBankRegions[Ord(WLSettings.BankLocation)].Bounds;
+    b := RSBankRegions[WLSettings.GetInt('bank_map')].Bounds;
     b.X1 := Round(b.X1/4);
     b.Y1 := Round(b.Y1/4);
     b.X2 := Round(b.X2/4);
@@ -1652,6 +1538,8 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
     imgBox: TSimbaImageBox;
     combobox: TComboBox;
   begin
+    if not Self.LightMode then
+      SetWindowDarkTitleBar(TForm(sender).getHandle());
     TForm(sender).EnsureVisible(False);
     imgBox := TForm(sender).GetChild('map_selector');
     combobox := form.GetChild('bank_selector_combobox');
@@ -1699,7 +1587,7 @@ begin
     SetWidth(w);
     SetStyle(csDropDownList);
     AddItemArray(RSBankRegions.GetStrings());
-    SetItemIndex(Ord(WLSettings.BankLocation));
+    SetItemIndex(WLSettings.GetInt('bank_map'));
     ComboBox.SetOnChange(@Self._BankOnChange);
   end;
 
@@ -1750,11 +1638,9 @@ function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
     edit := sender;
     str := edit.getText();
 
-    if str = '' then
-      str := '0';
+    if str = '' then str := '0';
 
-    WLSettings.MaxActions := StrToInt64Def(str, 0);
-    edit.setText(IntToStr(WLSettings.MaxActions));
+    WLSettings.Put('max_actions', StrToInt64Def(str, 0));
   end;
 
   procedure TScriptForm._TimeLimitOnDone(sender: TObject);
@@ -1765,11 +1651,9 @@ function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
     edit := sender;
     str := edit.getText();
 
-    if str = '' then
-      str := '0';
+    if str = '' then str := '0';
 
-    WLSettings.MaxTime := StrToInt64Def(str, 0) * ONE_MINUTE;
-    edit.setText(FloatToStr(WLSettings.MaxTime / ONE_MINUTE));
+    WLSettings.Put('max_time', StrToInt64Def(str, 0));
   end;
 
 var
@@ -1802,7 +1686,7 @@ begin
     SetLeft(space);
     SetTop(y);
     SetWidth(w);
-    SetText(ToStr(WLSettings.MaxActions));
+    SetText(ToStr(WLSettings.GetString('max_actions')));
     Edit.setOnKeyPress(@Edit.NumberField);
     Edit.setOnEditingDone(@Self._ActionLimitOnDone);
   end;
@@ -1818,7 +1702,7 @@ begin
     SetLeft(fullWidth + space);
     SetTop(y);
     SetWidth(w);
-    SetText(ToStr(WLSettings.MaxTime));
+    SetText(ToStr(WLSettings.GetString('max_time')));
     Edit.setOnKeyPress(@Edit.NumberField);
     Edit.setOnEditingDone(@Self._TimeLimitOnDone);
   end;
@@ -1844,17 +1728,9 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
       child.setEnabled(checked);
       panel := TScriptForm.Form.GetChild(arr[i] + '_group_panel');
       panel.setEnabled(checked);
-      WLSettings.RemoteInput.Enabled := checked;
-
-      case i of
-        0: WLSettings.RemoteInput.BlockInput     := checked and child.IsChecked();
-        1: WLSettings.RemoteInput.HUDReport      := checked and child.IsChecked();
-        2: WLSettings.RemoteInput.HUDDebug       := checked and child.IsChecked();
-        3: WLSettings.RemoteInput.HUDTransparent := checked and child.IsChecked();
-      end;
     end;
 
-    Self.Config.GetObject('remote_input').Put('enabled', checked);
+    WLSettings.GetObject('remote_input').Put('enabled', checked);
 
     if checked then
     begin
@@ -1862,7 +1738,7 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
       Self._RIGroupOnChange(child);
     end
     else
-      Self.Config.SaveConfig();
+      WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._RIGroupOnChange(sender: TObject);
@@ -1873,20 +1749,16 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
   begin
     checkbox := sender;
     name := checkbox.getName();
-    str := name.Before('_group_checkbox').Replace('_', ' ');
-    Self.Config.GetObject('remote_input').Put(str, checkbox.IsChecked());
+    str := name.Before('_group_checkbox');
+    WLSettings.GetObject('remote_input').Put(str, checkbox.IsChecked());
 
     case name of
-      'block_real_input_group_checkbox': WLSettings.RemoteInput.BlockInput := checkbox.IsChecked();
-
       'hud_report_group_checkbox':
         begin
-          WLSettings.RemoteInput.HUDReport := checkbox.IsChecked();
           panel := checkbox.getParent().getParent();
 
           if not checkbox.IsChecked() then
           begin
-            WLSettings.RemoteInput.HUDTransparent := False;
             panel := panel.GetChild('hud_transparent_group_panel');
             panel.setEnabled(False);
             sibling := panel.GetChild('hud_transparent_group_checkbox');
@@ -1894,41 +1766,34 @@ function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
             Exit;
           end;
 
-          WLSettings.RemoteInput.HUDDebug := False;
           sibling := panel.GetChild('hud_debug_group_checkbox');
           sibling.SetChecked(False);
-          Self.Config.GetObject('remote_input').Put('hud debug', False);
+          WLSettings.GetObject('remote_input').Put('hud_debug', False);
 
           panel := panel.GetChild('hud_transparent_group_panel');
           panel.setEnabled(True);
           sibling := panel.GetChild('hud_transparent_group_checkbox');
           sibling.setEnabled(True);
-          WLSettings.RemoteInput.HUDTransparent := sibling.IsChecked();
         end;
 
       'hud_debug_group_checkbox':
         begin
-          WLSettings.RemoteInput.HUDDebug := checkbox.IsChecked();
           if not checkbox.IsChecked() then
             Exit;
 
-          WLSettings.RemoteInput.HUDReport := False;
-          WLSettings.RemoteInput.HUDTransparent := False;
           panel := checkbox.getParent().getParent();
           sibling := panel.GetChild('hud_report_group_checkbox');
           sibling.SetChecked(False);
-          Self.Config.GetObject('remote_input').Put('hud report', False);
+          WLSettings.GetObject('remote_input').Put('hud_report', False);
 
           panel := panel.GetChild('hud_transparent_group_panel');
           panel.setEnabled(False);
           sibling := panel.GetChild('hud_transparent_group_checkbox');
           sibling.setEnabled(False);
         end;
-
-      'hud_transparent_group_checkbox': WLSettings.RemoteInput.HUDTransparent := checkbox.IsChecked();
     end;
 
-    Self.Config.SaveConfig();
+    WLSettings.SaveConfig();
   end;
 
 var
@@ -1940,12 +1805,6 @@ var
   tmp: TCheckBox;
   json: TJSONObject;
 begin
-  if not Self.Config.Has('remote_input') then
-  begin
-    json.Init();
-    Self.Config.Put('remote_input', json);
-  end;
-
   with Result do
   begin
     Create(owner);
@@ -1981,28 +1840,15 @@ begin
 
     for i := 0 to High(arr) do
     begin
-      str := Replace(LowerCase(arr[i]), ' ', '_', [rfReplaceAll]) + '_group';
-
-      if Self.Config.GetObject('remote_input').Has(LowerCase(arr[i])) then
-        SetChecked(Self.Config.GetObject('remote_input').getBoolean(LowerCase(arr[i])))
-      else
-        case i of
-          0: SetCheckedChild(WLSettings.RemoteInput.BlockInput, str);
-          1: SetCheckedChild(WLSettings.RemoteInput.HUDReport, str);
-          2: SetCheckedChild(WLSettings.RemoteInput.HUDDebug, str);
-          3: SetCheckedChild(WLSettings.RemoteInput.HUDTransparent, str);
-        end;
-
-      tmp := GetChildCheckBox(str);
+      str := Replace(LowerCase(arr[i]), ' ', '_', [rfReplaceAll]);
+      tmp := GetChildCheckBox(str + '_group');
       tmp.setOnChange(@Self._RIGroupOnChange);
+      tmp.SetChecked(WLSettings.GetObject('remote_input').getBoolean(str));
     end;
 
     CheckBox.setOnChange(@Self._RIOnChange);
 
-    if Self.Config.GetObject('remote_input').has('enabled') then
-      SetChecked(Self.Config.GetObject('remote_input').getBoolean('enabled'))
-    else
-      SetChecked(WLSettings.RemoteInput.Enabled);
+    SetChecked(WLSettings.GetObject('remote_input').getBoolean('enabled'));
 
     Self._RIOnChange(CheckBox);
   end;
@@ -2017,14 +1863,16 @@ function TScriptForm.CreateVideoPanel(owner: TControl): TPanel;
     edit: TEdit;
   begin
     checked := TCheckBox(sender).IsChecked();
-    WLSettings.SaveVideo.Enabled := checked;
     edit := TScriptForm.Form.GetChild('v_time_edit');
     edit.setEnabled(checked);
+    WLSettings.GetObject('video').Put('enabled', checked);
+    WLSettings.SaveConfig();
   end;
 
   procedure TScriptForm._TimeOnChange(sender: TObject);
   begin
-    WLSettings.SaveVideo.Time := StrToInt(TEdit(sender).getText());
+    WLSettings.GetObject('video').Put('time', StrToInt(TEdit(sender).getText()));
+    WLSettings.SaveConfig();
   end;
 var
   enabled: TLabeledCheckBox;
@@ -2054,7 +1902,7 @@ begin
     SetName('v_enabled');
     SetLeft(TControl.AdjustToDPI(10));
     SetTop(TControl.AdjustToDPI(10));
-    SetChecked(WLSettings.SaveVideo.Enabled);
+    SetChecked(WLSettings.GetObject('video').getBoolean('enabled'));
     CheckBox.setOnChange(@Self._VideoOnChange);
   end;
 
@@ -2070,7 +1918,7 @@ begin
     SetEnabled(False);
     Edit.setOnKeyPress(@Edit.NumberField);
     Edit.SetOnChange(@Self._TimeOnChange);
-    SetText(ToString(WLSettings.SaveVideo.Time));
+    SetText(ToStr(WLSettings.GetObject('video').getInt('time')));
     SetWidth(TControl.AdjustToDPI(110));
   end;
 end;
@@ -2241,6 +2089,19 @@ begin
   TScriptForm.Form.Close();
 end;
 
+
+procedure TScriptForm.OnClose(sender: TObject; var closeAction: TCloseAction);
+begin
+  TerminateScript();
+end;
+
+procedure TScriptForm.OnShow(sender: TObject);
+begin
+  if not Self.LightMode then
+    SetWindowDarkTitleBar(TForm(sender).getHandle());
+  TForm(sender).EnsureVisible(False);
+end;
+
 (*
 ## TScriptForm.Setup
 ```pascal
@@ -2250,21 +2111,8 @@ Responsible for setting your TScriptForm up.
 This sets up the sekeleton of your TScriptForm ready to take in tabs.
 *)
 procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
-  type TScriptForm = TScriptForm;
-
-  procedure TScriptForm._OnClose(sender: TObject; var closeAction: TCloseAction);
-  begin
-    TerminateScript();
-  end;
-
-  procedure TScriptForm._OnShow(sender: TObject);
-  begin
-    TForm(sender).EnsureVisible(False);
-  end;
-
 begin
   Self.Size := [TControl.AdjustToDPI(size.X), TControl.AdjustToDPI(size.Y)];
-  Self.Config.Setup('wasplib');
 
   with TScriptForm.Form do
   begin
@@ -2276,8 +2124,8 @@ begin
     if not allowResize then
       getConstraints().SetInterfaceConstraints(Self.Size.X, Self.Size.Y, Self.Size.X, Self.Size.Y);
     setPosition(poScreenCenter);
-    setOnShow(@Self._OnShow);
-    setOnClose(@Self._OnClose);
+    setOnShow(@Self.OnShow);
+    setOnClose(@Self.OnClose);
     getFont().setQuality(TFontQuality.fqAntialiased);
   end;
 

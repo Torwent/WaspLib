@@ -59,7 +59,13 @@ Wrapper function used internally to decide if we should handle TWaspProgressRepo
 *)
 function TBaseScript.ShouldHandlePaint(): Boolean;
 begin
-  Result := WLSettings.RemoteInput.Enabled and WLSettings.RemoteInput.HUDReport and not WLSettings.RemoteInput.HUDDebug;
+  if not WLSettings.GetObject('remote_input').getBoolean('enabled') then
+    Exit;
+  if not WLSettings.GetObject('remote_input').getBoolean('hud_report') then
+    Exit;
+  if WLSettings.GetObject('remote_input').getBoolean('hud_debug') then
+    Exit;
+  Result := True;
 end;
 
 (*
@@ -167,11 +173,11 @@ begin
   end;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if not WLSettings.RemoteInput.HUDDebug and Self.ShouldDrawPaint() then
+  if Self.ShouldDrawPaint() then
     ProgressReport.Update();
   {$ENDIF}
 
-  if not WLSettings.TextReport then
+  if not WLSettings.GetBoolean('report') then
   begin
     Self.PreviousAction := Self.Action;
     Exit;
@@ -335,13 +341,13 @@ begin
   Self.IsSetup := True;
 
   {$IFNDEF SRL_DISABLE_REMOTEINPUT}
-  if WLSettings.RemoteInput.Enabled then
+  if WLSettings.GetObject('remote_input').getBoolean('enabled') then
   begin
     {$IFDEF SCRIPT_GUI}
     RSClient.RemoteInput.Setup();
     {$ENDIF}
 
-    if WLSettings.RemoteInput.HUDReport then
+    if WLSettings.GetObject('remote_input').getBoolean('hud_report') then
       ProgressReport.Setup();
   end;
   {$ENDIF}
@@ -353,7 +359,7 @@ begin
 
   //wasp-stats
   if not APIClient.Disabled then
-    APIClient.Disabled := not WLSettings.Stats;
+    APIClient.Disabled := not WLSettings.GetBoolean('stats');
   APIClient.TimeStamp := GetTickCount();
   //override me to add more stuff.
 end;
@@ -390,10 +396,10 @@ begin
   Self.TimeRunning.Pause();
   Self.OnAntiban := True;
 
-  checkBreaks := checkBreaks and WLSettings.Breaks;
-  checkSleeps := checkSleeps and WLSettings.Sleep.Enabled;
+  checkBreaks := checkBreaks and WLSettings.GetObject('antiban').getBoolean('breaks');
+  checkSleeps := checkSleeps and WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('enabled');
 
-  if WLSettings.Antiban.Enabled or checkBreaks or checkSleeps then
+  if WLSettings.GetObject('antiban').getJSONObject('tasks').getBoolean('enabled') or checkBreaks or checkSleeps then
     Result := Antiban.DoAntiban(checkBreaks, checkSleeps);
 
   Self.TimeRunning.Resume();

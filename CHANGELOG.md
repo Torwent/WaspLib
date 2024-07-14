@@ -1,3 +1,12 @@
+# [19.2.0](https://github.com/Torwent/WaspLib/compare/v19.1.10...v19.2.0) (2024-07-14)
+
+
+### Features
+
+* read notes ([ecb1bc7](https://github.com/Torwent/WaspLib/commit/ecb1bc78e4c5f2a6f98a24898c32fd0754bd1bb1))
+
+
+
 ## [19.1.10](https://github.com/Torwent/WaspLib/compare/v19.1.9...v19.1.10) (2024-07-11)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * **APIClient:** compatibility with recent API changes ([6757631](https://github.com/Torwent/WaspLib/commit/675763170a7b00a8ef6bc83d70c840d11dc0e034))
-
-
-
-## [19.1.6](https://github.com/Torwent/WaspLib/compare/v19.1.5...v19.1.6) (2024-06-20)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([63df907](https://github.com/Torwent/WaspLib/commit/63df907f1db2cd4ab4927bf22b716ce322ca416b))
 
 
 

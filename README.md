@@ -7,7 +7,7 @@ If you are having problems I suggest you try [my fork of SRL-Development](https:
 
 I also recommend you join my site and discord server and ask around there for help: [WaspScripts](https://waspscripts.com).
  
- For documentation refer to: [Documentation](https://torwent.github.io/WaspLib).
+For documentation refer to: [Documentation](https://torwent.github.io/WaspLib).
  
 # What is WaspLib for?
  As mentioned earlier, to bot OldSchool RuneScape. It's purpose is to make writting scripts faster as it includes lot's of commonly used code throughout my scripts.

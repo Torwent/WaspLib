@@ -1,3 +1,12 @@
+## [19.2.5](https://github.com/Torwent/WaspLib/compare/v19.2.4...v19.2.5) (2024-07-17)
+
+
+### Bug Fixes
+
+* **RSClient:** attempt to revalidate a client whose window handle has changed ([08e574e](https://github.com/Torwent/WaspLib/commit/08e574e5df33605d24e8aa0d9e9f0fdb59991071))
+
+
+
 ## [19.2.4](https://github.com/Torwent/WaspLib/compare/v19.2.3...v19.2.4) (2024-07-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * logic flaw that crashed some scripts ([f9e5acf](https://github.com/Torwent/WaspLib/commit/f9e5acffadf5ab8c9d645974c96fa5d339b7f43e))
-
-
-
-# [19.2.0](https://github.com/Torwent/WaspLib/compare/v19.1.10...v19.2.0) (2024-07-14)
-
-
-### Features
-
-* read notes ([ecb1bc7](https://github.com/Torwent/WaspLib/commit/ecb1bc78e4c5f2a6f98a24898c32fd0754bd1bb1))
 
 
 

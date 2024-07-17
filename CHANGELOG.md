@@ -1,3 +1,12 @@
+## [19.2.4](https://github.com/Torwent/WaspLib/compare/v19.2.3...v19.2.4) (2024-07-17)
+
+
+### Bug Fixes
+
+* **WLSettings:** added some wrappers for the new antiban toggles ([f0f7600](https://github.com/Torwent/WaspLib/commit/f0f7600581c800e4adeff9d8891d4f3caba4a54c))
+
+
+
 ## [19.2.3](https://github.com/Torwent/WaspLib/compare/v19.2.2...v19.2.3) (2024-07-17)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([ecb1bc7](https://github.com/Torwent/WaspLib/commit/ecb1bc78e4c5f2a6f98a24898c32fd0754bd1bb1))
-
-
-
-## [19.1.10](https://github.com/Torwent/WaspLib/compare/v19.1.9...v19.1.10) (2024-07-11)
-
-
-### Bug Fixes
-
-* **map:** update map ([34ef6aa](https://github.com/Torwent/WaspLib/commit/34ef6aa3a5c9f00d3c7e79be317e68350234c13c))
 
 
 

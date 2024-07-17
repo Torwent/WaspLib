@@ -1,3 +1,12 @@
+## [19.2.3](https://github.com/Torwent/WaspLib/compare/v19.2.2...v19.2.3) (2024-07-17)
+
+
+### Bug Fixes
+
+* **TScriptForm:** bank on change saves it's setting now. ([e8e5dc4](https://github.com/Torwent/WaspLib/commit/e8e5dc480ef852e6a8dcb3c38d34efe79c682a63))
+
+
+
 ## [19.2.2](https://github.com/Torwent/WaspLib/compare/v19.2.1...v19.2.2) (2024-07-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **map:** update map ([34ef6aa](https://github.com/Torwent/WaspLib/commit/34ef6aa3a5c9f00d3c7e79be317e68350234c13c))
-
-
-
-## [19.1.9](https://github.com/Torwent/WaspLib/compare/v19.1.8...v19.1.9) (2024-07-08)
-
-
-### Bug Fixes
-
-* force bump ([3c9d266](https://github.com/Torwent/WaspLib/commit/3c9d266188b2d4e647b92741fd265a808b19056e))
 
 
 

@@ -76,7 +76,7 @@ begin
     else
     begin
       Self.User := [];
-      Self.Config.Remove('refresh_token');
+      //Self.Config.Remove('refresh_token');
     end;
   except
     TerminateScript(response.ToString() + LineEnding + GetExceptionMessage());
@@ -133,19 +133,45 @@ var
   token: String;
 begin
   token := Self.Config.GetString('refresh_token');
-  if (token <> '') and Self.Login(token) then
-    DebugLn(Self.Name, 'Previous session refreshed!');
+  if (token <> '') then
+  begin
+    if Self.Login(token) then
+      Self.DebugLn('Previous session refreshed!')
+    else
+      Self.DebugLn('Previous session has expired!');
+  end;
 end;
 
 procedure TWaspClient.Setup();
+var
+  response: TJSONObject;
 begin
-  Self.Init('WaspClient', 'https://db.waspscripts.com/');
-  Self.APIKey := 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVucWxwY2hvYm5peWx3cHNqY3FjIiwicm9sZSI6ImFub24iLCJpYXQiOjE2NjM5MzIxMDAsImV4cCI6MTk3OTUwODEwMH0.WUiK6CteSjnOT8A9AcbUHnYyvWwDxlwUwq_ueifPAxY';
+  Self.Name := 'WaspClient';
+  Self.Server := 'https://api.waspscripts.com/';
+  Self.Client := InitializeHTTPClient(True);
+  try
+    response.Init(Self.GET('', False));
+    Self.Server := response.getString('url');
+    Self.APIKey := response.getString('anon_key');
+  except
+    WriteLn 'Failed to connect to https://api.waspscripts.com/ to get the database connection info.';
+    WriteLn 'Falling back to previously known good values';
+    Self.Server := 'https://db.waspscripts.com/';
+    Self.APIKey := 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTcxOTQ5MDgwMCwiZXhwIjo0ODc1MTY0NDAwLCJyb2xlIjoiYW5vbiJ9.pKuuhYK-xxOWBHg3mqaxNptyvCpE5n-cjhxN3GQKr2I';
+  finally
+    FreeHTTPClient(Self.Client);
+    response.Free();
+  end;
 
-  Self.Config.Setup('api');
+  if Self.APIKey = '' then Exit;
+  if not Self.Server.EndsWith('/') then Self.Server += '/';
+
+  Self.Config.Setup(AppPath + 'Configs' + DirectorySeparator + 'launcher.json');
 
   Self.RefreshClient(False);
+  AddOnTerminate(@Self.Free);
   Self.LoadRefreshToken();
+  Self.IsSetup := True;
 end;
 
 

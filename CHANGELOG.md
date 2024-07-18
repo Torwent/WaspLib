@@ -1,3 +1,12 @@
+## [19.2.6](https://github.com/Torwent/WaspLib/compare/v19.2.5...v19.2.6) (2024-07-18)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([cf9e340](https://github.com/Torwent/WaspLib/commit/cf9e340a53ad7982956b5a86398756e482840f09))
+
+
+
 ## [19.2.5](https://github.com/Torwent/WaspLib/compare/v19.2.4...v19.2.5) (2024-07-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([4b248f9](https://github.com/Torwent/WaspLib/commit/4b248f992e1b05711259fe446565d589100d6f75))
-
-
-
-## [19.2.1](https://github.com/Torwent/WaspLib/compare/v19.2.0...v19.2.1) (2024-07-14)
-
-
-### Bug Fixes
-
-* logic flaw that crashed some scripts ([f9e5acf](https://github.com/Torwent/WaspLib/commit/f9e5acffadf5ab8c9d645974c96fa5d339b7f43e))
 
 
 

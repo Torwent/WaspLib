@@ -112,7 +112,7 @@ type
 
     Weapon, Shield, SpecWeapon, Bracelet: TRSItem;
 
-    MinHitPoints, MinPrayPoints, WeaponSpec, AttackMonsterDelay: Int32;
+    MinHitPoints, MinPrayPoints, WeaponSpec, NextSpec, AttackMonsterDelay: Int32;
     TotalKills: UInt32;
 
     ManageGear, GearIsSetup, AutoRetaliateEnabled, AutoRetaliateChecked, QuickPrayerIsSetup,
@@ -183,6 +183,9 @@ begin
     if (Self.WeaponSpec > 0) then
       Self.SpecWeapon := Self.Weapon;
   end;
+
+  if (Self.WeaponSpec > 0) then
+    Self.NextSpec := Min(100, Antiban.GetUniqueInt(Self.WeaponSpec, Self.WeaponSpec, Self.WeaponSpec + 30));
 
   if Self.SpecWeapon <> 'Null' then
     Self.DebugLn('Current spec weapon: ' + ToStr(Self.SpecWeapon) +
@@ -489,7 +492,7 @@ begin
   if (Self.SpecWeapon = 'Null') or (Self.Weapon = 'Null') then
     Exit;
 
-  Result := (Minimap.GetSpecLevel() >= Self.WeaponSpec) and
+  Result := (Minimap.GetSpecLevel() >= Self.NextSpec) and
             ((Self.SpecWeapon = Self.Weapon) or Inventory.ContainsItem(Self.Weapon) or
             (Inventory.ContainsItem(Self.SpecWeapon) and Inventory.HasSpace(1)));
   Self.DoingSpec := Result;
@@ -515,7 +518,10 @@ begin
   end;
 
   if Result and (Minimap.GetSpecLevel() < Self.WeaponSpec) then
+  begin
     Self.Regear();
+    Self.NextSpec := Min(100, Antiban.GetUniqueInt(Self.WeaponSpec, Self.WeaponSpec, Self.WeaponSpec + 30));
+  end;
 end;
 
 

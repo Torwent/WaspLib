@@ -1,3 +1,12 @@
+## [19.2.9](https://github.com/Torwent/WaspLib/compare/v19.2.8...v19.2.9) (2024-07-22)
+
+
+### Bug Fixes
+
+* bump version ([c45717c](https://github.com/Torwent/WaspLib/commit/c45717c1daf9a04d06c8231c9479eee67929b577))
+
+
+
 ## [19.2.8](https://github.com/Torwent/WaspLib/compare/v19.2.7...v19.2.8) (2024-07-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSClient:** attempt to revalidate a client whose window handle has changed ([08e574e](https://github.com/Torwent/WaspLib/commit/08e574e5df33605d24e8aa0d9e9f0fdb59991071))
-
-
-
-## [19.2.4](https://github.com/Torwent/WaspLib/compare/v19.2.3...v19.2.4) (2024-07-17)
-
-
-### Bug Fixes
-
-* **WLSettings:** added some wrappers for the new antiban toggles ([f0f7600](https://github.com/Torwent/WaspLib/commit/f0f7600581c800e4adeff9d8891d4f3caba4a54c))
 
 
 

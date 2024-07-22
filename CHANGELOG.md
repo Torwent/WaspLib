@@ -1,3 +1,12 @@
+## [19.2.8](https://github.com/Torwent/WaspLib/compare/v19.2.7...v19.2.8) (2024-07-22)
+
+
+### Bug Fixes
+
+* **combat handler:** spec attack randomization ([d416dc5](https://github.com/Torwent/WaspLib/commit/d416dc596979a42170502396c0840d232309560d))
+
+
+
 ## [19.2.7](https://github.com/Torwent/WaspLib/compare/v19.2.6...v19.2.7) (2024-07-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **WLSettings:** added some wrappers for the new antiban toggles ([f0f7600](https://github.com/Torwent/WaspLib/commit/f0f7600581c800e4adeff9d8891d4f3caba4a54c))
-
-
-
-## [19.2.3](https://github.com/Torwent/WaspLib/compare/v19.2.2...v19.2.3) (2024-07-17)
-
-
-### Bug Fixes
-
-* **TScriptForm:** bank on change saves it's setting now. ([e8e5dc4](https://github.com/Torwent/WaspLib/commit/e8e5dc480ef852e6a8dcb3c38d34efe79c682a63))
 
 
 

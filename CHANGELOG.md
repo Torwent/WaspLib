@@ -1,3 +1,12 @@
+## [19.3.3](https://github.com/Torwent/WaspLib/compare/v19.3.2...v19.3.3) (2024-07-23)
+
+
+### Bug Fixes
+
+* typos ([1611b3f](https://github.com/Torwent/WaspLib/commit/1611b3f728a6d68ba101955172d14779f54a9dc9))
+
+
+
 ## [19.3.2](https://github.com/Torwent/WaspLib/compare/v19.3.1...v19.3.2) (2024-07-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * bump version ([c45717c](https://github.com/Torwent/WaspLib/commit/c45717c1daf9a04d06c8231c9479eee67929b577))
-
-
-
-## [19.2.8](https://github.com/Torwent/WaspLib/compare/v19.2.7...v19.2.8) (2024-07-22)
-
-
-### Bug Fixes
-
-* **combat handler:** spec attack randomization ([d416dc5](https://github.com/Torwent/WaspLib/commit/d416dc596979a42170502396c0840d232309560d))
 
 
 

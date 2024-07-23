@@ -1,3 +1,12 @@
+## [19.3.2](https://github.com/Torwent/WaspLib/compare/v19.3.1...v19.3.2) (2024-07-23)
+
+
+### Bug Fixes
+
+* maxtime now is converted to milliseconds properly ([381a025](https://github.com/Torwent/WaspLib/commit/381a025f81b49cc3a08d5e09f8e9a55741cad0f4))
+
+
+
 ## [19.3.1](https://github.com/Torwent/WaspLib/compare/v19.3.0...v19.3.1) (2024-07-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combat handler:** spec attack randomization ([d416dc5](https://github.com/Torwent/WaspLib/commit/d416dc596979a42170502396c0840d232309560d))
-
-
-
-## [19.2.7](https://github.com/Torwent/WaspLib/compare/v19.2.6...v19.2.7) (2024-07-19)
-
-
-### Bug Fixes
-
-* read notes ([090a6b6](https://github.com/Torwent/WaspLib/commit/090a6b6bbcc0a3d7c6dd84e26793720b9f8beca0))
 
 
 

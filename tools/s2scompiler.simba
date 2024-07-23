@@ -20,13 +20,14 @@ input.Replace('.simba', '-compiled.simba')
 {$I SRL-T/osr.simba}
 
 var
-  input: String = 'launcher.simba';
-  path: String = ScriptPath + 'wasp-launcher' + DirectorySeparator + 'launcher' + DirectorySeparator;
-  output: String = ScriptPath + 'wasp-launcher' + DirectorySeparator;
+  input: String = 'flipper.simba';
+  path: String = ScriptPath + 'FlipperSRL' + DirectorySeparator + 'Include' + DirectorySeparator;
+  output: String = ScriptPath + 'FlipperSRL' + DirectorySeparator;
 
 const
   ERASE_DIRECTIVE: TStringArray = ['WS_LAUNCHER', 'SRL_OSR', 'SRL_UTILS', 'WL_OSR', 'WL_UTILS'];
-  INCLUDE_DIRECTIVES: TStringArray = ['{$I ', '{$INCLUDE', '{$i ', '$include'];
+  INCLUDE_DIRECTIVES: TStringArray = ['{$INCLUDE_ONCE ', '{$INCLUDE ', '{$I ', '{$include_once ', '{$include ', '{$i '];
+
   REPLACES: array of TStringArray = [
     ["Scripts/launcher/'", '{$MACRO CURRENT_DIRECTORY}'],
     ["Apppath + 'Scripts' + DirectorySeparator + 'wasp-launcher' + DirectorySeparator + 'launcher' + DirectorySeparator", '{$MACRO CURRENT_DIRECTORY}']
@@ -48,12 +49,17 @@ const
 var
   filepath, directives: String;
 begin
-  filepath := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}');
+  filepath := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}').Trim();
 
   if filepath.StartsWith('WaspLib') or filepath.StartsWith('SRL-T') then
     Result := ReadFileContents(Includepath + filepath)
   else
     Result := ReadFileContents(path + filepath);
+
+  ClearDebug();
+  WriteLn path + filepath;
+  WriteLn content;
+  Wait(1);
 
   for directives in ERASE_DIRECTIVE do
     Result := ReplaceRegExpr(RGXS + directives + RGXE, Result, '', True);

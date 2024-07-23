@@ -192,6 +192,31 @@ begin
   Result := Self.ReadWorlds(boxes);
 end;
 
+
+function TRSWorldHopper.SortWorlds(): Boolean;
+var
+  Arrow : TPointArray;
+  Attempt : Int32;
+  T : TCountdown;
+begin
+  if not Logout.IsWorldSwitcherOpen then
+    Exit;
+
+  for Attempt := 0 to 3 do
+  begin
+    T.Init(250);
+    repeat
+      if SRL.FindColors(Arrow, CTS1(421059, 7), Self.Bounds) = 0 then
+        Continue;
+
+      if (Arrow.Mean - Point(Self.X1, Self.Y1)) = Point(29, 30) then
+        Exit(True);
+    until T.IsFinished;
+
+    Mouse.Click(Box(17, 25, 40, 34).Offset(Point(Self.X1, Self.Y1)), MOUSE_LEFT);
+  end;
+end;
+
 (*
 ## TRSWorldHopper.WaitForHop
 ```pascal
@@ -257,7 +282,7 @@ Example:
 WriteLn TRSWorldHopper.Hop([303, 304, 305]);
 ```
 *)
-function TRSWorldHopper.Hop(targetWorlds: TIntegerArray): Boolean;
+function TRSWorldHopper.Hop(targetWorlds: TIntegerArray; doSorting: Boolean = False): Boolean;
 var
   visibleWorlds: TIntegerArray;
   ocrBounds: TBoxArray;
@@ -275,6 +300,9 @@ begin
   if not logout.IsWorldSwitcherOpen() then
     Logout.GetButton(ERSLogoutButton.WORLD_SWITCHER).Click(MOUSE_LEFT);
   WaitUntil(Self.GetCurrentWorld() <> 0, 200, 12000);
+
+  if doSorting and not Self.SortWorlds() then
+    Exit;
 
   currentWorld := Self.GetCurrentWorld();
   Self.DebugLn("Current world: " + tostr(currentWorld));

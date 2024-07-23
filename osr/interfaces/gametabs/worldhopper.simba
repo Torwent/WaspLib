@@ -199,19 +199,19 @@ var
   Attempt : Int32;
   T : TCountdown;
 begin
-  if not Logout.IsWorldSwitcherOpen then
+  if not Logout.IsWorldSwitcherOpen() then
     Exit;
 
   for Attempt := 0 to 3 do
   begin
     T.Init(250);
     repeat
-      if SRL.FindColors(Arrow, CTS1(421059, 7), Self.Bounds) = 0 then
+      if SRL.FindColors(Arrow, CTS1(421059, 7), Self.Bounds()) = 0 then
         Continue;
 
-      if (Arrow.Mean - Point(Self.X1, Self.Y1)) = Point(29, 30) then
+      if (Arrow.Mean() - Point(Self.X1, Self.Y1)) = Point(29, 30) then
         Exit(True);
-    until T.IsFinished;
+    until T.IsFinished();
 
     Mouse.Click(Box(17, 25, 40, 34).Offset(Point(Self.X1, Self.Y1)), MOUSE_LEFT);
   end;
@@ -228,6 +228,7 @@ function TRSWorldHopper.WaitForHop(world: Int32; ocrBounds: TBox; coolDownOnFail
 var
   b: TBox;
   cd: UInt64;
+  filter: TOCRColorFilter;
 begin
   Self.DebugLn("Hopping to " + ToStr(world) + "...");
 
@@ -237,11 +238,8 @@ begin
   b.X2 := b.X1 + 79;
   b.Y2 := b.Y1 + 20;
 
-  if not WaitUntil(
-    OCR.LocateText(b, 'Please wait', RS_FONT_PLAIN_12, TOCRColorFilter.Create([$FFFFFF]), 1),
-    100,
-    2000
-  ) then
+  filter := TOCRColorFilter.Create([$FFFFFF]);
+  if not WaitUntil(OCR.LocateText(b, 'Please wait', RS_FONT_PLAIN_12, filter, 1), 100, 2000) then
   begin
     Self.DebugLn("hop failed: " + chat.GetMessage(7));
 
@@ -282,7 +280,7 @@ Example:
 WriteLn TRSWorldHopper.Hop([303, 304, 305]);
 ```
 *)
-function TRSWorldHopper.Hop(targetWorlds: TIntegerArray; doSorting: Boolean = False): Boolean;
+function TRSWorldHopper.Hop(targetWorlds: TIntegerArray; doSorting: Boolean = True): Boolean;
 var
   visibleWorlds: TIntegerArray;
   ocrBounds: TBoxArray;

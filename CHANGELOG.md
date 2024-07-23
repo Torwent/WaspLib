@@ -1,3 +1,12 @@
+## [19.3.1](https://github.com/Torwent/WaspLib/compare/v19.3.0...v19.3.1) (2024-07-23)
+
+
+### Bug Fixes
+
+* removed the global hint removal ([840f644](https://github.com/Torwent/WaspLib/commit/840f6449247fb4001d03a416450dcfb5d115bd6a))
+
+
+
 # [19.3.0](https://github.com/Torwent/WaspLib/compare/v19.2.9...v19.3.0) (2024-07-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([090a6b6](https://github.com/Torwent/WaspLib/commit/090a6b6bbcc0a3d7c6dd84e26793720b9f8beca0))
-
-
-
-## [19.2.6](https://github.com/Torwent/WaspLib/compare/v19.2.5...v19.2.6) (2024-07-18)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([cf9e340](https://github.com/Torwent/WaspLib/commit/cf9e340a53ad7982956b5a86398756e482840f09))
 
 
 

@@ -1,3 +1,12 @@
+## [19.3.4](https://github.com/Torwent/WaspLib/compare/v19.3.3...v19.3.4) (2024-07-23)
+
+
+### Bug Fixes
+
+* numberfield doesn't allow periods now ([770f789](https://github.com/Torwent/WaspLib/commit/770f7895f7983bc7aaa367916030a5330b77d410))
+
+
+
 ## [19.3.3](https://github.com/Torwent/WaspLib/compare/v19.3.2...v19.3.3) (2024-07-23)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * added worhopper sorting by XJ ([6eaf37e](https://github.com/Torwent/WaspLib/commit/6eaf37ee65825a2ff0b86261a4ff28bef81dbf77))
-
-
-
-## [19.2.9](https://github.com/Torwent/WaspLib/compare/v19.2.8...v19.2.9) (2024-07-22)
-
-
-### Bug Fixes
-
-* bump version ([c45717c](https://github.com/Torwent/WaspLib/commit/c45717c1daf9a04d06c8231c9479eee67929b577))
 
 
 

@@ -1,3 +1,12 @@
+# [19.3.0](https://github.com/Torwent/WaspLib/compare/v19.2.9...v19.3.0) (2024-07-23)
+
+
+### Features
+
+* added worhopper sorting by XJ ([6eaf37e](https://github.com/Torwent/WaspLib/commit/6eaf37ee65825a2ff0b86261a4ff28bef81dbf77))
+
+
+
 ## [19.2.9](https://github.com/Torwent/WaspLib/compare/v19.2.8...v19.2.9) (2024-07-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([cf9e340](https://github.com/Torwent/WaspLib/commit/cf9e340a53ad7982956b5a86398756e482840f09))
-
-
-
-## [19.2.5](https://github.com/Torwent/WaspLib/compare/v19.2.4...v19.2.5) (2024-07-17)
-
-
-### Bug Fixes
-
-* **RSClient:** attempt to revalidate a client whose window handle has changed ([08e574e](https://github.com/Torwent/WaspLib/commit/08e574e5df33605d24e8aa0d9e9f0fdb59991071))
 
 
 

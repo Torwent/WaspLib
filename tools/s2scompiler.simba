@@ -21,10 +21,11 @@ input.Replace('.simba', '-compiled.simba')
 
 var
   input: String = 'flipper.simba';
-  path: String = ScriptPath + 'FlipperSRL' + DirectorySeparator + 'Include' + DirectorySeparator;
-  output: String = ScriptPath + 'FlipperSRL' + DirectorySeparator;
+  path: String = ScriptPath + 'flipper' + DirectorySeparator;
+  output: String = ScriptPath + 'flipper' + DirectorySeparator;
 
 const
+  IGNORE_INCLUDES_FOLDER: Boolean = False;
   ERASE_DIRECTIVE: TStringArray = ['WS_LAUNCHER', 'SRL_OSR', 'SRL_UTILS', 'WL_OSR', 'WL_UTILS'];
   INCLUDE_DIRECTIVES: TStringArray = ['{$INCLUDE_ONCE ', '{$INCLUDE ', '{$I ', '{$include_once ', '{$include ', '{$i '];
 
@@ -47,29 +48,48 @@ const
   RGXS: String = '\{\$IFNDEF ';
   RGXE: String = '\}([\s\S]*?\{\$ENDIF\})';
 var
-  filepath, directives: String;
+  filepath, directives, currentPath: String;
+  i: Int32;
 begin
   filepath := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}').Trim();
 
-  if filepath.StartsWith('WaspLib') or filepath.StartsWith('SRL-T') then
-    Result := ReadFileContents(Includepath + filepath)
-  else
-    Result := ReadFileContents(path + filepath);
+  if filepath.StartsWith('WaspLib') or filepath.StartsWith('SRL-T') or filepath.StartsWith('SRL') then
+  begin
+    if IGNORE_INCLUDES_FOLDER then
+      Exit(INCLUDE_DIRECTIVES[directiveIndex].Replace(' ', '_') + filepath + '}');
 
-  ClearDebug();
-  WriteLn path + filepath;
-  WriteLn content;
-  Wait(1);
+    WriteLn('Compiling file: ' , Includepath + filepath);
+    Result := ReadFileContents(Includepath + filepath);
+  end
+  else if filepath.StartsWith('Scripts/') or filepath.StartsWith('Scripts\') then
+  begin
+    WriteLn('Compiling file: ' , AppPath + filepath);
+    Result := ReadFileContents(AppPath + filepath);
+
+    for i := 0 to High(INCLUDE_DIRECTIVES) do
+    begin
+      Result := Result.Replace(INCLUDE_DIRECTIVES[i] + ' SRL', '{$TEMP_SRL');
+      Result := Result.Replace(INCLUDE_DIRECTIVES[i] + ' WaspLib', '{$TEMP_Wasplib');
+    end;
+
+    for i := 0 to High(INCLUDE_DIRECTIVES) do
+      Result := Result.Replace(INCLUDE_DIRECTIVES[i], INCLUDE_DIRECTIVES[i] + ExtractFileDir(filepath) + DirectorySeparator);
+
+    Result := Result.Replace('{$TEMP_SRL', '{$I SRL').Replace('{$TEMP_Wasplib', '{$I WaspLib');
+  end
+  else
+  begin
+    WriteLn('Compiling file: ' , AppPath + filepath);
+    Result := ReadFileContents(path + filepath);
+  end;
 
   for directives in ERASE_DIRECTIVE do
     Result := ReplaceRegExpr(RGXS + directives + RGXE, Result, '', True);
 
   filepath := ExtractFilepath(path + filepath).Replace(Apppath, "Apppath + '") + "'";
-  filepath := filepath.Replace(DirectorySeparator, "' + DirectorySeparator + '");
-  filepath := filepath.Replace(" + ''", '');
+  filepath := filepath.Replace(DirectorySeparator, "' + DirectorySeparator + '").Replace(" + ''", '');
 
-  Result := Result.Replace('{$macro CURRENT_DIRECTORY}', filepath);
-  Result := Result.Replace('{$MACRO CURRENT_DIRECTORY}', filepath);
+  Result := Result.Replace('{$macro CURRENT_DIRECTORY}', filepath).Replace('{$MACRO CURRENT_DIRECTORY}', filepath);
 
   Result := LineEnding + Result + LineEnding;
 end;
@@ -117,6 +137,10 @@ begin
 
   for index := 0 to High(REPLACES) do
     content := content.Replace(REPLACES[index,0], REPLACES[index,1]);
+
+  for index := 0 to High(INCLUDE_DIRECTIVES) do
+    content := content.Replace(INCLUDE_DIRECTIVES[index].Replace(' ', '_'), INCLUDE_DIRECTIVES[index]);
+
 
   if path = output then
     WriteFileContents(path + input.Replace('.simba', '-compiled.simba'), content, False)

@@ -1,3 +1,12 @@
+## [19.3.7](https://github.com/Torwent/WaspLib/compare/v19.3.6...v19.3.7) (2024-07-24)
+
+
+### Bug Fixes
+
+* fatal errors ([f4bff8b](https://github.com/Torwent/WaspLib/commit/f4bff8b73c3929f1b5a5d9a124218c3b1e33a587))
+
+
+
 ## [19.3.6](https://github.com/Torwent/WaspLib/compare/v19.3.5...v19.3.6) (2024-07-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * typos ([1611b3f](https://github.com/Torwent/WaspLib/commit/1611b3f728a6d68ba101955172d14779f54a9dc9))
-
-
-
-## [19.3.2](https://github.com/Torwent/WaspLib/compare/v19.3.1...v19.3.2) (2024-07-23)
-
-
-### Bug Fixes
-
-* maxtime now is converted to milliseconds properly ([381a025](https://github.com/Torwent/WaspLib/commit/381a025f81b49cc3a08d5e09f8e9a55741cad0f4))
 
 
 

@@ -1,3 +1,12 @@
+## [19.3.5](https://github.com/Torwent/WaspLib/compare/v19.3.4...v19.3.5) (2024-07-24)
+
+
+### Bug Fixes
+
+* read notes ([5909f68](https://github.com/Torwent/WaspLib/commit/5909f68a58239a767158e6ac2a7b66046e28cda2))
+
+
+
 ## [19.3.4](https://github.com/Torwent/WaspLib/compare/v19.3.3...v19.3.4) (2024-07-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * removed the global hint removal ([840f644](https://github.com/Torwent/WaspLib/commit/840f6449247fb4001d03a416450dcfb5d115bd6a))
-
-
-
-# [19.3.0](https://github.com/Torwent/WaspLib/compare/v19.2.9...v19.3.0) (2024-07-23)
-
-
-### Features
-
-* added worhopper sorting by XJ ([6eaf37e](https://github.com/Torwent/WaspLib/commit/6eaf37ee65825a2ff0b86261a4ff28bef81dbf77))
 
 
 

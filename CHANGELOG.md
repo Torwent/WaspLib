@@ -1,3 +1,12 @@
+## [19.3.6](https://github.com/Torwent/WaspLib/compare/v19.3.5...v19.3.6) (2024-07-24)
+
+
+### Bug Fixes
+
+* **s2scompiler:** read notes ([2574157](https://github.com/Torwent/WaspLib/commit/257415789d75f371e85c1e7a271a6a623242493f))
+
+
+
 ## [19.3.5](https://github.com/Torwent/WaspLib/compare/v19.3.4...v19.3.5) (2024-07-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * maxtime now is converted to milliseconds properly ([381a025](https://github.com/Torwent/WaspLib/commit/381a025f81b49cc3a08d5e09f8e9a55741cad0f4))
-
-
-
-## [19.3.1](https://github.com/Torwent/WaspLib/compare/v19.3.0...v19.3.1) (2024-07-23)
-
-
-### Bug Fixes
-
-* removed the global hint removal ([840f644](https://github.com/Torwent/WaspLib/commit/840f6449247fb4001d03a416450dcfb5d115bd6a))
 
 
 

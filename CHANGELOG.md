@@ -1,3 +1,12 @@
+## [19.3.8](https://github.com/Torwent/WaspLib/compare/v19.3.7...v19.3.8) (2024-07-25)
+
+
+### Bug Fixes
+
+* **progress:** disabled all drawing ([89dea8e](https://github.com/Torwent/WaspLib/commit/89dea8efb67114d5e54f27563f893d6fd709f3cd))
+
+
+
 ## [19.3.7](https://github.com/Torwent/WaspLib/compare/v19.3.6...v19.3.7) (2024-07-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * numberfield doesn't allow periods now ([770f789](https://github.com/Torwent/WaspLib/commit/770f7895f7983bc7aaa367916030a5330b77d410))
-
-
-
-## [19.3.3](https://github.com/Torwent/WaspLib/compare/v19.3.2...v19.3.3) (2024-07-23)
-
-
-### Bug Fixes
-
-* typos ([1611b3f](https://github.com/Torwent/WaspLib/commit/1611b3f728a6d68ba101955172d14779f54a9dc9))
 
 
 

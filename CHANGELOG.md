@@ -1,3 +1,12 @@
+## [19.3.9](https://github.com/Torwent/WaspLib/compare/v19.3.8...v19.3.9) (2024-07-25)
+
+
+### Bug Fixes
+
+* **s2s:** point to launcher again ([a3f1eb1](https://github.com/Torwent/WaspLib/commit/a3f1eb158d6605f1d5d98a98565e998d239375a4))
+
+
+
 ## [19.3.8](https://github.com/Torwent/WaspLib/compare/v19.3.7...v19.3.8) (2024-07-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([5909f68](https://github.com/Torwent/WaspLib/commit/5909f68a58239a767158e6ac2a7b66046e28cda2))
-
-
-
-## [19.3.4](https://github.com/Torwent/WaspLib/compare/v19.3.3...v19.3.4) (2024-07-23)
-
-
-### Bug Fixes
-
-* numberfield doesn't allow periods now ([770f789](https://github.com/Torwent/WaspLib/commit/770f7895f7983bc7aaa367916030a5330b77d410))
 
 
 

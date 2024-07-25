@@ -22,7 +22,7 @@ Some things in WaspLib could be coming to SRL in the future but others are just 
  A good example of this would be the western edge of the desert, if you ever tried using RSWalker around the map edges in the desert you know it doesn't work properly.
  With my maps it should accurately walk around most edges.
 
- My maps also include way more locations and it conyains nearly everything I consider useful.
+ My maps also include way more locations and it contains nearly everything I consider useful.
  The only missing parts are Keldagrim and GWD that can be included separately if needed and a couple upstairs locations and minigames.
  And unless you need one of those maps you should be able to find everything in my world and zeah map:
  - Tzhaar

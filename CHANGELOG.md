@@ -1,3 +1,12 @@
+## [19.3.10](https://github.com/Torwent/WaspLib/compare/v19.3.9...v19.3.10) (2024-07-25)
+
+
+### Bug Fixes
+
+* dark title bars now work on Simba64 bits ([35d3179](https://github.com/Torwent/WaspLib/commit/35d3179798bb83448972bd24bba817f652300347))
+
+
+
 ## [19.3.9](https://github.com/Torwent/WaspLib/compare/v19.3.8...v19.3.9) (2024-07-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **s2scompiler:** read notes ([2574157](https://github.com/Torwent/WaspLib/commit/257415789d75f371e85c1e7a271a6a623242493f))
-
-
-
-## [19.3.5](https://github.com/Torwent/WaspLib/compare/v19.3.4...v19.3.5) (2024-07-24)
-
-
-### Bug Fixes
-
-* read notes ([5909f68](https://github.com/Torwent/WaspLib/commit/5909f68a58239a767158e6ac2a7b66046e28cda2))
 
 
 

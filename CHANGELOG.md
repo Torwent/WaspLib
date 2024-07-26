@@ -1,3 +1,12 @@
+## [19.3.11](https://github.com/Torwent/WaspLib/compare/v19.3.10...v19.3.11) (2024-07-26)
+
+
+### Bug Fixes
+
+* **RSCacheParser:** Now reads cache from RuneLite if that's the client being used ([27138a6](https://github.com/Torwent/WaspLib/commit/27138a664bbc2478edcf0e1965ee2f29876aa98f))
+
+
+
 ## [19.3.10](https://github.com/Torwent/WaspLib/compare/v19.3.9...v19.3.10) (2024-07-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fatal errors ([f4bff8b](https://github.com/Torwent/WaspLib/commit/f4bff8b73c3929f1b5a5d9a124218c3b1e33a587))
-
-
-
-## [19.3.6](https://github.com/Torwent/WaspLib/compare/v19.3.5...v19.3.6) (2024-07-24)
-
-
-### Bug Fixes
-
-* **s2scompiler:** read notes ([2574157](https://github.com/Torwent/WaspLib/commit/257415789d75f371e85c1e7a271a6a623242493f))
 
 
 

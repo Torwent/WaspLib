@@ -1,3 +1,12 @@
+# [19.4.0](https://github.com/Torwent/WaspLib/compare/v19.3.12...v19.4.0) (2024-07-29)
+
+
+### Features
+
+* **data:** add gear json data ([9be8643](https://github.com/Torwent/WaspLib/commit/9be8643867dce390e13b61b5e1e49db47e244e97))
+
+
+
 ## [19.3.12](https://github.com/Torwent/WaspLib/compare/v19.3.11...v19.3.12) (2024-07-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **s2s:** point to launcher again ([a3f1eb1](https://github.com/Torwent/WaspLib/commit/a3f1eb158d6605f1d5d98a98565e998d239375a4))
-
-
-
-## [19.3.8](https://github.com/Torwent/WaspLib/compare/v19.3.7...v19.3.8) (2024-07-25)
-
-
-### Bug Fixes
-
-* **progress:** disabled all drawing ([89dea8e](https://github.com/Torwent/WaspLib/commit/89dea8efb67114d5e54f27563f893d6fd709f3cd))
 
 
 

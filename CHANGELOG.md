@@ -1,3 +1,12 @@
+## [19.3.12](https://github.com/Torwent/WaspLib/compare/v19.3.11...v19.3.12) (2024-07-29)
+
+
+### Bug Fixes
+
+* blocking real input had to be inverted ([e2e6d86](https://github.com/Torwent/WaspLib/commit/e2e6d860f202fbbdea989b34eddb8592ce3ce435))
+
+
+
 ## [19.3.11](https://github.com/Torwent/WaspLib/compare/v19.3.10...v19.3.11) (2024-07-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **progress:** disabled all drawing ([89dea8e](https://github.com/Torwent/WaspLib/commit/89dea8efb67114d5e54f27563f893d6fd709f3cd))
-
-
-
-## [19.3.7](https://github.com/Torwent/WaspLib/compare/v19.3.6...v19.3.7) (2024-07-24)
-
-
-### Bug Fixes
-
-* fatal errors ([f4bff8b](https://github.com/Torwent/WaspLib/commit/f4bff8b73c3929f1b5a5d9a124218c3b1e33a587))
 
 
 

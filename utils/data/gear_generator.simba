@@ -1,0 +1,55 @@
+{$I SRL-T/osr.simba}
+
+const
+  PATH = {$macro CURRENT_DIRECTORY} + 'gear.json';
+  OSRSBOX_URL = 'https://raw.githubusercontent.com/0xNeffarion/osrsreboxed-db/master/docs/items-json-slot/';
+  ENDPOINTS = [
+    'head', 'cape', 'neck', 'ammo','weapon', 'body', 'shield',
+    'legs', 'hands', 'feet', 'ring','2h'
+  ];
+
+var
+  gear, json, obj: TJSONObject;
+  arr: TJSONArray;
+  key, url, str: String;
+  localKeys, urlKeys: TStringList;
+  i, j, n: Int32;
+begin
+  ClearDebug();
+  gear.Init(ReadFileContents(PATH));
+  AddOnTerminate(@gear.Free);
+
+  for i := 0 to High(ENDPOINTS) do
+  begin
+    key := ENDPOINTS[i];
+    WriteLn('Loading ', key);
+    arr := gear.getJSONArray(key);
+
+    url := OSRSBOX_URL + 'items-' + key + '.json';
+    json.Init(GetPage(url));
+
+    urlKeys := json.keys();
+
+    for j := 0 to urlKeys.getCount() - 1 do
+    begin
+      obj := json.getJSONObject(urlKeys.getStrings(j));
+      str := obj.getString('name');
+
+      for n := 0 to arr.length()-1 do
+        if str = arr.getString(n) then
+          Continue(2);
+      arr.Put(str);
+    end;
+  end;
+
+  WriteFileContents(
+    PATH,
+    gear.ToString().Replace('\u0020', ' ').Replace('\u002B', '+')
+    .Replace('\u0026', '&')
+    .Replace('},{', '},' + LineEnding + '  {')
+    .Replace('[{', '[' + LineEnding + '  {')
+    .Replace('}]', '}' + LineEnding + ']'),
+    False
+  );
+
+end.

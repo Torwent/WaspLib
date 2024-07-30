@@ -14,6 +14,7 @@ var
   key, url, str: String;
   localKeys, urlKeys: TStringList;
   i, j, n: Int32;
+  strArray: TStringArray;
 begin
   ClearDebug();
   gear.Init(ReadFileContents(PATH));
@@ -24,6 +25,8 @@ begin
     key := ENDPOINTS[i];
     WriteLn('Loading ', key);
     arr := gear.getJSONArray(key);
+    strArray := [];
+    for j := 0 to arr.High() do strArray += arr.getString(j);
 
     url := OSRSBOX_URL + 'items-' + key + '.json';
     json.Init(GetPage(url));
@@ -38,18 +41,26 @@ begin
       for n := 0 to arr.length()-1 do
         if str = arr.getString(n) then
           Continue(2);
-      arr.Put(str);
+      strArray += str;
     end;
+
+    Sort(strArray);
+    arr.Free();
+    arr.Init();
+    for j := 0 to High(strArray) do
+      arr.Put(strArray[j]);
   end;
 
   WriteFileContents(
     PATH,
     gear.ToString().Replace('\u0020', ' ').Replace('\u002B', '+')
     .Replace('\u0026', '&')
+    .Replace('{"', '{' + LineEnding + '  "')
+    .Replace('],"', '],' + LineEnding + '  "')
+    .Replace(']}', ']' + LineEnding + '}')
     .Replace('},{', '},' + LineEnding + '  {')
     .Replace('[{', '[' + LineEnding + '  {')
     .Replace('}]', '}' + LineEnding + ']'),
     False
   );
-
 end.

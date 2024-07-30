@@ -1,0 +1,530 @@
+{$DEFINE WL_GEAR_HANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+procedure TScriptForm._OnGearChange(sender: TObject);
+var
+  combobox: TComboBox;
+  tab: TTabSheet;
+  parent: TPanel;
+  img: TImage;
+  item, tmp: TMufasaBitmap;
+  id: TRSItem;
+  path: String;
+begin
+  combobox := sender;
+  tab := combobox.getParent().getParent().getParent();
+  parent := tab.GetChild('gear_panel_image_equipment');
+  img := parent.GetChild(combobox.GetName().Replace('_combobox', '_img'));
+
+  if combobox.getText() = 'None' then
+  begin
+    img.setVisible(False);
+    Exit;
+  end;
+
+  img.setVisible(True);
+
+  id := ItemFinder.GetItemIDs(combobox.getText())[0];
+
+  path := ItemFinder.IMAGES_PATH.Replace('itemfinder', 'forms' + DirectorySeparator + 'gear');
+
+
+  if FileExists(path + id + '.png') then
+  begin
+    img.GetPicture().LoadFromFile(PATH + id + '.png');
+    Exit;
+  end;
+
+  tmp.Init();
+  tmp.LoadFromFile(
+    IncludePath + 'WaspLib' + DirectorySeparator + 'utils' +
+    DirectorySeparator + 'assets' + DirectorySeparator + 'slot.png'
+  );
+  item := ItemFinder.GetItemImages(id)[0];
+  item.SetTransparentColor(0);
+  tmp.DrawBitmap(item,[2,2]);
+  tmp.SaveToFile(path + id + '.png');
+  tmp.Free();
+
+  img.GetPicture().LoadFromFile(path + id + '.png');
+end;
+
+procedure TScriptForm._LoadGear(sender: TObject);
+var
+  combobox: TComboBox;
+  parent: TPanel;
+  items: TRSItemArray;
+  item: TRSItem;
+  slot: ERSEquipmentSlot;
+  name: String;
+begin
+  parent := TButton(sender).getParent();
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if WLSettings.GetObject('remote_input').getBoolean('enabled') then
+  begin
+    if not RSClient.RemoteInput.IsSetup() then
+      RSClient.RemoteInput.Setup();
+  end
+  else
+  {$ENDIF}
+    ActivateClient();
+
+  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+  begin
+    items := Equipment.Discover(slot);
+    name := ToStr(slot).ToLower();
+    combobox := parent.GetChild(name + '_slot_combobox');
+
+    combobox.Clear();
+    combobox.getItems().Add('None');
+    for item in items do
+      combobox.getItems().Add(ToStr(item).Capitalize());
+
+    if combobox.getItems().getCount() = 1 then
+      combobox.setItemIndex(0)
+    else
+      combobox.setItemIndex(1);
+
+    Self._OnGearChange(combobox);
+  end;
+end;
+
+
+function TScriptForm._SetupGearImagesPanel(parent: TComponent): TPanel;
+var
+  img: TImage;
+begin
+  Result.Create(parent);
+  Result.setName('gear_panel');
+  Result.setLeft(TControl.AdjustToDPI(20));
+  Result.setTop(TControl.AdjustToDPI(20));
+  Result.setWidth(Self.Size.X div 2 - TControl.AdjustToDPI(92));
+  Result.setHeight(Self.Size.Y - TControl.AdjustToDPI(120));
+  Result.LoadFromFile(
+    IncludePath + 'WaspLib' + DirectorySeparator + 'utils' +
+    DirectorySeparator + 'assets' + DirectorySeparator + 'equipment.png'
+  );
+
+  img.Create(Result);
+  img.setName('head_slot_img');
+  img.SetTop(TControl.AdjustToDPI(57));
+  img.SetLeft(TControl.AdjustToDPI(117));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('secondary_ammo_slot_img');
+  img.SetTop(TControl.AdjustToDPI(57));
+  img.SetLeft(TControl.AdjustToDPI(174));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('cape_slot_img');
+  img.SetTop(TControl.AdjustToDPI(111));
+  img.SetLeft(TControl.AdjustToDPI(60));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('neck_slot_img');
+  img.SetTop(TControl.AdjustToDPI(111));
+  img.SetLeft(TControl.AdjustToDPI(117));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('ammo_slot_img');
+  img.SetTop(TControl.AdjustToDPI(111));
+  img.SetLeft(TControl.AdjustToDPI(174));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('weapon_slot_img');
+  img.SetTop(TControl.AdjustToDPI(165));
+  img.SetLeft(TControl.AdjustToDPI(40));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('body_slot_img');
+  img.SetTop(TControl.AdjustToDPI(165));
+  img.SetLeft(TControl.AdjustToDPI(117));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('shield_slot_img');
+  img.SetTop(TControl.AdjustToDPI(165));
+  img.SetLeft(TControl.AdjustToDPI(194));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('legs_slot_img');
+  img.SetTop(TControl.AdjustToDPI(219));
+  img.SetLeft(TControl.AdjustToDPI(117));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+
+  img.Create(Result);
+  img.setName('hands_slot_img');
+  img.SetTop(TControl.AdjustToDPI(273));
+  img.SetLeft(TControl.AdjustToDPI(40));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('feet_slot_img');
+  img.SetTop(TControl.AdjustToDPI(273));
+  img.SetLeft(TControl.AdjustToDPI(117));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+
+  img.Create(Result);
+  img.setName('ring_slot_img');
+  img.SetTop(TControl.AdjustToDPI(273));
+  img.SetLeft(TControl.AdjustToDPI(194));
+  img.SetStretch(True);
+  img.SetProportional(True);
+  img.setHeight(TControl.AdjustToDPI(50));
+  img.setWidth(TControl.AdjustToDPI(50));
+  img.setVisible(False);
+end;
+
+procedure TScriptForm._RefreshList(panel: TPanel; name: String);
+var
+  combobox: TComboBox;
+  json: TJSONArray;
+  i: Int32;
+  arr: TStringArray;
+begin
+  combobox := panel.GetChild(name + '_slot_combobox');
+  combobox.getItems().Add('None');
+
+  if name = 'secondary_ammo' then
+    json := GearData.GetJSONArray('ammo')
+  else
+    json := GearData.GetJSONArray(name);
+
+  if name <> 'weapon' then
+  begin
+    for i := 0 to json.High() do
+      combobox.getItems().Add(json.getString(i));
+    Exit;
+  end;
+
+  for i := 0 to json.High() do
+    arr += json.getString(i);
+
+  json := GearData.GetJSONArray('2h');
+  for i := 0 to json.High() do
+    arr += json.getString(i);
+
+  Sort(arr);
+  for i := 0 to High(arr) do
+    combobox.getItems().Add(arr[i]);
+end;
+
+procedure TScriptForm._ClearGearFilter(sender: TObject);
+var
+  combobox: TComboBox;
+  parent: TPanel;
+  item: TRSItem;
+  slot: ERSEquipmentSlot;
+  name: String;
+begin
+  parent := TButton(sender).getParent();
+
+  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+  begin
+    name := ToStr(slot).ToLower();
+    combobox := parent.GetChild(name + '_slot_combobox');
+    item := combobox.getText();
+    combobox.getItems().Clear();
+    Self._RefreshList(parent, name);
+    combobox.setItemIndex(combobox.getItems().IndexOf(item));
+  end;
+end;
+
+function TScriptForm._SetupGearMenuPanel(parent: TComponent): TPanel;
+var
+  button: TButton;
+  cb, head, sammo, cape, neck, ammo, weapon, body,
+  shield, legs, hands, feet, ring: TLabeledComboBox;
+begin
+  Result.Create(parent);
+  Result.setTop(TControl.AdjustToDPI(20));
+  Result.setWidth(Self.Size.X div 2 + TControl.AdjustToDPI(40));
+  Result.setHeight(Self.Size.Y - TControl.AdjustToDPI(120));
+  Result.setBevelWidth(0);
+
+  cb.Create(Result);
+  cb.SetCaption('Gear');
+  cb.AddItem('New set');
+  cb.SetItemIndex(0);
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Save gear');
+    setName('save_gear_button');
+    setHeight(TControl.AdjustToDPI(25));
+    setWidth(TControl.AdjustToDPI(200));
+    setTop(TControl.AdjustToDPI(13));
+    setLeft(getWidth());
+  end;
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Load from client');
+    setName('load_gear_button');
+    setHeight(TControl.AdjustToDPI(25));
+    setWidth(TControl.AdjustToDPI(200));
+    SetTop(Result.GetBottom() - TControl.AdjustToDPI(50));
+    setOnClick(@Self._LoadGear);
+  end;
+
+  with button do
+  begin
+    Create(Result);
+    setCaption('Clear client filter');
+    setName('clear_filters_button');
+    setHeight(TControl.AdjustToDPI(25));
+    setWidth(TControl.AdjustToDPI(200));
+    SetTop(Result.GetBottom() - TControl.AdjustToDPI(50));
+    setLeft(getWidth());
+    setOnClick(@Self._ClearGearFilter);
+  end;
+
+  with head do
+  begin
+    Create(Result);
+    SetTop(cb.GetBottom() + TControl.AdjustToDPI(15));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetLeft(GetWidth() + TControl.AdjustToDPI(20));
+    SetName('head_slot');
+    SetCaption('Head');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'head');
+    SetItemIndex(ComboBox.getItems().IndexOf('Slayer helmet (i)'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with sammo do
+  begin
+    Create(Result);
+    SetTop(cb.GetBottom() + TControl.AdjustToDPI(15));
+    SetLeft(head.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('secondary_ammo_slot');
+    SetCaption('Secondary ammo');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'secondary_ammo');
+    SetItemIndex(ComboBox.getItems().IndexOf('Ruby bolts (e)'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with cape do
+  begin
+    Create(Result);
+    SetTop(head.GetBottom() + TControl.AdjustToDPI(12));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('cape_slot');
+    SetCaption('Cape');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'cape');
+    SetItemIndex(ComboBox.getItems().IndexOf('fire cape'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with neck do
+  begin
+    Create(Result);
+    SetTop(cape.GetTop());
+    SetLeft(cape.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('neck_slot');
+    SetCaption('Neck');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'neck');
+    SetItemIndex(ComboBox.getItems().IndexOf('amulet of torture'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with ammo do
+  begin
+    Create(Result);
+    SetTop(neck.GetTop());
+    SetLeft(neck.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('ammo_slot');
+    SetCaption('Ammo');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'ammo');
+    SetItemIndex(ComboBox.getItems().IndexOf('broad bolts'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with weapon do
+  begin
+    Create(Result);
+    SetTop(cape.GetBottom() + TControl.AdjustToDPI(12));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('weapon_slot');
+    SetCaption('Weapon');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'weapon');
+    SetItemIndex(ComboBox.getItems().IndexOf('abyssal whip'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with body do
+  begin
+    Create(Result);
+    SetTop(weapon.GetTop());
+    SetLeft(weapon.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('body_slot');
+    SetCaption('Body');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'body');
+    SetItemIndex(ComboBox.getItems().IndexOf('Bandos chestplate'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with shield do
+  begin
+    Create(Result);
+    SetTop(body.GetTop());
+    SetLeft(body.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('shield_slot');
+    SetCaption('Shield');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'shield');
+    SetItemIndex(ComboBox.getItems().IndexOf('Avernic defender'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with legs do
+  begin
+    Create(Result);
+    SetTop(weapon.GetBottom() + TControl.AdjustToDPI(12));
+    SetWidth(TControl.AdjustToDPI(150));
+    SetLeft((Result.getWidth() div 2) - (GetWidth() div 2));
+    SetName('legs_slot');
+    SetCaption('Legs');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'legs');
+    SetItemIndex(ComboBox.getItems().IndexOf('Bandos tassets'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with hands do
+  begin
+    Create(Result);
+    SetTop(legs.GetBottom() + TControl.AdjustToDPI(12));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('hands_slot');
+    SetCaption('Hands');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'hands');
+    SetItemIndex(ComboBox.getItems().IndexOf('Ferocious gloves'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with feet do
+  begin
+    Create(Result);
+    SetTop(hands.GetTop());
+    SetLeft(hands.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('feet_slot');
+    SetCaption('Feet');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'feet');
+    SetItemIndex(ComboBox.getItems().IndexOf('Primordial boots'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+
+  with ring do
+  begin
+    Create(Result);
+    SetTop(feet.GetTop());
+    SetLeft(feet.GetRight() + TControl.AdjustToDPI(20));
+    SetWidth(TControl.AdjustToDPI(120));
+    SetName('ring_slot');
+    SetCaption('Ring');
+    SetStyle(TComboBoxStyle.csDropDownList);
+    _RefreshList(Panel, 'ring');
+    SetItemIndex(ComboBox.getItems().IndexOf('Berserker ring (i)'));
+    ComboBox.setOnChange(@Self._OnGearChange);
+    Self._OnGearChange(ComboBox);
+  end;
+end;
+
+procedure TScriptForm.CreateEquipmentManager();
+var
+  tab: TTabSheet;
+  gearPanel, ddPanel: TPanel;
+begin
+  if not ForceDirectories(ItemFinder.IMAGES_PATH.Replace('itemfinder', 'forms' + DirectorySeparator + 'gear')) then
+    TerminateScript('Failed to create cache paths: ' + CACHE_DIR + 'forms' + DirectorySeparator + 'gear');
+
+  Self.AddTab('Equipment Manager');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  gearPanel := Self._SetupGearImagesPanel(tab);
+  ddPanel := Self._SetupGearMenuPanel(tab);
+  ddPanel.setLeft(gearPanel.GetRight() + TControl.AdjustToDPI(20));
+end;
+

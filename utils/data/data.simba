@@ -956,3 +956,78 @@ end;
 
 var
   {$H-}WeaponData: TWeaponData;{$H+}
+
+(*
+## type TGearData
+```pascal
+type
+  TGearData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+```
+
+Type responsible of handling anything that is related to weapons data.
+*)
+type
+  TGearData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+
+(*
+## GearData.Setup
+```pascal
+procedure TGearData.Setup();
+```
+
+Internal method to setup TGearData.
+*)
+procedure TGearData.Setup();
+begin
+  if Self.IsSetup then
+    Exit;
+
+  WriteLn('Loading gear.json.');
+
+  Self.Data.Init(ReadFileContents({$macro CURRENT_DIRECTORY} + '/gear.json'));
+
+  AddOnTerminate(@Self.Data.Free);
+  Self.IsSetup := True;
+end;
+
+(*
+## GearData.GetJSONArray
+```pascal
+function TGearData.GetJSONArray(key: String): TJSONArray;
+```
+Method to fetch json arrays from gear.json.
+
+```{note}
+Using this requires knowledge of the structure of gear.json
+```
+*)
+function TGearData.GetJSONArray(key: String): TJSONArray;
+begin
+  Self.Setup();
+  Result := Self.Data.getJSONArray(key);
+end;
+
+(*
+## GearData.GetItems
+```pascal
+function TGearData.GetItems(key: String): TRSItemArray;
+```
+Method to fetch items under a key in gear.json.
+*)
+function TGearData.GetItems(key: String): TRSItemArray;
+var
+  i: Int32;
+begin
+  Self.Setup();
+  for i := 0 to Self.Data.getJSONArray(key).High() do
+    Result += Self.Data.getJSONArray(key).getString(i);
+end;
+
+var
+  {$H-}GearData: TGearData;{$H+}

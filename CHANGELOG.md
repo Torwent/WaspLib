@@ -1,3 +1,12 @@
+# [19.5.0](https://github.com/Torwent/WaspLib/compare/v19.4.0...v19.5.0) (2024-07-30)
+
+
+### Features
+
+* **gearhandler:** initial commit with the gearhandler ([ca05e9f](https://github.com/Torwent/WaspLib/commit/ca05e9f37e66d13c58e06875905a7d1d7c5add91))
+
+
+
 # [19.4.0](https://github.com/Torwent/WaspLib/compare/v19.3.12...v19.4.0) (2024-07-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * dark title bars now work on Simba64 bits ([35d3179](https://github.com/Torwent/WaspLib/commit/35d3179798bb83448972bd24bba817f652300347))
-
-
-
-## [19.3.9](https://github.com/Torwent/WaspLib/compare/v19.3.8...v19.3.9) (2024-07-25)
-
-
-### Bug Fixes
-
-* **s2s:** point to launcher again ([a3f1eb1](https://github.com/Torwent/WaspLib/commit/a3f1eb158d6605f1d5d98a98565e998d239375a4))
 
 
 

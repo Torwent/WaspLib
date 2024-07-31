@@ -1,3 +1,12 @@
+## [19.6.1](https://github.com/Torwent/WaspLib/compare/v19.6.0...v19.6.1) (2024-07-31)
+
+
+### Bug Fixes
+
+* **gearhandler:** was crashing without a config setup ([52ac70f](https://github.com/Torwent/WaspLib/commit/52ac70fdde1a4d1e2e844df14b405b4c7e55266b))
+
+
+
 # [19.6.0](https://github.com/Torwent/WaspLib/compare/v19.5.0...v19.6.0) (2024-07-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * blocking real input had to be inverted ([e2e6d86](https://github.com/Torwent/WaspLib/commit/e2e6d860f202fbbdea989b34eddb8592ce3ce435))
-
-
-
-## [19.3.11](https://github.com/Torwent/WaspLib/compare/v19.3.10...v19.3.11) (2024-07-26)
-
-
-### Bug Fixes
-
-* **RSCacheParser:** Now reads cache from RuneLite if that's the client being used ([27138a6](https://github.com/Torwent/WaspLib/commit/27138a664bbc2478edcf0e1965ee2f29876aa98f))
 
 
 

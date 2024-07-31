@@ -1,3 +1,12 @@
+# [19.6.0](https://github.com/Torwent/WaspLib/compare/v19.5.0...v19.6.0) (2024-07-31)
+
+
+### Features
+
+* more work on the gearhandler ([a6c0435](https://github.com/Torwent/WaspLib/commit/a6c0435f59cf8ae2a4c30822aec653a5639729cf))
+
+
+
 # [19.5.0](https://github.com/Torwent/WaspLib/compare/v19.4.0...v19.5.0) (2024-07-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **RSCacheParser:** Now reads cache from RuneLite if that's the client being used ([27138a6](https://github.com/Torwent/WaspLib/commit/27138a664bbc2478edcf0e1965ee2f29876aa98f))
-
-
-
-## [19.3.10](https://github.com/Torwent/WaspLib/compare/v19.3.9...v19.3.10) (2024-07-25)
-
-
-### Bug Fixes
-
-* dark title bars now work on Simba64 bits ([35d3179](https://github.com/Torwent/WaspLib/commit/35d3179798bb83448972bd24bba817f652300347))
 
 
 

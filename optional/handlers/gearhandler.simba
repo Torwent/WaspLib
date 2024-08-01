@@ -107,8 +107,24 @@ begin
   for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
     obj.Put(ToStr(slot).Lower(), ToStr(gear.Items[slot]));
 
-  Self.Config.JSON.Put(gear.Name, obj);
-  Self.Config.SaveConfig();
+  Self.Config.Put(gear.Name, obj, True);
+end;
+
+function TRSGearHandler.Remove(idx: Int32): Boolean;
+var
+  i: Int32;
+  obj: TJSONObject;
+  slot: ERSEquipmentSlot;
+  keys: TStringList;
+begin
+  Self.Setup();
+  if (idx > High(Self.Sets)) then Exit;
+
+  Delete(Self.Sets, idx, 1);
+
+  Result := True;
+  keys := Self.Config.JSON.keys();
+  Self.Config.Remove(keys.GetStrings(idx));
 end;
 
 
@@ -143,6 +159,201 @@ var
 begin
   GearHandler.Setup();
 end;
+
+
+procedure TScriptForm._RefreshList(combobox: TCombobox);
+var
+  name: String;
+  json: TJSONArray;
+  i: Int32;
+  arr: TStringArray;
+begin
+  if not GearHandler._FormFiltered then
+    Exit;
+
+  combobox.GetItems().Clear();
+  combobox.GetItems().Add('None');
+
+  name := combobox.getName().Before('_slot_combobox');
+
+  if name = 'secondary_ammo' then
+    json := GearData.GetJSONArray('ammo')
+  else
+    json := GearData.GetJSONArray(name);
+
+  if name <> 'weapon' then
+  begin
+    for i := 0 to json.High() do
+      combobox.getItems().Add(json.getString(i));
+    Exit;
+  end;
+
+  for i := 0 to json.High() do
+    arr += json.getString(i);
+
+  json := GearData.GetJSONArray('2h');
+  for i := 0 to json.High() do
+    arr += json.getString(i);
+
+  Sort(arr);
+  for i := 0 to High(arr) do
+    combobox.getItems().Add(arr[i]);
+end;
+
+procedure TScriptForm._RefreshSets(sender: TObject);
+var
+  combobox, cb: TComboBox;
+  parent: TPanel;
+  gear: TRSGear;
+  slot: ERSEquipmentSlot;
+  name: String;
+begin
+  parent := sender;
+  GearHandler.Setup();
+  combobox := parent.getChild('gear_selector_combobox');
+
+  combobox.GetItems.Clear();
+
+  for gear in GearHandler.Sets do
+  begin
+    combobox.getItems().Add(gear.Name);
+
+    for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+    begin
+      name := ToStr(slot).ToLower();
+      cb := parent.GetChild(name + '_slot_combobox');
+      Self._RefreshList(cb);
+      cb.setItemIndex(cb.getItems().IndexOf(gear.Items[slot]));
+    end;
+  end;
+
+  combobox.getItems().Add('New set');
+  GearHandler._FormFiltered := False;
+end;
+
+
+//control events
+procedure TScriptForm._OnGearSelectorChange(sender: TObject);
+var
+  combobox: TComboBox;
+  parent: TPanel;
+  button: TButton;
+  slot: ERSEquipmentSlot;
+  gear: TRSGear;
+  item: TRSItem;
+begin
+  combobox := sender;
+  if combobox.getItemIndex() = -1 then Exit;
+
+  GearHandler._FormGearIndex := combobox.getItemIndex();
+
+  parent := combobox.getParent().getParent();
+
+  button := parent.GetChild('duplicate_gear_button');
+  button.setEnabled(combobox.getItemIndex() <> (combobox.getItems().getCount() - 1));
+
+  if GearHandler._FormGearIndex <= High(GearHandler.Sets) then
+    gear := GearHandler.Sets[GearHandler._FormGearIndex];
+
+  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+  begin
+    combobox := parent.GetChild(ToStr(slot).Lower() + '_slot_combobox');
+
+    if VarIsEmpty(gear.Items[slot]) then
+    begin
+      item := 'None';
+      gear.Items[slot] := item;
+    end;
+
+    if GearHandler._FormFiltered then
+      Self._RefreshList(combobox);
+
+    combobox.setItemIndex(combobox.getItems().IndexOf(gear.Items[slot]));
+    Self._OnGearChange(combobox);
+  end;
+
+  GearHandler._FormFiltered := False;
+end;
+
+procedure TScriptForm._OnSaveGear(sender: TObject);
+var
+  button: TButton;
+  combobox, cb: TComboBox;
+  parent: TPanel;
+  gear: TRSGear;
+  slot: ERSEquipmentSlot;
+  name: String;
+begin
+  button := sender;
+  parent := button.getParent();
+  combobox := parent.getChild('gear_selector_combobox');
+  gear.Name := combobox.getText();
+
+  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+  begin
+    name := ToStr(slot).ToLower();
+    cb := parent.GetChild(name + '_slot_combobox');
+    gear.Items[slot] := cb.getText();
+  end;
+
+  if not GearHandler.Edit(GearHandler._FormGearIndex, gear) then
+    MessageDlg('Error', 'Your gear was not saved for some reason. Probably a duplicate name.', TMsgDlgType.mtWarning, [mbOk]);
+
+  Self._RefreshSets(parent);
+  if combobox.getItems().getCount() > 1 then
+    combobox.setItemIndex(GearHandler._FormGearIndex)
+  else
+    combobox.setItemIndex(0);
+end;
+
+procedure TScriptForm._OnDuplicateGear(sender: TObject);
+var
+  button: TButton;
+  combobox: TComboBox;
+  parent: TPanel;
+  gear: TRSGear;
+begin
+  button := sender;
+  parent := button.getParent();
+  combobox := parent.getChild('gear_selector_combobox');
+  gear := GearHandler.Get(combobox.getItemIndex());
+  gear.Name += ' duplicate';
+
+  if not GearHandler.Edit(Length(GearHandler.Sets), gear) then
+    MessageDlg('Error', 'Your gear was not saved for some reason. Probably a duplicate name.', TMsgDlgType.mtWarning, [mbOk]);
+
+  Self._RefreshSets(parent);
+  if combobox.getItems().getCount() > 1 then
+    combobox.setItemIndex(High(GearHandler.Sets))
+  else
+    combobox.setItemIndex(0);
+end;
+
+procedure TScriptForm._OnRemoveGear(sender: TObject);
+var
+  button: TButton;
+  combobox: TComboBox;
+  parent: TPanel;
+  gear: TRSGear;
+begin
+  button := sender;
+  parent := button.getParent();
+  combobox := parent.getChild('gear_selector_combobox');
+  gear := GearHandler.Get(combobox.getItemIndex());
+  gear.Name += ' duplicate';
+
+  if not GearHandler.Remove(GearHandler._FormGearIndex) then
+  begin
+    MessageDlg('Error', 'The gear you want to delete doesn''t exist.', TMsgDlgType.mtWarning, [mbOk]);
+    Exit;
+  end;
+
+  Self._RefreshSets(parent);
+  GearHandler._FormGearIndex := Min(GearHandler._FormGearIndex+1, High(GearHandler.Sets));
+  combobox.setItemIndex(GearHandler._FormGearIndex);
+  Self._OnGearSelectorChange(combobox);
+end;
+
 
 procedure TScriptForm._OnGearChange(sender: TObject);
 var
@@ -192,7 +403,7 @@ begin
 end;
 
 
-procedure TScriptForm._LoadGear(sender: TObject);
+procedure TScriptForm._OnLoadGear(sender: TObject);
 var
   combobox: TComboBox;
   parent: TPanel;
@@ -234,6 +445,31 @@ begin
 
   GearHandler._FormFiltered := True;
 end;
+
+procedure TScriptForm._ClearGearFilter(sender: TObject);
+var
+  combobox: TComboBox;
+  parent: TPanel;
+  item: TRSItem;
+  slot: ERSEquipmentSlot;
+  name: String;
+begin
+  parent := TButton(sender).getParent();
+
+  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+  begin
+    name := ToStr(slot).ToLower();
+    combobox := parent.GetChild(name + '_slot_combobox');
+    item := combobox.getText();
+    Self._RefreshList(combobox);
+    combobox.setItemIndex(combobox.getItems().IndexOf(item));
+  end;
+
+  GearHandler._FormFiltered := False;
+end;
+
+
+
 
 function TScriptForm._SetupGearImagesPanel(parent: TComponent): TPanel;
 var
@@ -370,197 +606,6 @@ begin
   img.setVisible(False);
 end;
 
-procedure TScriptForm._RefreshList(combobox: TCombobox);
-var
-  name: String;
-  json: TJSONArray;
-  i: Int32;
-  arr: TStringArray;
-begin
-  if not GearHandler._FormFiltered then
-    Exit;
-
-  combobox.GetItems().Clear();
-  combobox.GetItems().Add('None');
-
-  name := combobox.getName().Before('_slot_combobox');
-
-  if name = 'secondary_ammo' then
-    json := GearData.GetJSONArray('ammo')
-  else
-    json := GearData.GetJSONArray(name);
-
-  if name <> 'weapon' then
-  begin
-    for i := 0 to json.High() do
-      combobox.getItems().Add(json.getString(i));
-    Exit;
-  end;
-
-  for i := 0 to json.High() do
-    arr += json.getString(i);
-
-  json := GearData.GetJSONArray('2h');
-  for i := 0 to json.High() do
-    arr += json.getString(i);
-
-  Sort(arr);
-  for i := 0 to High(arr) do
-    combobox.getItems().Add(arr[i]);
-end;
-
-procedure TScriptForm._ClearGearFilter(sender: TObject);
-var
-  combobox: TComboBox;
-  parent: TPanel;
-  item: TRSItem;
-  slot: ERSEquipmentSlot;
-  name: String;
-begin
-  parent := TButton(sender).getParent();
-
-  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
-  begin
-    name := ToStr(slot).ToLower();
-    combobox := parent.GetChild(name + '_slot_combobox');
-    item := combobox.getText();
-    Self._RefreshList(combobox);
-    combobox.setItemIndex(combobox.getItems().IndexOf(item));
-  end;
-
-  GearHandler._FormFiltered := False;
-end;
-
-procedure TScriptForm._OnSelectorChange(sender: TObject);
-var
-  combobox: TComboBox;
-  parent: TPanel;
-  button: TButton;
-  slot: ERSEquipmentSlot;
-  gear: TRSGear;
-  item: TRSItem;
-begin
-  combobox := sender;
-  if combobox.getItemIndex() > -1 then
-    GearHandler._FormGearIndex := combobox.getItemIndex();
-
-  parent := combobox.getParent().getParent();
-
-  button := parent.GetChild('duplicate_gear_button');
-  button.setEnabled(combobox.getItemIndex() <> (combobox.getItems().getCount() - 1));
-
-  if GearHandler._FormGearIndex <= High(GearHandler.Sets) then
-    gear := GearHandler.Sets[GearHandler._FormGearIndex];
-
-  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
-  begin
-    combobox := parent.GetChild(ToStr(slot).Lower() + '_slot_combobox');
-
-    if VarIsEmpty(gear.Items[slot]) then
-    begin
-      item := 'None';
-      gear.Items[slot] := item;
-    end;
-
-    if GearHandler._FormFiltered then
-      Self._RefreshList(combobox);
-
-    combobox.setItemIndex(combobox.getItems().IndexOf(gear.Items[slot]));
-    Self._OnGearChange(combobox);
-  end;
-
-  GearHandler._FormFiltered := False;
-end;
-
-procedure TScriptForm._OnDuplicate(sender: TObject);
-var
-  button: TButton;
-  combobox: TComboBox;
-  parent: TPanel;
-  gear: TRSGear;
-begin
-  button := sender;
-  parent := button.getParent();
-  combobox := parent.getChild('gear_selector_combobox');
-  gear := GearHandler.Get(combobox.getItemIndex());
-  gear.Name += ' duplicate';
-
-  if not GearHandler.Edit(Length(GearHandler.Sets), gear) then
-    MessageDlg('Error', 'Your gear was not saved for some reason.', TMsgDlgType.mtWarning, [mbOk]);
-
-  Self._RefreshSets(parent);
-  if combobox.getItems().getCount() > 1 then
-    combobox.setItemIndex(High(GearHandler.Sets))
-  else
-    combobox.setItemIndex(0);
-end;
-
-
-procedure TScriptForm._RefreshSets(sender: TObject);
-var
-  combobox, cb: TComboBox;
-  parent: TPanel;
-  gear: TRSGear;
-  slot: ERSEquipmentSlot;
-  name: String;
-begin
-  parent := sender;
-  GearHandler.Setup();
-  combobox := parent.getChild('gear_selector_combobox');
-
-  combobox.GetItems.Clear();
-
-  for gear in GearHandler.Sets do
-  begin
-    combobox.getItems().Add(gear.Name);
-
-    for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
-    begin
-      name := ToStr(slot).ToLower();
-      cb := parent.GetChild(name + '_slot_combobox');
-      Self._RefreshList(cb);
-      cb.setItemIndex(cb.getItems().IndexOf(gear.Items[slot]));
-    end;
-  end;
-
-  combobox.getItems().Add('New set');
-  GearHandler._FormFiltered := False;
-end;
-
-procedure TScriptForm._OnSave(sender: TObject);
-var
-  button: TButton;
-  combobox, cb: TComboBox;
-  parent: TPanel;
-  gear: TRSGear;
-  slot: ERSEquipmentSlot;
-  name: String;
-begin
-  button := sender;
-  parent := button.getParent();
-  combobox := parent.getChild('gear_selector_combobox');
-  gear.Name := combobox.getText();
-
-  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
-  begin
-    name := ToStr(slot).ToLower();
-    cb := parent.GetChild(name + '_slot_combobox');
-    gear.Items[slot] := cb.getText();
-  end;
-
-  if not GearHandler.Edit(GearHandler._FormGearIndex, gear) then
-    MessageDlg('Error', 'Your gear was not saved for some reason.', TMsgDlgType.mtWarning, [mbOk]);
-
-  Self._RefreshSets(parent);
-  if combobox.getItems().getCount() > 1 then
-    combobox.setItemIndex(GearHandler._FormGearIndex)
-  else
-    combobox.setItemIndex(0);
-end;
-
-
-
-
 function TScriptForm._SetupGearPanel(parent: TComponent): TPanel;
 var
   save, duplicate, remove, load, clear: TButton;
@@ -586,7 +631,7 @@ begin
     SetTop(TControl.AdjustToDPI(5));
     SetLeft(TControl.AdjustToDPI(20));
     SetWidth(TControl.AdjustToDPI(284));
-    ComboBox.setOnChange(@Self._OnSelectorChange);
+    ComboBox.setOnChange(@Self._OnGearSelectorChange);
   end;
 
   with save do
@@ -598,7 +643,7 @@ begin
     setWidth(TControl.AdjustToDPI(100));
     setTop(TControl.AdjustToDPI(20));
     setLeft((Self.Size.X div 2) - TControl.AdjustToDPI(40));
-    setOnClick(@Self._OnSave);
+    setOnClick(@Self._OnSaveGear);
   end;
 
   with duplicate do
@@ -610,7 +655,7 @@ begin
     setWidth(save.getWidth());
     setTop(save.GetTop());
     setLeft(save.GetRight() + TControl.AdjustToDPI(20));
-    setOnClick(@Self._OnDuplicate);
+    setOnClick(@Self._OnDuplicateGear);
   end;
 
   with remove do
@@ -622,7 +667,7 @@ begin
     setWidth(duplicate.getWidth());
     setTop(duplicate.GetTop());
     setLeft(duplicate.GetRight() + TControl.AdjustToDPI(30));
-    setOnClick(@Self._OnDuplicate);
+    setOnClick(@Self._OnRemoveGear);
   end;
 
   w := TControl.AdjustToDPI(120);
@@ -806,7 +851,7 @@ begin
     setWidth(w);
     SetLeft(cape.GetLeft());
     SetTop(Self.Size.Y - TControl.AdjustToDPI(100));
-    setOnClick(@Self._LoadGear);
+    setOnClick(@Self._OnLoadGear);
   end;
 
   with clear do
@@ -823,7 +868,7 @@ begin
 
   Self._RefreshSets(Result);
   cb.SetItemIndex(0);
-  Self._OnSelectorChange(cb.ComboBox);
+  Self._OnGearSelectorChange(cb.ComboBox);
   GearHandler._FormFiltered := False;
 end;
 

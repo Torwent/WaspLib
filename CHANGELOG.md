@@ -1,3 +1,12 @@
+## [19.6.2](https://github.com/Torwent/WaspLib/compare/v19.6.1...v19.6.2) (2024-08-01)
+
+
+### Bug Fixes
+
+* **gearhandler:** more tweaks and fixes ([0f427af](https://github.com/Torwent/WaspLib/commit/0f427afa20cd6fa9d1fa72bf73f532d7c81b44a7))
+
+
+
 ## [19.6.1](https://github.com/Torwent/WaspLib/compare/v19.6.0...v19.6.1) (2024-07-31)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **data:** add gear json data ([9be8643](https://github.com/Torwent/WaspLib/commit/9be8643867dce390e13b61b5e1e49db47e244e97))
-
-
-
-## [19.3.12](https://github.com/Torwent/WaspLib/compare/v19.3.11...v19.3.12) (2024-07-29)
-
-
-### Bug Fixes
-
-* blocking real input had to be inverted ([e2e6d86](https://github.com/Torwent/WaspLib/commit/e2e6d860f202fbbdea989b34eddb8592ce3ce435))
 
 
 

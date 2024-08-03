@@ -23,6 +23,8 @@ type
 
     _FormGearIndex: Int32;
     _FormFiltered: Boolean;
+    _FormComboBoxes: array of TComboBox;
+    _FormListBoxes: array of TListBox;
 
     IsSetup: Boolean;
   end;
@@ -55,6 +57,60 @@ begin
   Self.IsSetup := True;
 end;
 
+
+procedure TRSGearHandler.AddTo(strings: TStrings);
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self.Sets) do
+    strings.Add(Self.Sets[i].Name);
+end;
+
+procedure TRSGearHandler.AddTo(combobox: TComboBox); overload;
+var
+  i, idx: Int32;
+  found: Boolean;
+begin
+  for idx := 0 to High(Self._FormComboBoxes) do
+    if combobox = Self._FormComboBoxes[idx] then
+    begin
+      found := True;
+      Break;
+    end;
+
+  if not found then
+    Self._FormComboBoxes += combobox;
+
+  i := combobox.getItemIndex();
+  combobox.Clear();
+  Self.AddTo(combobox.getItems());
+  if i <= combobox.getItems().getCount()-1 then
+    combobox.setItemIndex(i);
+end;
+
+procedure TRSGearHandler.AddTo(listbox: TListBox); overload;
+var
+  i, idx: Int32;
+  found: Boolean;
+begin
+  for idx := 0 to High(Self._FormListBoxes) do
+    if listbox = Self._FormListBoxes[idx] then
+    begin
+      found := True;
+      Break;
+    end;
+
+  if not found then
+    Self._FormListBoxes += listbox;
+
+  i := listbox.getItemIndex();
+  listbox.Clear();
+  Self.AddTo(listbox.getItems());
+  if i <= listbox.getItems().getCount()-1 then
+    listbox.setItemIndex(i);
+end;
+
+
 function TRSGearHandler.Add(gear: TRSGear): Boolean;
 var
   i: Int32;
@@ -75,8 +131,13 @@ begin
   for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
     obj.Put(ToStr(slot).Lower(), ToStr(gear.Items[slot]));
 
-  Self.Config.JSON.Put(gear.Name, obj);
-  Self.Config.SaveConfig();
+  Self.Config.Put(gear.Name, obj, True);
+
+  for i := 0 to High(Self._FormComboBoxes) do
+    Self.AddTo(Self._FormComboBoxes[i]);
+
+  for i := 0 to High(Self._FormListBoxes) do
+    Self.AddTo(Self._FormListBoxes[i]);
 end;
 
 function TRSGearHandler.Edit(idx: Int32; gear: TRSGear): Boolean;
@@ -108,6 +169,12 @@ begin
     obj.Put(ToStr(slot).Lower(), ToStr(gear.Items[slot]));
 
   Self.Config.Put(gear.Name, obj, True);
+
+  for i := 0 to High(Self._FormComboBoxes) do
+    Self.AddTo(Self._FormComboBoxes[i]);
+
+  for i := 0 to High(Self._FormListBoxes) do
+    Self.AddTo(Self._FormListBoxes[i]);
 end;
 
 function TRSGearHandler.Remove(idx: Int32): Boolean;
@@ -125,6 +192,12 @@ begin
   Result := True;
   keys := Self.Config.JSON.keys();
   Self.Config.Remove(keys.GetStrings(idx));
+
+  for idx := 0 to High(Self._FormComboBoxes) do
+    Self.AddTo(Self._FormComboBoxes[idx]);
+
+  for idx := 0 to High(Self._FormListBoxes) do
+    Self.AddTo(Self._FormListBoxes[idx]);
 end;
 
 
@@ -151,7 +224,6 @@ begin
     if Self.Sets[i].Name = name then
       Exit(True);
 end;
-
 
 var
   GearHandler: TRSGearHandler;

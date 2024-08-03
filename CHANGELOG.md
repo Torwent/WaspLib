@@ -1,3 +1,12 @@
+## [19.6.4](https://github.com/Torwent/WaspLib/compare/v19.6.3...v19.6.4) (2024-08-03)
+
+
+### Bug Fixes
+
+* **gearhandler:** added the ability to link comboboxes and listboxes with the gearhandler ([720d854](https://github.com/Torwent/WaspLib/commit/720d8543e072ad622fdea77ae0977e66846faef2))
+
+
+
 ## [19.6.3](https://github.com/Torwent/WaspLib/compare/v19.6.2...v19.6.3) (2024-08-03)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * more work on the gearhandler ([a6c0435](https://github.com/Torwent/WaspLib/commit/a6c0435f59cf8ae2a4c30822aec653a5639729cf))
-
-
-
-# [19.5.0](https://github.com/Torwent/WaspLib/compare/v19.4.0...v19.5.0) (2024-07-30)
-
-
-### Features
-
-* **gearhandler:** initial commit with the gearhandler ([ca05e9f](https://github.com/Torwent/WaspLib/commit/ca05e9f37e66d13c58e06875905a7d1d7c5add91))
 
 
 

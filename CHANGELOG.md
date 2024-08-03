@@ -1,3 +1,12 @@
+## [19.6.5](https://github.com/Torwent/WaspLib/compare/v19.6.4...v19.6.5) (2024-08-03)
+
+
+### Bug Fixes
+
+* **gearhandler:** add a out of bounds check ([8e1174f](https://github.com/Torwent/WaspLib/commit/8e1174f806f349613d2000b36de206cc65169586))
+
+
+
 ## [19.6.4](https://github.com/Torwent/WaspLib/compare/v19.6.3...v19.6.4) (2024-08-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **gearhandler:** was crashing without a config setup ([52ac70f](https://github.com/Torwent/WaspLib/commit/52ac70fdde1a4d1e2e844df14b405b4c7e55266b))
-
-
-
-# [19.6.0](https://github.com/Torwent/WaspLib/compare/v19.5.0...v19.6.0) (2024-07-31)
-
-
-### Features
-
-* more work on the gearhandler ([a6c0435](https://github.com/Torwent/WaspLib/commit/a6c0435f59cf8ae2a4c30822aec653a5639729cf))
 
 
 

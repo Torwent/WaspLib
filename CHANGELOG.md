@@ -1,3 +1,12 @@
+## [19.6.3](https://github.com/Torwent/WaspLib/compare/v19.6.2...v19.6.3) (2024-08-03)
+
+
+### Bug Fixes
+
+* Force bump ([2f0a5a7](https://github.com/Torwent/WaspLib/commit/2f0a5a72199a44d3d00310bad018e23c22c3f495))
+
+
+
 ## [19.6.2](https://github.com/Torwent/WaspLib/compare/v19.6.1...v19.6.2) (2024-08-01)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **gearhandler:** initial commit with the gearhandler ([ca05e9f](https://github.com/Torwent/WaspLib/commit/ca05e9f37e66d13c58e06875905a7d1d7c5add91))
-
-
-
-# [19.4.0](https://github.com/Torwent/WaspLib/compare/v19.3.12...v19.4.0) (2024-07-29)
-
-
-### Features
-
-* **data:** add gear json data ([9be8643](https://github.com/Torwent/WaspLib/commit/9be8643867dce390e13b61b5e1e49db47e244e97))
 
 
 

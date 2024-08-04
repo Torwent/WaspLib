@@ -1,3 +1,12 @@
+## [19.6.6](https://github.com/Torwent/WaspLib/compare/v19.6.5...v19.6.6) (2024-08-04)
+
+
+### Bug Fixes
+
+* read notes ([7d229af](https://github.com/Torwent/WaspLib/commit/7d229af391c2db19dcfcd2313ad616d1f3d3f381))
+
+
+
 ## [19.6.5](https://github.com/Torwent/WaspLib/compare/v19.6.4...v19.6.5) (2024-08-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **gearhandler:** more tweaks and fixes ([0f427af](https://github.com/Torwent/WaspLib/commit/0f427afa20cd6fa9d1fa72bf73f532d7c81b44a7))
-
-
-
-## [19.6.1](https://github.com/Torwent/WaspLib/compare/v19.6.0...v19.6.1) (2024-07-31)
-
-
-### Bug Fixes
-
-* **gearhandler:** was crashing without a config setup ([52ac70f](https://github.com/Torwent/WaspLib/commit/52ac70fdde1a4d1e2e844df14b405b4c7e55266b))
 
 
 

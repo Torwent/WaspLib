@@ -1,3 +1,12 @@
+# [19.7.0](https://github.com/Torwent/WaspLib/compare/v19.6.6...v19.7.0) (2024-08-11)
+
+
+### Features
+
+* **combathandler:** add support for TRSNPCV2 ([0f57f82](https://github.com/Torwent/WaspLib/commit/0f57f82b746d1c94b673457a8c6f6e8749d87e89))
+
+
+
 ## [19.6.6](https://github.com/Torwent/WaspLib/compare/v19.6.5...v19.6.6) (2024-08-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Force bump ([2f0a5a7](https://github.com/Torwent/WaspLib/commit/2f0a5a72199a44d3d00310bad018e23c22c3f495))
-
-
-
-## [19.6.2](https://github.com/Torwent/WaspLib/compare/v19.6.1...v19.6.2) (2024-08-01)
-
-
-### Bug Fixes
-
-* **gearhandler:** more tweaks and fixes ([0f427af](https://github.com/Torwent/WaspLib/commit/0f427afa20cd6fa9d1fa72bf73f532d7c81b44a7))
 
 
 

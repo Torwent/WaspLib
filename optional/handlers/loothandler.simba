@@ -152,6 +152,97 @@ begin
   Self.IsSetup := True;
 end;
 
+procedure TRSLootHandler.Setup(monster: TRSNPCV2; value: Int32 = 5000); overload;
+var
+  i: Int32;
+  tmpDrops: TRSMonsterDropArray;
+begin
+  if (monster.Name = '') or (value <= 0) then
+    Exit;
+
+  Self.Name := 'LootHandler';
+
+  Self.PriorityArray := [
+    'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
+    'Clue scroll (master)',
+    'Dark totem base', 'Dark totem middle', 'Dark totem top',
+    'Dark totem', 'Ancient shard', 'Brimstone key',
+    'Mist battlestaff', 'Dust battlestaff',
+    'Eternal gem', 'Imbued heart', 'Crystal shard', 'Abyssal head',
+    'Curved bone', 'Long bone',
+    'Imp champion scroll', 'Goblin champion scroll', 'Skeleton champion scroll',
+    'Zombie champion scroll', 'Giant champion scroll',
+    'Hobgoblin champion scroll', 'Ghoul champion scroll',
+    'Earth warrior champion scroll', 'Jogre champion scroll',
+    'Lesser demon champion scroll',
+    'Giant key', 'Mossy key', 'Trident of the seas (full)' , 'Trident of the seas'
+  ];
+  Self.PriorityArray := Self.PriorityArray.ToLower;
+
+  Self.HasGemBag := Inventory.ContainsItem('Open gem bag');
+  Self.HasHerbSack := Inventory.ContainsItem('Open herb sack');
+  Self.HasSoulBearer := Inventory.ContainsItem('Soul bearer');
+  Self.HasSeedBox := Inventory.ContainsItem('Open seed box');
+
+  Self.ValueThreshold := value;
+  Self.Loot._Setup();
+
+  if monster.Coordinates <> [] then
+    Self.Loot.Setup(monster.DotFilters[0].Circle.Radius, 0, monster.Coordinates)
+  else
+  begin
+    Self.Loot.Filter.Walker := monster.Filter.Walker;
+    Self.Loot.Filter.MinimapDot := monster.Filter.Minimap;
+    Self.Loot.Filter.UpText := monster.Filter.UpText;
+    Self.Loot.Filter.Finder := monster.Filter.Finder;
+    Self.Loot.Filter.Skip := False;
+    Self.Loot.ShapeArray += [[2, 2, 0], 0];
+  end;
+
+  Self.Loot.Finder.Colors := [
+    [6579858, 9, 0.09, 0.33],   //vile and malicious ashes
+    [13422033, 18, 0.20, 0.30], //dragon bones (this matches a lot with proselyte. might need to be removed)
+    [7760980, 9, 0.06, 0.14],   //rune items (this might need better colors but this one doesn't match in CoK background,
+    [10038382, 14, 0.08, 1.72], //ancient shard
+    [14390305, 26, 0.04, 0.88], //Totem parts (blue)
+    [1923609, 7, 0.16, 0.84],   //Totem parts (green)
+    [4345976, 17, 0.10, 0.37],  //Dark bow
+    [2895188, 6, 0.16, 0.41],   //Abyssal whip (matches a little with primordial boots)
+    [1776416, 1, 0.01, 0.01],   //Black mystic bottom (probably all parts too).
+    [3620158, 9, 0.28, 0.50],   //Black mask
+    [10000802, 14, 0.13, 0.17], //Runes (matches with proselyte)
+    [1424100, 20, 0.02, 0.66],  //gold coins
+    [808255, 11, 0.10, 2.30],   //herb seeds
+    [482129, 11, 0.48, 1.48],   //ranarr
+    [7311001, 7, 0.08, 0.21],   //noted drops
+    [680832, 11, 0.04, 1.43],   //battlestaff
+    [860512, 14, 0.21, 1.80]    //ensouled hellhound head
+  ];
+  Self.Loot.Filter.UpText := False;
+
+  Self.Loot.Finder.ClusterDistance := 3;
+  Self.Loot.Finder.Erode := 2;
+  Self.Loot.Finder.Grow := 4;
+  Self.Loot.DotType := ERSMinimapDot.ITEM;
+
+  DebugMMDotArray += Self.Loot;
+
+  tmpDrops := MonsterData.GetDrops(monster.Name);
+  tmpDrops.ClearDuplicates();
+
+  for i := 0 to High(tmpDrops) do
+  begin
+
+    if Self.IsGoodDrop(tmpDrops[i]) then
+    begin
+      Self.Drops += tmpDrops[i];
+      Self.Loot.UpText += tmpDrops[i].Item;
+    end;
+  end;
+
+  Self.IsSetup := True;
+end;
+
 function TRSLootHandler.HasSpace(drop: TRSMonsterDrop): Boolean;
 begin
   Result := not Inventory.IsFull() or (drop.Stackable and Inventory.ContainsItem(drop.Item));

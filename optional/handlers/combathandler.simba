@@ -104,6 +104,8 @@ type
   TRSCombatHandler = record(TSRLBaseRecord)
     State: ECombatState;
     Monster: TRSMonster;
+    MonsterV2: TRSNPCV2;
+
     MonsterWalkerCoord, SafeSpot: TPoint;
 
     BraceletTimer, InCombatTimer: TCountDown;
@@ -134,26 +136,26 @@ begin
 
   for Self.Weapon in WEAPONS do
   begin
-    if (Self.Weapon = 'Null') then
-      Break;
+    if (Self.Weapon = 'Null') then Break;
     if Equipment.ContainsItem(Self.Weapon) then
     begin
       Delete(RSAlchHandler.ItemArray, RSAlchHandler.ItemArray.Find(Self.Weapon), 1);
       Break;
     end;
   end;
+
   Self.DebugLn('Current weapon: ' + ToStr(Self.Weapon) + '.');
 
   for Self.Shield in SHIELDS do
   begin
-    if (Self.Shield = 'Null') then
-      Break;
+    if (Self.Shield = 'Null') then Break;
     if Equipment.ContainsItem(Self.Shield) then
     begin
       Delete(RSAlchHandler.ItemArray, RSAlchHandler.ItemArray.Find(Self.Shield), 1);
       Break;
     end;
   end;
+
   Self.DebugLn('Current shield: ' + ToStr(Self.Shield) + '.');
 
   if Equipment.ContainsItem('Bonecrusher necklace') then
@@ -161,8 +163,7 @@ begin
 
   for Self.SpecWeapon in SPEC_WEAPONS do
   begin
-    if (Self.SpecWeapon = 'Null') then
-      Break;
+    if (Self.SpecWeapon = 'Null') then Break;
     if Inventory.ContainsItem(Self.SpecWeapon) then
     begin
       Delete(RSAlchHandler.ItemArray, RSAlchHandler.ItemArray.Find(Self.SpecWeapon), 1);
@@ -202,7 +203,7 @@ begin
   end;
 
   Self.GearIsSetup := (Self.Weapon <> 'Null') or (Self.Shield <> 'Null') or
-                 (Self.SpecWeapon <> 'Null') or (Self.Bracelet <> 'Null');
+                      (Self.SpecWeapon <> 'Null') or (Self.Bracelet <> 'Null');
 end;
 
 
@@ -267,6 +268,55 @@ begin
   Self.IsSetup := True;
 end;
 
+procedure TRSCombatHandler.Setup(rsMonster: TRSNPCV2; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]); overload;
+var
+  eConsumable: ERSConsumable;
+begin
+  if Self.IsSetup then
+    Exit;
+
+  Self.Name := 'CombatHandler';
+
+  if Self.AttackMonsterDelay = 0 then
+    Self.AttackMonsterDelay := 5000;
+
+  Self.InCombatTimer.Setup(Timer);
+
+  if not RSClient.IsLoggedIn() then
+    Login.LoginPlayer();
+
+  ChatButtons.Open(ERSChatButton.GAME_CHAT);
+  Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
+
+
+  for eConsumable := ERSConsumable(0) to ERSConsumable(High(ERSConsumable)-2) do
+    Self._ShouldHandleConsumable(eConsumable);
+
+  for eConsumable := ERSConsumable.STRENGTH_BOOST to ERSConsumable.BOOST do
+  begin
+    if Self.HandleConsumables[eConsumable] then
+      Break;
+    if eConsumable = ERSConsumable.BOOST then
+      Self._ShouldHandleConsumable(ERSConsumable.BOOST);
+  end;
+
+  Self.HandleCannon := Inventory.ContainsAll(DWARF_CANNON) and
+                       Inventory.ContainsAny(CANNON_BALLS);
+
+  if Self.HandleCannon then
+    Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
+
+  if not Self.AutoRetaliateChecked then
+    Combat.GetAutoRetaliate();
+
+  Self.MonsterV2 := rsMonster;
+  Self.SafeSpot := safeSpotTile;
+  Self.UseSafeSpot := safeSpotTile <> [-1,-1];
+
+  Self.Looted := True;
+  Self.IsSetup := True;
+end;
+
 procedure TRSCombatHandler.Setup(manage: Boolean; rsMonster: TRSMonster; lootValue: Int32 = 5000; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);  overload;
 begin
   if Self.IsSetup then
@@ -287,6 +337,26 @@ begin
   end;
 
   DebugMonsterArray += rsMonster;
+end;
+
+procedure TRSCombatHandler.Setup(manage: Boolean; rsMonster: TRSNPCV2; lootValue: Int32 = 5000; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);  overload;
+begin
+  if Self.IsSetup then
+    Exit;
+
+  Self.Setup(rsMonster, timer, safeSpotTile);
+
+  if manage then
+  begin
+    Self.ManageGear := True;
+    Self._SetupGear();
+  end;
+
+  if lootValue > 0 then
+  begin
+    Self.LootHandler.Setup(rsMonster, lootValue);
+    Self.LootEnabled := Self.LootHandler.IsSetup;
+  end;
 end;
 
 
@@ -451,8 +521,16 @@ begin
   if Inventory.Open() and Inventory.ClickItem(Self.Bracelet) then
     Result := WaitUntil(Inventory.Count() < count, 300, 3000);
 
+  WriteLn Result;
   if Result then
   begin
+    Self.BraceletTimer.Restart();
+    if not Self.AutoRetaliateEnabled then
+      Self.InCombatTimer.Timeout := GetTickCount();
+  end
+  else if Equipment.ContainsItem(Self.Bracelet) then
+  begin
+    Result := True;
     Self.BraceletTimer.Restart();
     if not Self.AutoRetaliateEnabled then
       Self.InCombatTimer.Timeout := GetTickCount();

@@ -1,3 +1,12 @@
+## [19.7.1](https://github.com/Torwent/WaspLib/compare/v19.7.0...v19.7.1) (2024-08-12)
+
+
+### Bug Fixes
+
+* **fishing handler:** minor logic fix ([aeb5899](https://github.com/Torwent/WaspLib/commit/aeb58998532985b577337c1c033930a57a0ee937))
+
+
+
 # [19.7.0](https://github.com/Torwent/WaspLib/compare/v19.6.6...v19.7.0) (2024-08-11)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **gearhandler:** added the ability to link comboboxes and listboxes with the gearhandler ([720d854](https://github.com/Torwent/WaspLib/commit/720d8543e072ad622fdea77ae0977e66846faef2))
-
-
-
-## [19.6.3](https://github.com/Torwent/WaspLib/compare/v19.6.2...v19.6.3) (2024-08-03)
-
-
-### Bug Fixes
-
-* Force bump ([2f0a5a7](https://github.com/Torwent/WaspLib/commit/2f0a5a72199a44d3d00310bad018e23c22c3f495))
 
 
 

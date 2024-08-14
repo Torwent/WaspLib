@@ -477,6 +477,34 @@ begin
   Result := POH.NexusTeleport(destination);
 end;
 
+function TUniversalTransport.handleJewelleryBoxTeleport(constref teleportLocation: TTeleportLocation): Boolean;
+var
+  destination : ERSNexusDestination;
+begin
+  if not Minimap.InPOH() and not Self.Run(RSTeleports.HOUSE_CAPE) then
+    Self.run(RSTeleports.HOUSE);
+
+  if not WaitUntil(Minimap.InPOH(), 100, 10000) then
+  begin
+    WriteLn('Couldnt get to POH');
+    Exit; 
+  end;
+
+  if not Self.PohSetup then begin
+    POH.Setup();
+    Self.PohSetup := True;
+    //TODO walk around and see what we can find
+  end;
+  if not POH.WalkClick(ERSRoomObject.JEWELLERY_BOX, 3) and WaitUntil(RSInterface.IsOpen(), 200, 5000) then
+  begin
+    WriteLn('Couldnt open jewellery box');
+    Exit;
+  end;
+
+  Keyboard.send(teleportLocation.interfaceHotkey);
+  Result := WaitUntil(not RSInterface.IsOpen(), 200, 5000);
+end;
+
 function TUniversalTransport.handleFairyRingTeleport(constref teleportLocation: TTeleportLocation): Boolean;
 var
   endLocation: TBox := Box(teleportLocation.worldPoint, 200, 200);
@@ -575,9 +603,10 @@ begin
     ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation, useMagic);
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
-    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
+    ETeleportType.JEWELLERY_BOX: didTeleport := self.handleJewelleryBoxTeleport(teleportLocation);
     ETeleportType.MINIGAME: didTeleport := self.handleMinigameTeleport(teleportLocation);
     ETeleportType.PORTAL_NEXUS: didTeleport := self.handlePortalNexusTeleport(teleportLocation);
+    ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
   end;
 
   Exit(didTeleport);
@@ -603,6 +632,9 @@ begin
     ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation, useMagic);
     ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
+    ETeleportType.JEWELLERY_BOX: didTeleport := self.handleJewelleryBoxTeleport(teleportLocation);
+    ETeleportType.MINIGAME: didTeleport := self.handleMinigameTeleport(teleportLocation);
+    ETeleportType.PORTAL_NEXUS: didTeleport := self.handlePortalNexusTeleport(teleportLocation);
     ETeleportType.OTHER: didTeleport := self.handleOtherTeleport(teleportLocation);
   end;
 

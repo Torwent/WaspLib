@@ -4,10 +4,6 @@
 {$I SRL-T/osr.simba}
 {$I WaspLib/osr.simba}
 
-begin
-  Login.PlayerIndex := 0;
-end;
-
 type
   ETask = (
     TASK_TO_DO
@@ -23,24 +19,15 @@ type
     END_SCRIPT
   );
 
-  TWalkerScript = record(TBaseWalkerScript)
+  TWalkerScript = record(TBaseScript)
     State: EState;
   end;
-
-procedure TAntiban.Setup(); override;
-begin
-  Self.Skills := [ERSSkill.TOTAL];
-  Self.MinZoom := 15;
-  Self.MaxZoom := 40;
-
-  inherited;
-end;
 
 procedure TWalkerScript.Init(maxActions: UInt32; maxTime: UInt64); override;
 begin
   inherited;
 
-  RSW.Setup([RSRegions.GRAND_EXCHANGE]);
+  Map.SetupChunk(ERSChunk.VARROCK);
 end;
 
 function TWalkerScript.GetState(): EState;
@@ -51,7 +38,7 @@ begin
   if WL.Activity.IsFinished() then
     Exit(EState.NO_ACTIVITY);
 
-  Exit(WAIT_STATE);
+  Exit(EState.WAIT_STATE);
 end;
 
 procedure TWalkerScript.Run(maxActions: UInt32; maxTime: UInt64);
@@ -62,7 +49,7 @@ begin
     Self.State := Self.GetState();
     Self.SetAction(ToStr(Self.State));
 
-    case State of
+    case Self.State of
       EState.WAIT_STATE: Wait(500, 800);
       EState.NO_ACTIVITY, EState.END_SCRIPT: Break;
     end;
@@ -73,6 +60,15 @@ end;
 
 var
   WalkerScript: TWalkerScript;
+
+procedure TAntiban.Setup(); override;
+begin
+  Self.Skills := [ERSSkill.TOTAL];
+  Self.MinZoom := 15;
+  Self.MaxZoom := 40;
+
+  inherited;
+end;
 
 {$IFDEF SCRIPT_GUI}
 type
@@ -127,5 +123,5 @@ begin
   {$IFDEF SCRIPT_GUI}
   Config.Run();
   {$ENDIF}
-  WalkerScript.Run(WLSettings.MaxActions, WLSettings.MaxTime);
+  WalkerScript.Run(WLSettings.MaxActions(), WLSettings.MaxTime());
 end.

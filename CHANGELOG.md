@@ -1,3 +1,12 @@
+## [19.7.5](https://github.com/Torwent/WaspLib/compare/v19.7.4...v19.7.5) (2024-08-23)
+
+
+### Bug Fixes
+
+* **FairyRing:** now fully supports TRSMap and WalkerV2 ([ee5964a](https://github.com/Torwent/WaspLib/commit/ee5964aab6da646950511778fc3f277e09101d80))
+
+
+
 ## [19.7.4](https://github.com/Torwent/WaspLib/compare/v19.7.3...v19.7.4) (2024-08-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **fishing handler:** minor logic fix ([aeb5899](https://github.com/Torwent/WaspLib/commit/aeb58998532985b577337c1c033930a57a0ee937))
-
-
-
-# [19.7.0](https://github.com/Torwent/WaspLib/compare/v19.6.6...v19.7.0) (2024-08-11)
-
-
-### Features
-
-* **combathandler:** add support for TRSNPCV2 ([0f57f82](https://github.com/Torwent/WaspLib/commit/0f57f82b746d1c94b673457a8c6f6e8749d87e89))
 
 
 

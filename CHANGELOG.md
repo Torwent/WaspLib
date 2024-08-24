@@ -1,3 +1,12 @@
+## [19.7.6](https://github.com/Torwent/WaspLib/compare/v19.7.5...v19.7.6) (2024-08-24)
+
+
+### Bug Fixes
+
+* **TRSFairyRing:** several fixes with timings ([e4ea708](https://github.com/Torwent/WaspLib/commit/e4ea7083ad9c74fbba3b75ef620df0d98d26d9e8))
+
+
+
 ## [19.7.5](https://github.com/Torwent/WaspLib/compare/v19.7.4...v19.7.5) (2024-08-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **Fairy ring:** add initial support for TRSMap ([318fb24](https://github.com/Torwent/WaspLib/commit/318fb24d462f12bfde63893860165d06b4128751))
-
-
-
-## [19.7.1](https://github.com/Torwent/WaspLib/compare/v19.7.0...v19.7.1) (2024-08-12)
-
-
-### Bug Fixes
-
-* **fishing handler:** minor logic fix ([aeb5899](https://github.com/Torwent/WaspLib/commit/aeb58998532985b577337c1c033930a57a0ee937))
 
 
 

@@ -46,6 +46,14 @@ begin
     ];
 end;
 
+
+function TRSFairyRing._Pos(): TPoint;
+begin
+  if ScriptWalker = nil then Exit(Map.Position());
+  Result := ScriptWalker^.GetMyPos();
+end;
+
+
 {%codetools on}
 
 (*
@@ -687,11 +695,14 @@ Example:
 ```
 *)
 function TRSFairyRing.ClickTeleportButton(): Boolean;
+var
+  pos: TPoint;
 begin
   if not Self.IsOpen() then
     Exit;
+  pos := Self._Pos();
   Mouse.Click(Self.GetTeleportButton(), MOUSE_LEFT);
-  Result := WaitUntil(not Self.IsOpen(), 300, 3000);
+  Result := WaitUntil(not Self.IsOpen(), 300, 3000) and WaitUntil(pos.InRange(Self._Pos(), 24), 300, 3000);
 end;
 
 
@@ -965,19 +976,15 @@ Example:
 function TRSFairyRing.WalkTeleport(code: String): Boolean;
 var
   contextMenuTeleport: Boolean;
+  pos: TPoint;
 begin
   if RSInterface.IsOpen() and not RSInterface.Close() then
     Exit;
 
   code := code.Replace(' ', '',).Upper();
-  if code = 'ZANARIS' then
-    code := 'BKS';
-
-  if Self.IsOpen() then
-    Exit(Self.HandleInterface(code));
-
-  if code = 'BKS' then
-    code := 'Zanaris';
+  if code = 'ZANARIS' then code := 'BKS';
+  if Self.IsOpen() then Exit(Self.HandleInterface(code));
+  if code = 'BKS' then code := 'Zanaris';
 
   if ScriptWalker = nil then
   begin
@@ -989,14 +996,17 @@ begin
     Exit;
 
   contextMenuTeleport := ChooseOption.Select(code, MOUSE_LEFT, False, False);
-  if not contextMenuTeleport then
-    if not ChooseOption.Select('onfigure', MOUSE_LEFT, False, True) then
-      Exit;
+  if contextMenuTeleport then
+    pos := Self._Pos()
+  else if not ChooseOption.Select('onfigure', MOUSE_LEFT, False, True) then
+    Exit;
 
   Minimap.WaitMoving();
 
   if contextMenuTeleport then
-    Exit(True);
+  begin
+    Exit(WaitUntil(pos.InRange(Self._Pos(), 32), 300, 6000));
+  end;
 
   if WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000) then
     Result := Self.HandleInterface(code);

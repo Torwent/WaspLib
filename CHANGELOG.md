@@ -1,3 +1,12 @@
+## [19.7.7](https://github.com/Torwent/WaspLib/compare/v19.7.6...v19.7.7) (2024-08-28)
+
+
+### Bug Fixes
+
+* compatibility with latest SRL-T ([e6b48f6](https://github.com/Torwent/WaspLib/commit/e6b48f69d694798b7c4f48343e5f174af37289f2))
+
+
+
 ## [19.7.6](https://github.com/Torwent/WaspLib/compare/v19.7.5...v19.7.6) (2024-08-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * removed unused vars ([fcfc158](https://github.com/Torwent/WaspLib/commit/fcfc158377fd34e6494a176e5dcc8e72b8027fae))
-
-
-
-## [19.7.2](https://github.com/Torwent/WaspLib/compare/v19.7.1...v19.7.2) (2024-08-15)
-
-
-### Bug Fixes
-
-* **Fairy ring:** add initial support for TRSMap ([318fb24](https://github.com/Torwent/WaspLib/commit/318fb24d462f12bfde63893860165d06b4128751))
 
 
 

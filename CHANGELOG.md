@@ -1,3 +1,12 @@
+## [19.7.8](https://github.com/Torwent/WaspLib/compare/v19.7.7...v19.7.8) (2024-09-03)
+
+
+### Bug Fixes
+
+* minor fix for walker v2 scripts ([f61a3e6](https://github.com/Torwent/WaspLib/commit/f61a3e6adbb9784d46b5c6e36c820156411f1c42))
+
+
+
 ## [19.7.7](https://github.com/Torwent/WaspLib/compare/v19.7.6...v19.7.7) (2024-08-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([4b14ab8](https://github.com/Torwent/WaspLib/commit/4b14ab8c3198fb249dff2d9d11775af686c0549d))
-
-
-
-## [19.7.3](https://github.com/Torwent/WaspLib/compare/v19.7.2...v19.7.3) (2024-08-19)
-
-
-### Bug Fixes
-
-* removed unused vars ([fcfc158](https://github.com/Torwent/WaspLib/commit/fcfc158377fd34e6494a176e5dcc8e72b8027fae))
 
 
 

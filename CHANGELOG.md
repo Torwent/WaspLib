@@ -1,3 +1,12 @@
+## [19.7.9](https://github.com/Torwent/WaspLib/compare/v19.7.8...v19.7.9) (2024-09-05)
+
+
+### Bug Fixes
+
+* **fairy ring:** now properly waits for the teleport to finish ([cf65b54](https://github.com/Torwent/WaspLib/commit/cf65b54d8e6e993fafd9c276d5bee6dbba3a99e3))
+
+
+
 ## [19.7.8](https://github.com/Torwent/WaspLib/compare/v19.7.7...v19.7.8) (2024-09-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **FairyRing:** now fully supports TRSMap and WalkerV2 ([ee5964a](https://github.com/Torwent/WaspLib/commit/ee5964aab6da646950511778fc3f277e09101d80))
-
-
-
-## [19.7.4](https://github.com/Torwent/WaspLib/compare/v19.7.3...v19.7.4) (2024-08-21)
-
-
-### Bug Fixes
-
-* force bump ([4b14ab8](https://github.com/Torwent/WaspLib/commit/4b14ab8c3198fb249dff2d9d11775af686c0549d))
 
 
 

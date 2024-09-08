@@ -1,3 +1,12 @@
+## [19.7.11](https://github.com/Torwent/WaspLib/compare/v19.7.10...v19.7.11) (2024-09-08)
+
+
+### Bug Fixes
+
+* **consumables:** arrays are now variables instead of constants so people can edit them ([bfce48f](https://github.com/Torwent/WaspLib/commit/bfce48fec788ec19107f0eae64f92acb6e59a5d3))
+
+
+
 ## [19.7.10](https://github.com/Torwent/WaspLib/compare/v19.7.9...v19.7.10) (2024-09-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([e6b48f6](https://github.com/Torwent/WaspLib/commit/e6b48f69d694798b7c4f48343e5f174af37289f2))
-
-
-
-## [19.7.6](https://github.com/Torwent/WaspLib/compare/v19.7.5...v19.7.6) (2024-08-24)
-
-
-### Bug Fixes
-
-* **TRSFairyRing:** several fixes with timings ([e4ea708](https://github.com/Torwent/WaspLib/commit/e4ea7083ad9c74fbba3b75ef620df0d98d26d9e8))
 
 
 

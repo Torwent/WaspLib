@@ -1,3 +1,12 @@
+## [19.7.12](https://github.com/Torwent/WaspLib/compare/v19.7.11...v19.7.12) (2024-09-09)
+
+
+### Bug Fixes
+
+* force bump ([5419d68](https://github.com/Torwent/WaspLib/commit/5419d68b9afae34f6d3fe55459daa860deeee4f7))
+
+
+
 ## [19.7.11](https://github.com/Torwent/WaspLib/compare/v19.7.10...v19.7.11) (2024-09-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * minor fix for walker v2 scripts ([f61a3e6](https://github.com/Torwent/WaspLib/commit/f61a3e6adbb9784d46b5c6e36c820156411f1c42))
-
-
-
-## [19.7.7](https://github.com/Torwent/WaspLib/compare/v19.7.6...v19.7.7) (2024-08-28)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([e6b48f6](https://github.com/Torwent/WaspLib/commit/e6b48f69d694798b7c4f48343e5f174af37289f2))
 
 
 

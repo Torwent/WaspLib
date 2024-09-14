@@ -658,6 +658,7 @@ function TBaseBankScript.Withdraw(out item: TRSBankItem; attempts: Int32 = 3): B
 var
   count, stack, attempt: Int32;
   invItem: TRSItem;
+  b: TBox;
 begin
   if item.Noted then
     invItem := 'Noted ' + item.Item
@@ -671,18 +672,29 @@ begin
       Exit;
 
     count := Inventory.CountItem(invItem);
-    Result := Bank.WithdrawItem(item, item.Quantity <> 1) and
-              WaitUntil(
-                (Inventory.CountItemStack(invItem) > stack) or
-                (Inventory.CountItem(invItem) > count), 300, 3000
-              );
 
-    if Result then
-      Exit;
+    if Bank.FindItem(item, b) then
+    begin
+      if Bank.CountItemStack(item.Item) < item.Quantity then
+      begin
+        Self.BankEmpty := Bank.IsOpen();
+        if Self.BankEmpty then
+          SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
+        if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+          Self.CollectEmpty := False;
+        Exit;
+      end;
+
+      Result := Bank.WithdrawHelper(b, item.Quantity, item.Noted, item.Quantity <> 1);
+    end;
+
+    Result := Result and
+              WaitUntil((Inventory.CountItemStack(invItem) > stack) or
+                        (Inventory.CountItem(invItem) > count), 300, 3000);
+    if Result then Exit;
 
     Bank.UnHoverIncinerator();
-    if Bank.IsSearchOpen() then
-      Bank.CloseSearch();
+    if Bank.IsSearchOpen() then  Bank.CloseSearch();
 
     if attempt > 1 then
       Mouse.Move(Bank.GetSlotBoxes().Merge(), True);

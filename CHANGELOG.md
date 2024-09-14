@@ -1,3 +1,12 @@
+## [19.7.13](https://github.com/Torwent/WaspLib/compare/v19.7.12...v19.7.13) (2024-09-14)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** should properly trigger bankempty when there's not enough of the item we need ([224f138](https://github.com/Torwent/WaspLib/commit/224f138ac02ad035905c57c594aa647a4108abb8))
+
+
+
 ## [19.7.12](https://github.com/Torwent/WaspLib/compare/v19.7.11...v19.7.12) (2024-09-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **fairy ring:** now properly waits for the teleport to finish ([cf65b54](https://github.com/Torwent/WaspLib/commit/cf65b54d8e6e993fafd9c276d5bee6dbba3a99e3))
-
-
-
-## [19.7.8](https://github.com/Torwent/WaspLib/compare/v19.7.7...v19.7.8) (2024-09-03)
-
-
-### Bug Fixes
-
-* minor fix for walker v2 scripts ([f61a3e6](https://github.com/Torwent/WaspLib/commit/f61a3e6adbb9784d46b5c6e36c820156411f1c42))
 
 
 

@@ -1,3 +1,12 @@
+## [19.7.14](https://github.com/Torwent/WaspLib/compare/v19.7.13...v19.7.14) (2024-09-16)
+
+
+### Bug Fixes
+
+* basebankscript can withdraw if quantity is one and item has only one in bank ([a0d238b](https://github.com/Torwent/WaspLib/commit/a0d238b7166728a8122cf1156b1c61ec39aa8597))
+
+
+
 ## [19.7.13](https://github.com/Torwent/WaspLib/compare/v19.7.12...v19.7.13) (2024-09-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combathandler:** small fix for TRSMap ([60421c2](https://github.com/Torwent/WaspLib/commit/60421c2aeb284a9c74458ce8cdd34b1051eb349a))
-
-
-
-## [19.7.9](https://github.com/Torwent/WaspLib/compare/v19.7.8...v19.7.9) (2024-09-05)
-
-
-### Bug Fixes
-
-* **fairy ring:** now properly waits for the teleport to finish ([cf65b54](https://github.com/Torwent/WaspLib/commit/cf65b54d8e6e993fafd9c276d5bee6dbba3a99e3))
 
 
 

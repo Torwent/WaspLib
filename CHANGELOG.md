@@ -1,3 +1,12 @@
+## [19.7.15](https://github.com/Torwent/WaspLib/compare/v19.7.14...v19.7.15) (2024-09-20)
+
+
+### Bug Fixes
+
+* **colectbox:** improved collectbox open and walkopen ([0ef5064](https://github.com/Torwent/WaspLib/commit/0ef50643d65de9ba71136a43a0aefb5a49c1e9e1))
+
+
+
 ## [19.7.14](https://github.com/Torwent/WaspLib/compare/v19.7.13...v19.7.14) (2024-09-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **consumables:** arrays are now variables instead of constants so people can edit them ([bfce48f](https://github.com/Torwent/WaspLib/commit/bfce48fec788ec19107f0eae64f92acb6e59a5d3))
-
-
-
-## [19.7.10](https://github.com/Torwent/WaspLib/compare/v19.7.9...v19.7.10) (2024-09-05)
-
-
-### Bug Fixes
-
-* **combathandler:** small fix for TRSMap ([60421c2](https://github.com/Torwent/WaspLib/commit/60421c2aeb284a9c74458ce8cdd34b1051eb349a))
 
 
 

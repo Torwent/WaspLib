@@ -239,18 +239,13 @@ var
   i: Int32;
   arr: TStringArray;
 begin
-  if not GearHandler._FormFiltered then
-    Exit;
+  if not GearHandler._FormFiltered then Exit;
 
   combobox.GetItems().Clear();
   combobox.GetItems().Add('None');
 
   name := combobox.getName().Before('_slot_combobox');
-
-  if name = 'secondary_ammo' then
-    json := GearData.GetJSONArray('ammo')
-  else
-    json := GearData.GetJSONArray(name);
+  json := GearData.GetJSONArray(name);
 
   if name <> 'weapon' then
   begin
@@ -340,6 +335,7 @@ begin
       Self._RefreshList(combobox);
 
     combobox.setItemIndex(combobox.getItems().IndexOf(gear.Items[slot]));
+
     Self._OnGearChange(combobox);
   end;
 
@@ -449,7 +445,6 @@ begin
   img.setVisible(True);
 
   id := ItemFinder.GetItemIDs(combobox.getText())[0];
-
   path := ItemFinder.IMAGES_PATH.Replace('itemfinder', 'forms' + DirectorySeparator + 'gear');
 
 
@@ -478,7 +473,7 @@ procedure TScriptForm._OnLoadGear(sender: TObject);
 var
   combobox: TComboBox;
   parent: TPanel;
-  items: TRSItemArray;
+  items, validItems: TRSItemArray;
   item: TRSItem;
   slot: ERSEquipmentSlot;
   name: String;
@@ -497,14 +492,19 @@ begin
 
   for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
   begin
-    items := Equipment.Discover(slot);
     name := ToStr(slot).ToLower();
     combobox := parent.GetChild(name + '_slot_combobox');
-
     combobox.Clear();
     combobox.getItems().Add('None');
-    for item in items do
+
+    items := Equipment.Discover(slot);
+    validItems := GearData.GetItems(name);
+    WriteLn validItems.Intersection(items);
+
+    for item in validItems.Intersection(items) do
+    begin
       combobox.getItems().Add(ToStr(item).Capitalize());
+    end;
 
     if combobox.getItems().getCount() = 1 then
       combobox.setItemIndex(0)
@@ -939,6 +939,7 @@ begin
 
   Self._RefreshSets(Result);
   cb.SetItemIndex(0);
+
   Self._OnGearSelectorChange(cb.ComboBox);
   GearHandler._FormFiltered := False;
 end;

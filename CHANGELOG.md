@@ -1,3 +1,12 @@
+## [19.7.16](https://github.com/Torwent/WaspLib/compare/v19.7.15...v19.7.16) (2024-09-21)
+
+
+### Bug Fixes
+
+* **gearhandler:** small fixes ([4b426b8](https://github.com/Torwent/WaspLib/commit/4b426b8810a6de2ef922cf0344c997960914c23a))
+
+
+
 ## [19.7.15](https://github.com/Torwent/WaspLib/compare/v19.7.14...v19.7.15) (2024-09-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([5419d68](https://github.com/Torwent/WaspLib/commit/5419d68b9afae34f6d3fe55459daa860deeee4f7))
-
-
-
-## [19.7.11](https://github.com/Torwent/WaspLib/compare/v19.7.10...v19.7.11) (2024-09-08)
-
-
-### Bug Fixes
-
-* **consumables:** arrays are now variables instead of constants so people can edit them ([bfce48f](https://github.com/Torwent/WaspLib/commit/bfce48fec788ec19107f0eae64f92acb6e59a5d3))
 
 
 

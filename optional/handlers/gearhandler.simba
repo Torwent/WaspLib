@@ -20,6 +20,7 @@ type
     Config: TConfigJSON;
 
     CurrentEquipment: array [ERSEquipmentSlot] of TRSItem;
+    _ValidGear: array [ERSEquipmentSlot] of TRSItemArray;
 
     _FormGearIndex: Int32;
     _FormFiltered: Boolean;
@@ -37,8 +38,7 @@ var
   obj: TJSONObject;
   slot: ERSEquipmentSlot;
 begin
-  if Self.IsSetup then
-    Exit;
+  if Self.IsSetup then Exit;
 
   Self.Config.Setup('gearhandler');
   keys := Self.Config.JSON.Keys();
@@ -53,6 +53,9 @@ begin
     for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
       Sets[i].Items[slot] := obj.getString(ToStr(slot).Lower());
   end;
+
+  for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+    Self._ValidGear[slot] := GearData.GetItems(slot);
 
   Self.IsSetup := True;
 end;
@@ -473,7 +476,7 @@ procedure TScriptForm._OnLoadGear(sender: TObject);
 var
   combobox: TComboBox;
   parent: TPanel;
-  items, validItems: TRSItemArray;
+  items: TRSItemArray;
   item: TRSItem;
   slot: ERSEquipmentSlot;
   name: String;
@@ -498,13 +501,9 @@ begin
     combobox.getItems().Add('None');
 
     items := Equipment.Discover(slot);
-    validItems := GearData.GetItems(name);
-    WriteLn validItems.Intersection(items);
 
-    for item in validItems.Intersection(items) do
-    begin
+    for item in GearHandler._ValidGear[slot].Intersection(items) do
       combobox.getItems().Add(ToStr(item).Capitalize());
-    end;
 
     if combobox.getItems().getCount() = 1 then
       combobox.setItemIndex(0)

@@ -487,26 +487,41 @@ begin
     WriteLn('Couldnt get to POH');
     Exit; 
   end;
-
+  WaitUntil(Minimap.InPOH(), 100, 10000);
   if not Self.PohSetup then begin
     POH.Setup();
     Self.PohSetup := True;
     //TODO walk around and see what we can find
   end;
-  if not POH.WalkClick(ERSRoomObject.JEWELLERY_BOX, 3) and WaitUntil(RSInterface.IsOpen(), 200, 5000) then
+
+  if not POH.WalkClick(ERSRoomObject.JEWELLERY_BOX, 3) then
   begin
-    WriteLn('Couldnt open jewellery box');
+    debug(ERSRoomObject.JEWELLERY_BOX);
+    WriteLn('Could not click on the jewellery box');
+    Exit;
+  end;
+
+  if not WaitUntil(RSInterface.IsOpen(), 200, 5000) then
+  begin
+    WriteLn('Could not open jewellery box interface');
     Exit;
   end;
 
   Keyboard.send(teleportLocation.interfaceHotkey);
-  Result := WaitUntil(not RSInterface.IsOpen(), 200, 5000);
+  Result := WaitUntil((not RSInterface.IsOpen()) and (not Minimap.InPOH), 200, 5000);
 end;
 
-function TUniversalTransport.handleFairyRingTeleport(constref teleportLocation: TTeleportLocation): Boolean;
+function TUniversalTransport.handleFairyRingTeleport(constref teleportLocation: TTeleportLocation; usePOH: Boolean = false): Boolean;
 var
   endLocation: TBox := Box(teleportLocation.worldPoint, 200, 200);
 begin
+  if usePOH then
+  begin
+    if not POH.IsSetup then POH.Setup();
+    if POH.Click(ERSRoomObject.FAIRY_TREE) and FairyRing.IsOpen then
+      Result := FairyRing.Teleport(teleportLocation.destination);
+  end;
+
   if FairyRing.WalkOpen() then
     FairyRing.ClickLogCode(teleportLocation.destination);
 
@@ -584,7 +599,7 @@ begin
 end;
 
 
-function TUniversalTransport.run(constref teleportLocation: TTeleportLocation; useMagic: Boolean = False): Boolean; overload;
+function TUniversalTransport.run(constref teleportLocation: TTeleportLocation; useMagic: Boolean = False; usePOH: Boolean = false): Boolean; overload;
 var
   didTeleport: Boolean;
 begin
@@ -599,7 +614,7 @@ begin
     ETeleportType.ARCEUUS_MAGIC,
     ETeleportType.LUNAR_MAGIC,
     ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation, useMagic);
-    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation, usePOH);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
     ETeleportType.JEWELLERY_BOX: didTeleport := self.handleJewelleryBoxTeleport(teleportLocation);
     ETeleportType.MINIGAME: didTeleport := self.handleMinigameTeleport(teleportLocation);
@@ -610,7 +625,7 @@ begin
   Exit(didTeleport);
 end;
 
-function TUniversalTransport.run(destination: TPoint; useMagic: Boolean = False): Boolean; overload;
+function TUniversalTransport.run(destination: TPoint; useMagic: Boolean = False; usePOH: Boolean = false): Boolean; overload;
 var
   teleportLocation: TTeleportLocation;
   didTeleport: Boolean;
@@ -628,7 +643,7 @@ begin
     ETeleportType.ARCEUUS_MAGIC,
     ETeleportType.LUNAR_MAGIC,
     ETeleportType.NORMAL_MAGIC: didTeleport := self.handleMagicTeleport(teleportLocation, useMagic);
-    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation);
+    ETeleportType.FAIRY_RING: didTeleport := self.handleFairyRingTeleport(teleportLocation, usePOH);
     ETeleportType.DIARY_ITEM: didTeleport := self.handleDiaryTeleport(teleportLocation);
     ETeleportType.JEWELLERY_BOX: didTeleport := self.handleJewelleryBoxTeleport(teleportLocation);
     ETeleportType.MINIGAME: didTeleport := self.handleMinigameTeleport(teleportLocation);

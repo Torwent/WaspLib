@@ -1,3 +1,12 @@
+## [19.7.18](https://github.com/Torwent/WaspLib/compare/v19.7.17...v19.7.18) (2024-09-24)
+
+
+### Bug Fixes
+
+* force bump ([443ad8b](https://github.com/Torwent/WaspLib/commit/443ad8b708cb076a69e09ad78c39ba47d7981ac3))
+
+
+
 ## [19.7.17](https://github.com/Torwent/WaspLib/compare/v19.7.16...v19.7.17) (2024-09-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * basebankscript can withdraw if quantity is one and item has only one in bank ([a0d238b](https://github.com/Torwent/WaspLib/commit/a0d238b7166728a8122cf1156b1c61ec39aa8597))
-
-
-
-## [19.7.13](https://github.com/Torwent/WaspLib/compare/v19.7.12...v19.7.13) (2024-09-14)
-
-
-### Bug Fixes
-
-* **TBaseBankScript:** should properly trigger bankempty when there's not enough of the item we need ([224f138](https://github.com/Torwent/WaspLib/commit/224f138ac02ad035905c57c594aa647a4108abb8))
 
 
 

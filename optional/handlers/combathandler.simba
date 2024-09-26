@@ -103,8 +103,7 @@ type
 
   TRSCombatHandler = record(TSRLBaseRecord)
     State: ECombatState;
-    Monster: TRSMonster;
-    MonsterV2: TRSNPCV2;
+    Monster: TRSNPCV2;
 
     MonsterWalkerCoord, SafeSpot: TPoint;
 
@@ -219,12 +218,11 @@ begin
   end;
 end;
 
-procedure TRSCombatHandler.Setup(rsMonster: TRSMonster; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);
+procedure TRSCombatHandler.Setup(npc: TRSNPCV2; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);
 var
   eConsumable: ERSConsumable;
 begin
-  if Self.IsSetup then
-    Exit;
+  if Self.IsSetup then Exit;
 
   Self.Name := 'CombatHandler';
 
@@ -260,7 +258,7 @@ begin
   if not Self.AutoRetaliateChecked then
     Combat.GetAutoRetaliate();
 
-  Self.Monster := rsMonster;
+  Self.Monster := npc;
   Self.SafeSpot := safeSpotTile;
   Self.UseSafeSpot := safeSpotTile <> [-1,-1];
 
@@ -268,60 +266,12 @@ begin
   Self.IsSetup := True;
 end;
 
-procedure TRSCombatHandler.Setup(rsMonster: TRSNPCV2; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]); overload;
-var
-  eConsumable: ERSConsumable;
+procedure TRSCombatHandler.Setup(manage: Boolean; npc: TRSNPCV2; lootValue: Int32 = 5000; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);  overload;
 begin
   if Self.IsSetup then
     Exit;
 
-  Self.Name := 'CombatHandler';
-
-  if Self.AttackMonsterDelay = 0 then
-    Self.AttackMonsterDelay := 5000;
-
-  Self.InCombatTimer.Setup(Timer);
-
-  if not RSClient.IsLoggedIn() then
-    Login.LoginPlayer();
-
-  ChatButtons.Open(ERSChatButton.GAME_CHAT);
-  Self.SlayerTaskFinishedVisible := Chat.FindMessage('Slayer master', [CHAT_COLOR_RED]);
-
-  for eConsumable := ERSConsumable(0) to ERSConsumable(High(ERSConsumable)-2) do
-    Self._ShouldHandleConsumable(eConsumable);
-
-  for eConsumable := ERSConsumable.STRENGTH_BOOST to ERSConsumable.BOOST do
-  begin
-    if Self.HandleConsumables[eConsumable] then
-      Break;
-    if eConsumable = ERSConsumable.BOOST then
-      Self._ShouldHandleConsumable(ERSConsumable.BOOST);
-  end;
-
-  Self.HandleCannon := Inventory.ContainsAll(DWARF_CANNON) and
-                       Inventory.ContainsAny(CANNON_BALLS);
-
-  if Self.HandleCannon then
-    Self.DebugLn('Cannon and cannonballs detected. Cannon will be used.');
-
-  if not Self.AutoRetaliateChecked then
-    Combat.GetAutoRetaliate();
-
-  Self.MonsterV2 := rsMonster;
-  Self.SafeSpot := safeSpotTile;
-  Self.UseSafeSpot := safeSpotTile <> [-1,-1];
-
-  Self.Looted := True;
-  Self.IsSetup := True;
-end;
-
-procedure TRSCombatHandler.Setup(manage: Boolean; rsMonster: TRSMonster; lootValue: Int32 = 5000; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);  overload;
-begin
-  if Self.IsSetup then
-    Exit;
-
-  Self.Setup(rsMonster, timer, safeSpotTile);
+  Self.Setup(npc, timer, safeSpotTile);
 
   if manage then
   begin
@@ -331,33 +281,10 @@ begin
 
   if lootValue > 0 then
   begin
-    Self.LootHandler.Setup(rsMonster, lootValue);
-    Self.LootEnabled := Self.LootHandler.IsSetup;
-  end;
-
-  DebugMonsterArray += rsMonster;
-end;
-
-procedure TRSCombatHandler.Setup(manage: Boolean; rsMonster: TRSNPCV2; lootValue: Int32 = 5000; timer: Int64 = 4000; safeSpotTile: TPoint =  [-1, -1]);  overload;
-begin
-  if Self.IsSetup then
-    Exit;
-
-  Self.Setup(rsMonster, timer, safeSpotTile);
-
-  if manage then
-  begin
-    Self.ManageGear := True;
-    Self._SetupGear();
-  end;
-
-  if lootValue > 0 then
-  begin
-    Self.LootHandler.Setup(rsMonster, lootValue);
+    Self.LootHandler.Setup(npc, lootValue);
     Self.LootEnabled := Self.LootHandler.IsSetup;
   end;
 end;
-
 
 function TRSCombatHandler.GetMonsterDot(msCoord: TPoint): TPoint;
 var
@@ -365,18 +292,16 @@ var
   b: TBox;
   dots: TPointArray;
 begin
-  monster := MainScreen.PointToMM(msCoord, Round(Self.Monster.ShapeArray[0].Tile.Z)).ToPoint();
-  b := Box(monster, 6, 6);
+  monster := MainScreen.PointToMM(msCoord, 0).ToPoint();
+  b := Box(monster, 12, 12);
   dots := Minimap.GetDots(ERSMinimapDot.NPC, b);
+  if dots = [] then Exit;
 
-  if dots = [] then
-    Exit;
-
-  Result := dots[0];
+  Result := dots.Sorted(monster)[0];
 
   if Self.Monster.Filter.Walker then
   begin
-    me := ScriptWalker^.GetMyPos();
+    me := Self.Monster.Walker^.Position();
     Result := me + (Result - Minimap.Center());
     Result := Result.Rotate(-Minimap.GetCompassAngle(False), me);
   end;
@@ -400,8 +325,7 @@ begin
         splats += tmp[i];
 
     Result := splats <> [];
-    if Result then
-      Break;
+    if Result then Break;
   until GetTickCount() > t;
 
   if Result then
@@ -424,7 +348,7 @@ end;
 
 function TRSCombatHandler.WalkAttackMonster(attempts: Int32 = 3): Boolean;
 begin
-  if not Self.Monster.Filter.Walker then
+  if not Self.Monster.Filter.Walker or Self.UseSafeSpot or Self.Monster.IsVisible() then
     Exit(Self.AttackMonster(attempts));
 
   if Self.Monster.WalkSelectOption(['Attack'], attempts) then
@@ -452,9 +376,9 @@ begin
     (Self.MonsterWalkerCoord = []) or (Self.MonsterWalkerCoord = [0,0]) then
     p := Minimap.Center()
   else
-    p := ScriptWalker^.WorldToMM(Self.MonsterWalkerCoord);
+    p := Self.Monster.Walker^.PointToMM(Self.Monster.Walker^.Position(), Self.MonsterWalkerCoord, Minimap.GetCompassAngle(False));
 
-  size := Self.Monster.ShapeArray[0].Tile.X;
+  size := Max(Self.Monster.Size.X, Self.Monster.Size.Y);
 
   b := Box(p, Ceil(size), Ceil(size)).Expand(12);
 
@@ -702,7 +626,7 @@ end;
 function TRSCombatHandler.WalkSafeSpot(): Boolean;
 begin
   Self.IsFighting := False;
-  Result := ScriptWalker^.WebWalk(Self.SafeSpot, 8, 0.2);
+  Result := Self.Monster.Walker^.WebWalk(Self.SafeSpot, 8, 0.2);
 end;
 
 
@@ -873,7 +797,7 @@ begin
   if Self.BuryBones and Inventory.ContainsAny(REMAINS) then
     Exit(ECombatState.BURY_BONES);
 
-  if Self.UseSafeSpot and not ScriptWalker^.AtTile(Self.SafeSpot, 6) then
+  if Self.UseSafeSpot and not (Self.Monster.Walker^.Position = Self.SafeSpot) then
     Exit(ECombatState.SAFE_SPOT);
 
   if Self.IsFighting then
@@ -959,10 +883,11 @@ function TRSMainScreen.InCombat(): Boolean; override;
 var
   splats: TRSHitsplatArray;
   gotXP, hasSplats: Boolean;
-  tmp: TRSMonster;
+  tmp: TRSNPCV2;
   cuboids: TCuboidExArray;
   cuboid: TCuboidEx;
   b: TBox;
+  p: TPoint;
 begin
   if CombatHandler.InCombatTimer.IsFinished() and not XPBar.EarnedXP() then
   begin
@@ -970,26 +895,22 @@ begin
     Exit;
   end;
 
+  p := CombatHandler.MonsterWalkerCoord;
+
   if CombatHandler.Monster.Filter.Walker then
   begin
     tmp := CombatHandler.Monster;
-    tmp.Coordinates := [CombatHandler.MonsterWalkerCoord];
-    tmp.DotFilter := [];
-    tmp.DotFilter.SetupCircle([CombatHandler.MonsterWalkerCoord.X, CombatHandler.MonsterWalkerCoord.Y, 8], True);
+    tmp.Coordinates := [p];
+    tmp.DotFilters := [];
+    tmp.DotFilters.SetupCircle([p.X, p.Y, 8], True);
 
     cuboids := tmp.GetCuboidArray();
-    if cuboids = [] then
-      Exit;
+    if cuboids = [] then Exit;
 
     cuboid := cuboids[0];
   end
   else
-  begin
-    if ScriptWalker = nil then
-      cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.MonsterV2.Size)
-    else
-      cuboid := Minimap.GetCuboidMS(CombatHandler.MonsterWalkerCoord, CombatHandler.Monster.ShapeArray[0]);
-  end;
+    cuboid := Minimap.GetCuboidMS(p, CombatHandler.Monster.Size);
 
   gotXP := XPBar.EarnedXP();
 

@@ -1,3 +1,12 @@
+## [19.7.19](https://github.com/Torwent/WaspLib/compare/v19.7.18...v19.7.19) (2024-09-26)
+
+
+### Bug Fixes
+
+* **CombatHandler:** Now works with TRSMap and TRSWalkerV2 ([c406e74](https://github.com/Torwent/WaspLib/commit/c406e749f3b829a6cc6d41053145c81036c89f7f))
+
+
+
 ## [19.7.18](https://github.com/Torwent/WaspLib/compare/v19.7.17...v19.7.18) (2024-09-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **colectbox:** improved collectbox open and walkopen ([0ef5064](https://github.com/Torwent/WaspLib/commit/0ef50643d65de9ba71136a43a0aefb5a49c1e9e1))
-
-
-
-## [19.7.14](https://github.com/Torwent/WaspLib/compare/v19.7.13...v19.7.14) (2024-09-16)
-
-
-### Bug Fixes
-
-* basebankscript can withdraw if quantity is one and item has only one in bank ([a0d238b](https://github.com/Torwent/WaspLib/commit/a0d238b7166728a8122cf1156b1c61ec39aa8597))
 
 
 

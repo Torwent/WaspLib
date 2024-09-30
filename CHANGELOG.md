@@ -1,3 +1,12 @@
+## [19.7.22](https://github.com/Torwent/WaspLib/compare/v19.7.21...v19.7.22) (2024-09-30)
+
+
+### Bug Fixes
+
+* mahogany tree colors ([752c7e3](https://github.com/Torwent/WaspLib/commit/752c7e37d9ab1d21691c59ff665d2a426ba6c31d))
+
+
+
 ## [19.7.21](https://github.com/Torwent/WaspLib/compare/v19.7.20...v19.7.21) (2024-09-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([443ad8b](https://github.com/Torwent/WaspLib/commit/443ad8b708cb076a69e09ad78c39ba47d7981ac3))
-
-
-
-## [19.7.17](https://github.com/Torwent/WaspLib/compare/v19.7.16...v19.7.17) (2024-09-23)
-
-
-### Bug Fixes
-
-* **gearhandler:** better logic so loading from client is slightly faster ([1ac83fc](https://github.com/Torwent/WaspLib/commit/1ac83fc8b7e164b3fa1169c635fd743a20957647))
 
 
 

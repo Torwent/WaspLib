@@ -1,3 +1,12 @@
+## [19.7.21](https://github.com/Torwent/WaspLib/compare/v19.7.20...v19.7.21) (2024-09-30)
+
+
+### Bug Fixes
+
+* some things moved to SRL-T ([644d4fa](https://github.com/Torwent/WaspLib/commit/644d4fa294063bca30d103647e291d2830be68de))
+
+
+
 ## [19.7.20](https://github.com/Torwent/WaspLib/compare/v19.7.19...v19.7.20) (2024-09-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **gearhandler:** better logic so loading from client is slightly faster ([1ac83fc](https://github.com/Torwent/WaspLib/commit/1ac83fc8b7e164b3fa1169c635fd743a20957647))
-
-
-
-## [19.7.16](https://github.com/Torwent/WaspLib/compare/v19.7.15...v19.7.16) (2024-09-21)
-
-
-### Bug Fixes
-
-* **gearhandler:** small fixes ([4b426b8](https://github.com/Torwent/WaspLib/commit/4b426b8810a6de2ef922cf0344c997960914c23a))
 
 
 

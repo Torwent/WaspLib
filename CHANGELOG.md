@@ -1,3 +1,12 @@
+## [19.7.23](https://github.com/Torwent/WaspLib/compare/v19.7.22...v19.7.23) (2024-10-02)
+
+
+### Bug Fixes
+
+* force bump ([68a3e77](https://github.com/Torwent/WaspLib/commit/68a3e77ac3c1d66d10daccc6c0d96acfd2042825))
+
+
+
 ## [19.7.22](https://github.com/Torwent/WaspLib/compare/v19.7.21...v19.7.22) (2024-09-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **CombatHandler:** Now works with TRSMap and TRSWalkerV2 ([c406e74](https://github.com/Torwent/WaspLib/commit/c406e749f3b829a6cc6d41053145c81036c89f7f))
-
-
-
-## [19.7.18](https://github.com/Torwent/WaspLib/compare/v19.7.17...v19.7.18) (2024-09-24)
-
-
-### Bug Fixes
-
-* force bump ([443ad8b](https://github.com/Torwent/WaspLib/commit/443ad8b708cb076a69e09ad78c39ba47d7981ac3))
 
 
 

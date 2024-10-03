@@ -1,3 +1,12 @@
+## [19.7.24](https://github.com/Torwent/WaspLib/compare/v19.7.23...v19.7.24) (2024-10-03)
+
+
+### Bug Fixes
+
+* foolproofed hoplist so that inaccessible or non-existing worlds are not being hopped to ([c0b7038](https://github.com/Torwent/WaspLib/commit/c0b7038369f10ff157047511fb7e287cf578f389))
+
+
+
 ## [19.7.23](https://github.com/Torwent/WaspLib/compare/v19.7.22...v19.7.23) (2024-10-02)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * better tanscreen click logic ([1f45fee](https://github.com/Torwent/WaspLib/commit/1f45fee98d7939fb562baff61f0af3d36dbbce74))
-
-
-
-## [19.7.19](https://github.com/Torwent/WaspLib/compare/v19.7.18...v19.7.19) (2024-09-26)
-
-
-### Bug Fixes
-
-* **CombatHandler:** Now works with TRSMap and TRSWalkerV2 ([c406e74](https://github.com/Torwent/WaspLib/commit/c406e749f3b829a6cc6d41053145c81036c89f7f))
 
 
 

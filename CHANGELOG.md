@@ -1,3 +1,12 @@
+## [19.7.25](https://github.com/Torwent/WaspLib/compare/v19.7.24...v19.7.25) (2024-10-07)
+
+
+### Bug Fixes
+
+* **TRSStore:** Now uses iteminterface to interact with items ([09ef140](https://github.com/Torwent/WaspLib/commit/09ef140d44cae323ecf06ea1dbda9e3de8bbe245))
+
+
+
 ## [19.7.24](https://github.com/Torwent/WaspLib/compare/v19.7.23...v19.7.24) (2024-10-03)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * some things moved to SRL-T ([644d4fa](https://github.com/Torwent/WaspLib/commit/644d4fa294063bca30d103647e291d2830be68de))
-
-
-
-## [19.7.20](https://github.com/Torwent/WaspLib/compare/v19.7.19...v19.7.20) (2024-09-27)
-
-
-### Bug Fixes
-
-* better tanscreen click logic ([1f45fee](https://github.com/Torwent/WaspLib/commit/1f45fee98d7939fb562baff61f0af3d36dbbce74))
 
 
 

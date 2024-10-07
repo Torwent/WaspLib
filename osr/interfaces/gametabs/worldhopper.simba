@@ -282,56 +282,51 @@ WriteLn TRSWorldHopper.Hop([303, 304, 305]);
 *)
 function TRSWorldHopper.Hop(targetWorlds: TIntegerArray; doSorting: Boolean = True): Boolean;
 var
-  visibleWorlds: TIntegerArray;
-  ocrBounds: TBoxArray;
-  currentWorld: Int32;
-  i: Int32;
-  nextWorld: Int32;
+  visible: TIntegerArray;
+  boxes: TBoxArray;
+  current, next, i: Int32;
   timeOut: UInt64;
   moveMouse: Boolean;
 begin
-  if GetSystemTime() < Self.ReadyTime then
-    Exit;
-  if not Logout.Open() then
-    Exit;
+  if GetSystemTime() < Self.ReadyTime then Exit;
+  if not Logout.Open() then Exit;
 
   if not logout.IsWorldSwitcherOpen() then
     Logout.GetButton(ERSLogoutButton.WORLD_SWITCHER).Click(MOUSE_LEFT);
-  WaitUntil(Self.GetCurrentWorld() <> 0, 200, 12000);
+  WaitUntil((current := Self.GetCurrentWorld()) <> 0, 200, 12000);
 
-  if doSorting and not Self.SortWorlds() then
-    Exit;
+  if doSorting and not Self.SortWorlds() then Exit;
+  Self.DebugLn('Current world: ' + ToStr(current));
 
-  currentWorld := Self.GetCurrentWorld();
-  Self.DebugLn("Current world: " + tostr(currentWorld));
-
-  if (targetWorlds.Len = 1) and (currentWorld = targetWorlds[0]) then
+  if (targetWorlds.Len() = 1) and (current = targetWorlds[0]) then
     Exit(True);
 
-  i := targetWorlds.Find(currentWorld);
+  i := targetWorlds.Find(current);
   if i = High(targetWorlds) then
     i := -1;
 
-  nextWorld := targetWorlds[i+1];
+  next := targetWorlds[i+1];
+  Self.DebugLn('Next world: ' + ToStr(next));
 
   timeOut := GetSystemTime() + 12000;
   moveMouse := True;
 
   repeat
-    visibleWorlds := Self.ReadWorlds(ocrBounds);
-    i := visibleWorlds.find(nextWorld);
-    if i <> -1 then
+    visible := Self.ReadWorlds(boxes);
+    i := visible.Find(next);
+
+    if i > -1 then
     begin
-      Mouse.Click(ocrBounds[i], MOUSE_LEFT, True);
-      Exit(Self.WaitForHop(nextWorld, ocrBounds[i]))
+      Mouse.Click(boxes[i], MOUSE_LEFT, True);
+      Exit(Self.WaitForHop(next, boxes[i]))
     end;
 
-    Self.Scroll(visibleWorlds.min < nextWorld, moveMouse);
+    Self.Scroll(visible.Min() < next, moveMouse);
     moveMouse := False;
   until GetSystemTime() > timeOut;
 
-  Self.DebugLn("Timed out (timeOut="+ToStr(timeOut)+"ms)");
-  targetWorlds.Remove(nextWorld);
+  Self.DebugLn("Timed out (timeOut=" + ToStr(timeOut) + "ms)");
+  targetWorlds.Remove(next);
 end;
 
 var

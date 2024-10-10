@@ -1,3 +1,12 @@
+## [19.7.26](https://github.com/Torwent/WaspLib/compare/v19.7.25...v19.7.26) (2024-10-10)
+
+
+### Bug Fixes
+
+* **worldhopper:** improved logic ([714be05](https://github.com/Torwent/WaspLib/commit/714be057351140f792ad22dee914320e83093720))
+
+
+
 ## [19.7.25](https://github.com/Torwent/WaspLib/compare/v19.7.24...v19.7.25) (2024-10-07)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * mahogany tree colors ([752c7e3](https://github.com/Torwent/WaspLib/commit/752c7e37d9ab1d21691c59ff665d2a426ba6c31d))
-
-
-
-## [19.7.21](https://github.com/Torwent/WaspLib/compare/v19.7.20...v19.7.21) (2024-09-30)
-
-
-### Bug Fixes
-
-* some things moved to SRL-T ([644d4fa](https://github.com/Torwent/WaspLib/commit/644d4fa294063bca30d103647e291d2830be68de))
 
 
 

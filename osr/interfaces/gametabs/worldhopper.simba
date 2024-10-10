@@ -24,7 +24,8 @@ WorldHopper record.
 *)
   TRSWorldHopper = record(TRSInterface)
     SILVER, YELLOW: Int32;
-    ReadyTime: UInt64;
+    ServerMessageBox: TBox;
+    Cooldown: TCountDown;
   end;
 
 function TRSWorldHopper.ScrollAreaFunction(): TBox;
@@ -48,6 +49,15 @@ begin
   Self.Name := 'WorldHopper';
   Self.SILVER := $E0E0E0;
   Self.YELLOW := $00F0F0;
+
+  Self.ServerMessageBox := MainScreen.Bounds();
+  Self.ServerMessageBox.X1 += 4;
+  Self.ServerMessageBox.Y1 += 4;
+  Self.ServerMessageBox.X2 := Self.ServerMessageBox.X1 + 79;
+  Self.ServerMessageBox.Y2 := Self.ServerMessageBox.Y1 + 20;
+
+  Self.Cooldown.Setup(8000);
+
   Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
 end;
 
@@ -224,48 +234,28 @@ function TRSWorldHopper.WaitForHop(world: Int32; ocrBounds: TBox; coolDownOnFail
 ```
 Exits false if "Please wait" not found, presumably due to combat.
 *)
-function TRSWorldHopper.WaitForHop(world: Int32; ocrBounds: TBox; coolDownOnFail: Boolean = True): Boolean;
+function TRSWorldHopper.WaitForHop(world: Int32; coolDownOnFail: Boolean = True): Boolean;
 var
-  b: TBox;
-  cd: UInt64;
   filter: TOCRColorFilter;
 begin
   Self.DebugLn("Hopping to " + ToStr(world) + "...");
 
-  b := MainScreen.Bounds();
-  b.X1 += 4;
-  b.Y1 += 4;
-  b.X2 := b.X1 + 79;
-  b.Y2 := b.Y1 + 20;
-
   filter := TOCRColorFilter.Create([$FFFFFF]);
-  if not WaitUntil(OCR.LocateText(b, 'Please wait', RS_FONT_PLAIN_12, filter, 1), 100, 2000) then
+  if not WaitUntil(OCR.LocateText(Self.ServerMessageBox, 'Please wait', RS_FONT_PLAIN_12, filter, 1), 100, 2000) then
   begin
-    Self.DebugLn("hop failed: " + chat.GetMessage(7));
+    Self.DebugLn('Hop failed: ' + Chat.GetMessage(7));
 
     if coolDownOnFail then
     begin
-      cd := Random(8000, 15000);
-      Self.DebugLn("Hop will be ready in " + ToStr(cd) + "ms");
-      Self.ReadyTime := GetSystemTime() + cd;
+      Self.Cooldown.Restart(0, 7000);
+      Self.DebugLn('Hop will be ready in ' + ToStr(Self.Cooldown.Length) + 'ms.');
     end;
-
     Exit;
   end;
 
-  ocrBounds := ocrBounds.Expand(1);
+  Result := WaitUntil(Self.GetCurrentWorld() = world, 200, 10000);
 
-  Result := WaitUntil(
-              OCR.RecognizeNumber(ocrBounds,
-              TOCRColorFilter.Create([Self.SILVER, Self.YELLOW]),
-              RS_FONT_PLAIN_12
-            ) <> world, Random(100,300), 10000
-  );
-
-  if Result then
-    Self.DebugLn("Done")
-  else
-    Self.DebugLn("Timed out");
+  if not Result then Self.DebugLn("Timed out");
 end;
 
 (*
@@ -285,13 +275,13 @@ var
   visible: TIntegerArray;
   boxes: TBoxArray;
   current, next, i: Int32;
-  timeOut: UInt64;
+  timeOut: TCountDown;
   moveMouse: Boolean;
 begin
-  if GetSystemTime() < Self.ReadyTime then Exit;
+  if not Self.Cooldown.IsFinished() then Exit;
   if not Logout.Open() then Exit;
 
-  if not logout.IsWorldSwitcherOpen() then
+  if not Logout.IsWorldSwitcherOpen() then
     Logout.GetButton(ERSLogoutButton.WORLD_SWITCHER).Click(MOUSE_LEFT);
   WaitUntil((current := Self.GetCurrentWorld()) <> 0, 200, 12000);
 
@@ -308,24 +298,24 @@ begin
   next := targetWorlds[i+1];
   Self.DebugLn('Next world: ' + ToStr(next));
 
-  timeOut := GetSystemTime() + 12000;
+  timeOut.Init(12000);
   moveMouse := True;
 
   repeat
     visible := Self.ReadWorlds(boxes);
-    i := visible.Find(next);
 
+    i := visible.Find(next);
     if i > -1 then
     begin
       Mouse.Click(boxes[i], MOUSE_LEFT, True);
-      Exit(Self.WaitForHop(next, boxes[i]))
+      Exit(Self.WaitForHop(next))
     end;
 
     Self.Scroll(visible.Min() < next, moveMouse);
     moveMouse := False;
-  until GetSystemTime() > timeOut;
+  until timeOut.IsFinished();
 
-  Self.DebugLn("Timed out (timeOut=" + ToStr(timeOut) + "ms)");
+  Self.DebugLn('Timed out (timeOut=' + ToStr(timeOut) + 'ms)');
   targetWorlds.Remove(next);
 end;
 

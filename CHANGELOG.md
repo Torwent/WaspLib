@@ -1,3 +1,12 @@
+# [19.8.0](https://github.com/Torwent/WaspLib/compare/v19.7.26...v19.8.0) (2024-10-16)
+
+
+### Features
+
+* **TBaseBankScript:** method to check if we ran out of an item ([3a20c5b](https://github.com/Torwent/WaspLib/commit/3a20c5b8560afd221540811242ae71ddf0ae2230))
+
+
+
 ## [19.7.26](https://github.com/Torwent/WaspLib/compare/v19.7.25...v19.7.26) (2024-10-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([68a3e77](https://github.com/Torwent/WaspLib/commit/68a3e77ac3c1d66d10daccc6c0d96acfd2042825))
-
-
-
-## [19.7.22](https://github.com/Torwent/WaspLib/compare/v19.7.21...v19.7.22) (2024-09-30)
-
-
-### Bug Fixes
-
-* mahogany tree colors ([752c7e3](https://github.com/Torwent/WaspLib/commit/752c7e37d9ab1d21691c59ff665d2a426ba6c31d))
 
 
 

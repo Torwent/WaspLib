@@ -639,6 +639,47 @@ begin
 end;
 
 
+function TBaseBankScript.RanOut(out item: TRSBankItem; attempts: Int32 = 3): Boolean;
+var
+  attempt: Int32;
+  b: TBox;
+begin
+  for attempt := 1 to attempts do
+  begin
+    if Bank.FindItem(item, b) then
+    begin
+      if Max(1, Bank.CountItemStack(item.Item)) < Min(item.Quantity, 28) then
+      begin
+        Self.BankEmpty := Bank.IsOpen();
+        if Self.BankEmpty then
+          SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
+        if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+          Self.CollectEmpty := False;
+        Exit(True);
+      end;
+
+      Continue;
+    end;
+
+    if item.Tab = -1 then Continue;
+    if Bank.GetCurrentTab() <> item.Tab then Continue;
+
+    if item.Scroll = -1 then Continue;
+    if not InRange(Bank.GetScrollPosition(), item.Scroll-3, item.Scroll+3) then Continue;
+
+    Break;
+  end;
+
+  Result := Self.BankEmpty := Bank.IsOpen();
+
+  if Self.BankEmpty then
+    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds());
+
+  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+    Self.CollectEmpty := False;
+end;
+
+
 (*
 ## BaseBankScript.Withdraw
 ```pascal

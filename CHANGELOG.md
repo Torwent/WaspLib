@@ -1,3 +1,12 @@
+## [19.8.1](https://github.com/Torwent/WaspLib/compare/v19.8.0...v19.8.1) (2024-10-25)
+
+
+### Bug Fixes
+
+* remove unused var ([78ea4ad](https://github.com/Torwent/WaspLib/commit/78ea4ad1abf7d3e1d82d363d3824bbd4cd113474))
+
+
+
 # [19.8.0](https://github.com/Torwent/WaspLib/compare/v19.7.26...v19.8.0) (2024-10-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * foolproofed hoplist so that inaccessible or non-existing worlds are not being hopped to ([c0b7038](https://github.com/Torwent/WaspLib/commit/c0b7038369f10ff157047511fb7e287cf578f389))
-
-
-
-## [19.7.23](https://github.com/Torwent/WaspLib/compare/v19.7.22...v19.7.23) (2024-10-02)
-
-
-### Bug Fixes
-
-* force bump ([68a3e77](https://github.com/Torwent/WaspLib/commit/68a3e77ac3c1d66d10daccc6c0d96acfd2042825))
 
 
 

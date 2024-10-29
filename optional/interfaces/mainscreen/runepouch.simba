@@ -1,0 +1,264 @@
+{$DEFINE XJ_RUNEPOUCH_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+const
+  RUNES : TRSItemArray := [
+    'Air rune', 'Water rune', 'Earth rune', 'Fire rune',
+    'Mind rune', 'Chaos rune', 'Death rune', 'Blood rune',
+    'Law rune', 'Cosmic rune', 'Body rune', 'Astral rune',
+    'Wrath rune', 'Soul rune', 'Nature rune', 'Mist rune',
+    'Dust rune', 'Mud rune', 'Smoke rune', 'Steam rune',
+    'Lava rune'
+];
+
+type
+  TRSRunePouch = type TRSTitledInterface;
+
+var
+  RunePouch : TRSRunePouch;
+
+function TRSRunePouch.IsOpen(): Boolean; begin
+  Result := MainScreen.IsClassicOpen and
+            (SRL.CountColor(2586039, Self.Bounds) > 600);
+end;
+
+function TRSRunePouch.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload; begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen, interval, waitTime);
+end;
+
+function TRSRunePouch.Open: Boolean;
+var
+  Match : TRSItemFinderMatch;
+begin
+  if Self.IsOpen then
+    Exit(True);
+
+  if not Inventory.Open then
+    Exit;
+
+  if not ItemFinder.Find(['Rune pouch', 'Divine rune pouch'], Inventory.GetSlotBoxes, Match) then
+    Exit;
+
+  Mouse.Move(Match.Box);
+  if not ChooseOption.Select('Open') then
+    Exit;
+
+  Result := WaitUntil(Self.IsOpen, 17, 5000);
+end;
+
+function TRSRunePouch.GetPouchBoxes(): TBoxArray; begin
+  if 'Div' in Self.GetTitle then
+    Result := Grid(4, 1, 34, 34, [10, 0], [Self.X1 + 93, Self.Y1 + 63])
+  else
+    Result := Grid(3, 1, 34, 34, [27, 0], [Self.X1 + 97, Self.Y1 + 62]);
+end;
+
+function TRSRunePouch.GetInventoryBoxes(): TBoxArray; begin
+  Result := Grid(7, 4, 34, 32, [13, 1], [Self.X1 + 14, Self.Y1 + 136]);
+end;
+
+function TRSRunePouch.DiscoverPouch(): TRSItemArray;
+var
+  SlotBoxes : TBoxArray := Self.GetPouchBoxes;
+  Matches : TRSItemFinderMatchArray;
+  I : Int32;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Matches := ItemFinder.FindAll(RUNES, SlotBoxes, SlotBoxes.Len);
+
+  if Length(Matches) = 0 then
+    Exit;
+
+  for I := 0 to High(Matches) do
+    Result += Matches[I].Item;
+end;
+
+function TRSRunePouch.DiscoverInventory(): TRSItemArray;
+var
+  SlotBoxes : TBoxArray := Self.GetInventoryBoxes;
+  Matches : TRSItemFinderMatchArray;
+  I : Int32;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Matches := ItemFinder.FindAll(RUNES, SlotBoxes, SlotBoxes.Len);
+
+  if Length(Matches) = 0 then
+    Exit;
+
+  for I := 0 to High(Matches) do
+    Result += Matches[I].Item;
+end;
+
+function TRSRunePouch.FindInPouch(Rune : TRSItem; out Slot : Int32): Boolean;
+var
+  SlotBoxes : TBoxArray := Self.GetPouchBoxes;
+  Match : TRSItemFinderMatch;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := ItemFinder.Find([Rune], SlotBoxes, Match);
+  Slot := Match.Index;
+end;
+
+function TRSRunePouch.FindInPouch(Rune : TRSItem; out Box : TBox): Boolean; overload;
+var
+  SlotBoxes : TBoxArray := Self.GetPouchBoxes;
+  Match : TRSItemFinderMatch;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := ItemFinder.Find([Rune], SlotBoxes, Match);
+  Box := Match.Box;
+end;
+
+function TRSRunePouch.FindInInventory(Rune : TRSItem; out Slot : Int32): Boolean;
+var
+  SlotBoxes : TBoxArray := Self.GetInventoryBoxes;
+  Match : TRSItemFinderMatch;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := ItemFinder.Find([Rune], SlotBoxes, Match);
+  Slot := Match.Index;
+end;
+
+function TRSRunePouch.FindInInventory(Rune : TRSItem; out Box : TBox): Boolean; overload;
+var
+  SlotBoxes : TBoxArray := Self.GetInventoryBoxes;
+  Match : TRSItemFinderMatch;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := ItemFinder.Find([Rune], SlotBoxes, Match);
+  Box := Match.Box;
+end;
+
+function TRSRunePouch.Withdraw(Rune : TRSItem; Amount : Int32 = -1): Boolean;
+var
+  Box : TBox;
+begin
+  if not (Self.IsOpen and Self.FindInPouch(Rune, Box)) then
+    Exit;
+
+  Mouse.Move(Box.Expand(-3));
+
+  if (Amount = -1) or (Amount >= SRL.GetItemAmount(Box)) then
+    ChooseOption.Select('Withdraw-All')
+  else if not ChooseOption.Select('Withdraw-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False) then
+    if ChooseOption.Select('Withdraw-X') then
+      Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 2500));
+
+  Result := WaitUntil((SRL.CountColor(10461097, Box) = 0), 17, 3000);
+end;
+
+function TRSRunePouch.WithdrawAll(): Boolean;
+var
+  SlotBoxes : TBoxArray := Self.GetPouchBoxes;
+  I : Int32;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  for I := 0 to High(SlotBoxes) do begin
+    if SRL.CountColor(10461097, SlotBoxes[I]) = 0 then
+      Continue;
+
+    Mouse.Move(SlotBoxes[I].Expand(-3));
+    ChooseOption.Select('Withdraw-All');
+  end;
+
+  Result := WaitUntil((SRL.CountColor(10461097, SlotBoxes[0].Combine(SlotBoxes[High(SlotBoxes)])) = 0), 17, 3000);
+end;
+
+function TRSRunePouch.Store(Rune : TRSItem; Amount : Int32 = -1): Boolean;
+var
+  Box : TBox;
+  Slot : Int32;
+begin
+  if not (Self.IsOpen and Self.FindInInventory(Rune, Box)) then
+    Exit;
+
+  Mouse.Move(Box.Expand(-3));
+
+  if (Amount = -1) or (Amount >= SRL.GetItemAmount(Box)) then
+    ChooseOption.Select('Store-All')
+  else if not ChooseOption.Select('Store-' + ToString(Amount) + ' ', MOUSE_LEFT, True, False) then
+    if ChooseOption.Select('Store-X') then
+      Chat.AnswerQuery('Enter amount', ToString(Amount), Random(2000, 2500));
+
+  Result := WaitUntil(Self.FindInPouch(Rune, Slot), 17, 3000);
+end;
+
+function TRSRunePouch.GetRuneCount(Rune : TRSItem): Int32;
+var
+  Box : TBox;
+begin
+  if not (Self.IsOpen and Self.FindInPouch(Rune, Box)) then
+    Exit;
+
+  Result := SRL.GetItemAmount(Box);
+end;
+
+procedure TRSRunePouch.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'Rune Pouch';
+  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
+  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetPouchBoxes;
+end;
+
+procedure TRSRunePouch.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  case Self.Mode of
+    ERSClientMode.FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1, -4];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
+        Self.Alignment.Center.MaxWidth := 353;
+        Self.Alignment.Center.MaxHeight := 286;
+      end;
+
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1, -5];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
+        Self.Alignment.Center.MaxWidth := 353;
+        Self.Alignment.Center.MaxHeight := 286;
+      end;
+  end;
+
+end;
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  RunePouch.SetupAlignment(Self.Mode);
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  RunePouch.Setup();
+end;

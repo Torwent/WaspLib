@@ -1,3 +1,12 @@
+# [19.9.0](https://github.com/Torwent/WaspLib/compare/v19.8.3...v19.9.0) (2024-10-29)
+
+
+### Features
+
+* **runepouch:** added XJ's runepouch interface ([6b7258e](https://github.com/Torwent/WaspLib/commit/6b7258ef3a7fe0bc05ff4d8e4ac3758ccc84acb9))
+
+
+
 ## [19.8.3](https://github.com/Torwent/WaspLib/compare/v19.8.2...v19.8.3) (2024-10-29)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TBaseBankScript:** method to check if we ran out of an item ([3a20c5b](https://github.com/Torwent/WaspLib/commit/3a20c5b8560afd221540811242ae71ddf0ae2230))
-
-
-
-## [19.7.26](https://github.com/Torwent/WaspLib/compare/v19.7.25...v19.7.26) (2024-10-10)
-
-
-### Bug Fixes
-
-* **worldhopper:** improved logic ([714be05](https://github.com/Torwent/WaspLib/commit/714be057351140f792ad22dee914320e83093720))
 
 
 

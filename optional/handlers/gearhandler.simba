@@ -27,16 +27,21 @@ type
     _FormComboBoxes: array of TComboBox;
     _FormListBoxes: array of TListBox;
 
+    _UnfiltedWeapons: TStringArray;
+    _UnfilteredLists: array [ERSEquipmentSlot] of TStringList;
+
     IsSetup: Boolean;
   end;
 
 procedure TRSGearHandler.Setup();
 var
   keys: TStringList;
-  key: String;
+  key, name: String;
   i: Int32;
   obj: TJSONObject;
   slot: ERSEquipmentSlot;
+  json: TJSONArray;
+  arr: TStringArray;
 begin
   if Self.IsSetup then Exit;
 
@@ -55,7 +60,37 @@ begin
   end;
 
   for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
+  begin
     Self._ValidGear[slot] := GearData.GetItems(slot);
+    Self._UnfilteredLists[slot].Init();
+    AddOnTerminate(@Self._UnfilteredLists[slot].Free);
+
+    name := ToStr(slot).ToLower();
+
+    if slot <> ERSEquipmentSlot.WEAPON then
+    begin
+      Self._UnfilteredLists[slot].Add('None');
+      json := GearData.GetJSONArray(name);
+      for i := 0 to json.High() do
+        Self._UnfilteredLists[slot].Add(json.getString(i));
+      Continue;
+    end;
+
+    json := GearData.GetJSONArray(name);
+    for i := 0 to json.High() do
+      arr += json.getString(i);
+
+    json := GearData.GetJSONArray('2h');
+    for i := 0 to json.High() do
+      arr += json.getString(i);
+
+    Sort(arr);
+
+    Self._UnfilteredLists[slot].Add('None');
+    json := GearData.GetJSONArray(name);
+    for i := 0 to High(arr) do
+      Self._UnfilteredLists[slot].Add(arr[i]);
+  end;
 
   Self.IsSetup := True;
 end;
@@ -235,38 +270,10 @@ begin
 end;
 
 
-procedure TScriptForm._RefreshList(combobox: TCombobox);
-var
-  name: String;
-  json: TJSONArray;
-  i: Int32;
-  arr: TStringArray;
+procedure TScriptForm._RefreshList(combobox: TCombobox; slot: ERSEquipmentSlot);
 begin
   if not GearHandler._FormFiltered then Exit;
-
-  combobox.GetItems().Clear();
-  combobox.GetItems().Add('None');
-
-  name := combobox.getName().Before('_slot_combobox');
-  json := GearData.GetJSONArray(name);
-
-  if name <> 'weapon' then
-  begin
-    for i := 0 to json.High() do
-      combobox.getItems().Add(json.getString(i));
-    Exit;
-  end;
-
-  for i := 0 to json.High() do
-    arr += json.getString(i);
-
-  json := GearData.GetJSONArray('2h');
-  for i := 0 to json.High() do
-    arr += json.getString(i);
-
-  Sort(arr);
-  for i := 0 to High(arr) do
-    combobox.getItems().Add(arr[i]);
+  combobox.setItems(GearHandler._UnfilteredLists[slot])
 end;
 
 procedure TScriptForm._RefreshSets(sender: TObject);
@@ -280,8 +287,7 @@ begin
   parent := sender;
   GearHandler.Setup();
   combobox := parent.getChild('gear_selector_combobox');
-
-  combobox.GetItems.Clear();
+  combobox.GetItems().Clear();
 
   for gear in GearHandler.Sets do
   begin
@@ -291,7 +297,7 @@ begin
     begin
       name := ToStr(slot).ToLower();
       cb := parent.GetChild(name + '_slot_combobox');
-      Self._RefreshList(cb);
+      Self._RefreshList(cb, slot);
       cb.setItemIndex(cb.getItems().IndexOf(gear.Items[slot]));
     end;
   end;
@@ -335,7 +341,7 @@ begin
     end;
 
     if GearHandler._FormFiltered then
-      Self._RefreshList(combobox);
+      Self._RefreshList(combobox, slot);
 
     combobox.setItemIndex(combobox.getItems().IndexOf(gear.Items[slot]));
 
@@ -531,7 +537,7 @@ begin
     name := ToStr(slot).ToLower();
     combobox := parent.GetChild(name + '_slot_combobox');
     item := combobox.getText();
-    Self._RefreshList(combobox);
+    Self._RefreshList(combobox, slot);
     combobox.setItemIndex(combobox.getItems().IndexOf(item));
   end;
 
@@ -751,7 +757,7 @@ begin
     SetName('head_slot');
     SetCaption('Head');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.HEAD);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -765,7 +771,7 @@ begin
     SetName('secondary_ammo_slot');
     SetCaption('Secondary ammo');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.SECONDARY_AMMO);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -779,7 +785,7 @@ begin
     SetName('cape_slot');
     SetCaption('Cape');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.CAPE);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -793,7 +799,7 @@ begin
     SetName('neck_slot');
     SetCaption('Neck');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.NECK);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -807,7 +813,7 @@ begin
     SetName('ammo_slot');
     SetCaption('Ammo');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.AMMO);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -821,7 +827,7 @@ begin
     SetName('weapon_slot');
     SetCaption('Weapon');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.WEAPON);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -835,7 +841,7 @@ begin
     SetName('body_slot');
     SetCaption('Body');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.BODY);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -849,7 +855,7 @@ begin
     SetName('shield_slot');
     SetCaption('Shield');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.SHIELD);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -863,7 +869,7 @@ begin
     SetName('legs_slot');
     SetCaption('Legs');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.LEGS);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -877,7 +883,7 @@ begin
     SetName('hands_slot');
     SetCaption('Hands');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.HANDS);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -891,7 +897,7 @@ begin
     SetName('feet_slot');
     SetCaption('Feet');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.FEET);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
@@ -905,7 +911,7 @@ begin
     SetName('ring_slot');
     SetCaption('Ring');
     SetStyle(TComboBoxStyle.csDropDownList);
-    _RefreshList(ComboBox);
+    _RefreshList(ComboBox, ERSEquipmentSlot.RING);
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;

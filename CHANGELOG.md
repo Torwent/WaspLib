@@ -1,3 +1,12 @@
+## [19.8.3](https://github.com/Torwent/WaspLib/compare/v19.8.2...v19.8.3) (2024-10-29)
+
+
+### Bug Fixes
+
+* **gearhandler:** big speed improvements ([3993643](https://github.com/Torwent/WaspLib/commit/39936431f74278ce4e182e51dd4fa065a3477732))
+
+
+
 ## [19.8.2](https://github.com/Torwent/WaspLib/compare/v19.8.1...v19.8.2) (2024-10-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **worldhopper:** improved logic ([714be05](https://github.com/Torwent/WaspLib/commit/714be057351140f792ad22dee914320e83093720))
-
-
-
-## [19.7.25](https://github.com/Torwent/WaspLib/compare/v19.7.24...v19.7.25) (2024-10-07)
-
-
-### Bug Fixes
-
-* **TRSStore:** Now uses iteminterface to interact with items ([09ef140](https://github.com/Torwent/WaspLib/commit/09ef140d44cae323ecf06ea1dbda9e3de8bbe245))
 
 
 

@@ -1,3 +1,12 @@
+## [19.8.2](https://github.com/Torwent/WaspLib/compare/v19.8.1...v19.8.2) (2024-10-29)
+
+
+### Bug Fixes
+
+* **TScriptForm:** read notes ([6d7398f](https://github.com/Torwent/WaspLib/commit/6d7398fdb4a42cf4664e06cd18a50182d151dbf1))
+
+
+
 ## [19.8.1](https://github.com/Torwent/WaspLib/compare/v19.8.0...v19.8.1) (2024-10-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TRSStore:** Now uses iteminterface to interact with items ([09ef140](https://github.com/Torwent/WaspLib/commit/09ef140d44cae323ecf06ea1dbda9e3de8bbe245))
-
-
-
-## [19.7.24](https://github.com/Torwent/WaspLib/compare/v19.7.23...v19.7.24) (2024-10-03)
-
-
-### Bug Fixes
-
-* foolproofed hoplist so that inaccessible or non-existing worlds are not being hopped to ([c0b7038](https://github.com/Torwent/WaspLib/commit/c0b7038369f10ff157047511fb7e287cf578f389))
 
 
 

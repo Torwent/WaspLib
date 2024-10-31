@@ -1,3 +1,12 @@
+## [19.9.1](https://github.com/Torwent/WaspLib/compare/v19.9.0...v19.9.1) (2024-10-31)
+
+
+### Bug Fixes
+
+* **web:** DownloadToFile() ([d5db91c](https://github.com/Torwent/WaspLib/commit/d5db91cd948cb5c3479233516153c005343ee145))
+
+
+
 # [19.9.0](https://github.com/Torwent/WaspLib/compare/v19.8.3...v19.9.0) (2024-10-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * remove unused var ([78ea4ad](https://github.com/Torwent/WaspLib/commit/78ea4ad1abf7d3e1d82d363d3824bbd4cd113474))
-
-
-
-# [19.8.0](https://github.com/Torwent/WaspLib/compare/v19.7.26...v19.8.0) (2024-10-16)
-
-
-### Features
-
-* **TBaseBankScript:** method to check if we ran out of an item ([3a20c5b](https://github.com/Torwent/WaspLib/commit/3a20c5b8560afd221540811242ae71ddf0ae2230))
 
 
 

@@ -1,3 +1,12 @@
+## [19.9.2](https://github.com/Torwent/WaspLib/compare/v19.9.1...v19.9.2) (2024-11-05)
+
+
+### Bug Fixes
+
+* **fishhandler:** tweak colors ([733f2a3](https://github.com/Torwent/WaspLib/commit/733f2a3c0512212ab653a02c2b203d5860fb3d3e))
+
+
+
 ## [19.9.1](https://github.com/Torwent/WaspLib/compare/v19.9.0...v19.9.1) (2024-10-31)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TScriptForm:** read notes ([6d7398f](https://github.com/Torwent/WaspLib/commit/6d7398fdb4a42cf4664e06cd18a50182d151dbf1))
-
-
-
-## [19.8.1](https://github.com/Torwent/WaspLib/compare/v19.8.0...v19.8.1) (2024-10-25)
-
-
-### Bug Fixes
-
-* remove unused var ([78ea4ad](https://github.com/Torwent/WaspLib/commit/78ea4ad1abf7d3e1d82d363d3824bbd4cd113474))
 
 
 

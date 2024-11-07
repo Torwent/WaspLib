@@ -1,0 +1,226 @@
+{$DEFINE WL_REWARDSCHEST_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+{$SCOPEDENUMS ON}
+
+type
+  ERSRewardsChestButton = (INVENTORY, BANK, DISCARD);
+
+  TRSRewardsChest = type TRSTitledInterface;
+
+function TRSRewardsChest.FindItemBoundaries(): TBoxArray;
+var
+  tpa, final: TPointArray;
+  atpa: T2DPointArray;
+  area, b: TBox;
+  i: Int32;
+begin
+  area := Self.Bounds();
+  area.X1 += 24;
+  area.Y1 += 48;
+  area.X2 -= 8;
+  area.Y2 -= 52;
+
+  if SRL.FindColors(final, RS_ITEM_BORDER, area) = 0 then Exit;
+
+  for i in [RS_ITEM_YELLOW_STACK, RS_ITEM_WHITE_STACK, RS_ITEM_GREEN_STACK] do
+    if SRL.FindColors(tpa, i, area) > 0 then
+      final += tpa;
+
+  atpa := final.Cluster(200, 3);
+
+  for i := 0 to High(atpa) do
+  begin
+    b := atpa[i].Bounds();
+    if b.Height() <= 5 then
+      Continue;
+
+    Result += Grid(area.Width() div 52, 1, 32, 32, [20], [area.X1, b.Y1]);
+  end;
+end;
+
+procedure TRSRewardsChest.SetupAlignment(Mode: ERSClientMode); override;
+begin
+  inherited;
+
+  case Self.Mode of
+    ERSClientMode.FIXED:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 188;
+        Self.Alignment.Center.MaxHeight := 190;
+      end;
+
+    ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
+      begin
+        Self.Alignment.Left := [@InterfaceArea.X1];
+        Self.Alignment.Right := [@InterfaceArea.X2];
+        Self.Alignment.Top := [@InterfaceArea.Y1];
+        Self.Alignment.Bottom := [@InterfaceArea.Y2];
+        Self.Alignment.Center.MaxWidth := 188;
+        Self.Alignment.Center.MaxHeight := 191;
+      end;
+  end;
+end;
+
+procedure TRSRewardsChest.Setup(name: String); overload;
+begin
+  Self.Setup();
+
+  Self.Name := name;
+  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
+  Self.ItemInterface.GetSearchBoxesFunction := @Self.FindItemBoundaries;
+  Self.ItemInterface.DiscoverOffset := [0, 10, 3, 0];
+  Self.SetupAlignment(RSClient.Mode);
+  Self.ButtonColors := [CTS1($232B2E, 26)];
+end;
+
+function TRSRewardsChest.GetButtons(): TRSButtonArray;
+var
+  boxes: TBoxArray;
+  i, y: Int32;
+begin
+  if Self.Mode = ERSClientMode.FIXED then
+    y := 49
+  else
+    y := 50;
+
+  boxes := Grid(3, 1, 39, 39, [6,0], [Self.X2()-147, Self.Y2()-y]);
+  SetLength(Result, 3);
+  for i := 0 to High(Result) do
+  begin
+    Result[i].Index := i;
+    Result[i].Bounds := boxes[i];
+    Result[i].Middle := boxes[i].Middle();
+    Result[i].EnabledColors := Self.ButtonEnabledColors;
+  end;
+end;
+
+function TRSRewardsChest.GetButton(button: ERSRewardsChestButton): TRSButton;
+var
+  buttons: TRSButtonArray;
+begin
+  buttons := Self.GetButtons();
+  if buttons <> [] then
+    Result := buttons[button];
+end;
+
+
+function TRSRewardsChest.IsOpen(): Boolean;
+begin
+  Result := Self.GetTitle() = Self.Name;
+end;
+
+function TRSRewardsChest.IsOpen(WaitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), WaitTime);
+end;
+
+function TRSRewardsChest.Close(pressEscape: Boolean): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := RSInterface.Close(pressEscape);
+end;
+
+function TRSRewardsChest.Close(chance: Double = BioHash): Boolean; overload;
+var
+  pressEscape: Boolean;
+begin
+  if chance = BioHash then
+    pressEscape := Antiban.BioDice()
+  else
+    pressEscape := SRL.Dice(chance);
+
+  Result := RSInterface.Close(pressEscape);
+end;
+
+
+function TRSRewardsChest.ClickButton(button: ERSRewardsChestButton): Boolean;
+var
+  btn: TRSButton;
+begin
+  if not Self.IsOpen() then Exit(True);
+  btn := Self.GetButton(button);
+  Result := btn.Click(MOUSE_LEFT) and WaitUntil(not Self.IsOpen(), 300, 3000);
+end;
+
+function TRSRewardsChest.TakeAll(): Boolean;
+begin
+  Result := Self.ClickButton(ERSRewardsChestButton.INVENTORY);
+end;
+
+function TRSRewardsChest.BankAll(): Boolean;
+begin
+  Result := Self.ClickButton(ERSRewardsChestButton.BANK);
+end;
+
+function TRSRewardsChest.DiscardAll(): Boolean;
+begin
+  Result := Self.ClickButton(ERSRewardsChestButton.DISCARD);
+end;
+
+
+function TRSRewardsChest.FindItem(item: TRSItem; out box: TBox): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Result := Self.ItemInterface.Find([item], box);
+end;
+
+function TRSRewardsChest.FindAll(items: TRSItemArray; out boxes: TBoxArray): Boolean;
+begin
+  Result := Self.ItemInterface.FindAll(items, boxes);
+end;
+
+
+function TRSRewardsChest.ContainsItem(item: TRSItem): Boolean;
+var
+  b: TBox;
+begin
+  Result := Self.FindItem(item, b);
+end;
+
+function TRSRewardsChest.ContainsAny(itemArray: TRSItemArray): Boolean;
+begin
+  Result := Self.ItemInterface.ContainsAny(itemArray);
+end;
+
+function TRSRewardsChest.ContainsAll(itemArray: TRSItemArray): Boolean;
+var
+  tba: TBoxArray;
+begin
+  Result := Self.FindAll(itemArray, tba);
+end;
+
+
+function TRSRewardsChest.CountItemStack(item: TRSItem): Int32;
+begin
+  Result := Self.ItemInterface.CountStack(item);
+end;
+
+function TRSRewardsChest.HoverItem(item: TRSItem): Boolean;
+begin
+  Result := Self.ItemInterface.MouseItem(item);
+end;
+
+function TRSRewardsChest.ClickItem(item: TRSItem; Option: String = ''): Boolean;
+begin
+  Result := Self.IsOpen() and Self.ItemInterface.InteractItem(item, option);
+end;
+
+procedure TRSRewardsChest.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then Exit;
+
+  inherited;
+
+  Bitmap.DrawBoxes(Self.FindItemBoundaries(), $00FFFF);
+end;

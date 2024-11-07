@@ -1,3 +1,12 @@
+# [19.10.0](https://github.com/Torwent/WaspLib/compare/v19.9.2...v19.10.0) (2024-11-07)
+
+
+### Features
+
+* **optional:** added an interface for rewards chests ([b7cd3b8](https://github.com/Torwent/WaspLib/commit/b7cd3b8a2bec98e3934b40ffe0a227bea9ab8acc))
+
+
+
 ## [19.9.2](https://github.com/Torwent/WaspLib/compare/v19.9.1...v19.9.2) (2024-11-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **gearhandler:** big speed improvements ([3993643](https://github.com/Torwent/WaspLib/commit/39936431f74278ce4e182e51dd4fa065a3477732))
-
-
-
-## [19.8.2](https://github.com/Torwent/WaspLib/compare/v19.8.1...v19.8.2) (2024-10-29)
-
-
-### Bug Fixes
-
-* **TScriptForm:** read notes ([6d7398f](https://github.com/Torwent/WaspLib/commit/6d7398fdb4a42cf4664e06cd18a50182d151dbf1))
 
 
 

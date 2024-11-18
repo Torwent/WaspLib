@@ -1,3 +1,12 @@
+# [19.11.0](https://github.com/Torwent/WaspLib/compare/v19.10.0...v19.11.0) (2024-11-18)
+
+
+### Features
+
+* **formutils:** add a bunch of component constructors ([a84b4bf](https://github.com/Torwent/WaspLib/commit/a84b4bf5aa16581a42a5ca02c73aa075f3f60d14))
+
+
+
 # [19.10.0](https://github.com/Torwent/WaspLib/compare/v19.9.2...v19.10.0) (2024-11-07)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **runepouch:** added XJ's runepouch interface ([6b7258e](https://github.com/Torwent/WaspLib/commit/6b7258ef3a7fe0bc05ff4d8e4ac3758ccc84acb9))
-
-
-
-## [19.8.3](https://github.com/Torwent/WaspLib/compare/v19.8.2...v19.8.3) (2024-10-29)
-
-
-### Bug Fixes
-
-* **gearhandler:** big speed improvements ([3993643](https://github.com/Torwent/WaspLib/commit/39936431f74278ce4e182e51dd4fa065a3477732))
 
 
 

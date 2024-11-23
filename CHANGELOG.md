@@ -1,3 +1,12 @@
+## [19.11.2](https://github.com/Torwent/WaspLib/compare/v19.11.1...v19.11.2) (2024-11-23)
+
+
+### Bug Fixes
+
+* **formutils:** improved some logic with the newly added component constructors ([b5b337e](https://github.com/Torwent/WaspLib/commit/b5b337e0de3450ea64cfdaf18eb975826da0ea32))
+
+
+
 ## [19.11.1](https://github.com/Torwent/WaspLib/compare/v19.11.0...v19.11.1) (2024-11-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **fishhandler:** tweak colors ([733f2a3](https://github.com/Torwent/WaspLib/commit/733f2a3c0512212ab653a02c2b203d5860fb3d3e))
-
-
-
-## [19.9.1](https://github.com/Torwent/WaspLib/compare/v19.9.0...v19.9.1) (2024-10-31)
-
-
-### Bug Fixes
-
-* **web:** DownloadToFile() ([d5db91c](https://github.com/Torwent/WaspLib/commit/d5db91cd948cb5c3479233516153c005343ee145))
 
 
 

@@ -1,3 +1,12 @@
+## [19.11.3](https://github.com/Torwent/WaspLib/compare/v19.11.2...v19.11.3) (2024-11-24)
+
+
+### Bug Fixes
+
+* separate v1 from v2 ([3894f4b](https://github.com/Torwent/WaspLib/commit/3894f4b9b67822d31e1f72136f968e05caaabe67))
+
+
+
 ## [19.11.2](https://github.com/Torwent/WaspLib/compare/v19.11.1...v19.11.2) (2024-11-23)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **optional:** added an interface for rewards chests ([b7cd3b8](https://github.com/Torwent/WaspLib/commit/b7cd3b8a2bec98e3934b40ffe0a227bea9ab8acc))
-
-
-
-## [19.9.2](https://github.com/Torwent/WaspLib/compare/v19.9.1...v19.9.2) (2024-11-05)
-
-
-### Bug Fixes
-
-* **fishhandler:** tweak colors ([733f2a3](https://github.com/Torwent/WaspLib/commit/733f2a3c0512212ab653a02c2b203d5860fb3d3e))
 
 
 

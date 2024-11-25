@@ -1,3 +1,12 @@
+# [19.12.0](https://github.com/Torwent/WaspLib/compare/v19.11.3...v19.12.0) (2024-11-25)
+
+
+### Features
+
+* loothandler form tab ([2b07fb8](https://github.com/Torwent/WaspLib/commit/2b07fb86215523182d8ea6212b55b4541098fbe9))
+
+
+
 ## [19.11.3](https://github.com/Torwent/WaspLib/compare/v19.11.2...v19.11.3) (2024-11-24)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **formutils:** add a bunch of component constructors ([a84b4bf](https://github.com/Torwent/WaspLib/commit/a84b4bf5aa16581a42a5ca02c73aa075f3f60d14))
-
-
-
-# [19.10.0](https://github.com/Torwent/WaspLib/compare/v19.9.2...v19.10.0) (2024-11-07)
-
-
-### Features
-
-* **optional:** added an interface for rewards chests ([b7cd3b8](https://github.com/Torwent/WaspLib/commit/b7cd3b8a2bec98e3934b40ffe0a227bea9ab8acc))
 
 
 

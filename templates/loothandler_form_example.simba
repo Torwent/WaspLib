@@ -1,19 +1,26 @@
 {$DEFINE SCRIPT_GUI}
 {$I SRL-T/osr.simba}
-{$I WaspLib/osr.simba}
+{$I WaspLib/optional.simba}
 
 {$IFDEF SCRIPT_GUI}
+
 type
   TMyScriptForm = record(TScriptForm)
     Selector: TLabeledCombobox;
-    Info: TLabel;
   end;
 
 procedure TMyScriptForm.StartScript(sender: TObject); override;
 begin
-  inherited; //This is important if you use TScript.Setup().
+  inherited;
 
-  //Read your script options.
+  //This is your selected loot:
+  WriteLn LootHandler.Loot;
+end;
+
+procedure TMyScriptForm.LootHandlerRefresh(sender: TObject);
+begin
+  LootHandler.Setup(TComboBox(sender).getText(), 5000);
+  Self.RefreshLootManager();
 end;
 
 procedure TMyScriptForm.Run(); override;
@@ -28,31 +35,19 @@ begin
 
   Self.CreateAccountManager(tab);
 
-  with Self.Selector do
-  begin
-    Create(tab);
-    SetCaption('Item type:');
-    SetLeft(TControl.AdjustToDPI(40));
-    SetTop(TControl.AdjustToDPI(170));
-    SetStyle(csDropDownList);
-    AddItemArray(['Item1', 'Item2', 'Item3', 'Item4']);
-    SetItemIndex(2);
-  end;
+  Self.Selector.Create(tab, 'monster:', '', [40,170], [0,0], True);
+  Self.Selector.SetStyle(csDropDownList);
+  Self.Selector.AddItemArray(['Abyssal demon', 'Zulrah', 'Vorkath', 'Ankou']);
+  Self.Selector.SetItemIndex(2);
+  Self.Selector.ComboBox.setOnChange(@Self.LootHandlerRefresh);
 
-  with Self.Info do
-  begin
-    Create(tab);
-    SetCaption('Get 99 Hello world today!');
-    SetLeft(Self.Selector.GetRight() + TControl.AdjustToDPI(40));
-    SetTop(TControl.AdjustToDPI(190));
-  end;
-
-  Self.CreateVersionPanel(tab);
-
+  Self.CreateLootManager();
   Self.CreateAntibanManager();
   Self.CreateBankSettings();
   Self.CreateWaspLibSettings();
   Self.CreateAPISettings();
+
+  Self.LootHandlerRefresh(Self.Selector.ComboBox);
 
   inherited;
 end;

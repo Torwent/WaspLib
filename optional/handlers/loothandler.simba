@@ -14,238 +14,115 @@ LootHandler is a record made to handle looting.
 
 type
   TRSLootHandler = record(TSRLBaseRecord)
-    PriorityArray: TStringArray;
-    Loot: TRSGroundItem;
-    Drops: TRSMonsterDropArray;
+    Items: array of record
+      Drop: TRSMonsterDrop;
+      Value: Int32;
+      Selected: Boolean;
+    end;
+
+    Loot, Available: TRSMonsterDropArray;
+
     ValueThreshold: Int32;
-    HasGemBag, HasHerbSack, HasSeedBox, HasSoulBearer,
-    CheckedLoot, DidLoot, IsSetup: Boolean;
+
+    PriorityArray: TStringArray;
+
+    _CheckedLoot, _DidLoot: Boolean;
+    _LootColors: TCTS2ColorArray;
+    _UpText: TStringArray;
   end;
 
-function TRSLootHandler.IsGoodDrop(drop: TRSMonsterDrop): Boolean;
-var
-  value: Int32;
+procedure TRSLootHandler._Init(value: Int32);
 begin
-  if Self.PriorityArray.Contains(drop.Item) then
-    Exit(True);
+  Self.Name := 'LootHandler';
 
-  value := ItemData.GetAverage(drop.Item);
+  Self.PriorityArray := [
+    'clue scroll (easy)', 'clue scroll (medium)', 'clue scroll (hard)', 'clue scroll (elite)',
+    'clue scroll (master)',
+    'dark totem base', 'dark totem middle', 'dark totem top',
+    'dark totem', 'ancient shard', 'brimstone key',
+    'mist battlestaff', 'dust battlestaff',
+    'eternal gem', 'imbued heart', 'crystal shard', 'abyssal head',
+    'curved bone', 'long bone',
+    'imp champion scroll', 'goblin champion scroll', 'skeleton champion scroll',
+    'zombie champion scroll', 'giant champion scroll',
+    'hobgoblin champion scroll', 'ghoul champion scroll',
+    'earth warrior champion scroll', 'jogre champion scroll',
+    'lesser demon champion scroll',
+    'giant key', 'mossy key', 'trident of the seas (full)' , 'trident of the seas'
+  ];
 
-  Result := value >= Self.ValueThreshold;
-  if Result then
-    Exit;
+  Self._LootColors := [
+    [6579858, 9, 0.09, 0.33],   //vile and malicious ashes
+    [13422033, 18, 0.20, 0.30], //dragon bones (this matches a lot with proselyte. might need to be removed)
+    [7760980, 9, 0.06, 0.14],   //rune items (this might need better colors but this one doesn't match in CoK background,
+    [10038382, 14, 0.08, 1.72], //ancient shard
+    [14390305, 26, 0.04, 0.88], //Totem parts (blue)
+    [1923609, 7, 0.16, 0.84],   //Totem parts (green)
+    [4345976, 17, 0.10, 0.37],  //Dark bow
+    [2895188, 6, 0.16, 0.41],   //Abyssal whip (matches a little with primordial boots)
+    [1776416, 1, 0.01, 0.01],   //Black mystic bottom (probably all parts too).
+    [3620158, 9, 0.28, 0.50],   //Black mask
+    [10000802, 14, 0.13, 0.17], //Runes (matches with proselyte)
+    [1424100, 20, 0.02, 0.66],  //gold coins
+    [808255, 11, 0.10, 2.30],   //herb seeds
+    [482129, 11, 0.48, 1.48],   //ranarr
+    [7311001, 7, 0.08, 0.21],   //noted drops
+    [680832, 11, 0.04, 1.43],   //battlestaff
+    [860512, 14, 0.21, 1.80]    //ensouled hellhound head
+  ];
 
-  value := value * drop.Quantity;
+  Self.Items := [];
+  Self.ValueThreshold := value;
+end;
 
-  if drop.Stackable then
+procedure TRSLootHandler.Setup(drops: TRSItemArray; value: Int32 = 5000);
+var
+  i, val: Int32;
+begin
+  Self._Init(value);
+
+  for i := 0 to High(drops) do
   begin
-    Result := value >= Self.ValueThreshold;
-    if Result then
+    val := ItemData.GetAverage(drops[i]);
+    Self.Items += [TRSMonsterDrop.Create(drops[i]), val, val >= value];
+  end;
+end;
+
+procedure TRSLootHandler.Setup(monster: String; value: Int32 = 5000); overload;
+var
+  drops: TRSMonsterDropArray;
+  i, val: Int32;
+begin
+  Self._Init(value);
+
+  drops := MonsterData.GetDrops(monster);
+  drops.ClearDuplicates();
+
+  for i := 0 to High(drops) do
+  begin
+    val := ItemData.GetAverage(drops[i].Item);
+    if drops[i].Stackable then val := val * drops[i].Quantity;
+    if val = 0 then val := High(Int32);
+    Self.Items += [drops[i], val, val >= value];
+  end;
+end;
+
+
+function TRSLootHandler.GetItemIndex(name: String): Int32;
+begin
+  for Result := 0 to High(Self.Items) do
+    if Self.Items[Result].Drop.Item = name then
       Exit;
-  end;
-
-  Result := Self.HasHerbSack and drop.Item.Contains('rimy  ') and not drop.Item.ContainsAny(['guam', 'marrentill', 'tarromin', 'harralander']);
-  if Result then
-    Exit;
-
-  Result := Self.HasGemBag and drop.Item.Contains('ncut ');
-  if Result then
-    Exit;
-
-  Result := Self.HasSoulBearer and drop.Item.Contains('nsouled ');
-  if Result then
-    Exit;
-
-  Result := Self.HasSeedBox and drop.Item.Contains('seed') and (value >= 300);
-  if Result then
-    Exit;
-
-  Result := ItemData.GetHighAlch(drop.ID) > Self.ValueThreshold;
-  if Result then
-    RSAlchHandler.ItemArray += drop.Item;
+  Result := -1;
 end;
 
-procedure TRSLootHandler.Setup(monster: TRSMonster; value: Int32 = 5000);
+function TRSLootHandler.GetItemValue(name: String): Int32;
 var
   i: Int32;
-  tmpDrops: TRSMonsterDropArray;
 begin
-  if (monster.Name = '') or (value <= 0) then
-    Exit;
-
-  Self.Name := 'LootHandler';
-
-  Self.PriorityArray := [
-    'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
-    'Clue scroll (master)',
-    'Dark totem base', 'Dark totem middle', 'Dark totem top',
-    'Dark totem', 'Ancient shard', 'Brimstone key',
-    'Mist battlestaff', 'Dust battlestaff',
-    'Eternal gem', 'Imbued heart', 'Crystal shard', 'Abyssal head',
-    'Curved bone', 'Long bone',
-    'Imp champion scroll', 'Goblin champion scroll', 'Skeleton champion scroll',
-    'Zombie champion scroll', 'Giant champion scroll',
-    'Hobgoblin champion scroll', 'Ghoul champion scroll',
-    'Earth warrior champion scroll', 'Jogre champion scroll',
-    'Lesser demon champion scroll',
-    'Giant key', 'Mossy key', 'Trident of the seas (full)' , 'Trident of the seas'
-  ];
-  Self.PriorityArray := Self.PriorityArray.ToLower;
-
-  Self.HasGemBag := Inventory.ContainsItem('Open gem bag');
-  Self.HasHerbSack := Inventory.ContainsItem('Open herb sack');
-  Self.HasSoulBearer := Inventory.ContainsItem('Soul bearer');
-  Self.HasSeedBox := Inventory.ContainsItem('Open seed box');
-
-  Self.ValueThreshold := value;
-  Self.Loot._Setup();
-
-  if monster.Coordinates <> [] then
-    Self.Loot.Setup(monster.DotFilter[0].Circle.Radius, 0, monster.Coordinates)
-  else
-  begin
-    Self.Loot.Filter := monster.Filter;
-    Self.Loot.ShapeArray += [[2, 2, 0], 0];
-  end;
-
-  Self.Loot.Finder.Colors := [
-    [6579858, 9, 0.09, 0.33],   //vile and malicious ashes
-    [13422033, 18, 0.20, 0.30], //dragon bones (this matches a lot with proselyte. might need to be removed)
-    [7760980, 9, 0.06, 0.14],   //rune items (this might need better colors but this one doesn't match in CoK background,
-    [10038382, 14, 0.08, 1.72], //ancient shard
-    [14390305, 26, 0.04, 0.88], //Totem parts (blue)
-    [1923609, 7, 0.16, 0.84],   //Totem parts (green)
-    [4345976, 17, 0.10, 0.37],  //Dark bow
-    [2895188, 6, 0.16, 0.41],   //Abyssal whip (matches a little with primordial boots)
-    [1776416, 1, 0.01, 0.01],   //Black mystic bottom (probably all parts too).
-    [3620158, 9, 0.28, 0.50],   //Black mask
-    [10000802, 14, 0.13, 0.17], //Runes (matches with proselyte)
-    [1424100, 20, 0.02, 0.66],  //gold coins
-    [808255, 11, 0.10, 2.30],   //herb seeds
-    [482129, 11, 0.48, 1.48],   //ranarr
-    [7311001, 7, 0.08, 0.21],   //noted drops
-    [680832, 11, 0.04, 1.43],   //battlestaff
-    [860512, 14, 0.21, 1.80]    //ensouled hellhound head
-  ];
-  Self.Loot.Filter.UpText := False;
-
-  Self.Loot.Finder.ClusterDistance := 3;
-  Self.Loot.Finder.Erode := 2;
-  Self.Loot.Finder.Grow := 4;
-  Self.Loot.DotType := ERSMinimapDot.ITEM;
-
-  DebugMMDotArray += Self.Loot;
-
-  tmpDrops := MonsterData.GetDrops(monster.Name);
-  tmpDrops.ClearDuplicates();
-
-  for i := 0 to High(tmpDrops) do
-  begin
-
-    if Self.IsGoodDrop(tmpDrops[i]) then
-    begin
-      Self.Drops += tmpDrops[i];
-      Self.Loot.UpText += tmpDrops[i].Item;
-    end;
-  end;
-
-  Self.IsSetup := True;
-end;
-
-procedure TRSLootHandler.Setup(monster: TRSNPCV2; value: Int32 = 5000); overload;
-var
-  i: Int32;
-  tmpDrops: TRSMonsterDropArray;
-begin
-  if (monster.Name = '') or (value <= 0) then
-    Exit;
-
-  Self.Name := 'LootHandler';
-
-  Self.PriorityArray := [
-    'Clue scroll (easy)', 'Clue scroll (medium)', 'Clue scroll (hard)', 'Clue scroll (elite)',
-    'Clue scroll (master)',
-    'Dark totem base', 'Dark totem middle', 'Dark totem top',
-    'Dark totem', 'Ancient shard', 'Brimstone key',
-    'Mist battlestaff', 'Dust battlestaff',
-    'Eternal gem', 'Imbued heart', 'Crystal shard', 'Abyssal head',
-    'Curved bone', 'Long bone',
-    'Imp champion scroll', 'Goblin champion scroll', 'Skeleton champion scroll',
-    'Zombie champion scroll', 'Giant champion scroll',
-    'Hobgoblin champion scroll', 'Ghoul champion scroll',
-    'Earth warrior champion scroll', 'Jogre champion scroll',
-    'Lesser demon champion scroll',
-    'Giant key', 'Mossy key', 'Trident of the seas (full)' , 'Trident of the seas'
-  ];
-  Self.PriorityArray := Self.PriorityArray.ToLower;
-
-  Self.HasGemBag := Inventory.ContainsItem('Open gem bag');
-  Self.HasHerbSack := Inventory.ContainsItem('Open herb sack');
-  Self.HasSoulBearer := Inventory.ContainsItem('Soul bearer');
-  Self.HasSeedBox := Inventory.ContainsItem('Open seed box');
-
-  Self.ValueThreshold := value;
-  Self.Loot._Setup();
-
-  if monster.Coordinates <> [] then
-    Self.Loot.Setup(monster.DotFilters[0].Circle.Radius, 0, monster.Coordinates)
-  else
-  begin
-    Self.Loot.Filter.Walker := monster.Filter.Walker;
-    Self.Loot.Filter.MinimapDot := monster.Filter.Minimap;
-    Self.Loot.Filter.UpText := monster.Filter.UpText;
-    Self.Loot.Filter.Finder := monster.Filter.Finder;
-    Self.Loot.Filter.Skip := False;
-    Self.Loot.ShapeArray += [[2, 2, 0], 0];
-  end;
-
-  Self.Loot.Finder.Colors := [
-    [6579858, 9, 0.09, 0.33],   //vile and malicious ashes
-    [13422033, 18, 0.20, 0.30], //dragon bones (this matches a lot with proselyte. might need to be removed)
-    [7760980, 9, 0.06, 0.14],   //rune items (this might need better colors but this one doesn't match in CoK background,
-    [10038382, 14, 0.08, 1.72], //ancient shard
-    [14390305, 26, 0.04, 0.88], //Totem parts (blue)
-    [1923609, 7, 0.16, 0.84],   //Totem parts (green)
-    [4345976, 17, 0.10, 0.37],  //Dark bow
-    [2895188, 6, 0.16, 0.41],   //Abyssal whip (matches a little with primordial boots)
-    [1776416, 1, 0.01, 0.01],   //Black mystic bottom (probably all parts too).
-    [3620158, 9, 0.28, 0.50],   //Black mask
-    [10000802, 14, 0.13, 0.17], //Runes (matches with proselyte)
-    [1424100, 20, 0.02, 0.66],  //gold coins
-    [808255, 11, 0.10, 2.30],   //herb seeds
-    [482129, 11, 0.48, 1.48],   //ranarr
-    [7311001, 7, 0.08, 0.21],   //noted drops
-    [680832, 11, 0.04, 1.43],   //battlestaff
-    [860512, 14, 0.21, 1.80]    //ensouled hellhound head
-  ];
-  Self.Loot.Filter.UpText := False;
-
-  Self.Loot.Finder.ClusterDistance := 3;
-  Self.Loot.Finder.Erode := 2;
-  Self.Loot.Finder.Grow := 4;
-  Self.Loot.DotType := ERSMinimapDot.ITEM;
-
-  DebugMMDotArray += Self.Loot;
-
-  tmpDrops := MonsterData.GetDrops(monster.Name);
-  tmpDrops.ClearDuplicates();
-
-  for i := 0 to High(tmpDrops) do
-  begin
-
-    if Self.IsGoodDrop(tmpDrops[i]) then
-    begin
-      Self.Drops += tmpDrops[i];
-      Self.Loot.UpText += tmpDrops[i].Item;
-    end;
-  end;
-
-  Self.IsSetup := True;
-end;
-
-procedure TRSLootHandler.Setup(monster: PRSNPCV2; value: Int32 = 5000); overload;
-begin
-  Self.Setup(monster^, value);
+  i := Self.GetItemIndex(name);
+  if i = -1 then Exit(-1);
+  Result := Self.Items[i].Value;
 end;
 
 
@@ -303,16 +180,22 @@ begin
   if not Self.IsHoveringLoot(contextIsOpen) then
     Exit;
 
-  Self.CheckedLoot := True;
+  Self._CheckedLoot := True;
   contextIsOpen := contextIsOpen or ChooseOption.IsOpen();
 
-  if not contextIsOpen and MainScreen.IsUpText(Self.Loot.UpText, -1, i, False) then
+  if Self._UpText = [] then
   begin
-    if Self.HasSpace(Self.Drops[i]) then
+    for i := 0 to High(Self.Loot) do
+      Self._UpText += ToStr(Self.Loot[i].Item);
+  end;
+
+  if not contextIsOpen and MainScreen.IsUpText(Self._UpText, -1, i, False) then
+  begin
+    if Self.HasSpace(Self.Loot[i]) then
     begin
-      count := Self.CountDrop(Self.Drops[i]);
+      count := Self.CountDrop(Self.Loot[i]);
       Mouse.Click(MOUSE_LEFT);
-      Self.DidLoot := WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+      Self._DidLoot := WaitUntil(count < Self.CountDrop(Self.Loot[i]), 300, 3000);
       Exit(Self.HandleLooting()); //HERE LOOP UNDER PLAYER....
     end;
 
@@ -340,17 +223,17 @@ begin
     Exit;
   end;
 
-  if not ChooseOption.HasOption(Self.Loot.UpText, i, False) then
+  if not ChooseOption.HasOption(Self._UpText, i, False) then
   begin
     Self.DebugLn('Finished looting.');
     Exit;
   end;
 
-  if Self.HasSpace(Self.Drops[i]) then
+  if Self.HasSpace(Self.Loot[i]) then
   begin
-    count := Self.CountDrop(Self.Drops[i]);
-    if ChooseOption.Select(Self.Loot.UpText[i], MOUSE_LEFT, False) then
-      Self.DidLoot := WaitUntil(count < Self.CountDrop(Self.Drops[i]), 300, 3000);
+    count := Self.CountDrop(Self.Loot[i]);
+    if ChooseOption.Select(Self._UpText[i], MOUSE_LEFT, False) then
+      Self._DidLoot := WaitUntil(count < Self.CountDrop(Self.Loot[i]), 300, 3000);
 
     for i := 0 to 4 do
     begin
@@ -384,7 +267,7 @@ end;
 
 function TRSLootHandler.CheckLoot(p: TPoint): Boolean;
 begin
-  Self.DidLoot := False;
+  Self._DidLoot := False;
   Mouse.Move(p);
   Result := Self.HandleLooting();
 end;
@@ -395,25 +278,22 @@ var
   tpa: TPointArray;
   p: TPoint;
 begin
-  Self.DidLoot := False;
+  Self._DidLoot := False;
   for i := 0 to attempts do
   begin
-    if i > 2 then
-      Exit;
+    if i > 2 then Exit;
     p := [-1,-1];
 
-    if SRL.FindAnyColors(tpa, Self.Loot.Finder.Colors, b) > 0 then
+    if SRL.FindAnyColors(tpa, Self._LootColors, b) > 0 then
       p := tpa.RandomValue();
 
-    if p = [-1,-1] then
-      p := SRL.rowp(Mouse.Position(), b);
+    if p = [-1,-1] then p := SRL.ROWP(Mouse.Position(), b);
 
     Mouse.Move(p);
-    if Self.IsHoveringLoot() then
-      Break;
+    if Self.IsHoveringLoot() then Break;
   end;
 
-  Result := Self.HandleLooting() or Self.DidLoot;
+  Result := Self.HandleLooting() or Self._DidLoot;
 end;
 
 function TRSLootHandler.CheckLoot(tile: TRectangle): Boolean; overload;
@@ -422,30 +302,26 @@ var
   tpa: TPointArray;
   p: TPoint;
 begin
-  Self.DidLoot := False;
+  Self._DidLoot := False;
 
   for i := 0 to 3 do
   begin
-    if i > 2 then
-      Exit;
+    if i > 2 then Exit;
     p := [-1,-1];
 
-    if SRL.FindAnyColors(tpa, Self.Loot.Finder.Colors, tile.Bounds()) > 0 then
+    if SRL.FindAnyColors(tpa, Self._LootColors, tile.Bounds()) > 0 then
     begin
       tpa := tile.Filter(tpa);
-      if tpa <> [] then
-        p := tpa.RandomValue();
+      if tpa <> [] then p := tpa.RandomValue();
     end;
 
-    if p = [-1,-1] then
-      p := SRL.rowp(Mouse.Position(), tile);
+    if p = [-1,-1] then p := SRL.rowp(Mouse.Position(), tile);
 
     Mouse.Move(p);
-    if Self.IsHoveringLoot() then
-      Break;
+    if Self.IsHoveringLoot() then Break;
   end;
 
-  Result := Self.HandleLooting() or Self.DidLoot;
+  Result := Self.HandleLooting() or Self._DidLoot;
 end;
 
 function TRSLootHandler.CheckLoot(dots: TPointArray): Boolean; overload;
@@ -459,7 +335,7 @@ begin
   begin
     tile := Minimap.GetTileMS(p, [0.7, 0.7, 0], [2,2], angle);
     Result := Self.CheckLoot(tile);
-    if Result and Self.DidLoot then
+    if Result and Self._DidLoot then
     begin
       tile := Minimap.GetTileMS(Minimap.Center(), [0.7, 0.7, 0], [0,0], angle);
       Self.CheckLoot(tile);
@@ -470,17 +346,327 @@ end;
 
 function TRSLootHandler.CheckLoot(): Boolean; overload;
 begin
-  Self.DidLoot := False;
-  if not Self.Loot.Hover(0) then
-    Exit;
+  Result := Self.CheckLoot(Minimap.GetDots(ERSMinimapDot.ITEM));
+end;
 
-  Result := Self.HandleLooting();
-  if Result then
-    Minimap.WaitMoving();
+var
+  LootHandler: TRSLootHandler;
 
-  if Self.CheckedLoot then
+function TScriptForm.CreateLootManager(): TTabSheet;
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._SortListByValue();
+  var
+    list: TListBox;
+    items: TStringArray;
+    values: TIntegerArray;
+    i: Int32;
   begin
-    Self.Loot.DotFilter.SetupCircle([Self.Loot.ClosestDot.X, Self.Loot.ClosestDot.Y, 2], False, 120 * ONE_SECOND);
-    Self.CheckedLoot := False;
+    list := Self.Form.GetChild('loot_listbox');
+    if (list = nil) or (list.GetItems().GetCount() = 0) then Exit;
+
+    for i := 0 to list.GetItems().getCount()-1 do
+    begin
+      items += list.GetItems().GetStrings(i);
+      values += LootHandler.GetItemValue(items[i]);
+    end;
+
+    items.WeightedSort(values, 0, High(items), False);
+
+    for i := 0 to list.GetItems().getCount()-1 do
+      list.GetItems().setStrings(i, items[i]);
   end;
+
+  procedure TScriptForm._OnDrawItem(control: TWinControl; idx: Integer; rect: TRect; state: TOwnerDrawState);
+  var
+    listbox: TListBox;
+    name: String;
+    value: Int32;
+    bgColor, textColor: TColor;
+    valueStr: String;
+  begin
+    listbox := control;
+    name := listbox.GetItems().GetStrings(idx);
+    value := LootHandler.GetItemValue(name);
+
+    if idx mod 2 = 0 then
+      bgColor := clWhite
+    else
+      bgColor := $F0F0F0;
+
+    if LootHandler.Loot.ContainsItem(name) then
+      textColor := clGreen
+    else
+      textColor := clRed;
+
+    listbox.GetCanvas().GetBrush().SetColor(bgColor);
+    listbox.GetCanvas().FillRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
+
+    if odSelected in state then
+    begin
+      listbox.GetCanvas().GetBrush().SetColor($FFE0E0);
+      listbox.GetCanvas().FillRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
+    end;
+
+    listbox.GetCanvas().GetFont().SetColor(textColor);
+    listbox.GetCanvas().GetFont().SetStyle([TFontStyle.fsBold]);
+    listbox.GetCanvas().TextRect(rect, 2, rect.Top + 2, name);
+
+    valueStr := ToStr(value) + ' GP';
+    listbox.GetCanvas().TextRect(
+      rect,
+      rect.Right - listbox.GetCanvas().TextWidth(valueStr) - 5,
+      rect.Top + 2,
+      valueStr
+    );
+  end;
+
+  procedure TScriptForm._ToggleSelectedState(sender: TObject);
+  var
+    parent: TControl;
+    list: TListBox;
+    name: String;
+    idx, i: Int32;
+  begin
+    parent := TControl(sender).getParent();
+    while parent.getName() <> 'loot_manager' do parent := parent.getParent();
+
+    list := parent.GetChild('loot_listbox');
+    idx := list.GetItemIndex();
+    if idx = -1 then Exit;
+
+    name := list.GetItems().GetStrings(idx);
+
+    i := LootHandler.Loot.FindItem(name);
+    if i > -1 then
+    begin
+      LootHandler.Available += LootHandler.Loot[i];
+      Delete(LootHandler.Loot, i, 1);
+    end
+    else
+    begin
+      i := LootHandler.Available.FindItem(name);
+      if i > -1 then
+      begin
+        LootHandler.Loot += LootHandler.Available[i];
+        Delete(LootHandler.Available, i, 1);
+      end;
+    end;
+
+    list.Invalidate();
+  end;
+
+  procedure TScriptForm._OnKeyPress(sender: TObject; var key: Char);
+  var
+    edit: TEdit;
+    str: String;
+    tmp: Char;
+  begin
+    tmp := key;
+    key := #0;
+
+    case tmp of
+      #13, #32:
+      begin
+        Self._ToggleSelectedState(sender);
+        Exit;
+      end;
+    end;
+
+    edit := Self.Form.GetChild('loot_search_edit');
+    str := edit.getText();
+    if tmp = #08 then
+    begin
+      SetLength(str, Length(str)-1);
+      edit.setText(str);
+      Exit;
+    end;
+
+    edit.setText(str + tmp);
+  end;
+
+  procedure TScriptForm._OnSearchChange(sender: TObject);
+  var
+    parent: TControl;
+    list: TListBox;
+    edit: TEdit;
+    query: String;
+    i: Int32;
+  begin
+    parent := TControl(sender).getParent();
+    while parent.getName() <> 'loot_manager' do parent := parent.getParent();
+
+    list := parent.GetChild('loot_listbox');
+    edit := parent.GetChild('loot_search_edit');
+
+    list.Clear();
+    query := LowerCase(edit.GetText());
+
+    for i := 0 to High(LootHandler.Items) do
+      if (query = '') or (Pos(query, LowerCase(LootHandler.Items[i].Drop.Item)) > 0) then
+        list.GetItems().Add(LootHandler.Items[i].Drop.Item);
+
+    _SortListByValue();
+  end;
+
+  procedure TScriptForm._OnAddCustomItemClick(sender: TObject);
+  var
+    drop: TRSMonsterDrop;
+    parent: TControl;
+    list: TListBox;
+    edit: TEdit;
+    item: String;
+    value: Int32;
+  begin
+    parent := TControl(sender).getParent();
+    while parent.getName() <> 'loot_manager' do parent := parent.getParent();
+
+    list := parent.GetChild('loot_listbox');
+    edit := parent.GetChild('custom_loot_edit');
+
+    if edit.IsEmpty() then Exit;
+    item := LowerCase(Trim(edit.GetText()));
+    edit.Clear();
+
+    if LootHandler.Available.ContainsItem(item) or LootHandler.Loot.ContainsItem(item) then
+      Exit;
+
+    value := ItemData.GetAverage(item);
+    if value = 0 then
+    begin
+      MessageDlg('Invalid item', 'Could not find price data for item: ' + item +
+                 LineEnding + 'Make sure the item name is spelled correctly.', mtError, [mbOK]);
+      Exit;
+    end;
+
+    drop := TRSMonsterDrop.Create(item);
+
+    LootHandler.Items += [drop, value, False];
+    LootHandler.Available += drop;
+
+    list.GetItems().Add(item);
+
+    Self._SortListByValue();
+  end;
+
+  procedure TScriptForm._OnClearLootClick(sender: TObject);
+  var
+    parent: TControl;
+    edit: TEdit;
+    list: TListBox;
+    i: Int32;
+  begin
+    parent := TControl(sender).getParent();
+    while parent.getName() <> 'loot_manager' do parent := parent.getParent();
+
+    list := parent.GetChild('loot_listbox');
+    edit := parent.GetChild('loot_search_edit');
+
+    list.Clear();
+    edit.Clear();
+
+    SetLength(LootHandler.Available, Length(LootHandler.Items));
+    SetLength(LootHandler.Loot, 0);
+
+    for i := 0 to High(LootHandler.Items) do
+    begin
+      LootHandler.Available[i] := LootHandler.Items[i].Drop;
+      list.GetItems().Add(LootHandler.Items[i].Drop.Item);
+    end;
+
+    _SortListByValue();
+
+  end;
+
+  procedure TScriptForm._OnApplyLootFilterClick(sender: TObject);
+  var
+    parent: TControl;
+    list: TListBox;
+    edit: TEdit;
+    filter, i, j: Int32;
+    name: String;
+  begin
+    parent := TControl(sender).getParent();
+    while parent.getName() <> 'loot_manager' do parent := parent.getParent();
+
+    list := parent.GetChild('loot_listbox');
+    edit := parent.GetChild('loot_value_edit');
+    filter := StrToIntDef(edit.GetText(), 0);
+
+    if filter = 0 then
+    begin
+      Self._OnClearLootClick(sender);
+      Exit;
+    end;
+
+    LootHandler.Available := [];
+    LootHandler.Loot := [];
+
+    for i := 0 to list.GetItems().GetCount() - 1 do
+    begin
+      name := list.GetItems().GetStrings(i);
+      j := LootHandler.GetItemIndex(name);
+
+      if LootHandler.Items[j].Value >= filter then
+        LootHandler.Loot += LootHandler.Items[j].Drop
+      else
+        LootHandler.Available += LootHandler.Items[j].Drop;
+    end;
+
+    list.Invalidate();
+  end;
+
+  procedure TScriptForm._OnFilterKeyPress(sender: TObject; var key: Char);
+  begin
+    if key = #13 then Self._OnApplyLootFilterClick(sender);
+    if not (key in ['0'..'9', #8]) then key := #0;
+  end;
+
+var
+  list: TLabeledListBox;
+  search, filter, custom: TLabeledEdit;
+  tmp: TButton;
+begin
+  Self.AddTab('Loot Manager');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  search.Create(Result, 'Search Items', '', [50, 20], [250, 0], True);
+  search.SetName('loot_search');
+  search.Edit.setOnChange(@Self._OnSearchChange);
+
+  list.Create(Result, 'Press SPACE or ENTER to toggle the selected item', 'Press SPACE or ENTER to toggle the selected item.', [50,20], [650, 250], [0, search.GetBottom()], True);
+  list.ListBox.setStyle(TListBoxStyle.lbOwnerDrawFixed);
+  list.ListBox.setOnDrawItem(@Self._OnDrawItem);
+  list.ListBox.setOnKeyPress(@Self._OnKeyPress);
+  list.SetName('loot');
+
+  custom.Create(Result, 'Custom Item', '', [0,20], [150, 0], [list.GetLeft(), list.GetBottom()], True);
+  custom.SetName('custom_loot');
+
+  tmp.Create(Result, 'Add Custom Item', '', [10,15], [120,25], [custom.GetRight(),custom.GetTop()], True);
+  tmp.SetOnClick(@Self._OnAddCustomItemClick);
+
+  filter.Create(Result, 'Filter By Value (GP)', '', [20,0], [100,0], [search.GetRight(),search.GetTop()], True);
+  filter.SetName('loot_value');
+  filter.Edit.setOnKeyPress(@Self._OnFilterKeyPress);
+
+  tmp.Create(Result, 'Apply Filter', '', [20,15], [100,25], [filter.GetRight(),filter.GetTop()], True);
+  tmp.SetOnClick(@Self._OnApplyLootFilterClick);
+
+  tmp.Create(Result, 'Reset All', '', [20,0], [100,25], [tmp.GetRight(),tmp.GetTop()], True);
+  tmp.SetOnClick(@Self._OnClearLootClick);
+
+  Self._OnClearLootClick(tmp);
+  filter.Edit.setText(ToStr(LootHandler.ValueThreshold));
+  Self._OnApplyLootFilterClick(tmp);
+end;
+
+procedure TScriptForm.RefreshLootManager();
+var
+  edit: TEdit;
+begin
+  edit := Self.Form.GetChild('loot_value_edit');
+  Self._OnClearLootClick(edit);
+  edit.setText(ToStr(LootHandler.ValueThreshold));
+  Self._OnApplyLootFilterClick(edit);
 end;

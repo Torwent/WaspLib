@@ -1,3 +1,12 @@
+## [19.12.1](https://github.com/Torwent/WaspLib/compare/v19.12.0...v19.12.1) (2024-11-26)
+
+
+### Bug Fixes
+
+* **fairy ring:** should click it again ([d48e4db](https://github.com/Torwent/WaspLib/commit/d48e4dbf1a0b4a37d624e2c204872cbced945f9e))
+
+
+
 # [19.12.0](https://github.com/Torwent/WaspLib/compare/v19.11.3...v19.12.0) (2024-11-25)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * readd TEdit and TMemo .Create methods ([ed95ed0](https://github.com/Torwent/WaspLib/commit/ed95ed07ebb6d42f558eb20fb6b80a86390b5b70))
-
-
-
-# [19.11.0](https://github.com/Torwent/WaspLib/compare/v19.10.0...v19.11.0) (2024-11-18)
-
-
-### Features
-
-* **formutils:** add a bunch of component constructors ([a84b4bf](https://github.com/Torwent/WaspLib/commit/a84b4bf5aa16581a42a5ca02c73aa075f3f60d14))
 
 
 

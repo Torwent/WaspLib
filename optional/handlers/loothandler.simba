@@ -13,22 +13,66 @@ LootHandler is a record made to handle looting.
 {$ENDIF}
 
 type
-  TRSLootHandler = record(TSRLBaseRecord)
-    Items: array of record
-      Drop: TRSMonsterDrop;
-      Value: Int32;
-      Selected: Boolean;
-    end;
+  TRSLootDrop = record
+    Name: String;
+    Drop: TRSMonsterDrop;
+    Value: Int32;
+    Selected: Boolean;
+  end;
 
-    Loot, Available: TRSMonsterDropArray;
+  TRSLootDropArray = array of TRSLootDrop;
+
+function SortLootDropArray(constref l, r: TRSLootDrop): Int32;
+begin
+  Result := r.Value - l.Value;
+end;
+
+procedure TRSLootDropArray.Sort();
+begin
+  System.Sort(Self, @SortLootDropArray);
+end;
+
+function TRSLootDropArray.Sorted(): TRSLootDropArray;
+begin
+  Result := Copy(Self);
+  Result.Sort();
+end;
+
+function TRSLootDropArray.Find(name: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Name = name then
+      Exit;
+  Result := -1;
+end;
+
+function TRSLootDropArray.Contains(name: String): Boolean;
+begin
+  Result := Self.Find(name) <> -1;
+end;
+
+
+type
+  TCustomLootHandlerItem = record
+    Name: String;
+    Selected: Boolean;
+  end;
+
+  TRSLootHandler = record(TSRLBaseRecord)
+    Items: TRSLootDropArray;
+    Loot: TRSMonsterDropArray;
+    LootItems: TRSItemArray;
 
     ValueThreshold: Int32;
 
     PriorityArray: TStringArray;
 
-    _CheckedLoot, _DidLoot: Boolean;
+    _CheckedLoot, _DidLoot, _Filtered: Boolean;
     _LootColors: TCTS2ColorArray;
     _UpText: TStringArray;
+
+    _FormClickTimeStamp: UInt64;
+    Config: TConfigJSON;
   end;
 
 procedure TRSLootHandler._Init(value: Int32);
@@ -75,23 +119,75 @@ begin
   Self.ValueThreshold := value;
 end;
 
+procedure TRSLootHandler.AddItems(items: array of TCustomLootHandlerItem); overload;
+var
+  item: TCustomLootHandlerItem;
+  i: Int32;
+  drop: TRSMonsterDrop;
+begin
+  for item in items do
+  begin
+    item.Name := LowerCase(Trim(item.Name));
+
+    for i := 0 to High(Self.Items) do
+      if Self.Items[i].Drop.Item = item.Name then
+        Continue;
+
+    if ItemFinder.GetItemIDs(item.Name) = [] then
+    begin
+      MessageDlg(
+        'Invalid item', 'Could not find "' + item.Name + '".' +
+        LineEnding + 'Make sure the item name is spelled correctly.',
+        mtError, [mbOK]
+      );
+      Continue;
+    end;
+
+    drop := TRSMonsterDrop.Create(item.Name);
+
+    Self.Items += [drop.GetName(), drop, ItemData.GetAverage(item.Name), item.Selected];
+  end;
+
+  Self.Items.Sort();
+
+  Self.Loot := [];
+  Self.LootItems := [];
+
+  for i := 0 to High(Self.Items) do
+  begin
+    if Self.Items[i].Selected then
+    begin
+      Self.Loot += Self.Items[i].Drop;
+      Self.LootItems += Self.Items[i].Drop.Item;
+    end;
+    Self.Config.Put(Self.Items[i].Name, Self.Items[i].Selected);
+  end;
+end;
+
 procedure TRSLootHandler.Setup(drops: TRSItemArray; value: Int32 = 5000);
 var
   i, val: Int32;
+  drop: TRSMonsterDrop;
 begin
   Self._Init(value);
 
   for i := 0 to High(drops) do
   begin
     val := ItemData.GetAverage(drops[i]);
-    Self.Items += [TRSMonsterDrop.Create(drops[i]), val, val >= value];
+    drop := TRSMonsterDrop.Create(drops[i]);
+    if val = 0 then val := $FFFFFF;
+    Self.Items += [drop.GetName(), drop, val, val >= value];
   end;
+
+  Self.Items.Sort();
 end;
 
 procedure TRSLootHandler.Setup(monster: String; value: Int32 = 5000); overload;
 var
   drops: TRSMonsterDropArray;
-  i, val: Int32;
+  i, val, idx: Int32;
+  keys: TStringList;
+  custom: array of TCustomLootHandlerItem;
 begin
   Self._Init(value);
 
@@ -102,16 +198,91 @@ begin
   begin
     val := ItemData.GetAverage(drops[i].Item);
     if drops[i].Stackable then val := val * drops[i].Quantity;
-    if val = 0 then val := High(Int32);
-    Self.Items += [drops[i], val, val >= value];
+    if val = 0 then val := $FFFFFF;
+    Self.Items += [drops[i].GetName(), drops[i], val, val >= value];
   end;
+
+  Self.Items.Sort();
+
+  Self.Config.Setup(AppPath + 'Configs' + DirectorySeparator + 'loothandler' + DirectorySeparator + LowerCase(monster) + '.json');
+  keys := Self.Config.JSON.keys();
+
+  for i := 0 to keys.High() do
+  begin
+    idx := Self.Items.Find(keys.getStrings(i));
+
+    if idx = -1 then
+    begin
+      custom += [keys.getStrings(i), Self.Config.GetBoolean(keys.getStrings(i))];
+      Continue;
+    end;
+
+    Self.Items[idx].Selected := Self.Config.GetBoolean(keys.getStrings(i));
+    if Self.Items[idx].Selected then
+    begin
+      Self.Loot += Self.Items[idx].Drop;
+      Self.LootItems += Self.Items[idx].Drop.Item;
+    end;
+  end;
+
+  Self.AddItems(custom);
+end;
+
+procedure TRSLootHandler.ResetToThreshold();
+var
+  i: Int32;
+begin
+  Self.Loot := [];
+  Self.LootItems := [];
+
+  for i := 0 to High(Self.Items) do
+  begin
+    Self.Items[i].Selected := Self.Items[i].Value >= Self.ValueThreshold;
+
+    if Self.Items[i].Selected then
+    begin
+      Self.Loot += Self.Items[i].Drop;
+      Self.LootItems += Self.Items[i].Drop.Item;
+    end;
+
+    Self.Config.Put(Self.Items[i].Name, Self.Items[i].Selected);
+  end;
+end;
+
+procedure TRSLootHandler.AddItem(item: String);
+begin
+  Self.AddItems([[item, True]]);
+end;
+
+procedure TRSLootHandler.Toggle(idx: Int32);
+var
+  i: Int32;
+begin
+  if Self.Items[idx].Selected then
+  begin
+    for i := 0 to High(Self.Loot) do
+      if Self.Items[idx].Drop = Self.Loot[i] then
+      begin
+        Delete(Self.Loot, i, 1);
+        Delete(Self.LootItems, i, 1);
+        Break;
+      end;
+  end
+  else
+  begin
+    Self.Loot += Self.Items[idx].Drop;
+    Self.LootItems += Self.Items[idx].Drop.Item;
+  end;
+
+  Self.Items[idx].Selected := not Self.Items[idx].Selected;
+  Self.Config.Put(Self.Items[idx].Name, Self.Items[idx].Selected);
 end;
 
 
 function TRSLootHandler.GetItemIndex(name: String): Int32;
 begin
   for Result := 0 to High(Self.Items) do
-    if Self.Items[Result].Drop.Item = name then
+    if Self.Items[Result].Name = name then
       Exit;
   Result := -1;
 end;
@@ -355,108 +526,92 @@ var
 function TScriptForm.CreateLootManager(): TTabSheet;
   type TScriptForm = TScriptForm;
 
-  procedure TScriptForm._SortListByValue();
+  procedure TScriptForm._OnLootListDrawItem(control: TWinControl; idx: Integer; rect: TRect; state: TOwnerDrawState);
   var
     list: TListBox;
-    items: TStringArray;
-    values: TIntegerArray;
-    i: Int32;
-  begin
-    list := Self.Form.GetChild('loot_listbox');
-    if (list = nil) or (list.GetItems().GetCount() = 0) then Exit;
-
-    for i := 0 to list.GetItems().getCount()-1 do
-    begin
-      items += list.GetItems().GetStrings(i);
-      values += LootHandler.GetItemValue(items[i]);
-    end;
-
-    items.WeightedSort(values, 0, High(items), False);
-
-    for i := 0 to list.GetItems().getCount()-1 do
-      list.GetItems().setStrings(i, items[i]);
-  end;
-
-  procedure TScriptForm._OnDrawItem(control: TWinControl; idx: Integer; rect: TRect; state: TOwnerDrawState);
-  var
-    listbox: TListBox;
     name: String;
-    value: Int32;
+    i: Int32;
     bgColor, textColor: TColor;
     valueStr: String;
   begin
-    listbox := control;
-    name := listbox.GetItems().GetStrings(idx);
-    value := LootHandler.GetItemValue(name);
+    list := control;
+    name := list.GetItems().GetStrings(idx);
+    if LootHandler._Filtered then
+      i := LootHandler.GetItemIndex(name)
+    else
+      i := idx;
 
     if idx mod 2 = 0 then
       bgColor := clWhite
     else
       bgColor := $F0F0F0;
 
-    if LootHandler.Loot.ContainsItem(name) then
+    if LootHandler.Items[i].Selected then
       textColor := clGreen
     else
       textColor := clRed;
 
-    listbox.GetCanvas().GetBrush().SetColor(bgColor);
-    listbox.GetCanvas().FillRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
+    list.GetCanvas().GetBrush().SetColor(bgColor);
+    list.GetCanvas().FillRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
 
     if odSelected in state then
     begin
-      listbox.GetCanvas().GetBrush().SetColor($FFE0E0);
-      listbox.GetCanvas().FillRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
+      list.GetCanvas().GetBrush().SetColor($FFE0E0);
+      list.GetCanvas().FillRect(rect.Left, rect.Top, rect.Right, rect.Bottom);
     end;
 
-    listbox.GetCanvas().GetFont().SetColor(textColor);
-    listbox.GetCanvas().GetFont().SetStyle([TFontStyle.fsBold]);
-    listbox.GetCanvas().TextRect(rect, 2, rect.Top + 2, name);
+    list.GetCanvas().GetFont().SetColor(textColor);
+    list.GetCanvas().GetFont().SetStyle([TFontStyle.fsBold]);
+    list.GetCanvas().TextRect(rect, 2, rect.Top + 2, name);
 
-    valueStr := ToStr(value) + ' GP';
-    listbox.GetCanvas().TextRect(
+    if LootHandler.Items[i].Value = $FFFFFF then
+      valueStr := 'Untradeable'
+    else
+      valueStr := ToStr(LootHandler.Items[i].Value) + ' GP';
+
+    list.GetCanvas().TextRect(
       rect,
-      rect.Right - listbox.GetCanvas().TextWidth(valueStr) - 5,
+      rect.Right - list.GetCanvas().TextWidth(valueStr) - 5,
       rect.Top + 2,
       valueStr
     );
   end;
 
-  procedure TScriptForm._ToggleSelectedState(sender: TObject);
+  procedure TScriptForm._ResetLootList(list: TListBox);
   var
-    parent: TControl;
-    list: TListBox;
-    name: String;
-    idx, i: Int32;
+    i: Int32;
   begin
-    parent := TControl(sender).getParent();
-    while parent.getName() <> 'loot_manager' do parent := parent.getParent();
-
-    list := parent.GetChild('loot_listbox');
-    idx := list.GetItemIndex();
-    if idx = -1 then Exit;
-
-    name := list.GetItems().GetStrings(idx);
-
-    i := LootHandler.Loot.FindItem(name);
-    if i > -1 then
+    if LootHandler._Filtered or (list.GetItems().getCount() <>  Length(LootHandler.Items)) then
     begin
-      LootHandler.Available += LootHandler.Loot[i];
-      Delete(LootHandler.Loot, i, 1);
+      list.Clear();
+      for i := 0 to High(LootHandler.Items) do
+        list.GetItems().Add(LootHandler.Items[i].Name);
+      LootHandler._Filtered := False;
     end
     else
-    begin
-      i := LootHandler.Available.FindItem(name);
-      if i > -1 then
-      begin
-        LootHandler.Loot += LootHandler.Available[i];
-        Delete(LootHandler.Available, i, 1);
-      end;
-    end;
+      for i := 0 to High(LootHandler.Items) do
+        list.GetItems().setStrings(i, LootHandler.Items[i].Name);
 
     list.Invalidate();
   end;
 
-  procedure TScriptForm._OnKeyPress(sender: TObject; var key: Char);
+  procedure TScriptForm._ToggleLootList(sender: TObject);
+  var
+    list: TListBox;
+    name: String;
+    idx, i: Int32;
+  begin
+    list := sender;
+    idx := list.GetItemIndex();
+    if idx = -1 then Exit;
+
+    name := list.GetItems().GetStrings(idx);
+    i := LootHandler.Items.Find(name);
+    LootHandler.Toggle(i);
+    list.Invalidate();
+  end;
+
+  procedure TScriptForm._OnLootListKeyPress(sender: TObject; var key: Char);
   var
     edit: TEdit;
     str: String;
@@ -468,7 +623,7 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     case tmp of
       #13, #32:
       begin
-        Self._ToggleSelectedState(sender);
+        Self._ToggleLootList(sender);
         Exit;
       end;
     end;
@@ -485,7 +640,7 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     edit.setText(str + tmp);
   end;
 
-  procedure TScriptForm._OnSearchChange(sender: TObject);
+  procedure TScriptForm._OnLootSearchChange(sender: TObject);
   var
     parent: TControl;
     list: TListBox;
@@ -499,24 +654,27 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     list := parent.GetChild('loot_listbox');
     edit := parent.GetChild('loot_search_edit');
 
+    if edit.IsEmpty() then
+    begin
+      Self._ResetLootList(list);
+      Exit;
+    end;
+
+    LootHandler._Filtered := True;
+
     list.Clear();
-    query := LowerCase(edit.GetText());
+    query := LowerCase(Trim(edit.GetText()));
 
     for i := 0 to High(LootHandler.Items) do
-      if (query = '') or (Pos(query, LowerCase(LootHandler.Items[i].Drop.Item)) > 0) then
-        list.GetItems().Add(LootHandler.Items[i].Drop.Item);
-
-    _SortListByValue();
+      if (query = '') or (Pos(query, LowerCase(LootHandler.Items[i].Name)) > 0) then
+        list.GetItems().Add(LootHandler.Items[i].Name);
   end;
 
-  procedure TScriptForm._OnAddCustomItemClick(sender: TObject);
+  procedure TScriptForm._OnAddCustomLootClick(sender: TObject);
   var
-    drop: TRSMonsterDrop;
     parent: TControl;
     list: TListBox;
     edit: TEdit;
-    item: String;
-    value: Int32;
   begin
     parent := TControl(sender).getParent();
     while parent.getName() <> 'loot_manager' do parent := parent.getParent();
@@ -525,28 +683,12 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     edit := parent.GetChild('custom_loot_edit');
 
     if edit.IsEmpty() then Exit;
-    item := LowerCase(Trim(edit.GetText()));
+
+    LootHandler.AddItem(edit.GetText());
+
     edit.Clear();
 
-    if LootHandler.Available.ContainsItem(item) or LootHandler.Loot.ContainsItem(item) then
-      Exit;
-
-    value := ItemData.GetAverage(item);
-    if value = 0 then
-    begin
-      MessageDlg('Invalid item', 'Could not find price data for item: ' + item +
-                 LineEnding + 'Make sure the item name is spelled correctly.', mtError, [mbOK]);
-      Exit;
-    end;
-
-    drop := TRSMonsterDrop.Create(item);
-
-    LootHandler.Items += [drop, value, False];
-    LootHandler.Available += drop;
-
-    list.GetItems().Add(item);
-
-    Self._SortListByValue();
+    Self._ResetLootList(list);
   end;
 
   procedure TScriptForm._OnClearLootClick(sender: TObject);
@@ -562,20 +704,15 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     list := parent.GetChild('loot_listbox');
     edit := parent.GetChild('loot_search_edit');
 
-    list.Clear();
     edit.Clear();
+    LootHandler._Filtered := False;
 
-    SetLength(LootHandler.Available, Length(LootHandler.Items));
-    SetLength(LootHandler.Loot, 0);
+    LootHandler.Loot := [];
+    LootHandler.LootItems := [];
 
     for i := 0 to High(LootHandler.Items) do
-    begin
-      LootHandler.Available[i] := LootHandler.Items[i].Drop;
-      list.GetItems().Add(LootHandler.Items[i].Drop.Item);
-    end;
-
-    _SortListByValue();
-
+      LootHandler.Items[i].Selected := False;
+    list.Invalidate();
   end;
 
   procedure TScriptForm._OnApplyLootFilterClick(sender: TObject);
@@ -583,8 +720,7 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     parent: TControl;
     list: TListBox;
     edit: TEdit;
-    filter, i, j: Int32;
-    name: String;
+    filter: Int32;
   begin
     parent := TControl(sender).getParent();
     while parent.getName() <> 'loot_manager' do parent := parent.getParent();
@@ -593,33 +729,28 @@ function TScriptForm.CreateLootManager(): TTabSheet;
     edit := parent.GetChild('loot_value_edit');
     filter := StrToIntDef(edit.GetText(), 0);
 
-    if filter = 0 then
-    begin
-      Self._OnClearLootClick(sender);
-      Exit;
-    end;
+    edit := parent.GetChild('loot_search_edit');
+    edit.Clear();
 
-    LootHandler.Available := [];
-    LootHandler.Loot := [];
+    LootHandler.ValueThreshold := filter;
+    LootHandler.ResetToThreshold();
 
-    for i := 0 to list.GetItems().GetCount() - 1 do
-    begin
-      name := list.GetItems().GetStrings(i);
-      j := LootHandler.GetItemIndex(name);
-
-      if LootHandler.Items[j].Value >= filter then
-        LootHandler.Loot += LootHandler.Items[j].Drop
-      else
-        LootHandler.Available += LootHandler.Items[j].Drop;
-    end;
-
-    list.Invalidate();
+    Self._ResetLootList(list);
   end;
 
-  procedure TScriptForm._OnFilterKeyPress(sender: TObject; var key: Char);
+  procedure TScriptForm._OnLootFilterKeyPress(sender: TObject; var key: Char);
   begin
     if key = #13 then Self._OnApplyLootFilterClick(sender);
     if not (key in ['0'..'9', #8]) then key := #0;
+  end;
+
+  procedure TScriptForm._OnCustomLootKeyPress(sender: TObject; var key: Char);
+  begin
+    if key = #13 then
+    begin
+      Self._OnAddCustomLootClick(sender);
+      key := #0;
+    end;
   end;
 
 var
@@ -632,23 +763,25 @@ begin
 
   search.Create(Result, 'Search Items', '', [50, 20], [250, 0], True);
   search.SetName('loot_search');
-  search.Edit.setOnChange(@Self._OnSearchChange);
+  search.Edit.setOnChange(@Self._OnLootSearchChange);
 
   list.Create(Result, 'Press SPACE or ENTER to toggle the selected item', 'Press SPACE or ENTER to toggle the selected item.', [50,20], [650, 250], [0, search.GetBottom()], True);
   list.ListBox.setStyle(TListBoxStyle.lbOwnerDrawFixed);
-  list.ListBox.setOnDrawItem(@Self._OnDrawItem);
-  list.ListBox.setOnKeyPress(@Self._OnKeyPress);
+  list.ListBox.setOnDrawItem(@Self._OnLootListDrawItem);
+  list.ListBox.setOnKeyPress(@Self._OnLootListKeyPress);
+
   list.SetName('loot');
 
   custom.Create(Result, 'Custom Item', '', [0,20], [150, 0], [list.GetLeft(), list.GetBottom()], True);
   custom.SetName('custom_loot');
+  custom.Edit.setOnKeyPress(@Self._OnCustomLootKeyPress);
 
   tmp.Create(Result, 'Add Custom Item', '', [10,15], [120,25], [custom.GetRight(),custom.GetTop()], True);
-  tmp.SetOnClick(@Self._OnAddCustomItemClick);
+  tmp.SetOnClick(@Self._OnAddCustomLootClick);
 
   filter.Create(Result, 'Filter By Value (GP)', '', [20,0], [100,0], [search.GetRight(),search.GetTop()], True);
   filter.SetName('loot_value');
-  filter.Edit.setOnKeyPress(@Self._OnFilterKeyPress);
+  filter.Edit.setOnKeyPress(@Self._OnLootFilterKeyPress);
 
   tmp.Create(Result, 'Apply Filter', '', [20,15], [100,25], [filter.GetRight(),filter.GetTop()], True);
   tmp.SetOnClick(@Self._OnApplyLootFilterClick);
@@ -656,17 +789,23 @@ begin
   tmp.Create(Result, 'Reset All', '', [20,0], [100,25], [tmp.GetRight(),tmp.GetTop()], True);
   tmp.SetOnClick(@Self._OnClearLootClick);
 
-  Self._OnClearLootClick(tmp);
   filter.Edit.setText(ToStr(LootHandler.ValueThreshold));
-  Self._OnApplyLootFilterClick(tmp);
+  Self._ResetLootList(list.ListBox);
 end;
 
 procedure TScriptForm.RefreshLootManager();
 var
+  parent: TControl;
   edit: TEdit;
+  list: TListBox;
 begin
   edit := Self.Form.GetChild('loot_value_edit');
-  Self._OnClearLootClick(edit);
   edit.setText(ToStr(LootHandler.ValueThreshold));
-  Self._OnApplyLootFilterClick(edit);
+
+  parent := edit.getParent();
+  while parent.getName() <> 'loot_manager' do parent := parent.getParent();
+
+  list := parent.GetChild('loot_listbox');
+
+  Self._ResetLootList(list);
 end;

@@ -1,3 +1,12 @@
+## [19.12.3](https://github.com/Torwent/WaspLib/compare/v19.12.2...v19.12.3) (2024-11-27)
+
+
+### Bug Fixes
+
+* adding more info to the loothandler form example ([6c600b9](https://github.com/Torwent/WaspLib/commit/6c600b9bee57ac70c3c58768a6bb913c9d6ee2f7))
+
+
+
 ## [19.12.2](https://github.com/Torwent/WaspLib/compare/v19.12.1...v19.12.2) (2024-11-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * separate v1 from v2 ([3894f4b](https://github.com/Torwent/WaspLib/commit/3894f4b9b67822d31e1f72136f968e05caaabe67))
-
-
-
-## [19.11.2](https://github.com/Torwent/WaspLib/compare/v19.11.1...v19.11.2) (2024-11-23)
-
-
-### Bug Fixes
-
-* **formutils:** improved some logic with the newly added component constructors ([b5b337e](https://github.com/Torwent/WaspLib/commit/b5b337e0de3450ea64cfdaf18eb975826da0ea32))
 
 
 

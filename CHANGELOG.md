@@ -1,3 +1,12 @@
+## [19.12.2](https://github.com/Torwent/WaspLib/compare/v19.12.1...v19.12.2) (2024-11-27)
+
+
+### Bug Fixes
+
+* **loothandler:** read notes ([ccfb556](https://github.com/Torwent/WaspLib/commit/ccfb5564a4fa1caac96a1a20e8c5f5754c4a2680))
+
+
+
 ## [19.12.1](https://github.com/Torwent/WaspLib/compare/v19.12.0...v19.12.1) (2024-11-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **formutils:** improved some logic with the newly added component constructors ([b5b337e](https://github.com/Torwent/WaspLib/commit/b5b337e0de3450ea64cfdaf18eb975826da0ea32))
-
-
-
-## [19.11.1](https://github.com/Torwent/WaspLib/compare/v19.11.0...v19.11.1) (2024-11-19)
-
-
-### Bug Fixes
-
-* readd TEdit and TMemo .Create methods ([ed95ed0](https://github.com/Torwent/WaspLib/commit/ed95ed07ebb6d42f558eb20fb6b80a86390b5b70))
 
 
 

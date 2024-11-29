@@ -1,3 +1,12 @@
+## [19.12.4](https://github.com/Torwent/WaspLib/compare/v19.12.3...v19.12.4) (2024-11-29)
+
+
+### Bug Fixes
+
+* read notes ([8d8fcf7](https://github.com/Torwent/WaspLib/commit/8d8fcf7f8c6b9a49b007d2650c41cf77c3684789))
+
+
+
 ## [19.12.3](https://github.com/Torwent/WaspLib/compare/v19.12.2...v19.12.3) (2024-11-27)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * loothandler form tab ([2b07fb8](https://github.com/Torwent/WaspLib/commit/2b07fb86215523182d8ea6212b55b4541098fbe9))
-
-
-
-## [19.11.3](https://github.com/Torwent/WaspLib/compare/v19.11.2...v19.11.3) (2024-11-24)
-
-
-### Bug Fixes
-
-* separate v1 from v2 ([3894f4b](https://github.com/Torwent/WaspLib/commit/3894f4b9b67822d31e1f72136f968e05caaabe67))
 
 
 

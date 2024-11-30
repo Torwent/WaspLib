@@ -1,3 +1,12 @@
+## [19.12.5](https://github.com/Torwent/WaspLib/compare/v19.12.4...v19.12.5) (2024-11-30)
+
+
+### Bug Fixes
+
+* **forms:** make TScriptForm.Form a class var again temporarily ([9bbca73](https://github.com/Torwent/WaspLib/commit/9bbca739e13403f6cc824c6f5e438541a5ed8a9b))
+
+
+
 ## [19.12.4](https://github.com/Torwent/WaspLib/compare/v19.12.3...v19.12.4) (2024-11-29)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **fairy ring:** should click it again ([d48e4db](https://github.com/Torwent/WaspLib/commit/d48e4dbf1a0b4a37d624e2c204872cbced945f9e))
-
-
-
-# [19.12.0](https://github.com/Torwent/WaspLib/compare/v19.11.3...v19.12.0) (2024-11-25)
-
-
-### Features
-
-* loothandler form tab ([2b07fb8](https://github.com/Torwent/WaspLib/commit/2b07fb86215523182d8ea6212b55b4541098fbe9))
 
 
 

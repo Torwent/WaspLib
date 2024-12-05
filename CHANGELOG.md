@@ -1,3 +1,12 @@
+## [19.13.1](https://github.com/Torwent/WaspLib/compare/v19.13.0...v19.13.1) (2024-12-05)
+
+
+### Bug Fixes
+
+* **TScriptForm:** bank panel fixed ([da4929c](https://github.com/Torwent/WaspLib/commit/da4929c355e6c381578d93b559dd4a40873cf1ef))
+
+
+
 # [19.13.0](https://github.com/Torwent/WaspLib/compare/v19.12.5...v19.13.0) (2024-12-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * adding more info to the loothandler form example ([6c600b9](https://github.com/Torwent/WaspLib/commit/6c600b9bee57ac70c3c58768a6bb913c9d6ee2f7))
-
-
-
-## [19.12.2](https://github.com/Torwent/WaspLib/compare/v19.12.1...v19.12.2) (2024-11-27)
-
-
-### Bug Fixes
-
-* **loothandler:** read notes ([ccfb556](https://github.com/Torwent/WaspLib/commit/ccfb5564a4fa1caac96a1a20e8c5f5754c4a2680))
 
 
 

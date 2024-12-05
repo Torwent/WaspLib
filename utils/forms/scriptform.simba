@@ -1537,7 +1537,11 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
   begin
     combobox := sender;
     imgBox := Self.Form.GetChild('map_selector');
+    WLSettings.Put('bank_map', combobox.getItemIndex());
+    WLSettings.SaveConfig();
 
+    WriteLn WLSettings.GetInt('bank_map');
+    WriteLn RSBankRegions[WLSettings.GetInt('bank_map')];
     b := RSBankRegions[WLSettings.GetInt('bank_map')].Bounds;
     b.X1 := Round(b.X1/4);
     b.Y1 := Round(b.Y1/4);
@@ -1549,8 +1553,7 @@ function TScriptForm.CreateBankSettings(): TTabSheet;
 
     imgBox.GetOverlay().Clear();
     imgBox.getOverlay().DebugTPA(b.ToRectangle().ToTPA().Connect());
-    WLSettings.Put('bank_map', combobox.getItemIndex());
-    WLSettings.SaveConfig();
+    imgBox.Update();
   end;
 
   procedure TScriptForm.OnShow(sender: TObject); override;
@@ -1600,13 +1603,8 @@ begin
 
   with bankSelector do
   begin
-    Create(Result);
-    SetCaption('Select your bank: ');
+    Create(Result, 'Bank: ', 'Select your bank', [space, y], [w, 0], False);
     SetName('bank_selector');
-    SetLeft(space);
-    SetTop(y);
-    SetWidth(w);
-    SetStyle(csDropDownList);
     AddItemArray(RSBankRegions.GetStrings());
     SetItemIndex(WLSettings.GetInt('bank_map'));
     ComboBox.SetOnChange(@Self._BankOnChange);
@@ -1622,25 +1620,17 @@ begin
     bmp.LoadFromFile(path + fileName)
   else
   begin
-    tmp := TRSWalkerMap.InternalLoadMap(
-              INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'osr' +
-              DIRECTORYSEPARATOR + 'walker' + DIRECTORYSEPARATOR + 'map.png'
-           );
+    tmp := TRSWalkerMap.InternalLoadMap(WALKER_DIR + 'map.png');
     tmp.Downsample(4, bmp);
     tmp.Free();
-    if ForceDirectories(path) then
-      bmp.SaveToFile(path + fileName);
+    if ForceDirectories(path) then bmp.SaveToFile(path + fileName);
   end;
 
   with imgBox do
   begin
-    Create(Result);
+    Create(Result, '', 'Right Click + Drag to move', [space, y + TControl.AdjustToDPI(40)], [fullWidth * 3 - space * 2, Round(Self.Size.Y * 0.77)], False);
+    imgBox.SetAlign(TAlign.alNone);
     SetName('map_selector');
-    SetLeft(space);
-    SetTooltip('Right Click + Drag to move');
-    SetTop(y + TControl.AdjustToDPI(40));
-    SetHeight(Round(Self.Size.Y * 0.77));
-    SetWidth(fullWidth * 3 - space * 2);
     GetBackground().LoadFromMufasaBitmap(bmp);
     GetOverlay().GetCanvas().GetPen().SetColor($00FFFF);
   end;

@@ -1,3 +1,12 @@
+# [19.13.0](https://github.com/Torwent/WaspLib/compare/v19.12.5...v19.13.0) (2024-12-05)
+
+
+### Features
+
+* **TComponent:** RemoveChildren ([66e9112](https://github.com/Torwent/WaspLib/commit/66e9112b4c9629e90f79ad2ba2973d383e0a0a77))
+
+
+
 ## [19.12.5](https://github.com/Torwent/WaspLib/compare/v19.12.4...v19.12.5) (2024-11-30)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **loothandler:** read notes ([ccfb556](https://github.com/Torwent/WaspLib/commit/ccfb5564a4fa1caac96a1a20e8c5f5754c4a2680))
-
-
-
-## [19.12.1](https://github.com/Torwent/WaspLib/compare/v19.12.0...v19.12.1) (2024-11-26)
-
-
-### Bug Fixes
-
-* **fairy ring:** should click it again ([d48e4db](https://github.com/Torwent/WaspLib/commit/d48e4dbf1a0b4a37d624e2c204872cbced945f9e))
 
 
 

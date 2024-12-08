@@ -68,7 +68,6 @@ begin
     ERSConsumable.PRAYER:    Result.SetupPrayer();
     ERSConsumable.ENERGY:    Result.SetupEnergy();
     ERSConsumable.POISON:    Result.SetupAntiPoison();
-    ERSConsumable.VENOM:     Result.SetupAntiVenom();
     ERSConsumable.ANTI_FIRE: Result.SetupAntiFire();
     else Result.SetupBoost();
   end;
@@ -163,7 +162,6 @@ begin
     ERSConsumable.PRAYER:         Self.Name := 'PrayerHandler';
     ERSConsumable.ENERGY:         Self.Name := 'EnergyHandler';
     ERSConsumable.POISON:         Self.Name := 'PoisonHandler';
-    ERSConsumable.VENOM:          Self.Name := 'VenomHandler';
     ERSConsumable.ANTI_FIRE:      Self.Name := 'AntiFireHandler';
     ERSConsumable.BOOST:          Self.Name := 'BoostHandler';
     ERSConsumable.STRENGTH_BOOST: Self.Name := 'StrengthBoostHandler';
@@ -193,7 +191,6 @@ FoodHandler:          TConsumableHandler;
 PrayerHandler:        TConsumableHandler;
 EnergyHandler:        TConsumableHandler;
 PoisonHandler:        TConsumableHandler;
-VenomHandler:         TConsumableHandler;
 AntifireHandler:      TConsumableHandler;
 BoostHandler:         TConsumableHandler;
 StrengthBoostHandler: TConsumableHandler;
@@ -203,7 +200,7 @@ RangingBoostHandler:  TConsumableHandler;
 MagicBoostHandler:    TConsumableHandler;
 
 CONSUMABLE_HANDLER_ARRAY: array [ERSConsumable] of PConsumableHandler := [
-  @FoodHandler, @PrayerHandler, @EnergyHandler, @PoisonHandler, @VenomHandler,
+  @FoodHandler, @PrayerHandler, @EnergyHandler, @PoisonHandler,
   @AntifireHandler, @BoostHandler, @StrengthBoostHandler, @AttackBoostHandler,
   @DefenceBoostHandler, @RangingBoostHandler, @MagicBoostHandler
 ];
@@ -215,7 +212,6 @@ Global handler variables. This handlers are the ones responsible for handling co
   PrayerHandler:        TConsumableHandler;
   EnergyHandler:        TConsumableHandler;
   PoisonHandler:        TConsumableHandler;
-  VenomHandler:         TConsumableHandler;
   AntifireHandler:      TConsumableHandler;
   BoostHandler:         TConsumableHandler;
   StrengthBoostHandler: TConsumableHandler;
@@ -225,7 +221,7 @@ Global handler variables. This handlers are the ones responsible for handling co
   MagicBoostHandler:    TConsumableHandler;
 
   CONSUMABLE_HANDLER_ARRAY: array [ERSConsumable] of PConsumableHandler := [
-    @FoodHandler, @PrayerHandler, @EnergyHandler, @PoisonHandler, @VenomHandler,
+    @FoodHandler, @PrayerHandler, @EnergyHandler, @PoisonHandler,
     @AntifireHandler, @BoostHandler, @StrengthBoostHandler, @AttackBoostHandler,
     @DefenceBoostHandler, @RangingBoostHandler, @MagicBoostHandler
   ];
@@ -340,10 +336,11 @@ Inventory.Consume(ERSConsumable.FOOD);
 *)
 function TRSInventory.Consume(consumableType: ERSConsumable; out slots: TIntegerArray): Boolean;
 var
-  consumableHandler, tmp: PConsumableHandler;
+  consumableHandler: PConsumableHandler;
   foundConsumables: TRSConsumableArray;
   startingPoints: Int32;
   trashSlots: TIntegerArray;
+  slotBox: TBox;
 begin
   consumableHandler := TConsumableHandler.GetHandler(consumableType);
   if not consumableHandler^.IsSetup then
@@ -352,16 +349,13 @@ begin
   case consumableType of
     ERSConsumable.FOOD:
       startingPoints := Minimap.GetHPLevel();
-
     ERSConsumable.PRAYER:
       startingPoints := Minimap.GetPrayerLevel();
-
     ERSConsumable.ENERGY:
       startingPoints := Minimap.GetRunEnergy();
   end;
 
   slots := Self.FindConsumable(consumableType, foundConsumables);
-
   if slots.Len() = 0 then
     Exit;
 
@@ -372,37 +366,23 @@ begin
   if (consumableHandler^.Delay.Length > 0) then
     while not consumableHandler^.Delay.IsFinished() do
       Wait(50, 100);
-
+  slotBox := Self.GetSlotBox(slots[0]);
   Result := Self.ClickSlot(slots[0], ['Eat', 'Drink']);
-
-  if Result then
-    case consumableType of
-      ERSConsumable.FOOD:
-        Result := WaitUntil(startingPoints < Minimap.GetHPLevel(), 100, 3000);
-
-      ERSConsumable.PRAYER:
-        Result := WaitUntil(startingPoints < Minimap.GetPrayerLevel(), 100, 3000);
-
-      ERSConsumable.ENERGY:
-        Result := WaitUntil(startingPoints < Minimap.GetRunEnergy(), 100, 3000);
-      else
-        Antiban.BioWait(1000, 2000, wdLeft);
-    end;
 
   if Result then
   begin
     case consumableType of
       ERSConsumable.FOOD:
-        begin
-          if foundConsumables[0].Item = 'Cooked karambwan' then
-            consumableHandler^.Delay.Init(1200)
-          else
-            consumableHandler^.Delay.Init(1800);
-        end;
+        Result := WaitUntil(startingPoints < Minimap.GetHPLevel(), 100, 3000);
+      ERSConsumable.PRAYER:
+        Result := WaitUntil(startingPoints < Minimap.GetPrayerLevel(), 100, 3000);
+      ERSConsumable.ENERGY:
+        Result := WaitUntil(startingPoints < Minimap.GetRunEnergy(), 100, 3000);
       else
-        for tmp in CONSUMABLE_HANDLER_ARRAY do
-            tmp^.Delay.Init(600);
+        Result := (SRL.PercentShift(slotBox, 150) >= 25);
     end;
+
+    consumableHandler^.Delay.Init(foundConsumables[0].Timer);
 
     if foundConsumables[0].Timer > 0 then
     begin
@@ -423,8 +403,7 @@ begin
         Bank.DepositSlot([trashSlots[0], -1], False)
       else
         Self.ShiftDrop(trashSlots.Intersection(Self.RandomPattern()));
-
-      slots := slots.Difference(trashSlots); //Delete trashSlots from slots.
+      slots := slots.Difference(trashSlots);
     end;
   end;
 end;
@@ -791,4 +770,3 @@ begin
   if combobox <> nil then
     combobox.SetOnChange(event);
 end;
-

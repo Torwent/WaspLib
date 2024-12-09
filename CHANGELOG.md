@@ -1,3 +1,12 @@
+## [19.13.2](https://github.com/Torwent/WaspLib/compare/v19.13.1...v19.13.2) (2024-12-09)
+
+
+### Bug Fixes
+
+* small fix in combat handler setup ([4c287cd](https://github.com/Torwent/WaspLib/commit/4c287cde216933c2823df7e0e256e076cacad4cf))
+
+
+
 ## [19.13.1](https://github.com/Torwent/WaspLib/compare/v19.13.0...v19.13.1) (2024-12-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8d8fcf7](https://github.com/Torwent/WaspLib/commit/8d8fcf7f8c6b9a49b007d2650c41cf77c3684789))
-
-
-
-## [19.12.3](https://github.com/Torwent/WaspLib/compare/v19.12.2...v19.12.3) (2024-11-27)
-
-
-### Bug Fixes
-
-* adding more info to the loothandler form example ([6c600b9](https://github.com/Torwent/WaspLib/commit/6c600b9bee57ac70c3c58768a6bb913c9d6ee2f7))
 
 
 

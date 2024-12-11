@@ -1,3 +1,12 @@
+## [19.13.3](https://github.com/Torwent/WaspLib/compare/v19.13.2...v19.13.3) (2024-12-11)
+
+
+### Bug Fixes
+
+* read notes ([3d0e991](https://github.com/Torwent/WaspLib/commit/3d0e991001e3b3bbec8b1dc69ac8c3c8bae3fd76))
+
+
+
 ## [19.13.2](https://github.com/Torwent/WaspLib/compare/v19.13.1...v19.13.2) (2024-12-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **forms:** make TScriptForm.Form a class var again temporarily ([9bbca73](https://github.com/Torwent/WaspLib/commit/9bbca739e13403f6cc824c6f5e438541a5ed8a9b))
-
-
-
-## [19.12.4](https://github.com/Torwent/WaspLib/compare/v19.12.3...v19.12.4) (2024-11-29)
-
-
-### Bug Fixes
-
-* read notes ([8d8fcf7](https://github.com/Torwent/WaspLib/commit/8d8fcf7f8c6b9a49b007d2650c41cf77c3684789))
 
 
 

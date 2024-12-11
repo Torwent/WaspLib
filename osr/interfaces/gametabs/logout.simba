@@ -8,59 +8,41 @@ Extends SRL's TRSLogout.
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+(*
+## Logout.ClickLogout
+```pascal
+function TRSLogout.ClickLogout(attempts: Int32 = 5; time: Int32 = 20000): Boolean; override;
+```
+Clicks the logout button. Returns true if we succesfully logout of the game.
+Depending on the account biohash it might use the start buttons to rate the game.
 
-function TRSLogout.GetLikeButtons(): TRSButtonArray;
-begin
-  Result := Self.FindButtons([[60, 30]]);
-end;
-
-function TRSLogout.GetLikeButton(): TRSButton;
+Example:
+```pascal
+WriteLn Logout.ClickLogout();
+```
+*)
+function TRSLogout.ClickLogout(attempts: Int32 = 5; tryTime: Int32 = 20000): Boolean; override;
 var
-  buttons: TRSButtonArray;
-begin
-  buttons := Self.GetLikeButtons();
-  if Length(buttons) = 2 then
-    Result := buttons[0];
-end;
-
-function TRSLogout.GetDislikeButton(): TRSButton;
-var
-  buttons: TRSButtonArray;
-begin
-  buttons := Self.GetLikeButtons();
-  if Length(buttons) = 2 then
-    Result := buttons[1];
-end;
-
-function TRSLogout.UsedLikeButtons(): Boolean;
-var
-  button: TRSButton;
-begin
-  for button in Self.GetLikeButtons() do
-    if button.Enabled() then
-      Exit(True);
-end;
-
-
-function TRSLogout.ClickLogout(Attempts: Int32 = 5; TryTime: Int32 = 20000): Boolean; override;
-var
-  Interval: UInt64;
+  interval: UInt64;
   i: Int32;
 begin
   if (not Self.Open()) or (not Self.CloseWorldSwitcher()) then
     Exit;
 
-  Interval := TryTime div Attempts;
+  interval := tryTime div attempts;
 
-  if Antiban.BioDice(EBioBehavior.USES_LIKE_BUTTONS) then
+  if Antiban.BioDice(EBioBehavior.USES_STAR_BUTTONS) then
   begin
     if Antiban.BioDice(EBioBehavior.TENDS_TO_LIKE) then
-      Self.GetLikeButton().Enable()
+      i := Round(SRL.TruncatedGauss(5, 1))
     else
-      Self.GetDislikeButton().Enable();
+      i := Round(SRL.TruncatedGauss(1, 5));
+
+    Self.DebugLn('Rating the game with ' + ToStr(i) + ' stars before logging out.');
+    Self.GetStarButton(i).Enable();
   end;
 
-  for i := 1 to Attempts do
+  for i := 1 to attempts do
     if Self.GetButton(ERSLogoutButton.CLICK_HERE).Click() and WaitUntil(not RSClient.IsLoggedIn(), 500, Interval + SRL.NormalRange(-2000, 2000)) then
       Exit(True);
 end;

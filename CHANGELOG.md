@@ -1,3 +1,12 @@
+## [19.13.4](https://github.com/Torwent/WaspLib/compare/v19.13.3...v19.13.4) (2024-12-12)
+
+
+### Bug Fixes
+
+* small fixes to the latest PR ([19aaacb](https://github.com/Torwent/WaspLib/commit/19aaacb7b92f4fcebd95ef8310369701ea886015))
+
+
+
 ## [19.13.3](https://github.com/Torwent/WaspLib/compare/v19.13.2...v19.13.3) (2024-12-11)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **TComponent:** RemoveChildren ([66e9112](https://github.com/Torwent/WaspLib/commit/66e9112b4c9629e90f79ad2ba2973d383e0a0a77))
-
-
-
-## [19.12.5](https://github.com/Torwent/WaspLib/compare/v19.12.4...v19.12.5) (2024-11-30)
-
-
-### Bug Fixes
-
-* **forms:** make TScriptForm.Form a class var again temporarily ([9bbca73](https://github.com/Torwent/WaspLib/commit/9bbca739e13403f6cc824c6f5e438541a5ed8a9b))
 
 
 

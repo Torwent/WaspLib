@@ -79,6 +79,17 @@ const
     'Abyssal ashes', 'Infernal ashes'
   ];
 
+  ENSOULED_HEADS: TRSItemArray = [
+    'Ensouled goblin head', 'Ensouled monkey head', 'Ensouled imp head',
+    'Ensouled minotaur head', 'Ensouled scorpion head', 'Ensouled unicorn head',
+    'Ensouled dog head', 'Ensouled chaos druid head', 'Ensouled giant head',
+    'Ensouled ogre head', 'Ensouled elf head', 'Ensouled troll head',
+    'Ensouled horror head', 'Ensouled kalphite head', 'Ensouled dagannoth head',
+    'Ensouled bloodveld head', 'Ensouled tzhaar head', 'Ensouled demon head',
+    'Ensouled hellhound head', 'Ensouled aviansie head',
+    'Ensouled abyssal head', 'Ensouled dragon head'
+  ];
+
 
 type
   ECombatState = (
@@ -98,7 +109,8 @@ type
     DRINK_RNG_BOOST, DRINK_MGC_BOOST, DRINK_BOOST,
     BURY_BONES,
 
-    ATTACK_MONSTER, WAIT_IN_COMBAT, DO_LOOT
+    ATTACK_MONSTER, WAIT_IN_COMBAT, DO_LOOT,
+    CAST_ALCH, USE_SOUL_BEARER
   );
 
   TRSCombatHandler = record(TSRLBaseRecord)
@@ -117,7 +129,7 @@ type
     TotalKills: UInt32;
 
     ManageGear, GearIsSetup, AutoRetaliateEnabled, AutoRetaliateChecked, QuickPrayerIsSetup,
-    HandleCannon, CannonIsSetup, DoingSpec, UseSafeSpot,
+    HandleCannon, CannonIsSetup, DoingSpec, UseSafeSpot, UsingSoulBearer,
     SlayerTaskFinishedVisible, SlayerTaskFinished, LootEnabled, BuryBones,
     IsFighting, Looted, IsSetup: Boolean;
 
@@ -273,6 +285,7 @@ begin
   begin
     Self.ManageGear := True;
     Self._SetupGear();
+    Self.UsingSoulBearer := Inventory.ContainsItem('Soul bearer');
   end;
 
   if lootValue > 0 then
@@ -551,6 +564,27 @@ begin
 end;
 
 
+function TRSCombatHandler.ShouldAlch(): Boolean;
+var
+  match: TRSItemFinderMatch;
+begin
+  match := Inventory.ItemInterface.FindAny(RSAlchHandler.ItemArray);
+  if match <> [] then RSAlchHandler.Item := match.Item;
+end;
+
+function TRSCombatHandler.CastAlch(): Boolean;
+begin
+  if RSAlchHandler.CastAlchemy() then
+    Self.IsFighting := False;
+end;
+
+
+function TRSCombatHandler.UseSoulBearer(): Boolean;
+begin
+  Result := Inventory.ClickItem('Soul bearer', 'Fill');
+  if Result then Self.IsFighting := False;
+end;
+
 
 function TRSCombatHandler.Terminate(): Boolean;
 begin
@@ -619,8 +653,9 @@ end;
 
 function TRSCombatHandler.WalkSafeSpot(): Boolean;
 begin
+  WriteLn(Self.Monster.Walker^.Position, ' and ', Self.SafeSpot);
   Self.IsFighting := False;
-  Result := Self.Monster.Walker^.WebWalk(Self.SafeSpot, 8, 0.2);
+  Result := Self.Monster.Walker^.WebWalk(Self.SafeSpot, 4, 0.2);
 end;
 
 
@@ -752,6 +787,7 @@ begin
   Result := Result.Difference(Self.FindTaggedMonsters(Result, [0, 0]));
 end;
 
+
 function TRSCombatHandler.GetState(): ECombatState;
 begin
   Result := Self.GetConsumableState();
@@ -788,6 +824,12 @@ begin
   if Self.BuryBones and Inventory.ContainsAny(REMAINS) then
     Exit(ECombatState.BURY_BONES);
 
+  if not RSAlchHandler.Disabled and Self.ShouldAlch() then
+    Exit(ECombatState.CAST_ALCH);
+
+  if Self.UsingSoulBearer and Inventory.ContainsAny(ENSOULED_HEADS) then
+    Exit(ECombatState.USE_SOUL_BEARER);
+
   if Self.UseSafeSpot and (Self.Monster.Walker^.Position <> Self.SafeSpot) then
     Exit(ECombatState.SAFE_SPOT);
 
@@ -809,6 +851,9 @@ begin
   Self.State := handlerState;
 
   case handlerState of
+    ECombatState.CAST_ALCH:        Self.CastAlch();
+    ECombatState.USE_SOUL_BEARER:  Self.UseSoulBearer();
+
     ECombatState.EAT_FOOD:         Self.Consume(ERSConsumable.FOOD);
     ECombatState.DRINK_PRAYER:     Self.Consume(ERSConsumable.PRAYER);
     ECombatState.DRINK_ANTIFIRE:   Self.Consume(ERSConsumable.ANTI_FIRE);

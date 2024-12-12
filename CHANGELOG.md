@@ -1,3 +1,12 @@
+## [19.13.5](https://github.com/Torwent/WaspLib/compare/v19.13.4...v19.13.5) (2024-12-12)
+
+
+### Bug Fixes
+
+* read notes ([bd8eca9](https://github.com/Torwent/WaspLib/commit/bd8eca92884f2a6ee62f29887293e1b0620fa755))
+
+
+
 ## [19.13.4](https://github.com/Torwent/WaspLib/compare/v19.13.3...v19.13.4) (2024-12-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TScriptForm:** bank panel fixed ([da4929c](https://github.com/Torwent/WaspLib/commit/da4929c355e6c381578d93b559dd4a40873cf1ef))
-
-
-
-# [19.13.0](https://github.com/Torwent/WaspLib/compare/v19.12.5...v19.13.0) (2024-12-05)
-
-
-### Features
-
-* **TComponent:** RemoveChildren ([66e9112](https://github.com/Torwent/WaspLib/commit/66e9112b4c9629e90f79ad2ba2973d383e0a0a77))
 
 
 

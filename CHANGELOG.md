@@ -1,3 +1,12 @@
+## [19.13.6](https://github.com/Torwent/WaspLib/compare/v19.13.5...v19.13.6) (2024-12-14)
+
+
+### Bug Fixes
+
+* **antiban:** biohash should always be set now ([604e52e](https://github.com/Torwent/WaspLib/commit/604e52e17a93a3ad6879f8fab1a7c639948a7fe0))
+
+
+
 ## [19.13.5](https://github.com/Torwent/WaspLib/compare/v19.13.4...v19.13.5) (2024-12-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * small fix in combat handler setup ([4c287cd](https://github.com/Torwent/WaspLib/commit/4c287cde216933c2823df7e0e256e076cacad4cf))
-
-
-
-## [19.13.1](https://github.com/Torwent/WaspLib/compare/v19.13.0...v19.13.1) (2024-12-05)
-
-
-### Bug Fixes
-
-* **TScriptForm:** bank panel fixed ([da4929c](https://github.com/Torwent/WaspLib/commit/da4929c355e6c381578d93b559dd4a40873cf1ef))
 
 
 

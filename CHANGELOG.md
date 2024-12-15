@@ -1,3 +1,12 @@
+## [19.13.7](https://github.com/Torwent/WaspLib/compare/v19.13.6...v19.13.7) (2024-12-15)
+
+
+### Bug Fixes
+
+* **combathandler:** small bug in `ShouldAlch()` ([03a4b33](https://github.com/Torwent/WaspLib/commit/03a4b335689ee3fd3ced9018572cd97c8cdee826))
+
+
+
 ## [19.13.6](https://github.com/Torwent/WaspLib/compare/v19.13.5...v19.13.6) (2024-12-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([3d0e991](https://github.com/Torwent/WaspLib/commit/3d0e991001e3b3bbec8b1dc69ac8c3c8bae3fd76))
-
-
-
-## [19.13.2](https://github.com/Torwent/WaspLib/compare/v19.13.1...v19.13.2) (2024-12-09)
-
-
-### Bug Fixes
-
-* small fix in combat handler setup ([4c287cd](https://github.com/Torwent/WaspLib/commit/4c287cde216933c2823df7e0e256e076cacad4cf))
 
 
 

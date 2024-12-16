@@ -1,3 +1,12 @@
+## [19.13.8](https://github.com/Torwent/WaspLib/compare/v19.13.7...v19.13.8) (2024-12-16)
+
+
+### Bug Fixes
+
+* add agility map with winter theme in falador ([4588abb](https://github.com/Torwent/WaspLib/commit/4588abbe309cd176edd4855264f4e15a252da1be))
+
+
+
 ## [19.13.7](https://github.com/Torwent/WaspLib/compare/v19.13.6...v19.13.7) (2024-12-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * small fixes to the latest PR ([19aaacb](https://github.com/Torwent/WaspLib/commit/19aaacb7b92f4fcebd95ef8310369701ea886015))
-
-
-
-## [19.13.3](https://github.com/Torwent/WaspLib/compare/v19.13.2...v19.13.3) (2024-12-11)
-
-
-### Bug Fixes
-
-* read notes ([3d0e991](https://github.com/Torwent/WaspLib/commit/3d0e991001e3b3bbec8b1dc69ac8c3c8bae3fd76))
 
 
 

@@ -1,3 +1,12 @@
+# [19.14.0](https://github.com/Torwent/WaspLib/compare/v19.13.8...v19.14.0) (2024-12-16)
+
+
+### Features
+
+* **housemap:** add the new housemap ([983ede2](https://github.com/Torwent/WaspLib/commit/983ede26330fcea123e20b72e81cd627d35e6e24))
+
+
+
 ## [19.13.8](https://github.com/Torwent/WaspLib/compare/v19.13.7...v19.13.8) (2024-12-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([bd8eca9](https://github.com/Torwent/WaspLib/commit/bd8eca92884f2a6ee62f29887293e1b0620fa755))
-
-
-
-## [19.13.4](https://github.com/Torwent/WaspLib/compare/v19.13.3...v19.13.4) (2024-12-12)
-
-
-### Bug Fixes
-
-* small fixes to the latest PR ([19aaacb](https://github.com/Torwent/WaspLib/commit/19aaacb7b92f4fcebd95ef8310369701ea886015))
 
 
 

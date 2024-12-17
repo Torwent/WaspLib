@@ -1,3 +1,12 @@
+## [19.14.1](https://github.com/Torwent/WaspLib/compare/v19.14.0...v19.14.1) (2024-12-17)
+
+
+### Bug Fixes
+
+* **biohash:** some fixes to the recent biohash changes ([7de69c6](https://github.com/Torwent/WaspLib/commit/7de69c6323e4a3d3aad89c66cd1882f8adbbc209))
+
+
+
 # [19.14.0](https://github.com/Torwent/WaspLib/compare/v19.13.8...v19.14.0) (2024-12-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **antiban:** biohash should always be set now ([604e52e](https://github.com/Torwent/WaspLib/commit/604e52e17a93a3ad6879f8fab1a7c639948a7fe0))
-
-
-
-## [19.13.5](https://github.com/Torwent/WaspLib/compare/v19.13.4...v19.13.5) (2024-12-12)
-
-
-### Bug Fixes
-
-* read notes ([bd8eca9](https://github.com/Torwent/WaspLib/commit/bd8eca92884f2a6ee62f29887293e1b0620fa755))
 
 
 

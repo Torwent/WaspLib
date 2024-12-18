@@ -1,3 +1,12 @@
+## [19.14.2](https://github.com/Torwent/WaspLib/compare/v19.14.1...v19.14.2) (2024-12-18)
+
+
+### Bug Fixes
+
+* **biohash:** Double.GetDigit() users math only again ([acf880c](https://github.com/Torwent/WaspLib/commit/acf880c67b49de3d8ba2432d044b252e829524f1))
+
+
+
 ## [19.14.1](https://github.com/Torwent/WaspLib/compare/v19.14.0...v19.14.1) (2024-12-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **combathandler:** small bug in `ShouldAlch()` ([03a4b33](https://github.com/Torwent/WaspLib/commit/03a4b335689ee3fd3ced9018572cd97c8cdee826))
-
-
-
-## [19.13.6](https://github.com/Torwent/WaspLib/compare/v19.13.5...v19.13.6) (2024-12-14)
-
-
-### Bug Fixes
-
-* **antiban:** biohash should always be set now ([604e52e](https://github.com/Torwent/WaspLib/commit/604e52e17a93a3ad6879f8fab1a7c639948a7fe0))
 
 
 

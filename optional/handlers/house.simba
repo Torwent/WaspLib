@@ -1,0 +1,1047 @@
+(*
+(House)=
+# POH Handler
+The POH Handler is a handler responsible for making sense of a player's POH (Player Owned House) without
+knowing any info about it's setup in advance.
+
+:::{note}
+:class: dropdown
+The House handler is optional and has to be explicitly included.
+You can include it by either including all optional files which is not recommended:
+  ```pascal
+  {$I WaspLib/optional.simba}
+  ```
+Or include just the HouseHandler file which is the recommended way to include it:
+  ```pascal
+  {$I WaspLib/optional/handlers/house.simba}
+  ```
+:::
+
+Several rooms in a POH are unique on the minimap, with windows and/or doors of several sizes and different places.
+By having this rooms saved in the following format:
+```{figure} ../../../osr/walker/poh.png
+Most relevant rooms for a POH stripped of their floor colors
+```
+We can attempt to match what we have on the minimap to those rooms and slowly build a map of the POH.
+
+Some rooms share the same room layout or are very similar to others and for those we use some mainscreen information to make up what the room is,
+e.g., Nexus room, Combat Hall and Quest Hall are all identical.
+*)
+
+{$DEFINE WL_HOUSE_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+{$IFNDEF WL_HOUSEMAP_INCLUDED}
+  {$I WaspLib/optional/handlers/housemap.simba}
+{$ENDIF}
+
+{$IFNDEF WL_HOUSEOBJECTS_INCLUDED}
+  {$I WaspLib/optional/handlers/houseobjects.simba}
+{$ENDIF}
+
+type
+(*
+(THouseHandler)=
+## type THouseHandler
+```pascal
+type
+  THouseHandler = record
+    RoomObjects: array [ERSRoomObject] of TRoomObject;
+    EnableRunAtEnergy: Int32;
+    Similarity: Double;
+  end;
+```
+The core record used to handle navigating a POH.
+*)
+  THouseHandler = record(TSRLBaseRecord)
+    Loader: THouseMap;
+    Walker: TRSWalkerV2;
+
+    Objects: array [EHouseObject] of TRSObjectV2;
+
+    Downscale: Int32;
+    Similarity: Double;
+
+    Sample: TRSMapSample;
+    Cache: TMatchTemplateRGBCache;
+
+    Graph: TWebGraphV2;
+    IsSetup: Boolean;
+  end;
+
+function THouseHandler.Position(): TPoint; forward;
+
+(*
+## POH.Setup()
+```pascal
+procedure THouseHandler.Setup();
+```
+Method you need to use at the start of your script after the user has already configured his house
+with `TScriptForm.CreateHouseBuilder()`.
+*)
+procedure THouseHandler.Setup(downscale: Int32 = 8);
+var
+  minimapImage, minimapSample: TMufasaBitmap;
+  idx, coordinate: TPoint;
+  room: THouseRoom;
+  obj: EHouseObject;
+begin
+  if Self.IsSetup then Exit;
+  if Self.Sample.Amount = 0 then Self.Sample.Amount := 2;
+  if Self.Sample.Radius = 0 then Self.Sample.Radius := 67;
+
+  for idx.Y := 0 to Self.Loader.AMOUNT-1 do
+    for idx.X := 0 to Self.Loader.AMOUNT-1 do
+    begin
+      room := Self.Loader.ReadRoom(idx);
+
+
+      for obj in room.Objects do
+      begin
+        coordinate := obj.RotateOffset(Self.Loader.SIZE, room.Rotation);
+        coordinate += idx * Self.Loader.SIZE;
+
+        if Self.Objects[obj].Coordinates <> [] then
+        begin
+          Self.Objects[obj].Coordinates += coordinate;
+          Self.Objects[obj].Rotations += room.Rotation;
+          Continue;
+        end;
+
+        Self.Objects[obj].SetupCoordinates([coordinate]);
+        Self.Objects[obj].Size := obj.GetSize();
+        Self.Objects[obj].Rotations := [room.Rotation];
+        Self.Objects[obj].SetupUpText(obj.GetUpText());
+        Self.Objects[obj].Finder := obj.GetFinder();
+        Self.Objects[obj].Walker := @Self.Walker;
+      end;
+    end;
+
+  Self.Loader.Setup(downscale);
+  minimapImage := Minimap.GetCleanMinimap();
+  minimapSample := Minimap.ScaleMinimap(minimapImage, Self.Loader.Downscale, Self.Sample.Radius);
+
+  Self.Cache := TMatchTemplateRGBCache.Create(Self.Loader.DownscaledMap.ToMatrix(), MinimapSample.ToMatrix());
+
+  Self.Walker.Setup(@Self.Position, nil, nil, @Self.Graph, Self.Loader.Map);
+  Self.Walker.Name := 'House.Walker';
+
+  Self.IsSetup := True;
+end;
+
+(*
+## House.ScaledSearch
+```pascal
+function THouseHandler.ScaledSearch(bitmap: TMufasaBitmap; samples: Int32): TPointArray;
+```
+Internal THouseHandler method used to get an initial TPointArray of possible positions.
+This is performed in a downscaled map with a downscaled minimap.
+This is very innacurate by itself but by ruling down most of the map
+in a downscaled search before doing a full sized search speed has a dramatic boost.
+You probably won't ever need to call this directly.
+*)
+function THouseHandler.ScaledSearch(bitmap: TMufasaBitmap): TPointArray;
+var
+  sample: TMufasaBitmap;
+  matrix: TSingleMatrix;
+  n: Int32;
+  p: TPoint;
+begin
+  sample := Minimap.ScaleMinimap(bitmap, Self.Loader.Downscale, Self.Sample.Radius);
+  matrix := MatchTemplateMask(Self.Cache, sample.ToMatrix(), TM_CCOEFF_NORMED);
+
+  while Length(Result) < Self.Sample.Amount do
+    with matrix.ArgMax() do
+    begin
+      p := Offset(sample.GetWidth() div 2, sample.GetHeight() div 2) * Self.Loader.Downscale;
+      Result += p;
+      matrix.Fill([X - 5, Y - 5, X + 5, Y + 5], 0);
+    end;
+
+  n := Self.Loader.Downscale div 2;
+  Result := Result.Offset(n, n);
+
+  sample.Free();
+end;
+
+(*
+## House.FullSearch
+```pascal
+function THouseHandler.FullSearch(template, world: TMufasaBitmap; position: TPoint; out match: Single): TPoint;
+```
+Internal THouseHandler method used to get the player position.
+This is used by THouseHandler.Position() to determine how likely is the **Position** passed in, our actual position.
+This likelyhood is returned with **Match** which ranges from 0 to 1.
+You probably won't ever need to call this directly.
+*)
+function THouseHandler.FullSearch(template, map: TMufasaBitmap; position: TPoint; out match: Single): TPoint;
+const
+  TEMPL_SIZE = 25;
+  SLICE_SIZE = TEMPL_SIZE + 45;
+  SCALING = 2;
+var
+  slice, downscaledSlice, downscaledTemplate: TMufasaBitmap;
+  matrix: TSingleMatrix;
+  area: TBox;
+begin
+  area := [
+    Max(0, position.X - SLICE_SIZE),
+    Max(0, position.Y - SLICE_SIZE),
+    Min(map.GetWidth()  - 1, position.X + SLICE_SIZE),
+    Min(map.GetHeight() - 1, position.Y + SLICE_SIZE)
+  ];
+
+  slice := map.Copy(area);
+  downscaledSlice := slice.Downsample(SCALING);
+
+  downscaledTemplate := template.Downsample(SCALING);
+  with downscaledTemplate.GetCenter() do
+    downscaledTemplate.Crop(X - TEMPL_SIZE, Y - TEMPL_SIZE, X + TEMPL_SIZE, Y + TEMPL_SIZE);
+
+  matrix := downscaledSlice.MatchTemplate(downscaledTemplate, TM_CCOEFF_NORMED);
+  with matrix.ArgMax() do
+  begin
+    match := matrix[Y, X];
+
+    Result.X := area.X1 + (X + TEMPL_SIZE) * SCALING;
+    Result.Y := area.Y1 + (Y + TEMPL_SIZE) * SCALING;
+  end;
+
+  downscaledTemplate.Free();
+  downscaledSlice.Free();
+  slice.Free();
+end;
+
+(*
+## House.Position
+```pascal
+function THouseHandler.Position(): TPoint;
+```
+Returns the players current position on the loaded house map.
+
+Example:
+```pascal
+WriteLn(House.Position());
+WriteLn(House.Similarity); // Check to see the match percentage if needed
+```
+*)
+function THouseHandler.Position(): TPoint;
+var
+  cleanMinimap: TMufasaBitmap;
+  tpa: TPointArray;
+  i: Int32;
+  hit: TPoint;
+  match: Single;
+begin
+  Self.Similarity := 0;
+
+  cleanMinimap := Minimap.GetCleanMinimap();
+
+  tpa := Self.ScaledSearch(cleanMinimap);
+  for i := 0 to High(tpa) do
+  begin
+    hit := Self.FullSearch(cleanMinimap, Self.Loader.Map, tpa[i], match);
+
+    if match > Self.Similarity then
+    begin
+      Self.Similarity := match;
+      Result := hit;
+    end;
+  end;
+
+  cleanMinimap.Free();
+
+  Result := RSTranslator.Normalize(Result);
+end;
+
+(*
+## House.DebugPosition
+```pascal
+function THouseHandler.DebugPosition(): TPoint;
+```
+Debugs the player position in the currently loaded house map.
+
+Example:
+```pascal
+//setup your house and house.loader
+while True do
+  Map.DebugPosition();
+```
+*)
+function THouseHandler.DebugPosition(print: Boolean = True): TPoint;
+var
+  x1, y1, x2, y2, x, y, i: Int32;
+  p: TPoint;
+  iconMap, bitmap, map, cleanMinimap: TMufasaBitmap;
+  time: Double;
+  lines: TStringArray;
+begin
+  Freeze();
+
+  time   := PerformanceTimer();
+  Result := Self.Position();
+  time   := PerformanceTimer() - time;
+
+  x1 := Max(0, Result.X - 200);
+  y1 := Max(0, Result.Y - 200);
+  x2 := Min(x1 + 400, Self.Loader.Map.GetWidth()  - 1);
+  y2 := Min(y1 + 400, Self.Loader.Map.GetHeight() - 1);
+
+  x := Result.X - x1;
+  y := Result.Y - y1;
+
+  iconMap := Self.Loader.Map.Copy();
+  iconMap._DrawPOHIcons();
+
+  map := iconMap.Copy(x1, y1, x2, y2);
+  map.LineTo(Point(0, y), Point(x2 - x1, y), $00FF00);
+  map.LineTo(Point(x, 0), Point(x, y2 - y1), $00FF00);
+  map.DrawBox([x - 2, y - 2, x + 2, y + 2], $FFFFFF);
+
+  cleanMinimap := Minimap.ScaleMinimap(Minimap.GetCleanMinimap(), 1);
+
+  p := cleanMinimap.GetCenter();
+  if RSClient.Mode = ERSClientMode.FIXED then
+    p := p.Offset(0, 8).Rotate(-Minimap.GetCompassAngle(False), p);
+
+  cleanMinimap.DrawBoxFilled([p.X - 1, p.Y - 1, p.X + 1, p.Y + 1], False, $FFFFFF);
+
+  lines := [
+    'Position:'  + Format('[%d, %d]', [Result.X, Result.Y]),
+    'Certainty: '    + ToStr(Round(Self.Similarity, 3)),
+    'Time: '         + ToStr(Round(time)) + ' ms'
+  ];
+
+  bitmap.Init();
+  bitmap.SetSize(700 + cleanMinimap.GetWidth(), 440);
+  bitmap.DrawClear($403027);
+
+  bitmap.SetFontName('Consolas');
+  bitmap.SetFontSize(18);
+  bitmap.SetFontAntialiasing(True);
+
+  for i := 0 to High(lines) do
+  begin
+    if print then WriteLn(lines[i]);
+    bitmap.DrawText(lines[i], [430, cleanMinimap.GetHeight() + 20 + 20 * i], $FFFFFF);
+  end;
+
+  map.DrawTransparent(10, 20, bitmap);
+  map.Free();
+
+  cleanMinimap.SetTransparentColor($0);
+  cleanMinimap.DrawTransparent(520, 10, bitmap);
+  cleanMinimap.Free();
+
+  DisplayDebugImgWindow(bitmap.getWidth(), bitmap.getHeight());
+  DrawBitmapDebugImg(bitmap);
+
+  bitmap.Free();
+
+  UnFreeze();
+end;
+
+
+var
+(*
+## var House
+```pascal
+var House
+```
+Global variable to use the {ref}`THouseHandler`.
+*)
+  House: THouseHandler;
+
+{%codetools on}
+procedure TMufasaBitmap._DrawPOHGrid();
+var
+  b: TBox;
+  p: TPoint;
+  color, pixel: Int32;
+  selected, inBounds: Boolean;
+begin
+  Self.ReplaceColor($0, $1A1A1A);
+
+  for b in Grid(House.Loader.AMOUNT, House.Loader.AMOUNT, House.Loader.SIZE-1, House.Loader.SIZE-1 ,[1,1], [0,0]) do
+  begin
+    selected := b.Contains(House.Loader.Selected.Map);
+    inBounds := House.Loader.HouseBounds.Contains([b.X1 div House.Loader.SIZE, b.Y1 div House.Loader.SIZE]);
+
+    if selected then color := $00FFFF;
+
+    for p in b.ToTPA().Connect() do
+    begin
+      pixel := Self.GetPixel(p);
+      if pixel = $EE then Continue;
+      if not selected and inBounds and (pixel <> House.Loader.Colors.Outdoors) then Continue;
+
+      if not selected then
+        color := SRL.CalculateTransparency(pixel, $FFFFFF, 0.5, False);
+      Self.SetPixel(p.X, p.Y, color);
+    end;
+  end;
+end;
+
+procedure TMufasaBitmap._DrawPOHIcons();
+var
+  p, idx: TPoint;
+  room: THouseRoom;
+  icon, rotated, tmp: TMufasaBitmap;
+begin
+  icon.Init();
+  icon.SetTransparentColor(0);
+
+  for idx.Y := Max(House.Loader.HouseBounds.Y1, 0) to Min(House.Loader.HouseBounds.Y2, House.Loader.AMOUNT-1) do
+    for idx.X := Max(House.Loader.HouseBounds.X1, 0) to Min(House.Loader.HouseBounds.X2, House.Loader.AMOUNT-1) do
+    begin
+      room := House.Loader.ReadRoom(idx);
+      if room.Room = EHouseRoom.UNKNOWN then Continue;
+      p := [idx.X * House.Loader.SIZE, idx.Y * House.Loader.SIZE];
+      tmp := House.Loader.GetIconBitmap(room.Room);
+
+      rotated := tmp.RotateClockWise(room.Rotation);
+      tmp.Free();
+
+      Self.DrawBitmap(rotated, p);
+      rotated.Free();
+    end;
+
+  icon.Free();
+end;
+
+procedure TScriptForm.HousePaintArea(sender: TObject; canvas: TCanvas; r: TRect);
+var
+  limit, b: TBox;
+  tpa: TPointArray;
+  p: TPoint;
+  pixel: Int32;
+begin
+  limit := [r.Left, r.Top, r.Right, r.Bottom];
+  p := [House.Loader.Selected.Matrix.X*House.Loader.SIZE, House.Loader.Selected.Matrix.Y*House.Loader.SIZE];
+  b := [p.X, p.Y, p.X+House.Loader.SIZE-1, p.Y+House.Loader.SIZE-1];
+  if not limit.Contains(b) and not limit.Overlap(b) then Exit;
+
+  tpa := b.ToTPA().Connect();
+  for p in tpa do
+  begin
+    if not limit.Contains(p) then Continue;
+    pixel := TSimbaImageBox(sender).getBackground().getCanvas().GetPixel(p.X, p.Y);
+    if pixel = $0000EE then Continue;
+    canvas.SetPixel(p.X, p.Y, $00FFFF);
+  end;
+
+  for p in tpa.ShapeFill().Difference(tpa) do
+  begin
+    if not limit.Contains(p) then Continue;
+    pixel := TSimbaImageBox(sender).getBackground().getCanvas().GetPixel(p.X, p.Y);
+    if pixel = $0000EE then Continue;
+    canvas.SetPixel(p.X, p.Y, SRL.CalculateTransparency(pixel, $00FFFF, 0.5, False));
+  end;
+end;
+
+procedure TScriptForm.POHObjectUpdate(sender: TObject);
+var
+  i: TPoint;
+  combobox: TComboBox;
+  index: Int32;
+  room: THouseRoom;
+begin
+  combobox := sender;
+  i := House.Loader.Selected.Matrix;
+  room := House.Loader.ReadRoom(i);
+
+  index := combobox.getItemIndex();
+
+  case combobox.getName() of
+    'garden_exit_portal_combobox':
+    begin
+      case index of
+        0: room.Objects := [];
+        1: room.Objects := [EHouseObject.EXIT];
+      end;
+    end;
+
+    'repair_stand_combobox':
+    begin
+      case index of
+        0: room.Objects := [];
+        1: room.Objects := [EHouseObject.REPAIR_STAND];
+      end;
+    end;
+
+    'servant_bag_combobox':
+    begin
+      case index of
+        0: room.Objects := [];
+        1: room.Objects := [EHouseObject.SERVANT_BAG];
+      end;
+    end;
+
+    'trophy_combobox':
+    begin
+      case index of
+        0: room.Objects := [];
+        else room.Objects := [EHouseObject.GLORY + index-1];
+      end;
+    end;
+
+    'lectern_combobox':
+    begin
+      room.Objects -= STUDY_LECTERNS;
+      if index <> 0 then
+        room.Objects += EHouseObject.OAK_LECTERN + index-1;
+    end;
+
+    'prayer_altar_combobox':
+    begin
+      case index of
+        0: room.Objects := [];
+        1: room.Objects := [EHouseObject.PRAYER_ALTAR];
+      end;
+    end;
+
+    'left_portal_combobox':
+    begin
+      room.Objects -= [EHouseObject.LEFT_PORTAL];
+      if index <> 0 then
+        room.Objects += EHouseObject.LEFT_PORTAL;
+
+      House.Loader.TeleportRooms[i.Y, i.X].Left := EHouseTeleport(index);
+    end;
+
+    'middle_portal_combobox':
+    begin
+      room.Objects -= [EHouseObject.MIDDLE_PORTAL];
+      if index <> 0 then
+        room.Objects += EHouseObject.MIDDLE_PORTAL;
+      House.Loader.TeleportRooms[i.Y, i.X].Middle := EHouseTeleport(index);
+    end;
+
+    'right_portal_combobox':
+    begin
+      room.Objects -= [EHouseObject.RIGHT_PORTAL];
+      if index <> 0 then
+        room.Objects += EHouseObject.RIGHT_PORTAL;
+      House.Loader.TeleportRooms[i.Y, i.X].Right := EHouseTeleport(index);
+    end;
+
+    'left_amulet_combobox':
+    begin
+      room.Objects -= [EHouseObject.LEFT_AMULET];
+      if index <> 0 then
+        room.Objects += EHouseObject.LEFT_AMULET;
+      case index of
+        0: House.Loader.TeleportRooms[i.Y, i.X].Left := EHouseTeleport.EMPTY;
+        1: House.Loader.TeleportRooms[i.Y, i.X].Left := EHouseTeleport.XERIC;
+        2: House.Loader.TeleportRooms[i.Y, i.X].Left := EHouseTeleport.DIGSITE;
+      end;
+    end;
+
+    'right_amulet_combobox':
+    begin
+      room.Objects -= [EHouseObject.RIGHT_AMULET];
+      if index <> 0 then
+        room.Objects += EHouseObject.RIGHT_AMULET;
+      case index of
+        0: House.Loader.TeleportRooms[i.Y, i.X].Right := EHouseTeleport.EMPTY;
+        1: House.Loader.TeleportRooms[i.Y, i.X].Right := EHouseTeleport.XERIC;
+        2: House.Loader.TeleportRooms[i.Y, i.X].Right := EHouseTeleport.DIGSITE;
+      end;
+    end;
+
+    'nexus_combobox':
+    begin
+      case index of
+        0: room.Objects -= [EHouseObject.NEXUS];
+        1: if not (EHouseObject.NEXUS in room.Objects) then
+             room.Objects += EHouseObject.NEXUS;
+      end;
+    end;
+
+    'pool_combobox':
+    begin
+      room.Objects -= SUPERIOR_GARDEN_POOLS;
+      if index <> 0 then
+        room.Objects += EHouseObject.RESTORATION_POOL + index-1;
+    end;
+
+    'superior_garden_teleport_combobox':
+    begin
+      room.Objects -= SUPERIOR_GARDEN_TELEPORTS;
+      if index <> 0 then
+        room.Objects += EHouseObject.SPIRIT_TREE + index-1;
+    end;
+
+    'jewellery_box_combobox':
+    begin
+      room.Objects -= JEWELLERY_BOXES;
+      if index <> 0 then
+        room.Objects += EHouseObject.BASIC_JEWELLERY_BOX + index-1;
+    end;
+
+    'magic_altar_combobox':
+    begin
+      room.Objects -= ACHIEVEMENT_GALLERY_ALTARS;
+      if index <> 0 then
+        room.Objects += EHouseObject.ANCIENT_ALTAR + index-1;
+    end;
+
+    'cape_hanger_combobox':
+    begin
+      case index of
+        0: room.Objects -= [EHouseObject.CAPE_HANGER];
+        1: if not (EHouseObject.CAPE_HANGER in room.Objects) then
+             room.Objects += EHouseObject.CAPE_HANGER;
+      end;
+    end;
+  end;
+
+  House.Loader.WriteRoom(room, House.Loader.Selected.Matrix);
+end;
+
+procedure TScriptForm.RefreshObjectsPanel(panel: TPanel; room: THouseRoom);
+var
+  combobox: TLabeledComboBox;
+  teleports: TStringArray;
+  index: TPoint;
+begin
+  panel.Hide(); //hide temporarily so it looks better for human eyes
+  panel.RemoveChildren();
+
+  case room.Room of
+    EHouseRoom.GARDEN, EHouseRoom.FORMAL_GARDEN:
+    begin
+      combobox.Create(panel, 'Exit portal:', 'Does this room have a exit portal?', [0,0],[166,50], True);
+      combobox.AddItemArray(['No', 'Yes']);
+      combobox.SetName('garden_exit_portal');
+      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.WORKSHOP:
+    begin
+      combobox.Create(panel, 'Repair armour stand:', 'Does this room have an armour stand?', [0,0],[166,50], True);
+      combobox.AddItemArray(['No', 'Yes']);
+      combobox.SetName('repair_stand');
+      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.BEDROOM:
+    begin
+      combobox.Create(panel, 'Servant money bag:', 'Does this room have a servant money bag?', [0,0],[166,50], True);
+      combobox.AddItemArray(['No', 'Yes']);
+      combobox.SetName('servant_bag');
+      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.QUEST_HALL:
+    begin
+      combobox.Create(panel, 'Trophy:', 'Does this room have a teleport trophy?', [0,0],[166,50], True);
+      combobox.AddItemArray(['None', 'Amulet of glory', 'Mythical cape']);
+      combobox.SetName('trophy');
+      if SetCount(room.Objects) = 0 then combobox.SetItemIndex(0)
+      else if EHouseObject.GLORY in room.Objects then combobox.SetItemIndex(1)
+      else combobox.SetItemIndex(2);
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.STUDY:
+    begin
+      combobox.Create(panel, 'Lectern:', 'Does this room have a lectern?', [0,0],[166,50], True);
+      combobox.AddItemArray([
+        'None', 'Oak lectern', 'Eagle lectern', 'Demon lectern',
+        'Teak eagle lectern', 'Teak demon lectern', 'Mahogany eagle lectern',
+        'Mahogany demon lectern', 'Marble lectern'
+      ]);
+      combobox.SetName('lectern');
+      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.CHAPEL:
+    begin
+      combobox.Create(panel, 'Altar:', 'Does this room have an altar?', [0,0],[166,50], True);
+      combobox.AddItemArray(['No', 'Yes']);
+      combobox.SetName('prayer_altar');
+      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.PORTAL_CHAMBER:
+    begin
+      combobox.Create(panel, 'Left portal:', 'Does this room have a portal to the left of it''s entrance?', [0,0],[166,50], True);
+      teleports := [
+        'None', 'Arceuus Library', 'Draynor Manor', 'Battlefront', 'Varrock',
+        'Grand Exchange', 'Mind Altar', 'Lumbridge', 'Falador	',
+        'Salve Graveyard', 'Camelot', 'Seers'' Village',
+        'Fenkenstrain''s Castle', 'Kourend Castle', 'East Ardougne',
+        'Civitas illa Fortis', 'Watchtower', 'Yanille', 'Senntisten (Digsite)',
+        'West Ardougne', 'Marim (Ape Atoll)', 'Harmony Island	',
+        'Kharyrll (Canifis)', 'Moonclan', 'Cemetery', 'Waterbirth Island',
+        'Barrows', 'Carrallanger (Graveyard of Shadows)', 'Fishing Guild',
+        'Catherby', 'Annakarl (Demonic Ruins)', 'Ape Atoll Dungeon',
+        'Ghorrock (Frozen Waste Plateau)', 'Troll Stronghold', 'Weiss'
+      ];
+      index := House.Loader.Selected.Matrix;
+      combobox.AddItemArray(teleports);
+
+      combobox.SetName('left_portal');
+      combobox.SetItemIndex(Ord(House.Loader.TeleportRooms[index.Y, index.X].Left));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Middle portal:', 'Does this room have a portal in front of it''s entrance?', [0,50],[166,50], True);
+      combobox.AddItemArray(teleports);
+      combobox.SetName('middle_portal');
+      combobox.SetItemIndex(Ord(House.Loader.TeleportRooms[index.Y, index.X].Middle));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Right portal:', 'Does this room have a portal to the right of it''s entrance?', [0,100],[166,50], True);
+      combobox.AddItemArray(teleports);
+      combobox.SetName('right_portal');
+      combobox.SetItemIndex(Ord(House.Loader.TeleportRooms[index.Y, index.X].Right));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.PORTAL_NEXUS:
+    begin
+      index := House.Loader.Selected.Matrix;
+      combobox.Create(panel, 'Left amulet:', 'Does this room have a  digsite pendant or a xeric''s talisman?', [0,0],[166,50], True);
+      combobox.AddItemArray(['None', 'Xeric''s talisman', 'Digsite pendant']);
+      combobox.SetName('left_amulet');
+      case House.Loader.TeleportRooms[index.Y, index.X].Left of
+        EHouseTeleport.XERIC: combobox.SetItemIndex(1);
+        EHouseTeleport.DIGSITE: combobox.SetItemIndex(2);
+        else combobox.SetItemIndex(0);
+      end;
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Right amulet:', 'Does this room have a  digsite pendant or a xeric''s talisman?', [0,50],[166,50], True);
+      combobox.AddItemArray(['None', 'Xeric''s talisman', 'Digsite pendant']);
+      combobox.SetName('right_amulet');
+      case House.Loader.TeleportRooms[index.Y, index.X].Right of
+        EHouseTeleport.XERIC: combobox.SetItemIndex(1);
+        EHouseTeleport.DIGSITE: combobox.SetItemIndex(2);
+        else combobox.SetItemIndex(0);
+      end;
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Portal nexus:', 'Does this room have a portal nexus?', [0,100],[166,200], True);
+      combobox.AddItemArray(['No', 'Yes']);
+      combobox.SetName('nexus');
+      combobox.SetItemIndex(Int32(EHouseObject.NEXUS in room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.SUPERIOR_GARDEN:
+    begin
+      combobox.Create(panel, 'Pool:', 'Does this room have a pool?', [0,0],[166,50], True);
+      combobox.AddItemArray(['None', 'Restoration', 'Revitalisation', 'Rejuvenation', 'Fancy rejuvenation', 'Ornate rejuvenation']);
+      combobox.SetName('pool');
+      combobox.SetItemIndex(0);
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Teleport:', 'Does this room have a teleport?', [0,50],[166,50], True);
+      combobox.AddItemArray(['None', 'Spirit tree', 'Obelisk', 'Fairy ring', 'Spirit fairy tree']);
+      combobox.SetName('superior_garden_teleport');
+      combobox.SetItemIndex(0);
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.ACHIEVEMENT_GALLERY:
+    begin
+      combobox.Create(panel, 'Jewellery box:', 'Does this room have a jewellery box?', [0,0],[166,50], True);
+      combobox.AddItemArray(['None', 'Basic', 'Fancy', 'Ornate']);
+      combobox.SetName('jewellery_box');
+
+      if EHouseObject.BASIC_JEWELLERY_BOX in room.Objects then
+        combobox.SetItemIndex(1)
+      else if EHouseObject.FANCY_JEWELLERY_BOX in room.Objects then
+        combobox.SetItemIndex(2)
+      else if EHouseObject.ORNATE_JEWELLERY_BOX in room.Objects then
+        combobox.SetItemIndex(3)
+      else
+        combobox.SetItemIndex(0);
+
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Altar:', 'Does this room have an altar?', [0,50],[166,50], True);
+      combobox.AddItemArray(['None', 'Ancient', 'Lunar', 'Dark', 'Occult']);
+      combobox.SetName('magic_altar');
+      if EHouseObject.ANCIENT_ALTAR in room.Objects then
+        combobox.SetItemIndex(1)
+      else if EHouseObject.LUNAR_ALTAR in room.Objects then
+        combobox.SetItemIndex(2)
+      else if EHouseObject.DARK_ALTAR in room.Objects then
+        combobox.SetItemIndex(3)
+      else if EHouseObject.OCCULT_ALTAR in room.Objects then
+        combobox.SetItemIndex(4)
+      else
+        combobox.SetItemIndex(0);
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Cape hanger:', 'Does this room have a cape hanger?', [0,100],[166,50], True);
+      combobox.AddItemArray(['None', 'Yes']);
+      combobox.SetName('cape_hanger');
+      combobox.SetItemIndex(Int32(EHouseObject.CAPE_HANGER in room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+  end;
+  panel.Show(); //show again
+end;
+
+
+procedure TScriptForm.POHMouseDown(sender: TObject; btn: TMouseButton; {$H-}shift: TShiftState;{$H+} x, y: Integer);
+var
+  p: TPoint;
+  tmp: TMufasaBitmap;
+  parent: TControl;
+  combobox: TComboBox;
+begin
+  if btn <> TMouseButton.mbLeft then Exit;
+
+  p := [x div House.Loader.SIZE, y div House.Loader.SIZE];
+  if p = House.Loader.Selected.Matrix then Exit;
+
+  House.Loader.Selected.Map := [x,y];
+  House.Loader.Selected.Matrix := p;
+
+  parent := TSimbaImageBox(sender).getParent().getParent();
+  combobox := parent.GetChild('room_combobox');
+
+  combobox.setItemIndex(Ord(House.Loader.ReadRoom(House.Loader.Selected.Matrix).Room));
+
+  tmp := House.Loader.Map.Copy();
+  tmp._DrawPOHGrid();
+  tmp._DrawPOHIcons();
+  TSimbaImageBox(sender).getBackground().LoadFromMufasaBitmap(tmp);
+  TSimbaImageBox(sender).Update();
+  tmp.Free();
+
+  Self.RefreshObjectsPanel(parent.GetChild('objects_panel'), House.Loader.ReadRoom(House.Loader.Selected.Matrix));
+end;
+
+procedure TScriptForm.POHKeyPress(sender: TObject; var key: Char);
+var
+  p: TPoint;
+  tmp: TMufasaBitmap;
+  parent: TControl;
+  combobox: TComboBox;
+begin
+  p := House.Loader.Selected.Matrix;
+  case key of
+    'w', 'W': p += [0,-1];
+    'd', 'D': p += [1,0];
+    's', 'S': p += [0,1];
+    'a', 'A': p += [-1,0];
+    else Exit;
+  end;
+
+  p.X := Max(0, Min(p.X, House.Loader.AMOUNT));
+  p.Y := Max(0, Min(p.Y, House.Loader.AMOUNT));
+
+  if p = House.Loader.Selected.Matrix then Exit;
+
+  House.Loader.Selected.Map := p * House.Loader.SIZE;
+  House.Loader.Selected.Matrix := p;
+
+  parent := TSimbaImageBox(sender).getParent().getParent();
+  combobox := parent.GetChild('room_combobox');
+
+  combobox.setItemIndex(Ord(House.Loader.ReadRoom(House.Loader.Selected.Matrix).Room));
+
+  tmp := House.Loader.Map.Copy();
+  tmp._DrawPOHGrid();
+  tmp._DrawPOHIcons();
+  TSimbaImageBox(sender).getBackground().LoadFromMufasaBitmap(tmp);
+  TSimbaImageBox(sender).Update();
+  tmp.Free();
+
+  Self.RefreshObjectsPanel(parent.GetChild('objects_panel'), House.Loader.ReadRoom(House.Loader.Selected.Matrix));
+end;
+
+
+procedure TScriptForm.POHDecorationUpdate(sender: TObject);
+var
+  parent: TControl;
+  combobox: TComboBox;
+  imgbox: TSimbaImageBox;
+  tmp: TMufasaBitmap;
+begin
+  combobox := sender;
+  parent := combobox.getParent().getParent().getParent();
+  imgbox := parent.GetChild('poh_builder');
+
+  if House.Loader.Map = nil then
+  begin
+    House.Loader.Init(32, 13);
+    combobox.setItemIndex(Ord(House.Loader.Decoration));
+  end
+  else
+  begin
+    House.Loader.SetColors(EHouseDecoration(combobox.getItemIndex()));
+    House.Loader.Redraw();
+  end;
+
+  tmp := House.Loader.Map.Copy();
+  tmp._DrawPOHGrid();
+  tmp._DrawPOHIcons();
+  imgbox.getBackground().LoadFromMufasaBitmap(tmp);
+  imgbox.Update();
+  tmp.Free();
+  House.Loader.Config.Put('layout', House.Loader.ToEncodedString());
+end;
+
+
+procedure TScriptForm.RoomUpdate(sender: TObject);
+var
+  parent: TControl;
+  imgbox: TSimbaImageBox;
+  tmp: TMufasaBitmap;
+  room: EHouseRoom;
+  old, new: THouseRoom;
+begin
+  parent := TComboBox(sender).getParent().getParent().getParent();
+  imgbox := parent.GetChild('poh_builder');
+
+  room := EHouseRoom(TComboBox(sender).getItemIndex());
+  old := House.Loader.ReadRoom(House.Loader.Selected.Matrix);
+  if old.Room = room then new := old
+  else new := [room, 0, []];
+  House.Loader.DrawMap(new, House.Loader.Selected.Matrix);
+
+  tmp := House.Loader.Map.Copy();
+  tmp._DrawPOHGrid();
+  tmp._DrawPOHIcons();
+  imgbox.getBackground().LoadFromMufasaBitmap(tmp);
+  imgbox.Update();
+  tmp.Free();
+
+  Self.RefreshObjectsPanel(parent.GetChild('objects_panel'), new);
+end;
+
+procedure TScriptForm.OnRotateRoom(sender: TObject);
+var
+  parent: TControl;
+  imgbox: TSimbaImageBox;
+  current: THouseRoom;
+  tmp: TMufasaBitmap;
+begin
+  parent := TComboBox(sender).getParent().getParent();
+  imgbox := parent.GetChild('poh_builder');
+  current := House.Loader.ReadRoom(House.Loader.Selected.Matrix);
+
+  case TButton(sender).getName() of
+    'rotate_left_button': current.Rotation -= 1;
+    'rotate_right_button': current.Rotation += 1;
+  end;
+
+  case current.Rotation of
+    -1: current.Rotation := 3;
+    4: current.Rotation := 0;
+  end;
+
+  House.Loader.DrawMap(current, House.Loader.Selected.Matrix);
+
+  tmp := House.Loader.Map.Copy();
+  tmp._DrawPOHGrid();
+  tmp._DrawPOHIcons();
+  imgbox.getBackground().LoadFromMufasaBitmap(tmp);
+  imgbox.Update();
+  tmp.Free();
+end;
+
+procedure TScriptForm.OnShow(sender: TObject); override;
+var
+  imgbox: TSimbaImageBox;
+begin
+  inherited;
+  imgbox := TForm(sender).GetChild('poh_builder');
+  if imgbox <> nil then
+  begin
+    imgbox.BackgroundChanged();
+    imgbox.setZoom(2);
+    imgbox.MoveTo(130, 200);
+    imgbox.SetFocus();
+  end;
+end;
+{%codetools on}
+
+procedure TScriptForm.StartScript(sender: TObject); override;
+begin
+  inherited;
+
+  if not House.IsSetup and (House.Loader.Map <> nil) then
+    House.Setup();
+end;
+
+function TScriptForm.CreateHouseBuilder(): TTabSheet;
+var
+  panel: TPanel;
+  imgbox: TSimbaImageBox;
+  decoration, room: TLabeledComboBox;
+  rotateLeft, rotateRight: TButton;
+  caption: TLabel;
+begin
+  Self.AddTab('House Builder');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  panel.Create(Result);
+  panel.setAlign(TAlign.alLeft);
+  panel.setBevelWidth(0);
+
+  decoration.Create(panel, 'Decoration:', 'Change your house decoration', [0, 10], [166,0], True);
+  decoration.AddItemArray(['Basic wood', 'Basic stone', 'Whitewashed stone', 'Fremennik-style wood', 'Tropical wood', 'Fancy stone', 'Deathly mansion', 'Twisted theme', 'Hosidius house', 'Cosy cabin']);
+  decoration.SetItemIndex(0);
+  decoration.ComboBox.setOnChange(@Self.POHDecorationUpdate);
+
+  room.Create(panel, 'Room:', 'Change the selected room', [0, 50], [166,0], True);
+  room.SetName('room');
+  room.AddItemArray([
+    'None', 'Parlour', 'Garden', 'Kitchen', 'Dining room', 'Workshop', 'Bedroom',
+    'Skill hall', 'League hall', 'Games room', 'Combat room', 'Quest hall',
+    'Menagerie (outdoors)', 'Menagerie (indoors)', 'Study', 'Costume room',
+    'Chapel', 'Portal chamber', 'Formal garden', 'Throne room',
+    'Superior garden', 'Portal nexus', 'Achievement gallery'
+  ]);
+  room.ComboBox.setOnChange(@Self.RoomUpdate);
+
+  rotateLeft.Create(panel, 'Rotate Left', 'Rotate the current room counter clockwise', [0,100], [0,0], True);
+  rotateLeft.setName('rotate_left_button');
+  rotateLeft.setOnClick(@Self.OnRotateRoom);
+  rotateRight.Create(panel, 'Rotate Right', 'Rotate the current room clockwise', [92,100], [0,0], True);
+  rotateRight.setName('rotate_right_button');
+  rotateRight.setOnClick(@Self.OnRotateRoom);
+
+  panel.Create(panel, [0, 150], [0,300], True);
+  panel.SetName('objects_panel');
+  panel.setCaption('');
+  panel.setBevelWidth(0);
+
+  panel.Create(Result);
+  panel.setAlign(TAlign.alClient);
+  panel.setBevelWidth(0);
+
+  caption.Create(panel,'LEFT CLICK to select a room, RIGHT CLICK to pan around. CTRL + WHEEL to zoom.', '', [0,0], [0,0], True);
+  caption.setAlign(TAlign.alTop);
+
+  imgbox.Create(panel);
+  imgbox.setName('poh_builder');
+  imgbox.setOnPaintArea(@Self.HousePaintArea);
+  imgbox.setOnMouseDown(@Self.POHMouseDown);
+  imgbox.setOnKeyPress(@Self.POHKeyPress);
+  Self.POHDecorationUpdate(decoration.ComboBox);
+  room.SetItemIndex(Ord(House.Loader.ReadRoom(House.Loader.Selected.Matrix).Room));
+  Self.RoomUpdate(room.ComboBox);
+end;
+

@@ -66,6 +66,7 @@ The core record used to handle navigating a POH.
     Walker: TRSWalkerV2;
 
     Objects: array [EHouseObject] of TRSObjectV2;
+    Teleports: array [EHouseTeleport] of TRSObjectV2;
 
     Downscale: Int32;
     Similarity: Double;
@@ -79,6 +80,76 @@ The core record used to handle navigating a POH.
 
 function THouseHandler.Position(): TPoint; forward;
 
+
+procedure THouseHandler._SetupTeleport(obj: EHouseObject; coordinate: TPoint; rotation: Int32; teleport: EHouseTeleport);
+begin
+  if Self.Teleports[teleport].Coordinates <> [] then
+  begin
+    Self.Teleports[teleport].Coordinates += coordinate;
+    Self.Teleports[teleport].Rotations += rotation;
+    Exit;
+  end;
+
+  Self.Teleports[teleport].SetupCoordinates([coordinate]);
+  Self.Teleports[teleport].Size := obj.GetSize();
+  Self.Teleports[teleport].Rotations := [rotation];
+  Self.Teleports[teleport].SetupUpText(teleport.GetUpText());
+  Self.Teleports[teleport].Finder := teleport.GetFinder();
+  Self.Teleports[teleport].Walker := @Self.Walker;
+end;
+
+procedure THouseHandler._SetupObject(obj: EHouseObject; coordinate: TPoint; rotation: Int32);
+begin
+  if Self.Objects[obj].Coordinates <> [] then
+  begin
+    Self.Objects[obj].Coordinates += coordinate;
+    Self.Objects[obj].Rotations += rotation;
+    Exit;
+  end;
+
+  Self.Objects[obj].SetupCoordinates([coordinate]);
+  Self.Objects[obj].Size := obj.GetSize();
+  Self.Objects[obj].Rotations := [rotation];
+  Self.Objects[obj].SetupUpText(obj.GetUpText());
+  Self.Objects[obj].Finder := obj.GetFinder();
+  Self.Objects[obj].Walker := @Self.Walker;
+end;
+
+procedure THouseHandler.SetupObjects();
+var
+  idx, coordinate: TPoint;
+  room: THouseRoom;
+  obj: EHouseObject;
+begin
+  for idx.Y := 0 to Self.Loader.AMOUNT-1 do
+    for idx.X := 0 to Self.Loader.AMOUNT-1 do
+    begin
+      room := Self.Loader.ReadRoom(idx);
+
+      for obj in room.Objects do
+      begin
+        coordinate := obj.RotateOffset(Self.Loader.SIZE, room.Rotation);
+        coordinate += idx * Self.Loader.SIZE;
+
+        case obj of
+          EHouseObject.LEFT_PORTAL, EHouseObject.LEFT_AMULET:
+            Self._SetupTeleport(obj, coordinate, room.Rotation,
+                                Self.Loader.TeleportRooms[idx.Y,idx.X].Left);
+
+          EHouseObject.MIDDLE_PORTAL:
+            Self._SetupTeleport(obj, coordinate, room.Rotation,
+                                Self.Loader.TeleportRooms[idx.Y,idx.X].Middle);
+
+          EHouseObject.RIGHT_PORTAL, EHouseObject.RIGHT_AMULET:
+            Self._SetupTeleport(obj, coordinate, room.Rotation,
+                                Self.Loader.TeleportRooms[idx.Y,idx.X].Right);
+        end;
+
+        Self._SetupObject(obj, coordinate, room.Rotation);
+      end;
+    end;
+end;
+
 (*
 ## POH.Setup()
 ```pascal
@@ -90,41 +161,12 @@ with `TScriptForm.CreateHouseBuilder()`.
 procedure THouseHandler.Setup(downscale: Int32 = 8);
 var
   minimapImage, minimapSample: TMufasaBitmap;
-  idx, coordinate: TPoint;
-  room: THouseRoom;
-  obj: EHouseObject;
 begin
   if Self.IsSetup then Exit;
   if Self.Sample.Amount = 0 then Self.Sample.Amount := 2;
   if Self.Sample.Radius = 0 then Self.Sample.Radius := 67;
 
-  for idx.Y := 0 to Self.Loader.AMOUNT-1 do
-    for idx.X := 0 to Self.Loader.AMOUNT-1 do
-    begin
-      room := Self.Loader.ReadRoom(idx);
-
-      for obj in room.Objects do
-      begin
-        coordinate := obj.RotateOffset(Self.Loader.SIZE, room.Rotation);
-        coordinate += idx * Self.Loader.SIZE;
-
-        if Self.Objects[obj].Coordinates <> [] then
-        begin
-          Self.Objects[obj].Coordinates += coordinate;
-          Self.Objects[obj].Rotations += room.Rotation;
-          Continue;
-        end;
-
-        Self.Objects[obj].SetupCoordinates([coordinate]);
-        Self.Objects[obj].Size := obj.GetSize();
-        Self.Objects[obj].Rotations := [room.Rotation];
-        Self.Objects[obj].SetupUpText(obj.GetUpText());
-        Self.Objects[obj].Finder := obj.GetFinder();
-        Self.Objects[obj].Walker := @Self.Walker;
-      end;
-
-      //TODO... do something about portals
-    end;
+  Self.SetupObjects();
 
   Self.Loader.Setup(downscale);
   minimapImage := Minimap.GetCleanMinimap();

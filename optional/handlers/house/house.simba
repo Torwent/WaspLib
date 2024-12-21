@@ -31,14 +31,11 @@ e.g., Nexus room, Combat Hall and Quest Hall are all identical.
 {$DEFINE WL_HOUSE_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
+  {$SCOPEDENUMS ON}
 {$ENDIF}
 
 {$IFNDEF WL_HOUSEMAP_INCLUDED}
-  {$I WaspLib/optional/handlers/housemap.simba}
-{$ENDIF}
-
-{$IFNDEF WL_HOUSEOBJECTS_INCLUDED}
-  {$I WaspLib/optional/handlers/houseobjects.simba}
+  {$I WaspLib/optional/handlers/house/housemap.simba}
 {$ENDIF}
 
 type
@@ -46,12 +43,21 @@ type
 (THouseHandler)=
 ## type THouseHandler
 ```pascal
-type
-  THouseHandler = record
-    RoomObjects: array [ERSRoomObject] of TRoomObject;
-    EnableRunAtEnergy: Int32;
-    Similarity: Double;
-  end;
+THouseHandler = record(TSRLBaseRecord)
+  Loader: THouseMap;
+  Walker: TRSWalkerV2;
+
+  Objects: array [EHouseObject] of TRSObjectV2;
+
+  Downscale: Int32;
+  Similarity: Double;
+
+  Sample: TRSMapSample;
+  Cache: TMatchTemplateRGBCache;
+
+  Graph: TWebGraphV2;
+  IsSetup: Boolean;
+end;
 ```
 The core record used to handle navigating a POH.
 *)
@@ -97,7 +103,6 @@ begin
     begin
       room := Self.Loader.ReadRoom(idx);
 
-
       for obj in room.Objects do
       begin
         coordinate := obj.RotateOffset(Self.Loader.SIZE, room.Rotation);
@@ -117,6 +122,8 @@ begin
         Self.Objects[obj].Finder := obj.GetFinder();
         Self.Objects[obj].Walker := @Self.Walker;
       end;
+
+      //TODO... do something about portals
     end;
 
   Self.Loader.Setup(downscale);
@@ -342,7 +349,6 @@ begin
 
   UnFreeze();
 end;
-
 
 var
 (*
@@ -606,6 +612,7 @@ var
   combobox: TLabeledComboBox;
   teleports: TStringArray;
   index: TPoint;
+  tmp: set of EHouseObject;
 begin
   panel.Hide(); //hide temporarily so it looks better for human eyes
   panel.RemoveChildren();
@@ -658,7 +665,10 @@ begin
         'Mahogany demon lectern', 'Marble lectern'
       ]);
       combobox.SetName('lectern');
-      combobox.SetItemIndex(SetCount(room.Objects));
+      if SetCount(room.Objects) <> 1 then
+        combobox.SetItemIndex(0)
+      else
+        combobox.SetItemIndex(SetFirst(room.Objects) - Ord(EHouseObject.OAK_LECTERN) + 1);
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
     end;
 
@@ -736,7 +746,7 @@ begin
       combobox.Create(panel, 'Portal nexus:', 'Does this room have a portal nexus?', [0,100],[166,200], True);
       combobox.AddItemArray(['No', 'Yes']);
       combobox.SetName('nexus');
-      combobox.SetItemIndex(Int32(EHouseObject.NEXUS in room.Objects));
+      combobox.SetItemIndex(Int32(Boolean(EHouseObject.NEXUS in room.Objects)));
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
     end;
 
@@ -745,14 +755,26 @@ begin
       combobox.Create(panel, 'Pool:', 'Does this room have a pool?', [0,0],[166,50], True);
       combobox.AddItemArray(['None', 'Restoration', 'Revitalisation', 'Rejuvenation', 'Fancy rejuvenation', 'Ornate rejuvenation']);
       combobox.SetName('pool');
-      combobox.SetItemIndex(0);
+
+      tmp := room.Objects - SUPERIOR_GARDEN_TELEPORTS;
+      if SetCount(tmp) <> 1 then
+        combobox.SetItemIndex(0)
+      else
+        combobox.SetItemIndex(SetFirst(tmp) - Ord(EHouseObject.RESTORATION_POOL) + 1);
+
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
 
       combobox := [];
       combobox.Create(panel, 'Teleport:', 'Does this room have a teleport?', [0,50],[166,50], True);
       combobox.AddItemArray(['None', 'Spirit tree', 'Obelisk', 'Fairy ring', 'Spirit fairy tree']);
       combobox.SetName('superior_garden_teleport');
-      combobox.SetItemIndex(0);
+
+      tmp := room.Objects - SUPERIOR_GARDEN_POOLS;
+      if SetCount(tmp) <> 1 then
+        combobox.SetItemIndex(0)
+      else
+        combobox.SetItemIndex(SetFirst(tmp) - Ord(EHouseObject.SPIRIT_TREE) + 1);
+
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
     end;
 
@@ -791,12 +813,14 @@ begin
 
       combobox := [];
       combobox.Create(panel, 'Cape hanger:', 'Does this room have a cape hanger?', [0,100],[166,50], True);
-      combobox.AddItemArray(['None', 'Yes']);
+      combobox.AddItemArray(['No', 'Yes']);
       combobox.SetName('cape_hanger');
-      combobox.SetItemIndex(Int32(EHouseObject.CAPE_HANGER in room.Objects));
+
+      combobox.SetItemIndex(Int32(Boolean(EHouseObject.CAPE_HANGER in room.Objects)));
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
     end;
   end;
+
   panel.Show(); //show again
 end;
 

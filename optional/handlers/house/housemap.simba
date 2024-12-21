@@ -6,238 +6,14 @@ The HouseMap is what's responsible for mapping a user's POH (Player owned house)
 {$DEFINE WL_HOUSEMAP_INCLUDED}
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
+  {$SCOPEDENUMS ON}
+{$ENDIF}
+
+{$IFNDEF WL_HOUSEUTILS_INCLUDED}
+  {$I WaspLib/optional/handlers/house/houseutils.simba}
 {$ENDIF}
 
 type
-  THouseColor = record
-    Outdoors, Indoors, Dungeon: Int32;
-  end;
-
-  EHouseDecoration = (
-    WOOD, STONE, WHITE, FREMENNIK, TROPICAL, FANCY, DEATHLY, TWISTED, HOSIDIUS, WINTER
-  );
-
-function EHouseDecoration.GetColors(): THouseColor;
-begin
-  case Self of
-    EHouseDecoration.WOOD, EHouseDecoration.TROPICAL: Result := [$2D9167, $59808F, 0];
-    EHouseDecoration.STONE: Result := [$2D9167, $42617E, 0];
-    EHouseDecoration.WHITE: Result := [$82C4D1, $70969B, 0];
-    EHouseDecoration.FREMENNIK: Result := [$4C707B, $457083, 0];
-    EHouseDecoration.FANCY: Result := [$2D9167, $789EA6, 0];
-    EHouseDecoration.DEATHLY, EHouseDecoration.HOSIDIUS: Result := [$2D9167, $5786A7, 0];
-    EHouseDecoration.TWISTED: Result := [$1B1B20, $545459, 0];
-    EHouseDecoration.WINTER: Result := [$D2D2D7, $5786A7, 0];
-   end;
-end;
-
-type
-(*
-(EHouseRoom)=
-## type EHouseRoom
-```pascal
-EHouseRoom = (
-  UNKNOWN, GARDEN, SUPERIOR_GARDEN, MENAGERIE_OPEN, MENAGERIE_CLOSED,
-  STUDY_PARLOUR, KITCHEN_BEDROOM, ACHIEVEMENT_GALLERY, QUEST_NEXUS, COMBAT,
-  COSTUME, ALTAR, PORTAL, WORKSHOP
-);
-```
-*)
-{$SCOPEDENUMS ON}
-  EHouseRoom = (
-    UNKNOWN, PARLOUR, GARDEN, KITCHEN, DINING, WORKSHOP, BEDROOM, SKILL_HALL,
-    LEAGUE_HALL, GAMES, COMBAT, QUEST_HALL, MENAGERIE_OUTDOORS,
-    MENAGERIE_INDOORS, STUDY, COSTUME, CHAPEL, PORTAL_CHAMBER, FORMAL_GARDEN,
-    THRONE, SUPERIOR_GARDEN, PORTAL_NEXUS, ACHIEVEMENT_GALLERY
-  );
-{$SCOPEDENUMS OFF}
-
-function EHouseRoom.IsOutdoors(): Boolean;
-begin
-  case Self of
-    EHouseRoom.UNKNOWN, EHouseRoom.GARDEN, EHouseRoom.FORMAL_GARDEN,
-    EHouseRoom.SUPERIOR_GARDEN, EHouseRoom.MENAGERIE_OUTDOORS: Result := True;
-  end;
-end;
-
-type
-{$SCOPEDENUMS ON}
-  EHouseObject = (
-    EXIT, REPAIR_STAND, SERVANT_BAG,
-    GLORY, MYTH_CAPE,
-
-    OAK_LECTERN, EAGLE_LECTERN, DEMON_LECTERN, TEAK_EAGLE_LECTERN,
-    TEAK_DEMON_LECTERN, MAHOGANY_EAGLE_LECTERN, MAHOGANY_DEMON_LECTERN,
-    MARBLE_LECTERN,
-
-    PRAYER_ALTAR,
-
-    LEFT_PORTAL, MIDDLE_PORTAL, RIGHT_PORTAL,
-
-    NEXUS, LEFT_AMULET, RIGHT_AMULET,
-
-    RESTORATION_POOL, REVITALISATION_POOL, REJUVENATION_POOL, FANCY_POOL, ORNATE_POOL,
-    SPIRIT_TREE, OBELISK, FAIRY_RING, FAIRY_TREE,
-
-    BASIC_JEWELLERY_BOX, FANCY_JEWELLERY_BOX, ORNATE_JEWELLERY_BOX,
-    ANCIENT_ALTAR, LUNAR_ALTAR, DARK_ALTAR, OCCULT_ALTAR,
-    CAPE_HANGER
-  );
-
-  EHouseTeleport = (
-    EMPTY, ARCEUUS_LIBRARY, DRAYNOR_MANOR, BATTLEFRONT, VARROCK, GRAND_EXCHANGE,
-    MIND_ALTAR, LUMBRIDGE, FALADOR, SALVE_GRAVEYARD, CAMELOT, SEERS_VILLAGE,
-    FENKENSTRAINS_CASTLE, KOUREND_CASTLE, EAST_ARDOUGNE, CIVITAS_ILLA_FORTIS,
-    WATCHTOWER, YANILLE, SENNTISTEN, WEST_ARDOUGNE, MARIM, HARMONY_ISLAND,
-    KHARYRLL, MOONCLAN, CEMETERY, WATERBIRTH_ISLAND, BARROWS, CARRALLANGER,
-    FISHING_GUILD, CATHERBY, ANNAKARL, APE_ATOLL_DUNGEON, GHORROCK,
-    TROLL_STRONGHOLD, WEISS,
-    DIGSITE, XERIC
-  );
-{$SCOPEDENUMS OFF}
-
-function EHouseObject.GetSize(): Vector3;
-begin
-  case Self of
-    EHouseObject.EXIT: Result := [3,1,8];
-    EHouseObject.PRAYER_ALTAR: Result := [2,1,4];
-    EHouseObject.NEXUS: Result := [3,3,10];
-
-    EHouseObject.FAIRY_RING: Result := [2,2,1];
-
-    EHouseObject.SPIRIT_TREE, EHouseObject.OBELISK,
-    EHouseObject.FAIRY_TREE: Result := [2,2,6];
-
-    EHouseObject.ANCIENT_ALTAR..EHouseObject.OCCULT_ALTAR: Result := [2,3,5];
-
-    EHouseObject.REPAIR_STAND: Result := [2,2,6];
-    EHouseObject.SERVANT_BAG: Result := [1,1,4];
-    EHouseObject.GLORY, EHouseObject.MYTH_CAPE: Result := [1,1,6];
-    EHouseObject.OAK_LECTERN..EHouseObject.MARBLE_LECTERN: Result := [2,2,5];
-
-    EHouseObject.RESTORATION_POOL, EHouseObject.REVITALISATION_POOL,
-    EHouseObject.REJUVENATION_POOL, EHouseObject.FANCY_POOL,
-    EHouseObject.ORNATE_POOL: Result := [2,2,5];
-
-    EHouseObject.BASIC_JEWELLERY_BOX, EHouseObject.FANCY_JEWELLERY_BOX,
-    EHouseObject.ORNATE_JEWELLERY_BOX: Result := [2,2,6];
-
-    EHouseObject.CAPE_HANGER: Result := [2,2,5];
-  end;
-end;
-
-function EHouseObject.GetOffset(size: Int32): TPoint;
-begin
-  case Self of
-    EHouseObject.EXIT, EHouseObject.PRAYER_ALTAR, EHouseObject.NEXUS,
-    EHouseObject.SPIRIT_TREE..EHouseObject.FAIRY_TREE:
-      Result := Point(size div 2, size div 2);
-
-    EHouseObject.ANCIENT_ALTAR..EHouseObject.OCCULT_ALTAR:
-      Result := Point(size - size div 8, size div 2);
-
-    EHouseObject.REPAIR_STAND: Result := Point(size-size div 8, size div 2);
-
-    EHouseObject.SERVANT_BAG: Result := Point(size-size div 8, size-size div 8);
-
-    EHouseObject.GLORY, EHouseObject.MYTH_CAPE:
-      Result := Point(size div 8, size);
-
-    EHouseObject.OAK_LECTERN..EHouseObject.MARBLE_LECTERN:
-      Result := Point(size div 8, size-size div 8);
-
-    EHouseObject.RESTORATION_POOL, EHouseObject.REVITALISATION_POOL,
-    EHouseObject.REJUVENATION_POOL, EHouseObject.FANCY_POOL,
-    EHouseObject.ORNATE_POOL: ;
-
-    EHouseObject.BASIC_JEWELLERY_BOX, EHouseObject.FANCY_JEWELLERY_BOX,
-    EHouseObject.ORNATE_JEWELLERY_BOX: ;
-
-    EHouseObject.CAPE_HANGER: ;
-  end;
-end;
-
-function EHouseObject.RotateOffset(size, rotation: Int32): TPoint;
-var
-  coordinate: TPoint;
-begin
-  coordinate := Self.GetOffset(size);
-
-  case rotation of
-    0: Result := coordinate;
-    1:
-    begin
-      Swap(coordinate.X, coordinate.Y);
-      Result := Point(size - coordinate.X, coordinate.Y);
-    end;
-    2: Result := Point(size-coordinate.X, size-coordinate.Y);
-    3:
-    begin
-      Swap(coordinate.X, coordinate.Y);
-      Result := Point(coordinate.X, size - coordinate.Y);
-    end;
-  end;
-end;
-
-function EHouseObject.GetUpText(): TStringArray;
-begin
-  case Self of
-    EHouseObject.EXIT:         Result := ['Exit', 'portal'];
-    EHouseObject.PRAYER_ALTAR: Result := ['Altar'];
-    EHouseObject.NEXUS: Result := ['Nexus'];
-
-    EHouseObject.FAIRY_RING:  Result := ['Fairy', 'ring'];
-    EHouseObject.SPIRIT_TREE: Result := ['Spirit', 'tree'];
-    EHouseObject.OBELISK:     Result := ['Obelisk'];
-    EHouseObject.FAIRY_TREE:  Result := ['Fairy', 'tree'];
-
-    EHouseObject.ANCIENT_ALTAR: Result := ['Ancient', 'altar'];
-    EHouseObject.LUNAR_ALTAR:   Result := ['Lunar', 'altar'];
-    EHouseObject.DARK_ALTAR:    Result := ['Dark', 'altar'];
-    EHouseObject.OCCULT_ALTAR:  Result := ['Occult', 'altar'];
-
-    EHouseObject.REPAIR_STAND: Result := ['Repair', 'stand'];
-    EHouseObject.SERVANT_BAG: Result := ['Money', 'bag'];
-
-    EHouseObject.GLORY: Result := ['Glory'];
-
-    EHouseObject.MYTH_CAPE: Result := ['Mythical', 'cape'];
-    EHouseObject.OAK_LECTERN..EHouseObject.MARBLE_LECTERN: Result := ['lectern'];
-
-    EHouseObject.RESTORATION_POOL, EHouseObject.REVITALISATION_POOL,
-    EHouseObject.REJUVENATION_POOL, EHouseObject.FANCY_POOL,
-    EHouseObject.ORNATE_POOL: Result := ['pool'];
-
-    EHouseObject.BASIC_JEWELLERY_BOX, EHouseObject.FANCY_JEWELLERY_BOX,
-    EHouseObject.ORNATE_JEWELLERY_BOX: Result := ['box'];
-
-    EHouseObject.CAPE_HANGER: Result := ['Cape', 'hanger'];
-  end;
-end;
-
-function EHouseObject.GetFinder(): TRSObjectFinder;
-begin
-
-end;
-
-var
-  STUDY_LECTERNS: set of EHouseObject = [EHouseObject.OAK_LECTERN..EHouseObject.MARBLE_LECTERN];
-  SUPERIOR_GARDEN_POOLS: set of EHouseObject = [EHouseObject.RESTORATION_POOL..EHouseObject.ORNATE_POOL];
-  SUPERIOR_GARDEN_TELEPORTS: set of EHouseObject = [EHouseObject.SPIRIT_TREE..EHouseObject.FAIRY_TREE];
-  JEWELLERY_BOXES: set of EHouseObject = [EHouseObject.BASIC_JEWELLERY_BOX..EHouseObject.ORNATE_JEWELLERY_BOX];
-  ACHIEVEMENT_GALLERY_ALTARS: set of EHouseObject = [EHouseObject.ANCIENT_ALTAR..EHouseObject.OCCULT_ALTAR];
-
-type
-  THouseRoom = record
-    Room: EHouseRoom;
-    Rotation: Int32;
-    Objects: set of EHouseObject;
-  end;
-
-  TTeleportRoom = record
-    Left, Middle, Right: EHouseTeleport;
-  end;
-
 (*
 (THouseMap)=
 ## type THouseMap
@@ -321,6 +97,12 @@ function THouseMap.ToEncodedString(): String; forward;
 procedure THouseMap.LoadFromString(s: String); forward;
 procedure THouseMap.DrawMap(room: THouseRoom; p: TPoint); forward;
 
+procedure THouseMap.SetColors(decoration: EHouseDecoration);
+begin
+  Self.Decoration := decoration;
+  Self.Colors := decoration.GetColors();
+end;
+
 (*
 ## THouseMap.Init()
 ```pascal
@@ -361,7 +143,10 @@ begin
   if Self.Config.Has('layout') then
     Self.LoadFromString(Self.Config.GetString('layout'))
   else
+  begin
+    Self.SetColors(EHouseDecoration.WOOD);
     Self.DrawMap([EHouseRoom.GARDEN, 0, []], [Self.AMOUNT div 2, Self.AMOUNT div 2]);
+  end;
 end;
 
 procedure THouseMap.Setup(downscale: Int32);
@@ -370,12 +155,6 @@ begin
   Self.Map.Downsample(Self.Downscale, Self.DownscaledMap);
 end;
 
-
-procedure THouseMap.SetColors(decoration: EHouseDecoration);
-begin
-  Self.Decoration := decoration;
-  Self.Colors := decoration.GetColors();
-end;
 
 function THouseMap.GetColor(room: EHouseRoom): Int32;
 begin
@@ -480,8 +259,10 @@ POH.Map.WriteRoom(EHouseRoom.SUPERIOR_GARDEN, [3,3]);
 procedure THouseMap.WriteRoom(room: THouseRoom; index: TPoint);
 begin
   Self.Rooms[index.Y,index.X] := room;
-  if room.Room <> EHouseRoom.PORTAL_CHAMBER then
-    Self.TeleportRooms[index.Y,index.X] := [];
+  case room.Room of
+    EHouseRoom.PORTAL_CHAMBER, EHouseRoom.SUPERIOR_GARDEN, EHouseRoom.PORTAL_NEXUS:;
+    else Self.TeleportRooms[index.Y,index.X] := [];
+  end;
   Self.Config.Put('layout', Self.ToEncodedString());
 end;
 
@@ -642,13 +423,15 @@ begin
       for o in room.Objects do str += ToStr(Ord(o)) + ' ';
       str := str.Trim();
 
-      if room.Room = EHouseRoom.PORTAL_CHAMBER then
-      begin
-        troom := Self.TeleportRooms[idx.Y, idx.X];
-        teleports := '(' + ToStr(Ord(troom.Left)) + ' ' +
-                         ToStr(Ord(troom.Middle)) + ' ' +
-                         ToStr(Ord(troom.Right)) +
-                   ')';
+      case room.Room of
+        EHouseRoom.PORTAL_CHAMBER, EHouseRoom.SUPERIOR_GARDEN, EHouseRoom.PORTAL_NEXUS:
+        begin
+          troom := Self.TeleportRooms[idx.Y, idx.X];
+          teleports := '(' + ToStr(Ord(troom.Left)) + ' ' +
+                           ToStr(Ord(troom.Middle)) + ' ' +
+                           ToStr(Ord(troom.Right)) +
+                     ')';
+        end;
       end;
 
       Result += '[' + ToStr(idx.X) + ' ' + ToStr(idx.Y) + ' ' + ToStr(Ord(room.Room)) + ' ' +  ToStr(room.Rotation);
@@ -701,7 +484,7 @@ begin
 
     case room.Room of
       EHouseRoom.UNKNOWN: ;
-      EHouseRoom.PORTAL_CHAMBER:
+      EHouseRoom.PORTAL_CHAMBER, EHouseRoom.SUPERIOR_GARDEN, EHouseRoom.PORTAL_NEXUS:
       begin
         values := Explode(' ', portals);
 

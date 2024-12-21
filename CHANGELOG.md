@@ -1,3 +1,12 @@
+## [19.17.1](https://github.com/Torwent/WaspLib/compare/v19.17.0...v19.17.1) (2024-12-21)
+
+
+### Bug Fixes
+
+* small tweak to enum scoping ([38751e0](https://github.com/Torwent/WaspLib/commit/38751e069718d753a9b68f7bc7ec96b396c90797))
+
+
+
 # [19.17.0](https://github.com/Torwent/WaspLib/compare/v19.16.0...v19.17.0) (2024-12-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **biohash:** Double.GetDigit() users math only again ([acf880c](https://github.com/Torwent/WaspLib/commit/acf880c67b49de3d8ba2432d044b252e829524f1))
-
-
-
-## [19.14.1](https://github.com/Torwent/WaspLib/compare/v19.14.0...v19.14.1) (2024-12-17)
-
-
-### Bug Fixes
-
-* **biohash:** some fixes to the recent biohash changes ([7de69c6](https://github.com/Torwent/WaspLib/commit/7de69c6323e4a3d3aad89c66cd1882f8adbbc209))
 
 
 

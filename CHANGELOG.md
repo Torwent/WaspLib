@@ -1,3 +1,12 @@
+# [19.16.0](https://github.com/Torwent/WaspLib/compare/v19.15.0...v19.16.0) (2024-12-21)
+
+
+### Features
+
+* **THouseHandler:** read notes ([8de7c96](https://github.com/Torwent/WaspLib/commit/8de7c96e3fff3a4cc3b04e0cab3f1f2217bb28a8))
+
+
+
 # [19.15.0](https://github.com/Torwent/WaspLib/compare/v19.14.2...v19.15.0) (2024-12-20)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **housemap:** add the new housemap ([983ede2](https://github.com/Torwent/WaspLib/commit/983ede26330fcea123e20b72e81cd627d35e6e24))
-
-
-
-## [19.13.8](https://github.com/Torwent/WaspLib/compare/v19.13.7...v19.13.8) (2024-12-16)
-
-
-### Bug Fixes
-
-* add agility map with winter theme in falador ([4588abb](https://github.com/Torwent/WaspLib/commit/4588abbe309cd176edd4855264f4e15a252da1be))
 
 
 

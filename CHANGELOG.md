@@ -1,3 +1,12 @@
+## [19.17.2](https://github.com/Torwent/WaspLib/compare/v19.17.1...v19.17.2) (2024-12-21)
+
+
+### Bug Fixes
+
+* **house:** start script bug ([85f890b](https://github.com/Torwent/WaspLib/commit/85f890bab0e809b1191aa6ec073c76f5ec7567d4))
+
+
+
 ## [19.17.1](https://github.com/Torwent/WaspLib/compare/v19.17.0...v19.17.1) (2024-12-21)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([9f5126c](https://github.com/Torwent/WaspLib/commit/9f5126c79d5a5fa7da59fa745289d97684945a61))
-
-
-
-## [19.14.2](https://github.com/Torwent/WaspLib/compare/v19.14.1...v19.14.2) (2024-12-18)
-
-
-### Bug Fixes
-
-* **biohash:** Double.GetDigit() users math only again ([acf880c](https://github.com/Torwent/WaspLib/commit/acf880c67b49de3d8ba2432d044b252e829524f1))
 
 
 

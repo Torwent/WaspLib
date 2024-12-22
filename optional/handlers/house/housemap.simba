@@ -14,11 +14,11 @@ The HouseMap is what's responsible for mapping a user's POH (Player owned house)
 
 type
 (*
-(THouseMap)=
-## type THouseMap
+(THouseLoader)=
+## type THouseLoader
 ```pascal
 type
-  THouseMap = record
+  THouseLoader = record
     AMOUNT, SIZE: Int32;
     Map: TMufasaBitmap;
 
@@ -43,9 +43,9 @@ type
   end;
 ```
 Helper record used by the {ref}`THouseHandler`.
-All `THouseMap` methods are helper methods for the {ref}`THouseHandler` and you shouldn't have to call them for anything.
+All `THouseLoader` methods are helper methods for the {ref}`THouseHandler` and you shouldn't have to call them for anything.
 *)
-  THouseMap = record
+  THouseLoader = record
     AMOUNT, SIZE, Downscale: Int32;
     Map, Collision, DownscaledMap: TMufasaBitmap;
 
@@ -65,17 +65,19 @@ All `THouseMap` methods are helper methods for the {ref}`THouseHandler` and you 
     Decoration: EHouseDecoration;
     Colors: THouseColor;
     Config: TConfigJSON;
+
+    IsSetup: Boolean;
   end;
 
 (*
-## THouseMap.Free()
+## THouseLoader.Free()
 ```pascal
-procedure THouseMap.Free();
+procedure THouseLoader.Free();
 ```
 Internal method automatically called for your on script termination.
 You do not have to call it yourself.
 *)
-procedure THouseMap.Free();
+procedure THouseLoader.Free();
 var
   room: EHouseRoom;
 begin
@@ -90,27 +92,28 @@ begin
   end;
 
   Self.Rooms := [];
+  Self.IsSetup := False;
 end;
 
-function THouseMap.ToEncodedString(): String; forward;
-procedure THouseMap.LoadFromString(s: String); forward;
-procedure THouseMap.DrawMap(room: THouseRoom; p: TPoint); forward;
+function THouseLoader.ToEncodedString(): String; forward;
+procedure THouseLoader.LoadFromString(s: String); forward;
+procedure THouseLoader.DrawMap(room: THouseRoom; p: TPoint); forward;
 
-procedure THouseMap.SetColors(decoration: EHouseDecoration);
+procedure THouseLoader.SetColors(decoration: EHouseDecoration);
 begin
   Self.Decoration := decoration;
   Self.Colors := decoration.GetColors();
 end;
 
 (*
-## THouseMap.Init()
+## THouseLoader.Init()
 ```pascal
-procedure THouseMap.Init(size, amount: Int32);
+procedure THouseLoader.Init(size, amount: Int32);
 ```
 Internal method automatically called for your when you use `TScriptForm.CreateHouseBuilder()`.
 You don't usually have to call it yourself.
 *)
-procedure THouseMap.Init(size, amount: Int32);
+procedure THouseLoader.Init(size, amount: Int32);
 begin
   Self.Config.Setup('pohhandler');
 
@@ -146,9 +149,11 @@ begin
     Self.SetColors(EHouseDecoration.WOOD);
     Self.DrawMap([EHouseRoom.GARDEN, 0, []], [Self.AMOUNT div 2, Self.AMOUNT div 2]);
   end;
+
+  Self.IsSetup := True;
 end;
 
-procedure THouseMap.Setup(downscale: Int32);
+procedure THouseLoader.Setup(downscale: Int32);
 var
   empty, walls, windows: TPointArray;
   tmp: T2DPointArray;
@@ -172,16 +177,16 @@ begin
 end;
 
 
-function THouseMap.GetColor(room: EHouseRoom): Int32;
+function THouseLoader.GetColor(room: EHouseRoom): Int32;
 begin
   if room.IsOutdoors() then Exit(Self.Colors.Outdoors);
   Result := Self.Colors.Indoors;
 end;
 
 (*
-## THouseMap.GetRoomBitmapBox()
+## THouseLoader.GetRoomBitmapBox()
 ```pascal
-function THouseMap.GetRoomBitmapBox(room: EHouseRoom): TBox;
+function THouseLoader.GetRoomBitmapBox(room: EHouseRoom): TBox;
 ```
 Internal method used to get the box of the {ref}`EHouseRoom` you pass in.
 
@@ -197,7 +202,7 @@ begin
 end;
 ```
 *)
-function THouseMap.GetRoomBitmapBox(room: EHouseRoom): TBox;
+function THouseLoader.GetRoomBitmapBox(room: EHouseRoom): TBox;
 var
   i: Int32;
 begin
@@ -206,9 +211,9 @@ begin
 end;
 
 (*
-## THouseMap.GetRoomBitmap()
+## THouseLoader.GetRoomBitmap()
 ```pascal
-function THouseMap.GetRoomBitmap(room: EHouseRoom; color: Int32 = -1): TMufasaBitmap;
+function THouseLoader.GetRoomBitmap(room: EHouseRoom; color: Int32 = -1): TMufasaBitmap;
 ```
 Internal method used to retrieve a bitmap of the {ref}`EHouseRoom` you pass in.
 
@@ -224,7 +229,7 @@ begin
 end;
 ```
 *)
-function THouseMap.GetRoomBitmap(room: EHouseRoom): TMufasaBitmap;
+function THouseLoader.GetRoomBitmap(room: EHouseRoom): TMufasaBitmap;
 var
   b: TBox;
 begin
@@ -240,7 +245,7 @@ begin
   Result.ReplaceColor($FFFFFF, Self.GetColor(room));
 end;
 
-function THouseMap.GetIconBitmap(room: EHouseRoom): TMufasaBitmap;
+function THouseLoader.GetIconBitmap(room: EHouseRoom): TMufasaBitmap;
 var
   b: TBox;
 begin
@@ -258,11 +263,11 @@ end;
 
 
 (*
-## THouseMap.WriteRoom()
+## THouseLoader.WriteRoom()
 ```pascal
-procedure THouseMap.WriteRoom(room: EHouseRoom; index: TPoint);
+procedure THouseLoader.WriteRoom(room: EHouseRoom; index: TPoint);
 ```
-Internal method used to write a room to `THouseMap.Rooms` cache.
+Internal method used to write a room to `THouseLoader.Rooms` cache.
 This uses an `TPoint` as a room `index` in a 2D array of {ref}`EHouseRoom`.
 
 Unless you know what you are doing, you definitly should not use this for anything.
@@ -272,7 +277,7 @@ Example:
 POH.Map.WriteRoom(EHouseRoom.SUPERIOR_GARDEN, [3,3]);
 ```
 *)
-procedure THouseMap.WriteRoom(room: THouseRoom; index: TPoint);
+procedure THouseLoader.WriteRoom(room: THouseRoom; index: TPoint);
 begin
   Self.Rooms[index.Y,index.X] := room;
   case room.Room of
@@ -283,11 +288,11 @@ begin
 end;
 
 (*
-## THouseMap.ReadRoom()
+## THouseLoader.ReadRoom()
 ```pascal
-function THouseMap.ReadRoom(index: TPoint): EHouseRoom;
+function THouseLoader.ReadRoom(index: TPoint): EHouseRoom;
 ```
-Internal method used to read a cached room in `THouseMap.Rooms`.
+Internal method used to read a cached room in `THouseLoader.Rooms`.
 This uses an `TPoint` as a room `index`.
 
 Unless you know what you are doing, you don't need this, but there's no harm in using it.
@@ -297,17 +302,17 @@ Example:
 WriteLn POH.Map.ReadRoom([3,3]);
 ```
 *)
-function THouseMap.ReadRoom(index: TPoint): THouseRoom;
+function THouseLoader.ReadRoom(index: TPoint): THouseRoom;
 begin
   Result := Self.Rooms[index.Y,index.X];
 end;
 
 (*
-## THouseMap.PrintRooms()
+## THouseLoader.PrintRooms()
 ```pascal
-procedure THouseMap.PrintRooms();
+procedure THouseLoader.PrintRooms();
 ```
-Debugging helper method used to read a cached rooms in `THouseMap.Rooms`.
+Debugging helper method used to read a cached rooms in `THouseLoader.Rooms`.
 This will print the whole cache nicely formated in a way that is human friendly like you were looking at the house map.
 
 Unless you know what you are doing, you don't need this, but there's no harm in using it.
@@ -323,7 +328,7 @@ POH.Setup();
 POH.Map.PrintRooms();
 ```
 *)
-procedure THouseMap.PrintRooms();
+procedure THouseLoader.PrintRooms();
 var
   str: String;
   i, j: Int32;
@@ -349,12 +354,12 @@ end;
 
 
 (*
-## THouseMap.DrawMap()
+## THouseLoader.DrawMap()
 ```pascal
-procedure THouseMap.DrawMap(bmp: TMufasaBitmap; room: EHouseRoom; p: TPoint);
-procedure THouseMap.DrawMap(room: EHouseRoom; color: Int32; p: TPoint); overload;
+procedure THouseLoader.DrawMap(bmp: TMufasaBitmap; room: EHouseRoom; p: TPoint);
+procedure THouseLoader.DrawMap(room: EHouseRoom; color: Int32; p: TPoint); overload;
 ```
-Methods used to draw the POH map and cache the rooms drawn in `THouseMap.Rooms`.
+Methods used to draw the POH map and cache the rooms drawn in `THouseLoader.Rooms`.
 
 Example:
 ```pascal
@@ -363,7 +368,7 @@ POH.Map.Debug();
 POH.Map.PrintRooms();
 ```
 *)
-procedure THouseMap.DrawMap(bmp: TMufasaBitmap; room: THouseRoom; index: TPoint); overload;
+procedure THouseLoader.DrawMap(bmp: TMufasaBitmap; room: THouseRoom; index: TPoint); overload;
 var
   tmp: TMufasaBitmap;
 begin
@@ -393,7 +398,7 @@ begin
   tmp.Free();
 end;
 
-procedure THouseMap.DrawMap(room: THouseRoom; p: TPoint);
+procedure THouseLoader.DrawMap(room: THouseRoom; p: TPoint);
 var
   bmp: TMufasaBitmap;
 begin
@@ -402,7 +407,7 @@ begin
 end;
 
 
-procedure THouseMap.Redraw();
+procedure THouseLoader.Redraw();
 var
   bmp, tmp: TMufasaBitmap;
   index: TPoint;
@@ -422,7 +427,7 @@ begin
 end;
 
 
-function THouseMap.ToEncodedString(): String;
+function THouseLoader.ToEncodedString(): String;
 var
   idx: TPoint;
   room: THouseRoom;
@@ -462,7 +467,7 @@ begin
   Result := Base64Encode(CompressString(Result));
 end;
 
-procedure THouseMap.LoadFromString(s: String);
+procedure THouseLoader.LoadFromString(s: String);
 var
   idx: TPoint;
   elements, values: TStringArray;

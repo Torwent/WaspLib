@@ -43,7 +43,7 @@ type
 ## type THouseHandler
 ```pascal
 THouseHandler = record(TSRLBaseRecord)
-  Loader: THouseMap;
+  Loader: THouseLoader;
   Walker: TRSWalkerV2;
 
   Objects: array [EHouseObject] of TRSObjectV2;
@@ -61,7 +61,7 @@ end;
 The core record used to handle navigating a POH.
 *)
   THouseHandler = record(TSRLBaseRecord)
-    Loader: THouseMap;
+    Loader: THouseLoader;
     Walker: TRSWalkerV2;
 
     Objects: array [EHouseObject] of TRSObjectV2;
@@ -79,10 +79,8 @@ The core record used to handle navigating a POH.
 
 function THouseHandler.Position(): TPoint; forward;
 
-
 procedure THouseHandler._SetupTeleport(obj: EHouseObject; coordinate: TPoint; rotation: Int32; teleport: EHouseTeleport);
 begin
-  WriteLn teleport;
   if Self.Teleports[teleport].Coordinates <> [] then
   begin
     Self.Teleports[teleport].Coordinates += coordinate;
@@ -131,7 +129,6 @@ begin
         coordinate := obj.RotateOffset(Self.Loader.SIZE, room.Rotation);
         coordinate += idx * Self.Loader.SIZE;
 
-        WriteLn Self.Loader.TeleportRooms[idx.Y,idx.X];
         case obj of
           EHouseObject.LEFT_PORTAL, EHouseObject.LEFT_AMULET:
             Self._SetupTeleport(obj, coordinate, room.Rotation,
@@ -293,6 +290,7 @@ begin
 
   Self.Name := 'House';
 
+  if not Self.Loader.IsSetup then Self.Loader.Init(32, 13);
   if Self.Sample.Amount = 0 then Self.Sample.Amount := 2;
   if Self.Sample.Radius = 0 then Self.Sample.Radius := 67;
 
@@ -1178,7 +1176,7 @@ procedure TScriptForm.Run(); override;
 begin
   inherited;
 
-  if not House.IsSetup and (House.Loader.Map <> nil) then
+  if not House.IsSetup and House.Loader.IsSetup then
     House.Setup();
 end;
 

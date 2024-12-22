@@ -1,3 +1,12 @@
+## [19.17.5](https://github.com/Torwent/WaspLib/compare/v19.17.4...v19.17.5) (2024-12-22)
+
+
+### Bug Fixes
+
+* **house:** read notes ([d44cdea](https://github.com/Torwent/WaspLib/commit/d44cdeab0c80ee229496d052436187e6c4ea526b))
+
+
+
 ## [19.17.4](https://github.com/Torwent/WaspLib/compare/v19.17.3...v19.17.4) (2024-12-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * small tweak to enum scoping ([38751e0](https://github.com/Torwent/WaspLib/commit/38751e069718d753a9b68f7bc7ec96b396c90797))
-
-
-
-# [19.17.0](https://github.com/Torwent/WaspLib/compare/v19.16.0...v19.17.0) (2024-12-21)
-
-
-### Features
-
-* **house:** finished the house teleports framework ([cbf041c](https://github.com/Torwent/WaspLib/commit/cbf041c88567964497a91a739586f857f4c0d6e8))
 
 
 

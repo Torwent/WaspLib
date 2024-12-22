@@ -149,6 +149,132 @@ begin
     end;
 end;
 
+
+function THouseHandler._BuildGraph(map: TMufasaBitmap): TWebGraphV2;
+var
+  a, b, i, j, n, len, hi, divider: Int32;
+  atpa, parts: T2DPointArray;
+  white, skeleton, nodes, tpa: TPointArray;
+  bounds: TBox;
+  p, q: TPoint;
+  nodesTree, skeletonTree: TSlackTree;
+  jInRange, nInRange: Boolean;
+  connectionMap: array of array of TIntegerArray;
+begin
+  map.FindColors(white, $FFFFFF);
+  atpa := white.NRCluster(1);
+  atpa.sortBySize(0, True);
+
+  hi := High(atpa);
+
+  case hi of
+    0..50: divider := 50;
+    51..400: divider := 100;
+    else divider := 200;
+  end;
+
+  for i := 0 to hi do
+  begin
+    if i mod divider = 0 then
+      Self.DebugLn('Creating webgraph connections for area '  + ToStr(i) + '/' + ToStr(hi));
+
+    if Length(atpa[i]) <= GENERATED_GRAPH.MinimumTiles * RSTranslator.TileArea then Continue; //remove very small spaces
+
+    bounds := atpa[i].Bounds();
+    if Max(bounds.Width(), bounds.Height()) < GENERATED_GRAPH.NodeRadius then //mark spaces less than NodeRadius with a single node and continue
+    begin
+      Result.Nodes += atpa[i].Median();
+      Continue;
+    end;
+
+    skeleton := atpa[i].Erode(1).Skeleton(2, 7);
+
+    if skeleton = [] then
+    begin
+      Result.Nodes += atpa[i].Median();
+      Continue;
+    end;
+
+    nodes := [];
+    for tpa in PartitionTPA(skeleton, GENERATED_GRAPH.Spacing, GENERATED_GRAPH.Spacing) do
+    begin
+      if tpa = [] then Continue;
+      for tpa in tpa.Cluster(1) do nodes += MiddleTPA(tpa);
+    end;
+
+    SetLength(connectionMap, bounds.X2, bounds.Y2);
+
+    skeletonTree.Init(skeleton);
+    nodesTree.Init(nodes);
+    for j := 0 to High(nodesTree.Data) do
+    begin
+      p := nodesTree.Data[j].split;
+      tpa := nodesTree.KNearest(p, GENERATED_GRAPH.MaxConnections, True);
+
+      for q in tpa do
+      begin
+        if Max(Abs(p.X - q.X), Abs(p.Y - q.Y)) > GENERATED_GRAPH.Spacing * 2 then
+          Continue;
+
+        if GENERATED_GRAPH.WallCrossings and not map.ColorsInLineEx(p, q, [$0, $333333, $FF]) then
+        begin
+          connectionMap[q.X, q.Y] += j;
+          Continue;
+        end;
+
+        bounds := Box(p, q).Expand(GENERATED_GRAPH.Spacing);
+        parts := skeletonTree.RangeQuery(bounds).Cluster(1);
+
+        for a := 0 to High(parts) do
+        begin
+          jInRange := False;
+          nInRange := False;
+
+          for b := 0 to High(parts[a]) do
+          begin
+            jInRange := jInRange or parts[a,b].InRange(p, Sqrt(2));
+            nInRange := nInRange or parts[a,b].InRange(q, Sqrt(2));
+
+            if jInRange and nInRange then Break(2);
+          end;
+
+          if jInRange <> nInRange then Break;
+        end;
+
+        if not jInRange or not nInRange then Continue;
+
+        connectionMap[q.X, q.Y] += j;
+      end;
+    end;
+
+    skeletonTree.Free();
+    len := Length(Result.Nodes);
+    SetLength(Result.Nodes, len + Length(nodes));
+    SetLength(Result.Paths, Length(Result.Nodes));
+
+    for j := 0 to High(nodesTree.Data) do
+    begin
+      p := nodesTree.Data[j].split;
+      Result.Nodes[j+len] := p;
+      for n in connectionMap[p.X, p.Y] do
+      begin
+        q := nodesTree.Data[n].split;
+        Result.Nodes[n+len] := q;
+
+        if not InIntArray(Result.Paths[j+len], n+len) then
+          Result.Paths[j+len] += n+len;
+        if not InIntArray(Result.Paths[n+len], j+len) then
+          Result.Paths[n+len] += j+len;
+      end;
+    end;
+
+    nodesTree.Free();
+  end;
+
+  SetLength(Result.Paths, Length(Result.Nodes));
+  SetLength(Result.Names, Length(Result.Nodes));
+end;
+
 (*
 ## POH.Setup()
 ```pascal
@@ -162,6 +288,9 @@ var
   minimapImage, minimapSample: TMufasaBitmap;
 begin
   if Self.IsSetup then Exit;
+
+  Self.Name := 'House';
+
   if Self.Sample.Amount = 0 then Self.Sample.Amount := 2;
   if Self.Sample.Radius = 0 then Self.Sample.Radius := 67;
 
@@ -175,6 +304,8 @@ begin
 
   Self.Walker.Setup(@Self.Position, nil, nil, @Self.Graph, Self.Loader.Map);
   Self.Walker.Name := 'House.Walker';
+
+  Self.Graph := Self._BuildGraph(Self.Loader.Collision);
 
   Self.IsSetup := True;
 end;
@@ -1042,7 +1173,7 @@ begin
 end;
 {%codetools on}
 
-procedure TScriptForm.Run(); override;
+procedure TScriptForm.StartScript(sender: TObject); override;
 begin
   inherited;
 

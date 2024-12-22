@@ -47,7 +47,7 @@ All `THouseMap` methods are helper methods for the {ref}`THouseHandler` and you 
 *)
   THouseMap = record
     AMOUNT, SIZE, Downscale: Int32;
-    Map, DownscaledMap: TMufasaBitmap;
+    Map, Collision, DownscaledMap: TMufasaBitmap;
 
     Rooms: array of array of THouseRoom;
 
@@ -149,9 +149,26 @@ begin
 end;
 
 procedure THouseMap.Setup(downscale: Int32);
+var
+  empty, walls, windows: TPointArray;
+  tmp: T2DPointArray;
 begin
   Self.Downscale := downscale;
   Self.Map.Downsample(Self.Downscale, Self.DownscaledMap);
+
+  Self.Map.FindColors(walls, $EEEEEE);
+  Self.Map.FindColors(windows, $0000EE);
+  Self.Map.FindColors(empty, $0);
+
+
+  tmp := windows.Cluster(1);
+  tmp.FilterSize(5, EComparator.__LT__);
+  windows := tmp.Merge();
+
+  Self.Collision.Init();
+  Self.Collision.SetSize(Self.Map.getWidth(), Self.Map.getHeight());
+  Self.Collision.ReplaceColor(0, $FFFFFF);
+  Self.Collision.DrawTPA(walls + empty + windows, $0);
 end;
 
 

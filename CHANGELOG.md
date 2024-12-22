@@ -1,3 +1,12 @@
+## [19.17.4](https://github.com/Torwent/WaspLib/compare/v19.17.3...v19.17.4) (2024-12-22)
+
+
+### Bug Fixes
+
+* **house:** read notes ([53d024f](https://github.com/Torwent/WaspLib/commit/53d024fb00b06b57b11fac00b757ae65d8605b19))
+
+
+
 ## [19.17.3](https://github.com/Torwent/WaspLib/compare/v19.17.2...v19.17.3) (2024-12-22)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **house:** finished the house teleports framework ([cbf041c](https://github.com/Torwent/WaspLib/commit/cbf041c88567964497a91a739586f857f4c0d6e8))
-
-
-
-# [19.16.0](https://github.com/Torwent/WaspLib/compare/v19.15.0...v19.16.0) (2024-12-21)
-
-
-### Features
-
-* **THouseHandler:** read notes ([8de7c96](https://github.com/Torwent/WaspLib/commit/8de7c96e3fff3a4cc3b04e0cab3f1f2217bb28a8))
 
 
 

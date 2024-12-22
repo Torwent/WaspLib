@@ -1,3 +1,12 @@
+## [19.17.3](https://github.com/Torwent/WaspLib/compare/v19.17.2...v19.17.3) (2024-12-22)
+
+
+### Bug Fixes
+
+* **house:** oops ([0b8b9d5](https://github.com/Torwent/WaspLib/commit/0b8b9d5863ebfd7fc3c5991401bd73a5b7e92fb2))
+
+
+
 ## [19.17.2](https://github.com/Torwent/WaspLib/compare/v19.17.1...v19.17.2) (2024-12-21)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * **THouseHandler:** read notes ([8de7c96](https://github.com/Torwent/WaspLib/commit/8de7c96e3fff3a4cc3b04e0cab3f1f2217bb28a8))
-
-
-
-# [19.15.0](https://github.com/Torwent/WaspLib/compare/v19.14.2...v19.15.0) (2024-12-20)
-
-
-### Features
-
-* read notes ([9f5126c](https://github.com/Torwent/WaspLib/commit/9f5126c79d5a5fa7da59fa745289d97684945a61))
 
 
 

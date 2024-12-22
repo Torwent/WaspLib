@@ -1,3 +1,12 @@
+## [19.17.6](https://github.com/Torwent/WaspLib/compare/v19.17.5...v19.17.6) (2024-12-22)
+
+
+### Bug Fixes
+
+* **house:** mapped lecterns ([2a69b7a](https://github.com/Torwent/WaspLib/commit/2a69b7a1aa5f8f98fc08d9de3b22e0aee3e3ad90))
+
+
+
 ## [19.17.5](https://github.com/Torwent/WaspLib/compare/v19.17.4...v19.17.5) (2024-12-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **house:** start script bug ([85f890b](https://github.com/Torwent/WaspLib/commit/85f890bab0e809b1191aa6ec073c76f5ec7567d4))
-
-
-
-## [19.17.1](https://github.com/Torwent/WaspLib/compare/v19.17.0...v19.17.1) (2024-12-21)
-
-
-### Bug Fixes
-
-* small tweak to enum scoping ([38751e0](https://github.com/Torwent/WaspLib/commit/38751e069718d753a9b68f7bc7ec96b396c90797))
 
 
 

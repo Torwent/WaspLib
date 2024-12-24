@@ -620,6 +620,7 @@ begin
   Result.Create(owner, 'House teleport:', 'Choose your method of house teleportation.', topleft, [170, 40], offset, True);
   Result.AddItemArray(['Spell', 'Tablet', 'Contruction/Max cape']);
 
+  Self.Loader.SetupConfig();
   if Self.Loader.Config.Has('teleport') then
     i := Self.Loader.Config.GetInt('teleport');
 
@@ -1264,7 +1265,23 @@ begin
   tmp.Free();
 end;
 
-procedure TScriptForm.POHBuilderOnShow(sender: TObject);
+procedure TScriptForm.POHBuilderLeftOnShow(sender: TObject);
+var
+  combobox: TComboBox;
+  imgbox: TSimbaImageBox;
+begin
+  if Login.PlayerIndex <> House.Loader.LayoutIndex then
+  begin
+    WriteLn 'Refreshing layout.';
+    House.Loader.Free();
+    combobox := TPanel(sender).GetChild('decoration_combobox');
+    Self.POHDecorationUpdate(combobox);
+    combobox := TPanel(sender).GetChild('room_combobox');
+    Self.RoomUpdate(combobox);
+  end;
+end;
+
+procedure TScriptForm.POHBuilderClientOnShow(sender: TObject);
 var
   imgbox: TSimbaImageBox;
 begin
@@ -1301,9 +1318,11 @@ begin
   panel.Create(Result);
   panel.setAlign(TAlign.alLeft);
   panel.setBevelWidth(0);
+  panel.setOnPaint(@Self.POHBuilderLeftOnShow);
 
   decoration.Create(panel, 'Decoration:', 'Change your house decoration', [0, 10], [166,0], True);
   decoration.AddItemArray(['Basic wood', 'Basic stone', 'Whitewashed stone', 'Fremennik-style wood', 'Tropical wood', 'Fancy stone', 'Deathly mansion', 'Twisted theme', 'Hosidius house', 'Cosy cabin']);
+  decoration.SetName('decoration');
   decoration.SetItemIndex(0);
   decoration.ComboBox.setOnChange(@Self.POHDecorationUpdate);
 
@@ -1334,7 +1353,7 @@ begin
   panel.setAlign(TAlign.alClient);
   panel.setBevelWidth(0);
 
-  panel.setOnPaint(@Self.POHBuilderOnShow);
+  panel.setOnPaint(@Self.POHBuilderClientOnShow);
 
   caption.Create(panel,'LEFT CLICK to select a room, RIGHT CLICK to pan around. CTRL + WHEEL to zoom.', '', [0,0], [0,0], True);
   caption.setAlign(TAlign.alTop);

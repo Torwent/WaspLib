@@ -46,7 +46,7 @@ Helper record used by the {ref}`THouseHandler`.
 All `THouseLoader` methods are helper methods for the {ref}`THouseHandler` and you shouldn't have to call them for anything.
 *)
   THouseLoader = record
-    AMOUNT, SIZE, Downscale: Int32;
+    AMOUNT, SIZE, Downscale, LayoutIndex: Int32;
     Map, Collision, DownscaledMap: TMufasaBitmap;
 
     Rooms: array of array of THouseRoom;
@@ -81,14 +81,30 @@ procedure THouseLoader.Free();
 var
   room: EHouseRoom;
 begin
+  Self.Config.Free();
   Self.Map.Free();
   Self.DownscaledMap.Free();
   Self.RoomsBitmap.Free();
   Self.IconBitmap.Free();
+
+  Self.Map := nil;
+  Self.DownscaledMap := nil;
+  Self.RoomsBitmap := nil;
+  Self.IconBitmap := nil;
+
   for room := Low(EHouseRoom) to High(EHouseRoom) do
   begin
-    if Self.RoomBitmaps[room] <> nil then Self.RoomBitmaps[room].Free();
-    if Self.IconBitmaps[room] <> nil then Self.IconBitmaps[room].Free();
+    if Self.RoomBitmaps[room] <> nil then
+    begin
+      Self.RoomBitmaps[room].Free();
+      Self.RoomBitmaps[room] := nil;
+    end;
+
+    if Self.IconBitmaps[room] <> nil then
+    begin
+      Self.IconBitmaps[room].Free();
+      Self.IconBitmaps[room] := nil;
+    end;
   end;
 
   Self.Rooms := [];
@@ -105,6 +121,16 @@ begin
   Self.Colors := decoration.GetColors();
 end;
 
+procedure THouseLoader.SetupConfig();
+begin
+  if Self.Config.IsSetup and (Self.LayoutIndex = Login.PlayerIndex) then Exit;
+  Self.LayoutIndex := Login.PlayerIndex;
+  Self.Config.Setup(
+    AppPath + 'Configs' + DirectorySeparator + 'house' +
+    DirectorySeparator + ToStr(Self.LayoutIndex)
+  );
+end;
+
 (*
 ## THouseLoader.Init()
 ```pascal
@@ -115,7 +141,7 @@ You don't usually have to call it yourself.
 *)
 procedure THouseLoader.Init(size, amount: Int32);
 begin
-  Self.Config.Setup('pohhandler');
+  Self.SetupConfig();
 
   if not Self.Config.Has('size') then Self.Config.Put('size', size);
   if not Self.Config.Has('amount') then Self.Config.Put('amount', amount);

@@ -178,24 +178,40 @@ const
   ITEMS: TRSItemArray = ['Dramen staff', 'Lunar staff'];
 var
   slot, i: Int32;
-  currentTab: PRSInterface;
+  tabI, otherI: PRSInterface;
+  tabE, otherE: ERSGameTab;
 begin
-  if Self.Item = 'null' then
-    Exit(True);
+  if Self.Item = 'null' then Exit(True);
 
-  case GameTabs.GetCurrentTab() of
-    ERSGameTab.INVENTORY: currentTab := PRSInterface(@Inventory);
-    ERSGameTab.EQUIPMENT: currentTab := PRSInterface(@Equipment);
-    ERSGameTab.COMBAT:    currentTab := PRSInterface(@Combat);
+  tabE := GameTabs.GetCurrentTab();
+  case tabE of
+    ERSGameTab.INVENTORY:
+      begin
+        tabI := PRSInterface(@Inventory);
+        otherI := PRSInterface(@Equipment);
+        otherE := ERSGameTab.EQUIPMENT;
+      end;
+    ERSGameTab.EQUIPMENT:
+      begin
+        tabI := PRSInterface(@Equipment);
+        otherI := PRSInterface(@Inventory);
+        otherE := ERSGameTab.INVENTORY;
+      end;
+    ERSGameTab.COMBAT:
+      begin
+        tabI := PRSInterface(@Combat);
+        otherI := PRSInterface(@Inventory);
+        otherE := ERSGameTab.INVENTORY;
+      end;
     else if Inventory.Open() then Exit(Self.HandleItem()) else Exit;
   end;
 
   if not Self.Item.IsNull() then
   begin
     for i := 0 to 1 do
-      case currentTab^.Name of
+    begin
+      case tabI^.Name of
         'Inventory':
-        begin
           if Inventory.FindItem(Self.Item, slot) then
           begin
             if Inventory.ClickSlot(slot) then
@@ -203,63 +219,35 @@ begin
             Wait(100);
             Exit(WaitUntil(not Inventory.ContainsItem(Self.Item), 300, 3000));
           end;
-
-          currentTab := PRSInterface(@Equipment);
-          if not Equipment.Open() then
-            Exit;
-        end;
-        'Equipment':
-        begin
-          if Equipment.ContainsItem(Self.Item) then
-            Exit(True);
-
-          currentTab := PRSInterface(@Inventory);
-          if not Inventory.Open() then
-            Exit;
-        end;
-        'Combat':
-        begin
-          if LowerCase(Combat.GetWeapon()) = LowerCase(Self.Item) then
-            Exit(True);
-
-          currentTab := PRSInterface(@Inventory);
-          if not Inventory.Open() then
-            Exit;
-        end;
+        'Equipment': if Equipment.ContainsItem(Self.Item) then Exit(True);
+        'Combat': if LowerCase(Combat.GetWeapon()) = LowerCase(Self.Item) then Exit(True);
       end;
+
+      Swap(tabI, otherI);
+      Swap(tabE, otherE);
+      if not GameTabs.Open(tabE) then Exit;
+    end;
   end;
 
   for Self.Item in ITEMS do
-    case currentTab^.Name of
+    case tabI^.Name of
       'Combat': if LowerCase(Combat.GetWeapon()) = LowerCase(Self.Item) then
         Exit(Self.HandleItem());
-      else if currentTab^.ItemInterface.Contains(Self.Item) then
+      else if tabI^.ItemInterface.Contains(Self.Item) then
         Exit(Self.HandleItem());
     end;
 
-  case currentTab^.Name of
-    'Inventory':
-    begin
-      currentTab := PRSInterface(@Equipment);
-      if not Equipment.Open() then
-        Exit;
-    end;
-    'Equipment', 'Combat':
-    begin
-      currentTab := PRSInterface(@Inventory);
-      if not Inventory.Open() then
-        Exit;
-    end;
-  end;
+  Swap(tabI, otherI);
+  Swap(tabE, otherE);
+  if not GameTabs.Open(tabE) then Exit;
 
   for Self.Item in ITEMS do
-    if currentTab^.ItemInterface.Contains(Self.Item) then
+    if tabI^.ItemInterface.Contains(Self.Item) then
       Exit(Self.HandleItem());
 
-  Result := attempts = 0;
-  if not Result then
-    Exit(Self.HandleItem(Dec(attempts)));
-  Self.Item := 'null';
+  if attempts = 0 then Exit;
+  Result := Self.HandleItem(Dec(attempts));
+  if not Result then Self.Item := 'null';
 end;
 
 

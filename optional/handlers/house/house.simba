@@ -38,6 +38,11 @@ e.g., Nexus room, Combat Hall and Quest Hall are all identical.
 {$ENDIF}
 
 type
+{$SCOPEDENUMS ON}
+  EHouseTeleportMode = (SPELL, TABLET, CAPE);
+  EHouseTeleportPlace = (UNKNOWN, INSIDE, OUTSIDE);
+{$SCOPEDENUMS OFF}
+
 (*
 (THouseHandler)=
 ## type THouseHandler
@@ -75,6 +80,12 @@ The core record used to handle navigating a POH.
 
     Graph: TWebGraphV2;
     IsSetup: Boolean;
+
+    Entrance: TRSObjectV2;
+
+    TeleportMode: EHouseTeleportMode;
+    TeleportPlace: EHouseTeleportPlace;
+    HouseTeleportItem: TRSItem;
   end;
 
 function THouseHandler.Position(): TPoint; forward;
@@ -307,6 +318,14 @@ begin
 
   Self.Graph := Self._BuildGraph(Self.Loader.Collision);
 
+  Self.Entrance.Size := [2,4,7];
+  Self.Entrance.SetupCoordinates([[7710,37534],[7470,36570],[9264,38424],[2866,36362],[6584,35912],[1592,38582],[6926,37718],[6080,38040],[8860,26120]]);
+  Self.Entrance.Rotations := [0,0,90,0,90,90,0,90,90];
+  Self.Entrance.SetupUpText(['Portal']);
+  Self.Entrance.Walker := @Map.Walker;
+  Self.Entrance.Finder.Colors += CTS2(6316135, 8, 0.28, 0.12);
+  Self.Entrance.Finder.Colors += CTS2(9379961, 30, 0.16, 1.76);
+
   Self.IsSetup := True;
 end;
 
@@ -520,6 +539,93 @@ begin
   bitmap.Free();
 
   UnFreeze();
+end;
+
+
+function THouseHandler.Enter(): Boolean;
+var
+  CAPES: TRSItemArray = ['Construct. cape', 'Construct. cape(t)', 'Max cape'];
+  slot: Int32;
+  option: String;
+  loading, outside: Boolean;
+begin
+  if Minimap.InPOH() then Exit(True);
+
+  if Map.Position().AnyInRange(Self.Entrance.Coordinates, 80) then
+  begin
+    if not Self.Entrance.WalkSelectOption(['Home']) then Exit;
+    Exit(WaitUntil(Minimap.InPOH(), 300, 10000));
+  end;
+
+  case Self.TeleportMode of
+    EHouseTeleportMode.SPELL:
+      begin
+        if not Magic.Open() then
+          Exit;
+        if not Magic.ContainsSpell(ERSSpell.TELEPORT_TO_HOUSE) then
+          RaiseException('Can''t find teleport to house spell.');
+        if not Magic.CastSpell(ERSSpell.TELEPORT_TO_HOUSE, 'Cast') then
+          Exit;
+      end;
+    EHouseTeleportMode.TABLET:
+      begin
+        if not Inventory.Open() then
+          Exit;
+        if not Inventory.FindItem('Teleport to house', slot) then
+          RaiseException('Can''t find teleport to house tablet.');
+        if Self.TeleportPlace = EHouseTeleportPlace.OUTSIDE then
+          option := 'Inside';
+        if not Inventory.ClickSlot(slot, option) then
+          Exit;
+      end;
+    EHouseTeleportMode.CAPE:
+      if not CAPES.Interact(Self.HouseTeleportItem, 'Tele to POH') then Exit;
+  end;
+
+  Result := WaitUntil(
+    (loading := MainScreen.LoadingPOH()) or (outside := Map.Position().AnyInRange(Self.Entrance.Coordinates, 30)),
+    300, 4000
+  );
+
+  if outside then
+  begin
+    Self.TeleportPlace := EHouseTeleportPlace.OUTSIDE;
+    Result := False;
+  end;
+
+  if loading then
+    Result := WaitUntil(Minimap.InPOH(), 300, 10000);
+
+  if not Result then
+  begin
+    if Map.Position().AnyInRange(Self.Entrance.Coordinates, 80) then
+    begin
+      if not Self.Entrance.WalkSelectOption(['Home']) then Exit;
+      Exit(WaitUntil(Minimap.InPOH(), 300, 10000));
+    end;
+  end;
+end;
+
+function THouseHandler.CreateHouseTeleportCombobox(owner: TControl; topleft, offset: TPoint = [0,0]): TLabeledComboBox;
+  type THouseHandler = THouseHandler;
+  procedure THouseHandler.OnChange(sender: TObject);
+  begin
+    Self.TeleportMode := EHouseTeleportMode(TCombobox(sender).getItemIndex());
+    Self.Loader.Config.Put('teleport', Ord(Self.TeleportMode));
+  end;
+
+var
+  i: Int32;
+begin
+  Result.Create(owner, 'House teleport:', 'Choose your method of house teleportation.', topleft, [170, 40], offset, True);
+  Result.AddItemArray(['Spell', 'Tablet', 'Contruction/Max cape']);
+
+  if Self.Loader.Config.Has('teleport') then
+    i := Self.Loader.Config.GetInt('teleport');
+
+  Self.TeleportMode := EHouseTeleportMode(i);
+  Result.SetItemIndex(i);
+  Result.ComboBox.setOnChange(@Self.OnChange);
 end;
 
 var
@@ -785,8 +891,10 @@ var
   teleports: TStringArray;
   index: TPoint;
   tmp: set of EHouseObject;
+  visible: Boolean;
 begin
-  panel.Hide(); //hide temporarily so it looks better for human eyes
+  visible := panel.IsVisible();
+  if visible then panel.Hide(); //hide temporarily so it looks better for human eyes
   panel.RemoveChildren();
 
   case room.Room of
@@ -992,7 +1100,7 @@ begin
     end;
   end;
 
-  panel.Show(); //show again
+  if visible then panel.Show(); //show again
 end;
 
 
@@ -1156,12 +1264,11 @@ begin
   tmp.Free();
 end;
 
-procedure TScriptForm.OnShow(sender: TObject); override;
+procedure TScriptForm.POHBuilderOnShow(sender: TObject);
 var
   imgbox: TSimbaImageBox;
 begin
-  inherited;
-  imgbox := TForm(sender).GetChild('poh_builder');
+  imgbox := TTabSheet(sender).GetChild('poh_builder');
   if imgbox <> nil then
   begin
     imgbox.BackgroundChanged();
@@ -1226,6 +1333,8 @@ begin
   panel.Create(Result);
   panel.setAlign(TAlign.alClient);
   panel.setBevelWidth(0);
+
+  panel.setOnPaint(@Self.POHBuilderOnShow);
 
   caption.Create(panel,'LEFT CLICK to select a room, RIGHT CLICK to pan around. CTRL + WHEEL to zoom.', '', [0,0], [0,0], True);
   caption.setAlign(TAlign.alTop);

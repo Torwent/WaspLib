@@ -11,10 +11,104 @@ Some handy item wrappers were added for all cakes, pies and pizzas
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
-function TRSItem.IsNull(): Boolean;
+
+function TRSItem.Interact(option: String = ''; attempts: Int32 = 2): Boolean;
+var
+  slot, i: Int32;
+  tabI, otherI: PRSInterface;
+  tabE, otherE: ERSGameTab;
 begin
-  Result := VarIsClear(Self) or (Self = '') or (LowerCase(Self) = 'null');
+  tabE := GameTabs.GetCurrentTab();
+
+  case tabE of
+    ERSGameTab.INVENTORY:
+      begin
+        tabI := PRSInterface(@Inventory);
+        otherI := PRSInterface(@Equipment);
+        otherE := ERSGameTab.EQUIPMENT;
+      end;
+    ERSGameTab.EQUIPMENT:
+      begin
+        tabI := PRSInterface(@Equipment);
+        otherI := PRSInterface(@Inventory);
+        otherE := ERSGameTab.INVENTORY;
+      end;
+    else
+      begin
+        if Inventory.Open() then Exit(Self.Interact(option))
+        else Exit;
+      end;
+  end;
+
+  for i := 0 to 1 do
+  begin
+    slot := tabI^.ItemInterface.IndexOf([Self]);
+    if slot > -1 then
+      Exit(tabI^.ItemInterface.InteractSlot(slot, option));
+
+    Swap(tabI, otherI);
+    Swap(tabE, otherE);
+    if not GameTabs.Open(tabE) then Exit;
+  end;
+
+  Result := Self.Interact(option, Dec(attempts));
 end;
+
+function TRSItemArray.Interact(out item: TRSItem; option: String = ''; attempts: Int32 = 2): Boolean;
+var
+  slot, i: Int32;
+  tabI, otherI: PRSInterface;
+  tabE, otherE: ERSGameTab;
+begin
+  tabE := GameTabs.GetCurrentTab();
+  case tabE of
+    ERSGameTab.INVENTORY:
+      begin
+        tabI := PRSInterface(@Inventory);
+        otherI := PRSInterface(@Equipment);
+        otherE := ERSGameTab.EQUIPMENT;
+      end;
+    ERSGameTab.EQUIPMENT:
+      begin
+        tabI := PRSInterface(@Equipment);
+        otherI := PRSInterface(@Inventory);
+        otherE := ERSGameTab.INVENTORY;
+      end;
+    else
+      begin
+        if Inventory.Open() then Exit(Self.Interact(item, option))
+        else Exit;
+      end;
+  end;
+
+  if not item.IsNull() then
+    for i := 0 to 1 do
+    begin
+      slot := tabI^.ItemInterface.IndexOf([item]);
+      if slot > -1 then
+        Exit(tabI^.ItemInterface.InteractSlot(slot, option));
+
+      Swap(tabI, otherI);
+      Swap(tabE, otherE);
+      if not GameTabs.Open(tabE) then Exit;
+    end;
+
+  for item in Self do
+    if tabI^.ItemInterface.Contains(item) then
+      Exit(Self.Interact(item, option));
+
+  Swap(tabI, otherI);
+  Swap(tabE, otherE);
+  if not GameTabs.Open(tabE) then Exit;
+
+  for item in Self do
+    if tabI^.ItemInterface.Contains(item) then
+      Exit(Self.Interact(item, option));
+
+  if attempts = 0 then Exit;
+  Result := Self.Interact(item, option, Dec(attempts));
+end;
+
 
 (*
 ## ItemFinder Wrappers

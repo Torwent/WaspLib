@@ -1,3 +1,12 @@
+# [19.18.0](https://github.com/Torwent/WaspLib/compare/v19.17.7...v19.18.0) (2024-12-24)
+
+
+### Features
+
+* **house:** layouts are now saved per user ([b3db692](https://github.com/Torwent/WaspLib/commit/b3db6929c3ed87db0fc40d01928ad83e12f4d22f))
+
+
+
 ## [19.17.7](https://github.com/Torwent/WaspLib/compare/v19.17.6...v19.17.7) (2024-12-24)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **house:** read notes ([53d024f](https://github.com/Torwent/WaspLib/commit/53d024fb00b06b57b11fac00b757ae65d8605b19))
-
-
-
-## [19.17.3](https://github.com/Torwent/WaspLib/compare/v19.17.2...v19.17.3) (2024-12-22)
-
-
-### Bug Fixes
-
-* **house:** oops ([0b8b9d5](https://github.com/Torwent/WaspLib/commit/0b8b9d5863ebfd7fc3c5991401bd73a5b7e92fb2))
 
 
 

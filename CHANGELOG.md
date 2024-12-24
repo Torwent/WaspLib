@@ -1,3 +1,12 @@
+## [19.17.7](https://github.com/Torwent/WaspLib/compare/v19.17.6...v19.17.7) (2024-12-24)
+
+
+### Bug Fixes
+
+* read notes ([e063c83](https://github.com/Torwent/WaspLib/commit/e063c838f2d85924c51f9d308124a3fe85700ec5))
+
+
+
 ## [19.17.6](https://github.com/Torwent/WaspLib/compare/v19.17.5...v19.17.6) (2024-12-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **house:** oops ([0b8b9d5](https://github.com/Torwent/WaspLib/commit/0b8b9d5863ebfd7fc3c5991401bd73a5b7e92fb2))
-
-
-
-## [19.17.2](https://github.com/Torwent/WaspLib/compare/v19.17.1...v19.17.2) (2024-12-21)
-
-
-### Bug Fixes
-
-* **house:** start script bug ([85f890b](https://github.com/Torwent/WaspLib/commit/85f890bab0e809b1191aa6ec073c76f5ec7567d4))
 
 
 

@@ -84,6 +84,7 @@ The core record used to handle navigating a POH.
     Entrance: TRSObjectV2;
 
     TeleportMode: EHouseTeleportMode;
+    CapeTab: ERSGameTab;
     TeleportPlace: EHouseTeleportPlace;
     HouseTeleportItem: TRSItem;
   end;
@@ -326,6 +327,8 @@ begin
   Self.Entrance.Finder.Colors += CTS2(6316135, 8, 0.28, 0.12);
   Self.Entrance.Finder.Colors += CTS2(9379961, 30, 0.16, 1.76);
 
+  Self.CapeTab := ERSGameTab.UNKNOWN;
+
   Self.IsSetup := True;
 end;
 
@@ -551,7 +554,7 @@ var
 begin
   if Minimap.InPOH() then Exit(True);
 
-  if Map.Position().AnyInRange(Self.Entrance.Coordinates, 80) then
+  if Map.Position().AnyInRange(Self.Entrance.Coordinates, 60) then
   begin
     if not Self.Entrance.WalkSelectOption(['Home']) then Exit;
     Exit(WaitUntil(Minimap.InPOH(), 300, 10000));
@@ -579,12 +582,16 @@ begin
           Exit;
       end;
     EHouseTeleportMode.CAPE:
+    begin
+      if Self.CapeTab <> ERSGameTab.UNKNOWN then GameTabs.Open(Self.CapeTab);
       if not CAPES.Interact(Self.HouseTeleportItem, 'Tele to POH') then Exit;
+      Self.CapeTab := GameTabs.GetCurrentTab();
+    end;
   end;
 
   Result := WaitUntil(
     (loading := MainScreen.LoadingPOH()) or (outside := Map.Position().AnyInRange(Self.Entrance.Coordinates, 30)),
-    300, 4000
+    300, 3000
   );
 
   if outside then
@@ -594,14 +601,14 @@ begin
   end;
 
   if loading then
-    Result := WaitUntil(Minimap.InPOH(), 300, 10000);
+    Result := WaitUntil(Minimap.InPOH(), 300, 4000);
 
   if not Result then
   begin
-    if Map.Position().AnyInRange(Self.Entrance.Coordinates, 80) then
+    if Map.Position().AnyInRange(Self.Entrance.Coordinates, 60) then
     begin
       if not Self.Entrance.WalkSelectOption(['Home']) then Exit;
-      Exit(WaitUntil(Minimap.InPOH(), 300, 10000));
+      Exit(WaitUntil(Minimap.InPOH(), 300, 4000));
     end;
   end;
 end;
@@ -1272,11 +1279,12 @@ var
 begin
   if Login.PlayerIndex <> House.Loader.LayoutIndex then
   begin
-    WriteLn 'Refreshing layout.';
     House.Loader.Free();
     combobox := TPanel(sender).GetChild('decoration_combobox');
     Self.POHDecorationUpdate(combobox);
+
     combobox := TPanel(sender).GetChild('room_combobox');
+    combobox.SetItemIndex(Ord(House.Loader.ReadRoom(House.Loader.Selected.Matrix).Room));
     Self.RoomUpdate(combobox);
   end;
 end;

@@ -286,6 +286,11 @@ begin
   SetLength(Result.Names, Length(Result.Nodes));
 end;
 
+function THouseHandler.GetChunk(): TRSMapChunk;
+begin
+  Result := Self.Loader.Location.GetChunk();
+end;
+
 (*
 ## POH.Setup()
 ```pascal
@@ -320,8 +325,8 @@ begin
   Self.Graph := Self._BuildGraph(Self.Loader.Collision);
 
   Self.Entrance.Size := [2,4,7];
-  Self.Entrance.SetupCoordinates([[7710,37534],[7470,36570],[9264,38424],[2866,36362],[6584,35912],[1592,38582],[6926,37718],[6080,38040],[8860,26120]]);
-  Self.Entrance.Rotations := [0,0,90,0,90,90,0,90,90];
+  Self.Entrance.SetupCoordinates([Self.Loader.Location.GetEntranceCoordinate()]);
+  Self.Entrance.Rotations := [Self.Loader.Location.GetEntranceRotation()];
   Self.Entrance.SetupUpText(['Portal']);
   Self.Entrance.Walker := @Map.Walker;
   Self.Entrance.Finder.Colors += CTS2(6316135, 8, 0.28, 0.12);
@@ -1198,27 +1203,23 @@ begin
 end;
 
 
+procedure TScriptForm.POHLocationUpdate(sender: TObject);
+begin
+  House.Loader.Location := EHouseLocation(TComboBox(sender).getItemIndex());
+  House.Loader.Config.Put('layout', House.Loader.ToEncodedString());
+end;
+
 procedure TScriptForm.POHDecorationUpdate(sender: TObject);
 var
   parent: TControl;
-  combobox: TComboBox;
   imgbox: TSimbaImageBox;
   tmp: TMufasaBitmap;
 begin
-  combobox := sender;
-  parent := combobox.getParent().getParent().getParent();
+  parent := TComboBox(sender).getParent().getParent().getParent();
   imgbox := parent.GetChild('poh_builder');
 
-  if House.Loader.Map = nil then
-  begin
-    House.Loader.Init(32, 13);
-    combobox.setItemIndex(Ord(House.Loader.Decoration));
-  end
-  else
-  begin
-    House.Loader.SetColors(EHouseDecoration(combobox.getItemIndex()));
-    House.Loader.Redraw();
-  end;
+  House.Loader.SetColors(EHouseDecoration(TComboBox(sender).getItemIndex()));
+  House.Loader.Redraw();
 
   tmp := House.Loader.Map.Copy();
   tmp._DrawPOHGrid();
@@ -1331,7 +1332,7 @@ function TScriptForm.CreateHouseBuilder(): TTabSheet;
 var
   panel: TPanel;
   imgbox: TSimbaImageBox;
-  decoration, room: TLabeledComboBox;
+  location, decoration, room: TLabeledComboBox;
   rotateLeft, rotateRight: TButton;
   caption: TLabel;
 begin
@@ -1343,13 +1344,17 @@ begin
   panel.setBevelWidth(0);
   panel.setOnPaint(@Self.POHBuilderLeftOnShow);
 
-  decoration.Create(panel, 'Decoration:', 'Change your house decoration', [0, 10], [166,0], True);
+  location.Create(panel, 'Location:', 'Change your house location.', [0, 10], [166,0], True);
+  location.AddItemArray(['Rimmington', 'Taverley', 'Pollnivneach', 'Hosidius', 'Rellekka', 'Aldarin', 'Brimhaven', 'Yanille', 'Prifddinas']);
+  location.SetName('location');
+  location.ComboBox.setOnChange(@Self.POHLocationUpdate);
+
+  decoration.Create(panel, 'Decoration:', 'Change your house decoration.', [0, 50], [166,0], True);
   decoration.AddItemArray(['Basic wood', 'Basic stone', 'Whitewashed stone', 'Fremennik-style wood', 'Tropical wood', 'Fancy stone', 'Deathly mansion', 'Twisted theme', 'Hosidius house', 'Cosy cabin']);
   decoration.SetName('decoration');
-  decoration.SetItemIndex(0);
   decoration.ComboBox.setOnChange(@Self.POHDecorationUpdate);
 
-  room.Create(panel, 'Room:', 'Change the selected room', [0, 50], [166,0], True);
+  room.Create(panel, 'Room:', 'Change the selected room', [0, 90], [166,0], True);
   room.SetName('room');
   room.AddItemArray([
     'None', 'Parlour', 'Garden', 'Kitchen', 'Dining room', 'Workshop', 'Bedroom',
@@ -1360,14 +1365,14 @@ begin
   ]);
   room.ComboBox.setOnChange(@Self.RoomUpdate);
 
-  rotateLeft.Create(panel, 'Rotate Left', 'Rotate the current room counter clockwise', [0,100], [0,0], True);
+  rotateLeft.Create(panel, 'Rotate Left', 'Rotate the current room counter clockwise', [0,150], [0,0], True);
   rotateLeft.setName('rotate_left_button');
   rotateLeft.setOnClick(@Self.OnRotateRoom);
-  rotateRight.Create(panel, 'Rotate Right', 'Rotate the current room clockwise', [92,100], [0,0], True);
+  rotateRight.Create(panel, 'Rotate Right', 'Rotate the current room clockwise', [92,150], [0,0], True);
   rotateRight.setName('rotate_right_button');
   rotateRight.setOnClick(@Self.OnRotateRoom);
 
-  panel.Create(panel, [0, 150], [0,300], True);
+  panel.Create(panel, [0, 210], [0,300], True);
   panel.SetName('objects_panel');
   panel.setCaption('');
   panel.setBevelWidth(0);
@@ -1386,7 +1391,14 @@ begin
   imgbox.setOnPaintArea(@Self.HousePaintArea);
   imgbox.setOnMouseDown(@Self.POHMouseDown);
   imgbox.setOnKeyPress(@Self.POHKeyPress);
-  Self.POHDecorationUpdate(decoration.ComboBox);
+
+  if House.Loader.Map = nil then
+  begin
+    House.Loader.Init(32, 13);
+    location.SetItemIndex(Ord(House.Loader.Location));
+    decoration.SetItemIndex(Ord(House.Loader.Decoration));
+  end;
+
   room.SetItemIndex(Ord(House.Loader.ReadRoom(House.Loader.Selected.Matrix).Room));
   Self.RoomUpdate(room.ComboBox);
 end;

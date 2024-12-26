@@ -62,6 +62,7 @@ All `THouseLoader` methods are helper methods for the {ref}`THouseHandler` and y
     end;
     HouseBounds: TBox;
 
+    Location: EHouseLocation;
     Decoration: EHouseDecoration;
     Colors: THouseColor;
     Config: TConfigJSON;
@@ -171,9 +172,20 @@ begin
   SetLength(Self.TeleportRooms, Self.AMOUNT, Self.AMOUNT);
 
   if Self.Config.Has('layout') then
-    Self.LoadFromString(Self.Config.GetString('layout'))
+  begin
+    try
+      Self.LoadFromString(Self.Config.GetString('layout'));
+    except
+      MessageDlg('House Loader', 'Error loading old house layout.' + LineEnding + 'This could be because it was updated and the old version is not compatible anymore.', TMsgDlgType.mtError, [mbOk]);
+      WriteLn GetExceptionMessage();
+      Self.Location := EHouseLocation.RIMMINGTON;
+      Self.SetColors(EHouseDecoration.WOOD);
+      Self.DrawMap([EHouseRoom.GARDEN, 0, []], [Self.AMOUNT div 2, Self.AMOUNT div 2]);
+    end;
+  end
   else
   begin
+    Self.Location := EHouseLocation.RIMMINGTON;
     Self.SetColors(EHouseDecoration.WOOD);
     Self.DrawMap([EHouseRoom.GARDEN, 0, []], [Self.AMOUNT div 2, Self.AMOUNT div 2]);
   end;
@@ -463,7 +475,7 @@ var
   o: EHouseObject;
   troom: TTeleportRoom;
 begin
-  Result := '[' + ToStr(Ord(Self.Decoration)) +']';
+  Result := '[' + ToStr(Ord(Self.Location)) + ' ' + ToStr(Ord(Self.Decoration)) +']';
   for idx.Y := 0 to Self.AMOUNT-1 do
     for idx.X := 0 to Self.AMOUNT-1 do
     begin
@@ -506,9 +518,28 @@ begin
   elements := MultiBetween(DecompressString(Base64Decode(s)), '[', ']');
 
   if elements <> [] then
-    Self.SetColors(EHouseDecoration(StrToInt(elements[0])));
+  begin
+    values := Explode(' ', elements[0]);
+    case Length(values) of
+      0:
+      begin
+        Self.Location := EHouseLocation(0);
+        Self.SetColors(EHouseDecoration(0));
+      end;
+      1:
+      begin
+        Self.Location := EHouseLocation(StrToInt(values[0]));
+        Self.SetColors(EHouseDecoration(0));
+      end;
+      2:
+      begin
+        Self.Location := EHouseLocation(StrToInt(values[0]));
+        Self.SetColors(EHouseDecoration(StrToInt(values[1])));
+      end;
+    end;
+  end;
 
-  for i := 1 to High(elements) do
+  for i := 2 to High(elements) do
   begin
     if elements[i].Contains(' (') then
     begin

@@ -475,7 +475,13 @@ var
   o: EHouseObject;
   troom: TTeleportRoom;
 begin
-  Result := '[' + ToStr(Ord(Self.Location)) + ' ' + ToStr(Ord(Self.Decoration)) +']';
+  Result := '[';
+  Result += '5 ';
+  Result += ToStr(Ord(High(EHouseObject))) + ' ';
+  Result += ToStr(Ord(High(EHouseTeleport))) + ' ';
+  Result += ToStr(Ord(Self.Location)) + ' ' + ToStr(Ord(Self.Decoration));
+  Result += ']';
+
   for idx.Y := 0 to Self.AMOUNT-1 do
     for idx.X := 0 to Self.AMOUNT-1 do
     begin
@@ -514,30 +520,33 @@ var
   i, j: Int32;
   room: THouseRoom;
   main, portals: String;
+  skipObjects: Boolean;
 begin
   elements := MultiBetween(DecompressString(Base64Decode(s)), '[', ']');
+  if elements = [] then Exit;
 
-  if elements <> [] then
+  values := Explode(' ', elements[0]);
+
+  //validate something didn't change that made the config unparseable
+  if (Length(values) < 5) or (StrToInt(values[0]) <> Length(values)) then
   begin
-    values := Explode(' ', elements[0]);
-    case Length(values) of
-      0:
-      begin
-        Self.Location := EHouseLocation(0);
-        Self.SetColors(EHouseDecoration(0));
-      end;
-      1:
-      begin
-        Self.Location := EHouseLocation(StrToInt(values[0]));
-        Self.SetColors(EHouseDecoration(0));
-      end;
-      2:
-      begin
-        Self.Location := EHouseLocation(StrToInt(values[0]));
-        Self.SetColors(EHouseDecoration(StrToInt(values[1])));
-      end;
-    end;
+    MessageDlg('House Loader', 'Error loading old house layout.' + LineEnding + 'This could be because it was updated and the old version is not compatible anymore.' + LineEnding + LineEnding + 'Your house layout has been reset!', TMsgDlgType.mtError, [mbOk]);
+    CopyFile(Self.Config.Path, Self.Config.Path + '.old', True);
+    Self.Location := EHouseLocation.RIMMINGTON;
+    Self.SetColors(EHouseDecoration.WOOD);
+    Self.DrawMap([EHouseRoom.GARDEN, 0, [EHouseObject.EXIT]], [Self.AMOUNT div 2, Self.AMOUNT div 2]);
+    Exit;
   end;
+
+  //validate EHouseObjects and EHouseTeleport didn't change
+  skipObjects := StrToInt(values[1]) <> Ord(High(EHouseObject));
+  skipObjects := skipObjects or (StrToInt(values[2]) <> Ord(High(EHouseTeleport)));
+
+  if skipObjects then
+    MessageDlg('House Loader', 'Error loading old house layout.' + LineEnding + 'This could be because it was updated and the old version is not compatible anymore.' + LineEnding + LineEnding + 'Your house layout remains but your will need to reconfigure your objects!', TMsgDlgType.mtError, [mbOk]);
+
+  Self.Location := EHouseLocation(StrToInt(values[3]));
+  Self.SetColors(EHouseDecoration(StrToInt(values[4])));
 
   for i := 2 to High(elements) do
   begin
@@ -558,21 +567,27 @@ begin
     room.Room := EHouseRoom(StrToInt(values[2]));
     room.Rotation := StrToInt(values[3]);
 
-    room.Objects := [];
-    for j := 4 to High(values) do
-      room.Objects += EHouseObject(StrToInt(values[j]));
+    if not skipObjects then
+    begin
+      room.Objects := [];
+      for j := 4 to High(values) do
+        room.Objects += EHouseObject(StrToInt(values[j]));
+    end;
 
     case room.Room of
       EHouseRoom.UNKNOWN: ;
       EHouseRoom.PORTAL_CHAMBER, EHouseRoom.SUPERIOR_GARDEN, EHouseRoom.PORTAL_NEXUS:
       begin
-        values := Explode(' ', portals);
+        if not skipObjects then
+        begin
+          values := Explode(' ', portals);
 
-        Self.TeleportRooms[idx.Y, idx.X] := [
-          EHouseTeleport(StrToInt(values[0])),
-          EHouseTeleport(StrToInt(values[1])),
-          EHouseTeleport(StrToInt(values[2]))
-        ];
+          Self.TeleportRooms[idx.Y, idx.X] := [
+            EHouseTeleport(StrToInt(values[0])),
+            EHouseTeleport(StrToInt(values[1])),
+            EHouseTeleport(StrToInt(values[2]))
+          ];
+        end;
 
         Self.DrawMap(room, idx);
       end;

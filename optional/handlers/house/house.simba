@@ -106,6 +106,9 @@ begin
   Self.Teleports[teleport].SetupUpText(teleport.GetUpText());
   Self.Teleports[teleport].Finder := teleport.GetFinder();
   Self.Teleports[teleport].Walker := @Self.Walker;
+
+  if teleport in [EHouseTeleport.DIGSITE, EHouseTeleport.XERIC] then
+    Self.Teleports[teleport].Filter.Finder := False;
 end;
 
 procedure THouseHandler._SetupObject(obj: EHouseObject; coordinate: TPoint; rotation: Int32);
@@ -123,6 +126,9 @@ begin
   Self.Objects[obj].SetupUpText(obj.GetUpText());
   Self.Objects[obj].Finder := obj.GetFinder();
   Self.Objects[obj].Walker := @Self.Walker;
+
+  if obj in [EHouseObject.GLORY, EHouseObject.MYTH_CAPE, EHouseObject.LEFT_AMULET, EHouseObject.RIGHT_AMULET] then
+    Self.Objects[obj].Filter.Finder := False;
 end;
 
 procedure THouseHandler.SetupObjects();
@@ -776,6 +782,13 @@ begin
       end;
     end;
 
+    'larder_combobox':
+    begin
+      room.Objects -= KITCHEN_LARDERS;
+      if index <> 0 then
+        room.Objects += EHouseObject.LARDER + index-1;
+    end;
+
     'repair_stand_combobox':
     begin
       case index of
@@ -807,13 +820,20 @@ begin
         room.Objects += EHouseObject.OAK_LECTERN + index-1;
     end;
 
-    'prayer_altar_combobox':
+    'chapel_altar_combobox':
     begin
-      case index of
-        0: room.Objects := [];
-        1: room.Objects := [EHouseObject.PRAYER_ALTAR];
-      end;
+      room.Objects -= CHAPEL_ALTARS;
+      if index <> 0 then
+        room.Objects += EHouseObject.OAK_ALTAR + index-1;
     end;
+
+    'burners_combobox':
+    begin
+      room.Objects -= CHAPEL_BURNERS;
+      if index <> 0 then
+        room.Objects += CHAPEL_BURNERS;
+    end;
+
 
     'left_portal_combobox':
     begin
@@ -915,6 +935,32 @@ begin
 end;
 
 procedure TScriptForm.RefreshObjectsPanel(panel: TPanel; room: THouseRoom);
+  function SetCount(var val): Int32;
+  var
+    i,j: Int32;
+    tmp: array [0..31] of Byte;
+  begin
+    Move(val, tmp, 32);
+    Result := 0;
+    for j:=0 to 31 do
+      for i:=0 to 7 do
+        if (tmp[j] and (1 shl i)) <> 0 then
+          Inc(Result);
+  end;
+
+  function SetFirst(var val): Int32;
+  var
+    i,j: Int32;
+    tmp: array [0..31] of Byte;
+  begin
+    Move(val, tmp, 32);
+    Result := -1;
+    for j:=0 to 31 do
+      for i:=0 to 7 do
+        if (tmp[j] and (1 shl i)) <> 0 then
+          Exit(j*8+i);
+  end;
+
 var
   combobox: TLabeledComboBox;
   teleports: TStringArray;
@@ -932,6 +978,15 @@ begin
       combobox.Create(panel, 'Exit portal:', 'Does this room have a exit portal?', [0,0],[166,50], True);
       combobox.AddItemArray(['No', 'Yes']);
       combobox.SetName('garden_exit_portal');
+      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+    end;
+
+    EHouseRoom.KITCHEN:
+    begin
+      combobox.Create(panel, 'Larder:', 'Does this room have a larder?', [0,0],[166,50], True);
+      combobox.AddItemArray(['None', 'Normal', 'Oak', 'Teak']);
+      combobox.SetName('larder');
       combobox.SetItemIndex(SetCount(room.Objects));
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
     end;
@@ -984,9 +1039,22 @@ begin
     EHouseRoom.CHAPEL:
     begin
       combobox.Create(panel, 'Altar:', 'Does this room have an altar?', [0,0],[166,50], True);
+      combobox.AddItemArray(['None', 'Oak', 'Teak', 'Cloth', 'Mahogany', 'Limestone', 'Marble', 'Gilded']);
+      combobox.SetName('chapel_altar');
+
+      tmp := room.Objects - CHAPEL_BURNERS;
+      if SetCount(tmp) <> 1 then
+        combobox.SetItemIndex(0)
+      else
+        combobox.SetItemIndex(SetFirst(tmp) - Ord(EHouseObject.OAK_ALTAR) + 1);
+      combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
+
+      combobox := [];
+      combobox.Create(panel, 'Incense burners:', 'Does this room have an incense burner?', [0,50],[166,50], True);
       combobox.AddItemArray(['No', 'Yes']);
-      combobox.SetName('prayer_altar');
-      combobox.SetItemIndex(SetCount(room.Objects));
+      combobox.SetName('burners');
+      tmp := room.Objects - CHAPEL_ALTARS;
+      combobox.SetItemIndex(Min(1, SetCount(tmp)));
       combobox.ComboBox.setOnChange(@Self.POHObjectUpdate);
     end;
 
@@ -1065,6 +1133,7 @@ begin
       combobox.SetName('pool');
 
       tmp := room.Objects - SUPERIOR_GARDEN_TELEPORTS;
+
       if SetCount(tmp) <> 1 then
         combobox.SetItemIndex(0)
       else

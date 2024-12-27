@@ -34,7 +34,7 @@ e.g., Nexus room, Combat Hall and Quest Hall are all identical.
 {$ENDIF}
 
 {$IFNDEF WL_HOUSEMAP_INCLUDED}
-  {$I WaspLib/optional/handlers/house/housemap.simba}
+  {$I WaspLib/optional/handlers/house/houseloader.simba}
 {$ENDIF}
 
 type
@@ -116,13 +116,13 @@ begin
   if Self.Objects[obj].Coordinates <> [] then
   begin
     Self.Objects[obj].Coordinates += coordinate;
-    Self.Objects[obj].Rotations += rotation;
+    Self.Objects[obj].Rotations += rotation * 90;
     Exit;
   end;
 
   Self.Objects[obj].SetupCoordinates([coordinate]);
   Self.Objects[obj].Size := obj.GetSize();
-  Self.Objects[obj].Rotations := [rotation];
+  Self.Objects[obj].Rotations := [rotation * 90];
   Self.Objects[obj].SetupUpText(obj.GetUpText());
   Self.Objects[obj].Finder := obj.GetFinder();
   Self.Objects[obj].Walker := @Self.Walker;
@@ -166,6 +166,33 @@ begin
     end;
 end;
 
+function THouseHandler.CreateObject(offset: TPoint; size: vector3; eRoom: EHouseRoom): TRSObjectV2;
+var
+  idx, coordinate: TPoint;
+  room: THouseRoom;
+begin
+  for idx.Y := 0 to Self.Loader.AMOUNT-1 do
+    for idx.X := 0 to Self.Loader.AMOUNT-1 do
+    begin
+      room := Self.Loader.ReadRoom(idx);
+      if room.Room <> eRoom then Continue;
+
+      coordinate := _RotateRoomOffset(offset, Self.Loader.SIZE, room.Rotation);
+      coordinate += idx * Self.Loader.SIZE;
+
+      if Result.Coordinates <> [] then
+      begin
+        Result.Coordinates += coordinate;
+        Result.Rotations += room.Rotation * 90;
+        Continue;
+      end;
+
+      Result.SetupCoordinates([coordinate]);
+      Result.Size := size;
+      Result.Rotations := [room.Rotation * 90];
+      Result.Walker := @Self.Walker;
+    end;
+end;
 
 function THouseHandler._BuildGraph(map: TMufasaBitmap): TWebGraphV2;
 var

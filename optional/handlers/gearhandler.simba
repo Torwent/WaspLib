@@ -253,6 +253,77 @@ begin
       Exit(Self.Sets[i]);
 end;
 
+function TScriptForm.GetEquipSlotEnum(slotName : string; out equipSlot : ERSEquipmentSlot) : Boolean;
+begin
+
+  slotName := slotName.ToLower();
+
+  case slotName of
+    'head'           :
+    begin
+      equipSlot := ERSEquipmentSlot.HEAD;
+      Exit(true);
+    end;
+    'secondary_ammo' :
+    begin
+      equipSlot := ERSEquipmentSlot.SECONDARY_AMMO;
+      Exit(true);
+    end;
+    'neck' :
+    begin
+      equipSlot := ERSEquipmentSlot.NECK;
+      Exit(true);
+    end;
+    'cape' :
+    begin
+      equipSlot := ERSEquipmentSlot.CAPE;
+      Exit(true);
+    end;
+    'ammo' :
+    begin
+      equipSlot := ERSEquipmentSlot.AMMO;
+      Exit(true);
+    end;
+    'weapon' :
+    begin
+      equipSlot := ERSEquipmentSlot.WEAPON;
+      Exit(true);
+    end;
+    'body' :
+    begin
+      equipSlot := ERSEquipmentSlot.BODY;
+      Exit(true);
+    end;
+    'shield' :
+    begin
+      equipSlot := ERSEquipmentSlot.SHIELD;
+      Exit(true);
+    end;
+    'legs' :
+    begin
+      equipSlot := ERSEquipmentSlot.LEGS;
+      Exit(true);
+    end;
+    'hands' :
+    begin
+      equipSlot := ERSEquipmentSlot.HANDS;
+      Exit(true);
+    end;
+    'feet'  :
+    begin
+      equipSlot := ERSEquipmentSlot.FEET;
+      Exit(true);
+    end;
+    'ring' :
+    begin
+      equipSlot := ERSEquipmentSlot.RING;
+      Exit(true);
+    end;
+    else
+      Writeln("Bad mapping for: ", slotName);
+  end;
+end;
+
 function TRSGearHandler.Contains(name: String): Boolean;
 var
   i: Int32;
@@ -316,6 +387,7 @@ var
   slot: ERSEquipmentSlot;
   gear: TRSGear;
   item: TRSItem;
+  applyFilter : Boolean;
 begin
   combobox := sender;
   if combobox.getItemIndex() = -1 then Exit;
@@ -333,6 +405,17 @@ begin
   for slot := Low(ERSEquipmentSlot) to High(ERSEquipmentSlot) do
   begin
     combobox := parent.GetChild(ToStr(slot).Lower() + '_slot_combobox');
+    applyFilter := false;
+
+    //Reset the items if they've been filtered by the search. So the OnGearChange works correctly.
+    //This can cause flickering and a lag on the GUI as it resets the items.
+    if combobox.getItems().getCount() < GearHandler._UnfilteredLists[slot].getCount() then
+    begin
+      combobox.setItems(GearHandler._UnfilteredLists[slot]);
+      //Uncomment if you want to clear the existing search filter for the slot.
+      //TEdit(parent.GetChild(ToStr(slot).Lower() + '_slot_search')).setText("");
+      applyFilter := true;
+    end;
 
     if VarIsEmpty(gear.Items[slot]) then
     begin
@@ -346,6 +429,9 @@ begin
     combobox.setItemIndex(combobox.getItems().IndexOf(gear.Items[slot]));
 
     Self._OnGearChange(combobox);
+    //Comment out or remove this if you're clearing the search filter.
+    if applyFilter then
+      Self._OnFilterChanged(parent.GetChild(ToStr(slot).Lower() + '_slot_search'));
   end;
 
   GearHandler._FormFiltered := False;
@@ -430,6 +516,59 @@ begin
   Self._OnGearSelectorChange(combobox);
 end;
 
+procedure TScriptForm._OnFilterChanged(sender: TObject);
+var
+  edi : TEdit;
+  i : Int32;
+  ediText, listStr, ediName : string;
+  basePanel : TPanel;
+  filterCombo : TComboBox;
+  equip : ERSEquipmentSlot;
+begin
+
+  edi := sender;
+
+  if edi = nil then
+    Exit;
+
+  ediText := edi.getText();
+  ediName := edi.getName();
+  basePanel := edi.getParent();
+
+  if ediName.Contains("_search") then
+    filterCombo := basePanel.GetChild(ediName.Before("_search") + "_combobox"); //head_slot_search
+
+  if filterCombo = nil then
+  begin
+    Writeln("No filter");
+    Exit;
+  end;
+
+  if not Self.GetEquipSlotEnum(ediName.Before("_slot"), equip) then
+  begin
+    Writeln("Bad slot");
+    Exit;
+  end;
+
+  if (ediText = "") or (Length(ediText.Replace(" ", "", [rfReplaceAll])) < 1) then
+  begin
+    filterCombo.getItems().Clear();
+    filterCombo.setItems(GearHandler._UnfilteredLists[equip]);
+    filterCombo.setItemIndex(0);
+    Exit;
+  end;
+
+  filterCombo.getItems().Clear();
+
+  for i := 0 to GearHandler._UnfilteredLists[equip].getCount() - 1 do
+  begin
+    listStr := GearHandler._UnfilteredLists[equip].getStrings(i);
+    if listStr.Contains(ediText) then
+      filterCombo.getItems().Add(listStr);
+  end;
+
+  filterCombo.setItemIndex(0);
+end;
 
 procedure TScriptForm._OnGearChange(sender: TObject);
 var
@@ -438,14 +577,15 @@ var
   img: TImage;
   item, tmp: TMufasaBitmap;
   id: TRSItem;
-  path: String;
+  path, comboText: String;
 begin
   combobox := sender;
   parent := combobox.getParent().getParent();
   parent := parent.GetChild('gear_panel_image_equipment');
   img := parent.GetChild(combobox.GetName().Replace('_combobox', '_img'));
+  comboText := combobox.getText();
 
-  if combobox.getText() = 'None' then
+  if (comboText = 'None') or (comboText = "") then
   begin
     img.setVisible(False);
     Exit;
@@ -453,9 +593,8 @@ begin
 
   img.setVisible(True);
 
-  id := ItemFinder.GetItemIDs(combobox.getText())[0];
+  id := ItemFinder.GetItemIDs(comboText)[0];
   path := ItemFinder.IMAGES_PATH.Replace('itemfinder', 'forms' + DirectorySeparator + 'gear');
-
 
   if FileExists(path + id + '.png') then
   begin
@@ -476,7 +615,6 @@ begin
 
   img.GetPicture().LoadFromFile(path + id + '.png');
 end;
-
 
 procedure TScriptForm._OnLoadGear(sender: TObject);
 var
@@ -543,9 +681,6 @@ begin
 
   GearHandler._FormFiltered := False;
 end;
-
-
-
 
 function TScriptForm._SetupGearImagesPanel(parent: TComponent): TPanel;
 var
@@ -682,12 +817,31 @@ begin
   img.setVisible(False);
 end;
 
+function TScriptForm._AddSearch(combo : TLabeledComboBox) : TEdit;
+begin
+  Result.Create(combo.Panel);
+  Result.setName(combo.GetName() + "_search");
+  Result.setCaption("");
+  Result.setOnChange(@Self._OnFilterChanged);
+  Result.setAlign(alTop);
+  combo.ComboBox.setAlign(alNone);
+  Result.setTop(combo.Panel.getTop() + TCOntrol.AdjustToDPI(12));
+  combo.ComboBox.setAlign(alBottom);
+  combo.Panel.setHeight(TControl.AdjustToDPI(60));
+  Result.setOnKeyPress(@TEdit.LowercaseField);
+end;
+
 function TScriptForm._SetupGearPanel(parent: TComponent): TPanel;
 var
   save, duplicate, remove, load, clear: TButton;
   cb, head, sammo, cape, neck, ammo, weapon, body,
   shield, legs, hands, feet, ring: TLabeledComboBox;
-  w: Int32;
+
+  headSearch, sAmmoSearch, capeSearch, neckSearch,
+  ammoSearch, weaponSearch, bodySearch, shieldSearch,
+  legSearch, handsSearch, feetSearch, ringSearch : TEdit;
+
+  w, vSpace: Int32;
 begin
   Result.Create(parent);
   Result.setTop(TControl.AdjustToDPI(20));
@@ -748,11 +902,12 @@ begin
   end;
 
   w := TControl.AdjustToDPI(120);
+  vSpace := TControl.AdjustToDPI(8);
 
   with head do
   begin
     Create(Result);
-    SetTop(cb.GetBottom() + TControl.AdjustToDPI(40));
+    SetTop(cb.GetBottom() + TControl.AdjustToDPI(5));
     SetWidth(w);
     SetLeft((Self.Size.X div 2) + TControl.AdjustToDPI(90));
     SetName('head_slot');
@@ -761,6 +916,8 @@ begin
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
+
+  headSearch := Self._AddSearch(head);
 
   with sammo do
   begin
@@ -775,10 +932,12 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  sAmmoSearch := Self._AddSearch(sammo);
+
   with cape do
   begin
     Create(Result);
-    SetTop(head.GetBottom() + TControl.AdjustToDPI(12));
+    SetTop(head.GetBottom() + vSpace);
     SetWidth(w);
     SetLeft(head.GetLeft() - TControl.AdjustToDPI(20) - w);
     SetName('cape_slot');
@@ -787,6 +946,8 @@ begin
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
+
+  capeSearch := Self._AddSearch(cape);
 
   with neck do
   begin
@@ -801,6 +962,8 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  neckSearch := Self._AddSearch(neck);
+
   with ammo do
   begin
     Create(Result);
@@ -814,10 +977,12 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  ammoSearch := Self._AddSearch(ammo);
+
   with weapon do
   begin
     Create(Result);
-    SetTop(cape.GetBottom() + TControl.AdjustToDPI(12));
+    SetTop(cape.GetBottom() + vSpace);
     SetWidth(w);
     SetLeft(head.GetLeft() - TControl.AdjustToDPI(20) - w);
     SetName('weapon_slot');
@@ -826,6 +991,8 @@ begin
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
+
+  weaponSearch := Self._AddSearch(weapon);
 
   with body do
   begin
@@ -840,6 +1007,8 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  bodySearch := Self._AddSearch(body);
+
   with shield do
   begin
     Create(Result);
@@ -853,10 +1022,12 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  shieldSearch := Self._AddSearch(shield);
+
   with legs do
   begin
     Create(Result);
-    SetTop(weapon.GetBottom() + TControl.AdjustToDPI(12));
+    SetTop(weapon.GetBottom() + vSpace);
     SetWidth(w);
     SetLeft(head.GetLeft());
     SetName('legs_slot');
@@ -866,10 +1037,12 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  legSearch := Self._AddSearch(legs);
+
   with hands do
   begin
     Create(Result);
-    SetTop(legs.GetBottom() + TControl.AdjustToDPI(12));
+    SetTop(legs.GetBottom() + vSpace);
     SetWidth(w);
     SetLeft(head.GetLeft() - TControl.AdjustToDPI(20) - w);
     SetName('hands_slot');
@@ -878,6 +1051,8 @@ begin
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
+
+  handsSearch := Self._AddSearch(hands);
 
   with feet do
   begin
@@ -892,6 +1067,8 @@ begin
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
 
+  feetSearch := Self._AddSearch(feet);
+
   with ring do
   begin
     Create(Result);
@@ -904,6 +1081,8 @@ begin
     SetItemIndex(0);
     ComboBox.setOnChange(@Self._OnGearChange);
   end;
+
+  ringSearch := Self._AddSearch(ring);
 
   w := TControl.AdjustToDPI(195);
   //Bottom buttons
@@ -950,3 +1129,4 @@ begin
 
   Self._SetupGearPanel(tab);
 end;
+

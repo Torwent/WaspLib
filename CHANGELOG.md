@@ -1,3 +1,12 @@
+## [19.19.3](https://github.com/Torwent/WaspLib/compare/v19.19.2...v19.19.3) (2025-01-03)
+
+
+### Bug Fixes
+
+* **house:** fix to bug when changing account after recent changes ([ae83254](https://github.com/Torwent/WaspLib/commit/ae83254efd7d6baa5bb8f1ba6821c4de36e422d2))
+
+
+
 ## [19.19.2](https://github.com/Torwent/WaspLib/compare/v19.19.1...v19.19.2) (2024-12-27)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **House:** added a .Leave() method ([a767699](https://github.com/Torwent/WaspLib/commit/a767699edca61d869310724abf6c671809ecf176))
-
-
-
-## [19.18.1](https://github.com/Torwent/WaspLib/compare/v19.18.0...v19.18.1) (2024-12-24)
-
-
-### Bug Fixes
-
-* **house:** read notes ([06689fb](https://github.com/Torwent/WaspLib/commit/06689fb7fff82d82683193be6926537ac9595981))
 
 
 

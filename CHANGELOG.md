@@ -1,3 +1,12 @@
+# [19.21.0](https://github.com/Torwent/WaspLib/compare/v19.20.0...v19.21.0) (2025-01-17)
+
+
+### Features
+
+* read notes ([b5380fd](https://github.com/Torwent/WaspLib/commit/b5380fd216d704e0603eef66adde3dd5d0ab7365))
+
+
+
 # [19.20.0](https://github.com/Torwent/WaspLib/compare/v19.19.3...v19.20.0) (2025-01-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([8ba339a](https://github.com/Torwent/WaspLib/commit/8ba339a0f7a666aed6f472ec45c8beb08dd63a9e))
-
-
-
-# [19.19.0](https://github.com/Torwent/WaspLib/compare/v19.18.2...v19.19.0) (2024-12-26)
-
-
-### Features
-
-* **house:** added a dropdown for house location ([7bbc97d](https://github.com/Torwent/WaspLib/commit/7bbc97dc1a5672c714c4417973f3587f200ec986))
 
 
 

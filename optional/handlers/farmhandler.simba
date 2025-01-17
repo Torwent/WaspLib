@@ -1,0 +1,112 @@
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+
+
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+{$IFNDEF ANDREW_MUSHTREE_INCLUDED}
+  {$I WaspLib/optional/interfaces/mainscreen/mushtree.simba}
+{$ENDIF}
+
+type
+{$SCOPEDENUMS ON}
+  EFarmPatch = (HERB, ALLOTMENT, FLOWER, BUSH);
+  EFarmLocation = (ARDOUGNE, CATHERBY);
+
+  TFarmPatch = record
+    //Basically a placeholder for now
+    Patch: EFarmPatch;
+    Obj: TRSObjectV2;
+    Timestamp: UInt64;
+  end;
+
+  TFarmHandler = record(TSRLBaseRecord)
+    CurrentLocation: EFarmLocation;
+    Patches: array [EFarmLocation] of TFarmPatch;
+
+    Time: record Last, Next: UInt64; end;
+
+    OnStart, OnStop, IsFinished: function (): Boolean of object;
+
+    Map: TRSMap; //local TRSMap exclusive to the TFarmHandler
+  end;
+
+function TFarmHandler._IsFinished(): Boolean;
+begin
+  Result := Self.Map.GetRegionIndex() > 0;
+end;
+
+procedure TFarmHandler.InternalSetup(bmp: TMufasaBitmap);
+var
+  bounds: TBox;
+  sizeMap, sizeBMP, sizeNew: TPoint;
+begin
+  Self.Map.Loader.Load([Chunk([56,61,60,57], 0), Chunk([58,60,58,60], 1)], 8, 80);
+
+  //add map to our handler map regardless of where it came from, TRSMap or TRSWalker
+  sizeMap := [Self.Map.Loader.Map.getWidth(), Self.Map.Loader.Map.getHeight()];
+  sizeBMP := [bmp.getWidth(), bmp.getHeight()];
+
+  //add just enought space to Loader.Map so we can fit bmp inside.
+  if (sizeMap.X + sizeBMP.X) > (sizeMap.Y + sizeBMP.Y) then
+  begin
+    bounds := [sizeMap.X, 0, sizeMap.X + sizeBMP.X, sizeBMP.Y];
+    Self.Map.Loader.Map.SetSize(bounds.X2, Max(sizeMap.Y, sizeBMP.Y));
+  end
+  else
+  begin
+    bounds := [0, sizeMap.Y, sizeBMP.X, sizeMap.Y + sizeBMP.Y];
+    Self.Map.Loader.Map.SetSize(Max(sizeMap.X, sizeBMP.X), sizeMap.Y + sizeBMP.Y);
+  end;
+
+  //Draw bmp onto Loader.Map and update the other bitmaps so everything works well
+  sizeNew := [Self.Map.Loader.Map.getWidth(), Self.Map.Loader.Map.getHeight()];
+  Self.Map.Loader.Map.DrawBitmap(bmp, [bounds.X1, bounds.Y1]);
+  Self.Map.Loader.Map.Downsample(Self.Map.Loader.Downscale, Self.Map.Loader.DownscaledMap);
+  Self.Map.Loader.Heightmap.SetSize(sizeNew.X, sizeNew.Y);
+  Self.Map.Loader.Collision.SetSize(sizeNew.X, sizeNew.Y);
+
+  //add a arbitary region and update other maps sizes so other stuff works well
+  Self.Map.Loader.Regions += ['External', bounds, bounds, 0, Point(0,0)];
+
+  Self.Map.InternalSetup();
+
+  if @Self.IsFinished = nil then
+    Self.IsFinished := @Self._IsFinished;
+end;
+
+procedure TFarmHandler.Setup(map: PRSMap);
+begin
+  Self.InternalSetup(map^.Loader.Map);
+end;
+
+procedure TFarmHandler.Setup(map: PRSWalker); overload;
+begin
+  Self.InternalSetup(map^.Map.Map);
+end;
+
+procedure TFarmHandler.Setup(); overload;
+begin
+  Self.Map.Loader.Load([Chunk([56,61,60,57], 0), Chunk([58,60,58,60], 1)], 8, 80);
+  Self.Map.InternalSetup();
+
+  if @Self.IsFinished = nil then
+    Self.IsFinished := @Self._IsFinished;
+end;
+
+var
+  FarmHandler: TFarmHandler;
+{$SCOPEDENUMS OFF}
+
+
+(*
+//EXAMPLE TEST OF SHOWING THE MAPS JOINED TOGETHER BETWEEN TRSWALKER AND TRSMAP
+var
+  rsw: TRSWalker;
+begin
+  rsw.SetupRegion(RSRegions.ARDOUGNE);
+  FarmHandler.Setup(@rsw, EBirdHouseWood.MAHOGANY, 'Guam seed');
+  FarmHandler.Map.Debug();
+end.
+*)

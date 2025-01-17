@@ -1,0 +1,120 @@
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+{$IFNDEF ANDREW_MUSHTREE_INCLUDED}
+  {$I WaspLib/optional/interfaces/mainscreen/mushtree.simba}
+{$ENDIF}
+
+type
+{$SCOPEDENUMS ON}
+  EBirdHouseWood = (REGULAR, OAK, WILLOW, TEAK, MAPLE, MAHOGANY, YEW, MAGIC, REDWOOD);
+  EBirdHouseLocation = (VALLEY_WEST, VALLEY_EAST, FOREST_NORTH, FOREST_SOUTH);
+  EBirdHouseState = (NONE, EMPTY, FULL);
+
+  TBirdHouse = record
+    State: EBirdHouseState;
+    MushTree: ERSMushTreeLocation;
+    Obj: TRSObjectV2;
+    Timestamp: UInt64;
+  end;
+
+  TBirdHouseHandler = record(TSRLBaseRecord)
+    CurrentLocation: EBirdHouseLocation;
+    Houses: array [EBirdHouseLocation] of TBirdHouse;
+    Wood: EBirdHouseWood;
+    Seeds: TRSItem;
+
+    Time: record Last, Next: UInt64; end;
+
+    OnStart, OnStop, IsFinished: function (): Boolean of object;
+
+    Map: TRSMap; //local TRSMap exclusive to the TBirdHouseHandler
+  end;
+
+
+function TBirdHouseHandler._IsFinished(): Boolean;
+begin
+  Result := Self.Map.GetRegionIndex() > 0;
+end;
+
+procedure TBirdHouseHandler.InternalSetup(bmp: TMufasaBitmap);
+var
+  bounds: TBox;
+  sizeMap, sizeBMP, sizeNew: TPoint;
+begin
+  Self.Map.Loader.Load([Chunk([56,61,60,57], 0), Chunk([58,60,58,60], 1)], 8, 80);
+
+  //add map to our handler map regardless of where it came from, TRSMap or TRSWalker
+  sizeMap := [Self.Map.Loader.Map.getWidth(), Self.Map.Loader.Map.getHeight()];
+  sizeBMP := [bmp.getWidth(), bmp.getHeight()];
+
+  //add just enought space to Loader.Map so we can fit bmp inside.
+  if (sizeMap.X + sizeBMP.X) > (sizeMap.Y + sizeBMP.Y) then
+  begin
+    bounds := [sizeMap.X, 0, sizeMap.X + sizeBMP.X, sizeBMP.Y];
+    Self.Map.Loader.Map.SetSize(bounds.X2, Max(sizeMap.Y, sizeBMP.Y));
+  end
+  else
+  begin
+    bounds := [0, sizeMap.Y, sizeBMP.X, sizeMap.Y + sizeBMP.Y];
+    Self.Map.Loader.Map.SetSize(Max(sizeMap.X, sizeBMP.X), sizeMap.Y + sizeBMP.Y);
+  end;
+
+  //Draw bmp onto Loader.Map and update the other bitmaps so everything works well
+  sizeNew := [Self.Map.Loader.Map.getWidth(), Self.Map.Loader.Map.getHeight()];
+  Self.Map.Loader.Map.DrawBitmap(bmp, [bounds.X1, bounds.Y1]);
+  Self.Map.Loader.Map.Downsample(Self.Map.Loader.Downscale, Self.Map.Loader.DownscaledMap);
+  Self.Map.Loader.Heightmap.SetSize(sizeNew.X, sizeNew.Y);
+  Self.Map.Loader.Collision.SetSize(sizeNew.X, sizeNew.Y);
+
+  //add a arbitary region and update other maps sizes so other stuff works well
+  Self.Map.Loader.Regions += ['External', bounds, bounds, 0, Point(0,0)];
+
+  Self.Map.InternalSetup();
+
+  if @Self.IsFinished = nil then
+    Self.IsFinished := @Self._IsFinished;
+end;
+
+procedure TBirdHouseHandler.Setup(map: PRSMap; wood: EBirdHouseWood; seeds: TRSItem);
+begin
+  Self.InternalSetup(map^.Loader.Map);
+  Self.Wood := wood;
+  Self.Seeds := seeds;
+end;
+
+procedure TBirdHouseHandler.Setup(map: PRSWalker; wood: EBirdHouseWood; seeds: TRSItem); overload;
+begin
+  Self.InternalSetup(map^.Map.Map);
+  Self.Wood := wood;
+  Self.Seeds := seeds;
+end;
+
+procedure TBirdHouseHandler.Setup(wood: EBirdHouseWood; seeds: TRSItem); overload;
+begin
+  Self.Map.Loader.Load([Chunk([56,61,60,57], 0), Chunk([58,60,58,60], 1)], 8, 80);
+  Self.Map.InternalSetup();
+
+  Self.Wood := wood;
+  Self.Seeds := seeds;
+
+  if @Self.IsFinished = nil then
+    Self.IsFinished := @Self._IsFinished;
+end;
+
+var
+  BirdHouseHandler: TBirdHouseHandler;
+{$SCOPEDENUMS OFF}
+
+(*
+//EXAMPLE TEST OF SHOWING THE MAPS JOINED TOGETHER BETWEEN TRSWALKER AND TRSMAP
+
+var
+  rsw: TRSWalker;
+begin
+  rsw.SetupRegion(RSRegions.ARDOUGNE);
+  BirdHouseHandler.Setup(@rsw, EBirdHouseWood.MAHOGANY, 'Guam seed');
+  BirdHouseHandler.Map.Debug();
+end.
+*)

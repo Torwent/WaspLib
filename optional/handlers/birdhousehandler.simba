@@ -10,13 +10,12 @@ type
 {$SCOPEDENUMS ON}
   EBirdHouseWood = (REGULAR, OAK, WILLOW, TEAK, MAPLE, MAHOGANY, YEW, MAGIC, REDWOOD);
   EBirdHouseLocation = (VALLEY_WEST, VALLEY_EAST, FOREST_NORTH, FOREST_SOUTH);
-  EBirdHouseState = (NONE, EMPTY, FULL);
+  EBirdHouseState = (UNKNOWN, NONE, EMPTY, FULL);
 
   TBirdHouse = record
     State: EBirdHouseState;
-    MushTree: ERSMushTreeLocation;
+    Location: ERSMushTreeLocation;
     Obj: TRSObjectV2;
-    Timestamp: UInt64;
   end;
 
   TBirdHouseHandler = record(TSRLBaseRecord)
@@ -25,17 +24,45 @@ type
     Wood: EBirdHouseWood;
     Seeds: TRSItem;
 
-    Time: record Last, Next: UInt64; end;
+    Timer: TCountDown;
 
     OnStart, OnStop, IsFinished: function (): Boolean of object;
 
-    Map: TRSMap; //local TRSMap exclusive to the TBirdHouseHandler
+    Map: TRSMap; //TRSMap exclusive to the TBirdHouseHandler
   end;
 
 
 function TBirdHouseHandler._IsFinished(): Boolean;
 begin
   Result := Self.Map.GetRegionIndex() > 0;
+end;
+
+procedure TBirdHouseHandler._Setup();
+const
+  COORDINATES: TPointArray = [
+    [10956, 35410],[10976, 35386], [10612, 34902], [10620, 35170]
+  ];
+var
+  loc: EBirdHouseLocation;
+  i: Int32;
+begin
+  if @Self.IsFinished = nil then
+    Self.IsFinished := @Self._IsFinished;
+
+  for loc := Low(EBirdHouseLocation) to High(EBirdHouseLocation) do
+    with Self.Houses[loc] do
+    begin
+      i := Ord(loc);
+      case i of
+        0,1: Location :=  ERSMushTreeLocation.VERDANT_VALLEY;
+        2,3: Location := ERSMushTreeLocation.MUSHROOM_MEADOW;
+      end;
+
+      Obj.SetupEx([0.8,0.8, 5], [COORDINATES[i]]);
+      Obj.SetupUpText(['Space', 'house']);
+      Obj.Finder.Colors := [CTS2(1191511, 8, 0.24, 4.86), CTS2(5266787, 21, 0.06, 0.15)];
+      Obj.Walker := @Self.Map.Walker;
+    end;
 end;
 
 procedure TBirdHouseHandler.InternalSetup(bmp: TMufasaBitmap);
@@ -72,23 +99,26 @@ begin
   Self.Map.Loader.Regions += ['External', bounds, bounds, 0, Point(0,0)];
 
   Self.Map.InternalSetup();
-
-  if @Self.IsFinished = nil then
-    Self.IsFinished := @Self._IsFinished;
 end;
 
 procedure TBirdHouseHandler.Setup(map: PRSMap; wood: EBirdHouseWood; seeds: TRSItem);
 begin
   Self.InternalSetup(map^.Loader.Map);
+
   Self.Wood := wood;
   Self.Seeds := seeds;
+
+  Self._Setup();
 end;
 
 procedure TBirdHouseHandler.Setup(map: PRSWalker; wood: EBirdHouseWood; seeds: TRSItem); overload;
 begin
   Self.InternalSetup(map^.Map.Map);
+
   Self.Wood := wood;
   Self.Seeds := seeds;
+
+  Self._Setup();
 end;
 
 procedure TBirdHouseHandler.Setup(wood: EBirdHouseWood; seeds: TRSItem); overload;
@@ -99,9 +129,22 @@ begin
   Self.Wood := wood;
   Self.Seeds := seeds;
 
-  if @Self.IsFinished = nil then
-    Self.IsFinished := @Self._IsFinished;
+  Self._Setup();
 end;
+
+
+procedure TBirdHouseHandler.Start();
+begin
+  if @Self.OnStart <> nil then Self.OnStart();
+  MushTree.Mushrooms.Walker := @Self.Map.Walker;
+end;
+
+procedure TBirdHouseHandler.Stop();
+begin
+  if @Self.OnStop <> nil then Self.OnStop();
+  MushTree.Mushrooms.Walker := @System.Map.Walker;
+end;
+
 
 var
   BirdHouseHandler: TBirdHouseHandler;

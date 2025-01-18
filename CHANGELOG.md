@@ -1,3 +1,12 @@
+## [19.21.1](https://github.com/Torwent/WaspLib/compare/v19.21.0...v19.21.1) (2025-01-18)
+
+
+### Bug Fixes
+
+* read notes ([b805044](https://github.com/Torwent/WaspLib/commit/b805044bfead193a7c0fb10dd0c5c66df60dc3a2))
+
+
+
 # [19.21.0](https://github.com/Torwent/WaspLib/compare/v19.20.0...v19.21.0) (2025-01-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **house:** read notes ([150c78d](https://github.com/Torwent/WaspLib/commit/150c78d85a2847f4157e39c9468fc117cf11ab79))
-
-
-
-## [19.19.1](https://github.com/Torwent/WaspLib/compare/v19.19.0...v19.19.1) (2024-12-27)
-
-
-### Bug Fixes
-
-* read notes ([8ba339a](https://github.com/Torwent/WaspLib/commit/8ba339a0f7a666aed6f472ec45c8beb08dd63a9e))
 
 
 

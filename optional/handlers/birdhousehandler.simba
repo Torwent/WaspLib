@@ -2,15 +2,39 @@
   {$I WaspLib/osr.simba}
 {$ENDIF}
 
+{$IFNDEF WL_HOUSE_INCLUDED}
+  {$I WaspLib/optional/handlers/house/house.simba}
+{$ENDIF}
+
 {$IFNDEF ANDREW_MUSHTREE_INCLUDED}
   {$I WaspLib/optional/interfaces/mainscreen/mushtree.simba}
 {$ENDIF}
+
 
 type
 {$SCOPEDENUMS ON}
   EBirdHouseWood = (REGULAR, OAK, WILLOW, TEAK, MAPLE, MAHOGANY, YEW, MAGIC, REDWOOD);
   EBirdHouseLocation = (VALLEY_WEST, VALLEY_EAST, FOREST_NORTH, FOREST_SOUTH);
   EBirdHouseState = (UNKNOWN, NONE, EMPTY, FULL);
+
+  EBirdHouseHandlerState = (
+    START,
+    DEPOSIT_ITEMS,
+    WITHDRAW_LOGS,
+    WITHDRAW_SEEDS,
+    WITHDRAW_PENDANT,
+    WITHDRAW_HOUSETAB,
+    TELEPORT_HOUSE,
+    USE_HOUSE_PENDANT,
+    USE_PENDANT,
+    USE_MUSHTREE,
+
+    EMPTY_BIRDHOUSE,
+    BUILD_BIRDHOUSE,
+    FILL_BIRDHOUSE,
+
+    FINISH
+  );
 
   TBirdHouse = record
     State: EBirdHouseState;
@@ -19,6 +43,8 @@ type
   end;
 
   TBirdHouseHandler = record(TSRLBaseRecord)
+    State: EBirdHouseHandlerState;
+
     CurrentLocation: EBirdHouseLocation;
     Houses: array [EBirdHouseLocation] of TBirdHouse;
     Wood: EBirdHouseWood;
@@ -60,6 +86,7 @@ begin
 
       Obj.SetupEx([0.8,0.8, 5], [COORDINATES[i]]);
       Obj.SetupUpText(['Space', 'house']);
+      //Finder only has the ground "Spot" and little rocks colors. I think that is enough
       Obj.Finder.Colors := [CTS2(1191511, 8, 0.24, 4.86), CTS2(5266787, 21, 0.06, 0.15)];
       Obj.Walker := @Self.Map.Walker;
     end;
@@ -143,6 +170,60 @@ procedure TBirdHouseHandler.Stop();
 begin
   if @Self.OnStop <> nil then Self.OnStop();
   MushTree.Mushrooms.Walker := @System.Map.Walker;
+end;
+
+
+function TBirdHouseHandler.UseMushroom(location: ERSMushTreeLocation): Boolean;
+begin
+  if Self.Map.Position().AnyInRange(MushTree.Mushrooms.Coordinates, 80) then
+    Exit(MushTree.WalkTeleport(location));
+
+  if Inventory.ClickItem('Digsite pendant (5)', 'Fossil Island') then
+  begin
+    if not WaitUntil(Self.Map.GetRegionIndex() = 1, 300, 5000) then Exit;
+    Result := MushTree.WalkTeleport(location);
+  end;
+
+  if Minimap.InPOH() then
+  begin
+    //probably need to look better into this lol
+    if not House.Teleports[EHouseTeleport.DIGSITE].WalkSelectOption(['Fossil Island']) then Exit;
+    if not WaitUntil(Self.Map.GetRegionIndex() = 1, 300, 5000) then Exit;
+    Result := MushTree.WalkTeleport(location);
+  end;
+end;
+
+function TBirdHouseHandler.GetState(): EBirdHouseHandlerState;
+begin
+
+end;
+
+procedure TBirdHouseHandler.Run();
+begin
+  Self.Start();
+
+  repeat
+    Self.State := Self.GetState();
+
+    case Self.State of
+      EBirdHouseHandlerState.START: ;
+      EBirdHouseHandlerState.DEPOSIT_ITEMS: ;
+      EBirdHouseHandlerState.WITHDRAW_LOGS: ;
+      EBirdHouseHandlerState.WITHDRAW_SEEDS: ;
+      EBirdHouseHandlerState.WITHDRAW_PENDANT: ;
+      EBirdHouseHandlerState.WITHDRAW_HOUSETAB: ;
+      EBirdHouseHandlerState.TELEPORT_HOUSE: ;
+      EBirdHouseHandlerState.USE_HOUSE_PENDANT: ;
+      EBirdHouseHandlerState.USE_PENDANT: ;
+      EBirdHouseHandlerState.USE_MUSHTREE: ;
+      EBirdHouseHandlerState.EMPTY_BIRDHOUSE: ;
+      EBirdHouseHandlerState.BUILD_BIRDHOUSE: ;
+      EBirdHouseHandlerState.FILL_BIRDHOUSE: ;
+      EBirdHouseHandlerState.FINISH: ;
+    end;
+  until Self.State = EBirdHouseHandlerState.FINISH;
+
+  Self.Stop();
 end;
 
 

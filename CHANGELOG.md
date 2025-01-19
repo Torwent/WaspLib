@@ -1,3 +1,12 @@
+## [19.21.2](https://github.com/Torwent/WaspLib/compare/v19.21.1...v19.21.2) (2025-01-19)
+
+
+### Bug Fixes
+
+* **birdhouses:** a little bit more work on the layout of the handler ([eeb90d6](https://github.com/Torwent/WaspLib/commit/eeb90d6159bdc631b75a3db502b80b8920a3d728))
+
+
+
 ## [19.21.1](https://github.com/Torwent/WaspLib/compare/v19.21.0...v19.21.1) (2025-01-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **house:** fix to bug when changing account after recent changes ([ae83254](https://github.com/Torwent/WaspLib/commit/ae83254efd7d6baa5bb8f1ba6821c4de36e422d2))
-
-
-
-## [19.19.2](https://github.com/Torwent/WaspLib/compare/v19.19.1...v19.19.2) (2024-12-27)
-
-
-### Bug Fixes
-
-* **house:** read notes ([150c78d](https://github.com/Torwent/WaspLib/commit/150c78d85a2847f4157e39c9468fc117cf11ab79))
 
 
 

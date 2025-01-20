@@ -1,3 +1,12 @@
+## [19.21.3](https://github.com/Torwent/WaspLib/compare/v19.21.2...v19.21.3) (2025-01-20)
+
+
+### Bug Fixes
+
+* **birdhouses:** more work on the birdhouse handler ([5007fbd](https://github.com/Torwent/WaspLib/commit/5007fbdb64e2469c8c8f5e7adff0b61ce81225ab))
+
+
+
 ## [19.21.2](https://github.com/Torwent/WaspLib/compare/v19.21.1...v19.21.2) (2025-01-19)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * login loop now has a workaround ([91ce72e](https://github.com/Torwent/WaspLib/commit/91ce72e7f6cd3641450655887312dcc873b2b539))
-
-
-
-## [19.19.3](https://github.com/Torwent/WaspLib/compare/v19.19.2...v19.19.3) (2025-01-03)
-
-
-### Bug Fixes
-
-* **house:** fix to bug when changing account after recent changes ([ae83254](https://github.com/Torwent/WaspLib/commit/ae83254efd7d6baa5bb8f1ba6821c4de36e422d2))
 
 
 

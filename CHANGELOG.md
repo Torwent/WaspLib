@@ -1,3 +1,12 @@
+## [19.21.4](https://github.com/Torwent/WaspLib/compare/v19.21.3...v19.21.4) (2025-01-20)
+
+
+### Bug Fixes
+
+* **store:** improvements to .ClickItem() ([f7fbf44](https://github.com/Torwent/WaspLib/commit/f7fbf44b348554b551ffb6aff7f27857952fb3ce))
+
+
+
 ## [19.21.3](https://github.com/Torwent/WaspLib/compare/v19.21.2...v19.21.3) (2025-01-20)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * read notes ([b5380fd](https://github.com/Torwent/WaspLib/commit/b5380fd216d704e0603eef66adde3dd5d0ab7365))
-
-
-
-# [19.20.0](https://github.com/Torwent/WaspLib/compare/v19.19.3...v19.20.0) (2025-01-12)
-
-
-### Features
-
-* login loop now has a workaround ([91ce72e](https://github.com/Torwent/WaspLib/commit/91ce72e7f6cd3641450655887312dcc873b2b539))
 
 
 

@@ -10,27 +10,17 @@ Methods to interact with the CollectBox.
 
 type
   // In order FindButtons returns
-  ERSCollectButton = (
-    CLOSE,
-    COLLECT_INVENTORY,
-    COLLECT_BANK
-  );
-
-  ERSCollectSlotBoxes = (
-    TRADE_STATUS,
-    OPERATION,
-    ITEM,
-    CHANGE
-  );
+  ERSCollectButton = (CLOSE, COLLECT_INVENTORY, COLLECT_BANK);
+  ERSCollectSlotBoxes = (TRADE_STATUS, OPERATION, ITEM, CHANGE);
 
   TRSCollectBox = record(TRSTitledInterface)
-    Items: TRSItemInterfaceHandler;
+    Items: TRSItemInterface;
     SlotBoxes: TBoxArray;
   end;
 
 function TRSCollectBox.GetButtons(): TRSButtonArray;
 begin
-  Result := FindButtons([[83, 19], [21,21]]);
+  Result := Self.FindButtons([[83, 19], [21,21]]);
 end;
 
 function TRSCollectBox.GetButton(button: ERSCollectButton): TRSButton;
@@ -45,7 +35,7 @@ end;
 
 function TRSCollectBox.GetSlots(): TBoxArray;
 begin
-  Result := Grid(4, 2, 100, 74, [10, 10], [Self.X1 + 15, Self.Y1 + 44]);
+  Result := Grid(4, 2, 100, 74, [10, 10], [Self.Bounds.X1 + 15, Self.Bounds.Y1 + 44]);
 end;
 
 function TRSCollectBox.GetSlot(Index: Int32): TBox;
@@ -153,24 +143,26 @@ begin
   Self.Items.SlotBoxesFunction := @Self.GetItemSlots;
 end;
 
-procedure TRSCollectBox.SetupAlignment(); override;
+procedure TRSCollectBox.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  Self.Alignment.Left := [InterfaceArea.X1, 0];
-  Self.Alignment.Right := [InterfaceArea.X2, 0];
-  Self.Alignment.Top := [InterfaceArea.Y1, 2];
-  Self.Alignment.Center.MaxWidth := 460;
-  Self.Alignment.Center.MaxHeight := 247;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1 + 2;
+  alignment.MaxWidth := 460;
+  alignment.MaxHeight := 247;
 
   case RSClient.Mode of
     ERSClientMode.FIXED:
-      Self.Alignment.Bottom := [InterfaceArea.Y2, -1];
+      alignment.Bottom := InterfaceArea.Bounds.Y2 -1;
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      Self.Alignment.Bottom := [InterfaceArea.Y2, -2];
+      alignment.Bottom := InterfaceArea.Bounds.Y2 - 2;
   end;
 
-  inherited;
+  Self.SetupAlignment(alignment);
 
-  Self.SlotBoxes := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.X1 + 25, Self.Y1 + 75]);
+  Self.SlotBoxes := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.Bounds.X1 + 25, Self.Bounds.Y1 + 75]);
 end;
 
 

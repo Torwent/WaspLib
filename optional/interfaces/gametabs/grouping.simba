@@ -5,25 +5,16 @@
 
 //Made by CJ
 type
-  ERSGroupingTab = (
-    CHAT_CHANNEL,
-    YOUR_CLAN,
-    ANOTHER_CLAN,
-    ACTIVITY
-  );
+  ERSGroupingTab = (CHAT_CHANNEL, YOUR_CLAN, ANOTHER_CLAN, ACTIVITY);
+  ERSGroupingButton = (PVP_ARENA, JOIN, TELEPORT);
 
-  ERSGroupingButton = (
-    PVP_ARENA,
-    JOIN,
-    TELEPORT
-  );
+  TRSGrouping = record(TRSInterface)
+    Tabs: array [ERSGroupingTab] of TBox;
+  end;
 
-  TRSGrouping = type TRSInterface;
-
-procedure TRSGrouping.Setup; override;
+procedure TRSGrouping.Setup(); override;
 begin
   inherited;
-
   Self.Name := 'Grouping';
   Self.ButtonColors += CTS1(2700606, 1);
   Self.ButtonColors += CTS0(5334130, 1);
@@ -32,6 +23,8 @@ end;
 procedure TRSGrouping.SetupAlignment(); overload;
 var
   alignment: TRSInterfaceAlignment;
+  boxes: TBoxArray;
+  i: Int32;
 begin
   alignment.Left := GameTab.Bounds.X1;
   alignment.Right := GameTab.Bounds.X2;
@@ -44,19 +37,23 @@ begin
   Self.ScrollArea.Y1 := Self.Bounds.Y1 + 69;
   Self.ScrollArea.X2 := Self.Bounds.X2 - 3;
   Self.ScrollArea.Y2 := Self.Bounds.Y2 - 47;
+
+  boxes := Grid(4, 1, 41, 20, [5], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4]);
+  for i := 0 to Ord(High(ERSGroupingTab)) do
+    Self.Tabs[ERSGroupingTab(i)] := boxes[i];
 end;
 
-function TRSGrouping.IsOpen: Boolean;
+function TRSGrouping.IsOpen(): Boolean;
 begin
   Result := (GameTabs.GetCurrentTab = ERSGameTab.CLAN);
 end;
 
-function TRSGrouping.Open: Boolean;
+function TRSGrouping.Open(): Boolean;
 begin
   Result := GameTabs.Open(ERSGameTab.CLAN);
 end;
 
-function TRSGrouping.GetGroupingButtons: TRSButtonArray;
+function TRSGrouping.GetGroupingButtons(): TRSButtonArray;
 begin
     Result := Self.FindButtons([[66, 18]]);//, Self.Bounds());
 end;
@@ -178,7 +175,7 @@ begin
   Result := selectedString.Contains(activity);
 end;
 
-function TRSGrouping.GetButtons: TRSButtonArray;
+function TRSGrouping.GetButtons(): TRSButtonArray;
 begin
   Result := Self.FindButtons([[38,38]]);
 end;
@@ -191,33 +188,20 @@ begin
     Result := Buttons[Button];
 end;
 
-function TRSGrouping.GetTabs: TBoxArray;
-begin
-  Result := Grid(4, 1, 41, 20, [5], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4])
-end;
-
-function TRSGrouping.GetCurrentTab: ERSGroupingTab;
+function TRSGrouping.GetCurrentTab(): ERSGroupingTab;
 var
-  Tabs: TBoxArray;
-  I: Int32;
+  tab: ERSGroupingTab;
 begin
-  Tabs := Self.GetTabs;
-
-  for I := 0 to High(Tabs) do
-  begin
-    if SRL.CountColor(2700606, Tabs[I]) > 50 then //finds the one without the bottom white line
-      Exit(ERSGroupingTab(I));
-  end
+  for tab := Low(ERSGroupingTab) to High(ERSGroupingTab) do
+    if SRL.CountColor(2700606, Self.Tabs[tab]) > 50 then //finds the one without the bottom white line
+      Exit(tab);
 end;
 
-function TRSGrouping.OpenTab(Tab: ERSGroupingTab): Boolean;
+function TRSGrouping.OpenTab(tab: ERSGroupingTab): Boolean;
 begin
-  if Self.GetCurrentTab = Tab then
-    Exit(True);
-
-  Mouse.Click(Self.GetTabs[Tab], MOUSE_LEFT);
-
-  Result := WaitUntil(Self.GetCurrentTab = Tab, SRL.TruncatedGauss(50, 1500), 3000);
+  if Self.GetCurrentTab() = tab then Exit(True);
+  Mouse.Click(Self.Tabs[tab], MOUSE_LEFT);
+  Result := WaitUntil(Self.GetCurrentTab() = tab, 200, 3000);
 end;
 
 function TRSInterface.FindDropDown(Dimensions: TRSButtonDimensions; borderColor : TCTS0Color): TRSDropDownArray; overload;
@@ -300,12 +284,11 @@ procedure TRSGrouping.Draw(bitmap: TMufasaBitmap); override;
 var
   buttons: TRSButtonArray;
 begin
-  if not Self.IsOpen then
-    Exit;
+  if not Self.IsOpen() then Exit;
 
   inherited;
 
-  bitmap.DrawBoxes(Self.GetTabs(), $00FFFF);
+  bitmap.DrawBoxes(Self.Tabs, $00FFFF);
 
   buttons := Self.GetButtons();
   buttons.Draw(bitmap);

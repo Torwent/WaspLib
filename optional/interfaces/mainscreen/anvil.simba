@@ -19,7 +19,10 @@ type
     QUANTITY_CUSTOM
   );
 
-  TRSAnvil = type TRSTitledInterface;
+  TRSAnvil = record(TRSTitledInterface)
+    Items: TRSItemInterfaceHandler;
+    SlotsArea: TBox;
+  end;
 
 (*
 ## Anvil.GetSlots
@@ -37,17 +40,11 @@ function TRSAnvil.GetSlots(): TBoxArray;
 var
   TPA: TPointArray;
   ATPA: T2DPointArray;
-  Area: TBox;
   i: Int32;
 begin
-  Area := Self.Bounds;
-  Area.Y1 += 30;           //Excludes the title bar
-  Area.X2 := Area.X2 - 50; //Excludes the quantity buttons
-
-
-  if SRL.FindColors(TPA, CTS0(65280), Area) then
+  if SRL.FindColors(TPA, CTS0(65280), Self.SlotsArea) then
     ATPA += TPA;
-  if SRL.FindColors(TPA, CTS0(2070783), Area) then
+  if SRL.FindColors(TPA, CTS0(2070783), Self.SlotsArea) then
     ATPA += TPA;
 
   TPA := ATPA.Merge;
@@ -87,41 +84,36 @@ begin
   Self.ButtonColors := [CTS1(1052431, 26)];
   Self.ButtonEnabledColors := [CTS1(16777215, 0)];
 
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetSlots;
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.GetSlots;
 end;
 
-procedure TRSAnvil.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSAnvil.SetupAlignment(); override;
 begin
-  Self.Mode := Mode;
+  Self.Alignment.Left := [InterfaceArea.X1, 0];
+  Self.Alignment.Right := [InterfaceArea.X2, 0];
+  Self.Alignment.Top := [InterfaceArea.Y1, 2];
+  Self.Alignment.Center.MaxWidth := 500;
+  Self.Alignment.Center.MaxHeight := 320;
 
-  case Self.Mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
-        Self.Alignment.Center.MaxWidth := 500;
-        Self.Alignment.Center.MaxHeight := 320;
-      end;
-
+      Self.Alignment.Bottom := [InterfaceArea.Y2, -1];
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
-        Self.Alignment.Center.MaxWidth := 500;
-        Self.Alignment.Center.MaxHeight := 320;
-      end;
+      Self.Alignment.Bottom := [InterfaceArea.Y2, -2];
   end;
+
+  inherited;
+
+  Self.SlotsArea := Self.Bounds;
+  Self.SlotsArea.Y1 += 30;
+  Self.SlotsArea.X2 := Self.SlotsArea.X2 - 50;
 end;
 
 
 function TRSAnvil.GetButtons(): TRSButtonArray;
 begin
-  Result := FindButtons([[37, 37]]);
+  Result := Self.FindButtons([[37, 37]]);
 end;
 
 function TRSAnvil.GetButton(button: ERSAnvilButton): TRSButton;
@@ -132,8 +124,7 @@ var
   foundString: String;
 begin
   buttons := Self.GetButtons();
-  if buttons = [] then
-    Exit;
+  if buttons = [] then Exit;
 
   textArray := ['1', '5', '10', 'X', '?', 'All'];
 
@@ -185,7 +176,7 @@ Example:
 function TRSAnvil.IsOpen(): Boolean;
 begin
   Result := RSInterface.IsOpen(ERSInterfaceType.CLASSIC) and
-            (SRL.CountColor(CTS0(65280, 0), Self.Bounds()) >= 300);
+            (SRL.CountColor(CTS0(65280, 0), Self.Bounds) >= 300);
 end;
 
 function TRSAnvil.IsOpen(waitTime: Int32; interval: Int32 = -1): Boolean; overload;
@@ -247,7 +238,7 @@ end;
 
 function TRSAnvil.FindItem(item: TRSItem; out slot: Int32): Boolean;
 begin
-  slot := Self.ItemInterface.IndexOf([item]);
+  slot := Self.Items.IndexOf([item]);
   Result := slot > -1;
 end;
 
@@ -294,7 +285,7 @@ procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  Anvil.SetupAlignment(Self.Mode);
+  Anvil.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;
@@ -318,7 +309,7 @@ begin
   if not Result or (RSClient.Mode = ERSClientMode.FIXED) then
     Exit;
 
-  if Anvil.Bounds().Expand(5).Contains(p) and Anvil.IsOpen() then
+  if Anvil.Bounds.Expand(5).Contains(p) and Anvil.IsOpen() then
     Exit(False);
 end;
 
@@ -332,6 +323,6 @@ begin
   if not Result or (RSClient.Mode = ERSClientMode.FIXED) then
     Exit;
 
-  if Anvil.Bounds().Expand(5).ContainsAll(tpa) and Anvil.IsOpen() then
+  if Anvil.Bounds.Expand(5).ContainsAll(tpa) and Anvil.IsOpen() then
     Exit(False);
 end;

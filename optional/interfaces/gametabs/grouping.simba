@@ -29,24 +29,20 @@ begin
   Self.ButtonColors += CTS0(5334130, 1);
 end;
 
-function TRSGrouping.ScrollAreaFunction(): TBox;
+procedure TRSGrouping.SetupAlignment(); override;
 begin
-  Result := Self.Bounds();
-  Result.X1 += 3;
-  Result.Y1 += 69;
-  Result.X2 -= 3;
-  Result.Y2 -= 47;
-end;
+  Self.Alignment.Left := [GameTab.X1, 0];
+  Self.Alignment.Right := [GameTab.X2, 0];
+  Self.Alignment.Top := [GameTab.Y1, 0];
+  Self.Alignment.Bottom := [GameTab.Y2, 0];
 
-procedure TRSGrouping.SetupAlignment(Mode: ERSClientMode); override;
-begin
   inherited;
 
-  Self.Alignment.Left := [@GameTab.X1];
-  Self.Alignment.Right := [@GameTab.X2];
-  Self.Alignment.Top := [@GameTab.Y1];
-  Self.Alignment.Bottom := [@GameTab.Y2];
-  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
+  Self.ScrollArea := Self.Bounds;
+  Self.ScrollArea.X1 += 3;
+  Self.ScrollArea.Y1 += 69;
+  Self.ScrollArea.X2 -= 3;
+  Self.ScrollArea.Y2 -= 47;
 end;
 
 function TRSGrouping.IsOpen: Boolean;
@@ -85,7 +81,6 @@ var
   textBounds : TBoxArray;
   foundStrings : TStringArray;
   i : Int32;
-  scrollArea : TBox;
   stringFound: Boolean;
   selectedString, endString : string;
   scrollDirection : Int32;
@@ -130,10 +125,9 @@ begin
     activityScrollbar := Self.GetScrollBar();
   end;
 
-  scrollArea := Self.GetScrollAreaFunction();
-  Mouse.Move(scrollArea, false, EMouseDistribution.MOUSE_DISTRIBUTION_GAUSS);
+  Mouse.Move(Self.ScrollArea, false, EMouseDistribution.MOUSE_DISTRIBUTION_GAUSS);
   Wait(Random(120, 450));
-  foundStrings := OCR.RecognizeLines(scrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
+  foundStrings := OCR.RecognizeLines(Self.ScrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
 
   scrollDirection := 1;
   endString := "Volcanic Mines";
@@ -152,7 +146,7 @@ begin
 
   while (not searchTimer.IsFinished()) and not foundStrings.Contains(endString) do
   begin
-    foundStrings := OCR.RecognizeLines(scrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
+    foundStrings := OCR.RecognizeLines(Self.ScrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
     for i := 0 to High(foundStrings) do
     begin
       selectedString := foundStrings[i].ToLower();
@@ -319,26 +313,22 @@ end;
 var
   Grouping: TRSGrouping;
 
-function TRSGameTabs.GetCurrentTab: ERSGameTab; override;
+function TRSGameTabs.GetCurrentTab(): ERSGameTab; override;
 begin
   Result := inherited;
-
-  if (Result = ERSGameTab.UNKNOWN) then
-    Result := ERSGameTab.CLAN;
+  if Result = ERSGameTab.UNKNOWN then Result := ERSGameTab.CLAN;
 end;
 
-procedure TRSClient.ClientModeChanged; override;
+procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
-
-  Grouping.SetupAlignment(Self.Mode);
+  Grouping.SetupAlignment();
 end;
 
-procedure TSRL.Setup; override;
+procedure TSRL.Setup(); override;
 begin
   inherited;
-
-  Grouping.Setup;
+  Grouping.Setup();
 end;
 
 function TRSGrouping.TeleportToActivity(activity : string) : Boolean;
@@ -356,7 +346,7 @@ function TRSGrouping.TeleportToActivity(activity : string) : Boolean;
     searchBox : TBox;
     i : Int32;
   begin
-    mmC := Minimap.Center();
+    mmC := Minimap.Center;
     searchBox := Box(mmC, BOX_SCALE, BOX_SCALE);
     tpa := searchBox.ToRectangle().ToTPA().Connect();
     tpa.Fill();

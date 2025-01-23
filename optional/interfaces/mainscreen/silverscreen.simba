@@ -17,15 +17,15 @@ type
     QUANT_ALL
   );
 
-  TRSSilverScreen = type TRSTitledInterface;
+  TRSSilverScreen = record(TRSTitledInterface)
+    Items: TRSItemInterfaceHandler;
+    SlotBoxes: TBoxArray;
+  end;
 
 
 function TRSSilverScreen.GetItemBoxes(): TBoxArray;
-var
-  jewellery: TBoxArray;
 begin
-  jewellery := Grid(3, 4, 79, 55, [5, 1], [Self.X1 + 10, Self.Y1 + 40]);
-  Result := jewellery.Combine(Grid(2, 4, 109, 55, [5, 1], [Self.X2 - 233, Self.Y1 + 40]));
+  Result := Self.SlotBoxes;
 end;
 
 procedure TRSSilverScreen.Setup(); override;
@@ -33,20 +33,27 @@ begin
   inherited;
 
   Self.Name := 'Silver Screen';
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetItemBoxes;
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.GetItemBoxes;
 end;
 
-procedure TRSSilverScreen.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSSilverScreen.SetupAlignment(); override;
+var
+  jewellery: TBoxArray;
 begin
   inherited;
 
-  Self.Alignment.Left := [@InterfaceArea.X1];
-  Self.Alignment.Right := [@InterfaceArea.X2];
-  Self.Alignment.Top := [@InterfaceArea.Y1];
-  Self.Alignment.Bottom := [@InterfaceArea.Y2];
+  Self.Alignment.Left := [InterfaceArea.X1, 0];
+  Self.Alignment.Right := [InterfaceArea.X2, 0];
+  Self.Alignment.Top := [InterfaceArea.Y1, 0];
+  Self.Alignment.Bottom := [InterfaceArea.Y2, 0];
   Self.Alignment.Center.MaxWidth := 505;
   Self.Alignment.Center.MaxHeight := 323;
+
+  inherited;
+
+  jewellery := Grid(3, 4, 79, 55, [5, 1], [Self.X1 + 10, Self.Y1 + 40]);
+  Self.SlotBoxes := jewellery.Combine(Grid(2, 4, 109, 55, [5, 1], [Self.X2 - 233, Self.Y1 + 40]));
 end;
 
 function TRSSilverScreen.GetButtons(): TRSButtonArray;
@@ -179,10 +186,9 @@ const
 var
   tpa: TPointArray;
 begin
-  if not Self.IsOpen() then
-    Exit;
+  if not Self.IsOpen() then Exit;
 
-  if not Self.ItemInterface.Find([item], box) then
+  if not Self.Items.Find([item], box) then
     Exit;
 
   Result := (SRL.FindColors(tpa, ORANGE_COLOR, box) > 0) or
@@ -270,7 +276,7 @@ procedure TRSClient.ClientModeChanged; override;
 begin
   inherited;
 
-  SilverScreen.SetupAlignment(Self.Mode);
+  SilverScreen.SetupAlignment();
 end;
 
 procedure TSRL.Setup; override;

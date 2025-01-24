@@ -7,7 +7,7 @@ type
   TRSStore = record(TRSTitledInterface)
     Items: TRSItemInterface;
     SlotBoxes: TBoxArray;
-    ItemsArea: TBox;
+    ItemsArea, InfoBox: TBox;
   end;
 
 
@@ -47,39 +47,43 @@ procedure TRSStore.SetupAlignment(); overload;
 var
   alignment: TRSInterfaceAlignment;
 begin
-  alignment.Left := InterfaceArea.Bounds.X1;
-  alignment.Right := InterfaceArea.Bounds.X2;
-  alignment.Bottom := InterfaceArea.Bounds.Y2;
-  alignment.MaxWidth := 487;
+  alignment.MaxWidth := 488;
   alignment.MaxHeight := 300;
 
   case RSClient.Mode of
     ERSClientMode.FIXED:
-      alignment.Top := InterfaceArea.Bounds.Y1;
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1;
+      alignment.Right := InterfaceArea.Bounds.X2 + 1;
+      alignment.Top := InterfaceArea.Bounds.Y1 + 3;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 + 3;
+    end;
+
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      alignment.Top := InterfaceArea.Bounds.Y1 - 1;
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1 - 1;
+      alignment.Right := InterfaceArea.Bounds.X2;
+      alignment.Top := InterfaceArea.Bounds.Y1 + 1;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 + 4;
+    end;
   end;
 
   Self.SetupAlignment(alignment);
 
   Self.SlotBoxes := Grid(8, 5, 35, 32, [12, 16], [Self.Bounds.X1 + 61, Self.Bounds.Y1 + 40]);
   Self.ItemsArea := Self.SlotBoxes.Merge();
+
+  Self.InfoBox.X1 := Self.Bounds.X1 + 50;
+  Self.InfoBox.Y1 := Self.Bounds.Y2 - 26;
+  Self.InfoBox.X2 := Self.Bounds.X2 - 50;
+  Self.InfoBox.Y2 := Self.Bounds.Y2 - 9;
+  Self.InfoBox.LimitTo(Self.Bounds);
 end;
 
 
 function TRSStore.IsOpen(): Boolean;
-var
-  b: TBox;
-  txt: String;
 begin
-  b.X1 := Self.Bounds.X1 + 50;
-  b.Y1 := Self.Bounds.Y2 - 26;
-  b.X2 := Self.Bounds.X2 - 50;
-  b.Y2 -= 9;
-  b.LimitTo(Self.Bounds);
-
-  txt := OCR.Recognize(b, TOCRThresholdFilter.Create(15), RS_FONT_PLAIN_12);
-  Result := 'shop' in txt;
+  Result := 'shop' in OCR.Recognize(Self.InfoBox, TOCRThresholdFilter.Create(15), RS_FONT_PLAIN_12);
 end;
 
 function TRSStore.IsOpen(WaitTime: Int32): Boolean; overload;

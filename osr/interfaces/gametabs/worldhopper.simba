@@ -28,13 +28,6 @@ WorldHopper record.
     Cooldown: TCountDown;
   end;
 
-function TRSWorldHopper.ScrollAreaFunction(): TBox;
-begin
-  Result := Self.Bounds();
-  Result.Y1 += 35;
-  Result.Y2 -= 32;
-end;
-
 (*
 ## TRSWorldHopper.Setup
 ```pascal
@@ -50,25 +43,28 @@ begin
   Self.SILVER := $E0E0E0;
   Self.YELLOW := $00F0F0;
 
-  Self.ServerMessageBox := MainScreen.Bounds();
-  Self.ServerMessageBox.X1 += 4;
-  Self.ServerMessageBox.Y1 += 4;
+  Self.Cooldown.Setup(8000);
+end;
+
+procedure TRSWorldHopper.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+begin
+  alignment.Left := GameTab.Bounds.X1 - 3;
+  alignment.Right := GameTab.Bounds.X2 + 3;
+  alignment.Top := GameTab.Bounds.Y1;
+  alignment.Bottom := GameTab.Bounds.Y2;
+
+  Self.SetupAlignment(alignment);
+
+  Self.ServerMessageBox.X1 := MainScreen.Bounds.X1 + 4;
+  Self.ServerMessageBox.Y1 := MainScreen.Bounds.Y1 + 4;
   Self.ServerMessageBox.X2 := Self.ServerMessageBox.X1 + 79;
   Self.ServerMessageBox.Y2 := Self.ServerMessageBox.Y1 + 20;
 
-  Self.Cooldown.Setup(8000);
-
-  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
-end;
-
-procedure TRSWorldHopper.SetupAlignment(Mode: ERSClientMode); override;
-begin
-  inherited;
-
-  Self.Alignment.Left := [@GameTab.X1, -3];
-  Self.Alignment.Right := [@GameTab.X2, 3];
-  Self.Alignment.Top := [@GameTab.Y1];
-  Self.Alignment.Bottom := [@GameTab.Y2];
+  Self.ScrollArea := Self.Bounds;
+  Self.ScrollArea.Y1 += 35;
+  Self.ScrollArea.Y2 -= 32;
 end;
 
 (*
@@ -119,9 +115,8 @@ TRSWorldHopper.ClickWorld(ocrBounds[0]);
 *)
 procedure TRSWorldHopper.ClickWorld(ocrBounds: TBox);
 begin
-  ocrBounds.X1 := Self.X1();
-  ocrBounds.X2 := Self.X2() - 16;
-
+  ocrBounds.X1 := Self.Bounds.X1;
+  ocrBounds.X2 := Self.Bounds.X2 - 16;
   Mouse.Click(ocrBounds, MOUSE_LEFT);
 end;
 
@@ -141,7 +136,7 @@ function TRSWorldHopper.GetCurrentWorld(): Int32;
 var
   b: TBox;
 begin
-  b := Self.Bounds();
+  b := Self.Bounds;
   b.Y2 := b.Y1 + 24;
   Result := OCR.RecognizeNumber(b, TOCRColorFilter.Create([$1F98FF]), RS_FONT_BOLD_12);
 end;
@@ -162,18 +157,17 @@ WriteLn TRSWorldHopper.ReadWorlds();
 function TRSWorldHopper.ReadWorlds(out boxes: TBoxArray): TIntegerArray;
 var
   tpa: TPointArray;
-  i, value, x1, x2: Int32;
+  i, value, x2: Int32;
   tmp: TBoxArray;
 begin
   boxes := [];
-  if SRL.FindColors(tpa, [Self.SILVER, Self.YELLOW], Self.ScrollAreaFunction()) = 0 then
+  if SRL.FindColors(tpa, [Self.SILVER, Self.YELLOW], Self.ScrollArea) = 0 then
     Exit;
 
   tmp := tpa.Cluster(5, 1).ToTBA();
   tmp.SortByY();
 
-  x1 := Self.X1();
-  x2 := Self.X2() - 17;
+  x2 := Self.Bounds.X2 - 17;
 
   for i := 0 to High(tmp) do
   begin
@@ -187,7 +181,7 @@ begin
       Continue;
 
     Result += value;
-    tmp[i].X1 := x1;
+    tmp[i].X1 := Self.Bounds.X1;
     tmp[i].Y1 -= 1;
     tmp[i].X2 := x2;
     tmp[i].Y2 += 3;
@@ -216,14 +210,14 @@ begin
   begin
     T.Init(250);
     repeat
-      if SRL.FindColors(Arrow, CTS1(421059, 7), Self.Bounds()) = 0 then
+      if SRL.FindColors(Arrow, CTS1(421059, 7), Self.Bounds) = 0 then
         Continue;
 
-      if (Arrow.Mean() - Point(Self.X1(), Self.Y1())) = Point(29, 30) then
+      if (Arrow.Mean() - Point(Self.Bounds.X1, Self.Bounds.Y1)) = Point(29, 30) then
         Exit(True);
     until T.IsFinished();
 
-    Mouse.Click(Box(17, 25, 40, 34).Offset(Point(Self.X1, Self.Y1)), MOUSE_LEFT);
+    Mouse.Click(Box(17, 25, 40, 34).Offset(Point(Self.Bounds.X1, Self.Bounds.Y1)), MOUSE_LEFT);
   end;
 end;
 
@@ -325,20 +319,17 @@ var
 procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
-
-  WorldHopper.SetupAlignment(Self.Mode);
+  WorldHopper.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;
 begin
   inherited;
-
   WorldHopper.Setup();
 end;
 
 procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
 begin
   inherited;
-
   WorldHopper.Draw(bitmap);
 end;

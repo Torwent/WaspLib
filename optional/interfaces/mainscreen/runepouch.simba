@@ -14,7 +14,9 @@ const
 ];
 
 type
-  TRSRunePouch = type TRSTitledInterface;
+  TRSRunePouch = record(TRSTitledInterface)
+    Items: TRSItemInterface;
+  end;
 
 var
   RunePouch : TRSRunePouch;
@@ -51,15 +53,16 @@ begin
   Result := WaitUntil(Self.IsOpen, 17, 5000);
 end;
 
-function TRSRunePouch.GetPouchBoxes(): TBoxArray; begin
+function TRSRunePouch.GetPouchBoxes(): TBoxArray;
+begin
   if 'Div' in Self.GetTitle then
-    Result := Grid(4, 1, 34, 34, [10, 0], [Self.X1 + 93, Self.Y1 + 63])
+    Result := Grid(4, 1, 34, 34, [10, 0], [Self.Bounds.X1 + 93, Self.Bounds.Y1 + 63])
   else
-    Result := Grid(3, 1, 34, 34, [27, 0], [Self.X1 + 97, Self.Y1 + 62]);
+    Result := Grid(3, 1, 34, 34, [27, 0], [Self.Bounds.X1 + 97, Self.Bounds.Y1 + 62]);
 end;
 
 function TRSRunePouch.GetInventoryBoxes(): TBoxArray; begin
-  Result := Grid(7, 4, 34, 32, [13, 1], [Self.X1 + 14, Self.Y1 + 136]);
+  Result := Grid(7, 4, 34, 32, [13, 1], [Self.Bounds.X1 + 14, Self.Bounds.Y1 + 136]);
 end;
 
 function TRSRunePouch.DiscoverPouch(): TRSItemArray;
@@ -217,43 +220,41 @@ begin
   inherited;
 
   Self.Name := 'Rune Pouch';
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetPouchBoxes;
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.GetPouchBoxes;
 end;
 
-procedure TRSRunePouch.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSRunePouch.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  inherited;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1 + 2;
+  alignment.MaxWidth := 353;
+  alignment.MaxHeight := 286;
 
-  case Self.Mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1, -4];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
-        Self.Alignment.Center.MaxWidth := 353;
-        Self.Alignment.Center.MaxHeight := 286;
-      end;
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1 - 4;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 - 1;
+    end;
 
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1, -5];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
-        Self.Alignment.Center.MaxWidth := 353;
-        Self.Alignment.Center.MaxHeight := 286;
-      end;
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1 - 5;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 - 2;
+    end;
   end;
 
+  Self.SetupAlignment(alignment);
 end;
 
 procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  RunePouch.SetupAlignment(Self.Mode);
+  RunePouch.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;

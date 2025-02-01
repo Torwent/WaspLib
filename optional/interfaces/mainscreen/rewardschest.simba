@@ -8,7 +8,9 @@
 type
   ERSRewardsChestButton = (INVENTORY, BANK, DISCARD);
 
-  TRSRewardsChest = type TRSTitledInterface;
+  TRSRewardsChest = record(TRSTitledInterface)
+    Items: TRSItemInterface;
+  end;
 
 function TRSRewardsChest.FindItemBoundaries(): TBoxArray;
 var
@@ -17,7 +19,7 @@ var
   area, b: TBox;
   i: Int32;
 begin
-  area := Self.Bounds();
+  area := Self.Bounds;
   area.X1 += 24;
   area.Y1 += 48;
   area.X2 -= 8;
@@ -41,31 +43,24 @@ begin
   end;
 end;
 
-procedure TRSRewardsChest.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSRewardsChest.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  inherited;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 188;
 
-  case Self.Mode of
+  case RSCLient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 188;
-        Self.Alignment.Center.MaxHeight := 190;
-      end;
-
+      alignment.MaxHeight := 190;
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 188;
-        Self.Alignment.Center.MaxHeight := 191;
-      end;
+      alignment.MaxHeight := 191;
   end;
+
+  Self.SetupAlignment(alignment);
 end;
 
 procedure TRSRewardsChest.Setup(name: String); overload;
@@ -73,10 +68,10 @@ begin
   Self.Setup();
 
   Self.Name := name;
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.FindItemBoundaries;
-  Self.ItemInterface.DiscoverOffset := [0, 10, 3, 0];
-  Self.SetupAlignment(RSClient.Mode);
+  Self.Items.Name := Self.Name + '.ItemInterface';
+  Self.Items.SlotBoxesFunction := @Self.FindItemBoundaries;
+  Self.Items.DiscoverOffset := [0, 10, 3, 0];
+  Self.SetupAlignment();
   Self.ButtonColors := [CTS1($232B2E, 26)];
 end;
 
@@ -85,12 +80,12 @@ var
   boxes: TBoxArray;
   i, y: Int32;
 begin
-  if Self.Mode = ERSClientMode.FIXED then
+  if RSClient.Mode = ERSClientMode.FIXED then
     y := 49
   else
     y := 50;
 
-  boxes := Grid(3, 1, 39, 39, [6,0], [Self.X2()-147, Self.Y2()-y]);
+  boxes := Grid(3, 1, 39, 39, [6,0], [Self.Bounds.X2-147, Self.Bounds.Y2-y]);
   SetLength(Result, 3);
   for i := 0 to High(Result) do
   begin
@@ -172,12 +167,12 @@ begin
   if not Self.IsOpen() then
     Exit;
 
-  Result := Self.ItemInterface.Find([item], box);
+  Result := Self.Items.Find([item], box);
 end;
 
 function TRSRewardsChest.FindAll(items: TRSItemArray; out boxes: TBoxArray): Boolean;
 begin
-  Result := Self.ItemInterface.FindAll(items, boxes);
+  Result := Self.Items.FindAll(items, boxes);
 end;
 
 
@@ -190,7 +185,7 @@ end;
 
 function TRSRewardsChest.ContainsAny(itemArray: TRSItemArray): Boolean;
 begin
-  Result := Self.ItemInterface.ContainsAny(itemArray);
+  Result := Self.Items.ContainsAny(itemArray);
 end;
 
 function TRSRewardsChest.ContainsAll(itemArray: TRSItemArray): Boolean;
@@ -203,17 +198,17 @@ end;
 
 function TRSRewardsChest.CountItemStack(item: TRSItem): Int32;
 begin
-  Result := Self.ItemInterface.CountStack(item);
+  Result := Self.Items.CountStack(item);
 end;
 
 function TRSRewardsChest.HoverItem(item: TRSItem): Boolean;
 begin
-  Result := Self.ItemInterface.MouseItem(item);
+  Result := Self.Items.MouseItem(item);
 end;
 
 function TRSRewardsChest.ClickItem(item: TRSItem; Option: String = ''): Boolean;
 begin
-  Result := Self.IsOpen() and Self.ItemInterface.InteractItem(item, option);
+  Result := Self.IsOpen() and Self.Items.InteractItem(item, option);
 end;
 
 procedure TRSRewardsChest.Draw(Bitmap: TMufasaBitmap); override;

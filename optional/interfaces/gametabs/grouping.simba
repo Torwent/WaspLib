@@ -5,61 +5,55 @@
 
 //Made by CJ
 type
-  ERSGroupingTab = (
-    CHAT_CHANNEL,
-    YOUR_CLAN,
-    ANOTHER_CLAN,
-    ACTIVITY
-  );
+  ERSGroupingTab = (CHAT_CHANNEL, YOUR_CLAN, ANOTHER_CLAN, ACTIVITY);
+  ERSGroupingButton = (PVP_ARENA, JOIN, TELEPORT);
 
-  ERSGroupingButton = (
-    PVP_ARENA,
-    JOIN,
-    TELEPORT
-  );
+  TRSGrouping = record(TRSInterface)
+    Tabs: array [ERSGroupingTab] of TBox;
+  end;
 
-  TRSGrouping = type TRSInterface;
-
-procedure TRSGrouping.Setup; override;
+procedure TRSGrouping.Setup(); override;
 begin
   inherited;
-
   Self.Name := 'Grouping';
   Self.ButtonColors += CTS1(2700606, 1);
   Self.ButtonColors += CTS0(5334130, 1);
 end;
 
-function TRSGrouping.ScrollAreaFunction(): TBox;
+procedure TRSGrouping.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+  boxes: TBoxArray;
+  i: Int32;
 begin
-  Result := Self.Bounds();
-  Result.X1 += 3;
-  Result.Y1 += 69;
-  Result.X2 -= 3;
-  Result.Y2 -= 47;
+  alignment.Left := GameTab.Bounds.X1;
+  alignment.Right := GameTab.Bounds.X2;
+  alignment.Top := GameTab.Bounds.Y1;
+  alignment.Bottom := GameTab.Bounds.Y2;
+
+  Self.SetupAlignment(alignment);
+
+  Self.ScrollArea.X1 := Self.Bounds.X1 + 3;
+  Self.ScrollArea.Y1 := Self.Bounds.Y1 + 69;
+  Self.ScrollArea.X2 := Self.Bounds.X2 - 3;
+  Self.ScrollArea.Y2 := Self.Bounds.Y2 - 47;
+
+  boxes := Grid(4, 1, 41, 20, [5], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4]);
+  for i := 0 to Ord(High(ERSGroupingTab)) do
+    Self.Tabs[ERSGroupingTab(i)] := boxes[i];
 end;
 
-procedure TRSGrouping.SetupAlignment(Mode: ERSClientMode); override;
-begin
-  inherited;
-
-  Self.Alignment.Left := [@GameTab.X1];
-  Self.Alignment.Right := [@GameTab.X2];
-  Self.Alignment.Top := [@GameTab.Y1];
-  Self.Alignment.Bottom := [@GameTab.Y2];
-  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
-end;
-
-function TRSGrouping.IsOpen: Boolean;
+function TRSGrouping.IsOpen(): Boolean;
 begin
   Result := (GameTabs.GetCurrentTab = ERSGameTab.CLAN);
 end;
 
-function TRSGrouping.Open: Boolean;
+function TRSGrouping.Open(): Boolean;
 begin
   Result := GameTabs.Open(ERSGameTab.CLAN);
 end;
 
-function TRSGrouping.GetGroupingButtons: TRSButtonArray;
+function TRSGrouping.GetGroupingButtons(): TRSButtonArray;
 begin
     Result := Self.FindButtons([[66, 18]]);//, Self.Bounds());
 end;
@@ -85,7 +79,6 @@ var
   textBounds : TBoxArray;
   foundStrings : TStringArray;
   i : Int32;
-  scrollArea : TBox;
   stringFound: Boolean;
   selectedString, endString : string;
   scrollDirection : Int32;
@@ -130,10 +123,9 @@ begin
     activityScrollbar := Self.GetScrollBar();
   end;
 
-  scrollArea := Self.GetScrollAreaFunction();
-  Mouse.Move(scrollArea, false, EMouseDistribution.MOUSE_DISTRIBUTION_GAUSS);
+  Mouse.Move(Self.ScrollArea, false, EMouseDistribution.MOUSE_DISTRIBUTION_GAUSS);
   Wait(Random(120, 450));
-  foundStrings := OCR.RecognizeLines(scrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
+  foundStrings := OCR.RecognizeLines(Self.ScrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
 
   scrollDirection := 1;
   endString := "Volcanic Mines";
@@ -152,7 +144,7 @@ begin
 
   while (not searchTimer.IsFinished()) and not foundStrings.Contains(endString) do
   begin
-    foundStrings := OCR.RecognizeLines(scrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
+    foundStrings := OCR.RecognizeLines(Self.ScrollArea, TOCRColorFilter.Create([2070783], [1]), RS_FONT_PLAIN_12, textBounds);
     for i := 0 to High(foundStrings) do
     begin
       selectedString := foundStrings[i].ToLower();
@@ -183,7 +175,7 @@ begin
   Result := selectedString.Contains(activity);
 end;
 
-function TRSGrouping.GetButtons: TRSButtonArray;
+function TRSGrouping.GetButtons(): TRSButtonArray;
 begin
   Result := Self.FindButtons([[38,38]]);
 end;
@@ -196,33 +188,20 @@ begin
     Result := Buttons[Button];
 end;
 
-function TRSGrouping.GetTabs: TBoxArray;
-begin
-  Result := Grid(4, 1, 41, 20, [5], [Self.X1 + 2, Self.Y1 + 4])
-end;
-
-function TRSGrouping.GetCurrentTab: ERSGroupingTab;
+function TRSGrouping.GetCurrentTab(): ERSGroupingTab;
 var
-  Tabs: TBoxArray;
-  I: Int32;
+  tab: ERSGroupingTab;
 begin
-  Tabs := Self.GetTabs;
-
-  for I := 0 to High(Tabs) do
-  begin
-    if SRL.CountColor(2700606, Tabs[I]) > 50 then //finds the one without the bottom white line
-      Exit(ERSGroupingTab(I));
-  end
+  for tab := Low(ERSGroupingTab) to High(ERSGroupingTab) do
+    if SRL.CountColor(2700606, Self.Tabs[tab]) > 50 then //finds the one without the bottom white line
+      Exit(tab);
 end;
 
-function TRSGrouping.OpenTab(Tab: ERSGroupingTab): Boolean;
+function TRSGrouping.OpenTab(tab: ERSGroupingTab): Boolean;
 begin
-  if Self.GetCurrentTab = Tab then
-    Exit(True);
-
-  Mouse.Click(Self.GetTabs[Tab], MOUSE_LEFT);
-
-  Result := WaitUntil(Self.GetCurrentTab = Tab, SRL.TruncatedGauss(50, 1500), 3000);
+  if Self.GetCurrentTab() = tab then Exit(True);
+  Mouse.Click(Self.Tabs[tab], MOUSE_LEFT);
+  Result := WaitUntil(Self.GetCurrentTab() = tab, 200, 3000);
 end;
 
 function TRSInterface.FindDropDown(Dimensions: TRSButtonDimensions; borderColor : TCTS0Color): TRSDropDownArray; overload;
@@ -305,12 +284,11 @@ procedure TRSGrouping.Draw(bitmap: TMufasaBitmap); override;
 var
   buttons: TRSButtonArray;
 begin
-  if not Self.IsOpen then
-    Exit;
+  if not Self.IsOpen() then Exit;
 
   inherited;
 
-  bitmap.DrawBoxes(Self.GetTabs(), $00FFFF);
+  bitmap.DrawBoxes(Self.Tabs, $00FFFF);
 
   buttons := Self.GetButtons();
   buttons.Draw(bitmap);
@@ -319,26 +297,22 @@ end;
 var
   Grouping: TRSGrouping;
 
-function TRSGameTabs.GetCurrentTab: ERSGameTab; override;
+function TRSGameTabs.GetCurrentTab(): ERSGameTab; override;
 begin
   Result := inherited;
-
-  if (Result = ERSGameTab.UNKNOWN) then
-    Result := ERSGameTab.CLAN;
+  if Result = ERSGameTab.UNKNOWN then Result := ERSGameTab.CLAN;
 end;
 
-procedure TRSClient.ClientModeChanged; override;
+procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
-
-  Grouping.SetupAlignment(Self.Mode);
+  Grouping.SetupAlignment();
 end;
 
-procedure TSRL.Setup; override;
+procedure TSRL.Setup(); override;
 begin
   inherited;
-
-  Grouping.Setup;
+  Grouping.Setup();
 end;
 
 function TRSGrouping.TeleportToActivity(activity : string) : Boolean;
@@ -356,7 +330,7 @@ function TRSGrouping.TeleportToActivity(activity : string) : Boolean;
     searchBox : TBox;
     i : Int32;
   begin
-    mmC := Minimap.Center();
+    mmC := Minimap.Center;
     searchBox := Box(mmC, BOX_SCALE, BOX_SCALE);
     tpa := searchBox.ToRectangle().ToTPA().Connect();
     tpa.Fill();

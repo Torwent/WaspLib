@@ -67,18 +67,12 @@ type
     Destinations: array [ERSNexusDestination] of TPortalNexusDestination;
   end;
 
-function TRSPortalNexus.ScrollAreaFunction(): TBox;
-begin
-  Result := Box(Self.Bounds().X1 + 29, Self.Bounds().Y1 + 49, Self.Bounds().X2 - 197, Self.Bounds().Y2 - 20);
-end;
-
 procedure TRSPortalNexus.Setup(); override;
 var
   destination: ERSNexusDestination;
 begin
   inherited;
   Self.Name := 'Portal Nexus';
-  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
 
   for destination in ERSNexusDestination do
   begin
@@ -161,7 +155,7 @@ var
   str: String;
   destination: ERSNexusDestination;
 begin
-  if SRL.FindColors(tpa, CTS0(1937135, 15), Self.ScrollAreaFunction()) = 0 then
+  if SRL.FindColors(tpa, CTS0(1937135, 15), Self.ScrollArea) = 0 then
     Exit;
 
   atpa := tpa.Cluster(11, 1);
@@ -214,7 +208,7 @@ function TRSPortalNexus.FindPortalDestination(destination: ERSNexusDestination; 
     if direction then
       limit := 100;
 
-    Mouse.Move(Self.ScrollAreaFunction(), True);
+    Mouse.Move(Self.ScrollArea, True);
     scroll := Self.GetScrollPosition();
 
     while Self.CanScroll() and (scroll <> limit) do
@@ -264,31 +258,26 @@ begin
   Result := Self.FindPortalDestination(destination, b);
 end;
 
-procedure TRSPortalNexus.SetupAlignment(mode: ERSClientMode); override;
+procedure TRSPortalNexus.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  inherited;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 490;
+  alignment.MaxHeight := 315;
 
-  case mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 490;
-        Self.Alignment.Center.MaxHeight := 315;
-      end;
-
+      alignment.Top := InterfaceArea.Bounds.Y1;
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 490;
-        Self.Alignment.Center.MaxHeight := 315;
-      end;
+      alignment.Top := InterfaceArea.Bounds.Y1 - 1;
   end;
+
+  Self.SetupAlignment(alignment);
+
+  Self.ScrollArea := Box(Self.Bounds.X1 + 29, Self.Bounds.Y1 + 49, Self.Bounds.X2 - 197, Self.Bounds.Y2 - 20);
 end;
 
 function TRSPortalNexus.IsOpen(): Boolean;
@@ -316,7 +305,7 @@ procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  PortalNexus.SetupAlignment(Self.Mode);
+  PortalNexus.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;

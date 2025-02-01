@@ -9,13 +9,7 @@ Methods to interact with the crafting screen on a furnace.
 {$ENDIF}
 
 type
-  ERSCraftScreenButton = (
-    AMOUNT_1,
-    AMOUNT_5,
-    AMOUNT_10,
-    AMOUNT_CUSTOM,
-    AMOUNT_ALL
-  );
+  ERSCraftScreenButton = (AMOUNT_1, AMOUNT_5, AMOUNT_10, AMOUNT_CUSTOM, AMOUNT_ALL);
 
   ERSCraftItem = (
   { Rings }
@@ -69,25 +63,32 @@ const
   RS_CRAFT_ITEMS = [ERSCraftItem.GOLD_RING..ERSCraftItem.ZENYTE_AMULET];
 
 type
-  TRSCraftScreen = type TRSTitledInterface;
+  TRSCraftScreen = record(TRSTitledInterface)
+    ItemBoxes: TBoxArray;
+  end;
 
 procedure TRSCraftScreen.Setup(); override;
 begin
   inherited;
-
-  Self.Name := 'Craft screen';
+  Self.Name := 'CraftScreen';
 end;
 
-procedure TRSCraftScreen.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSCraftScreen.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+  boxes: TBoxArray;
 begin
-  inherited;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 492;
+  alignment.MaxHeight := 300;
 
-  Self.Alignment.Left := [@InterfaceArea.X1];
-  Self.Alignment.Right := [@InterfaceArea.X2];
-  Self.Alignment.Top := [@InterfaceArea.Y1];
-  Self.Alignment.Bottom := [@InterfaceArea.Y2];
-  Self.Alignment.Center.MaxWidth := 492;
-  Self.Alignment.Center.MaxHeight := 300;
+  Self.SetupAlignment(alignment);
+
+  boxes := Grid(9, 1, 31, 31, [14, 30], [Self.Bounds.X1 + 36, Self.Bounds.Y1 + 66]);
+  Self.ItemBoxes := boxes.Combine(Grid(8, 3, 31, 31, [19, 30], [Self.Bounds.X1 + 36, Self.Bounds.Y1 + 127]));
 end;
 
 function TRSCraftScreen.GetButtons(): TRSButtonArray;
@@ -101,13 +102,6 @@ var
 begin
   if (Length(Buttons) = Length(ERSCraftScreenButton)) then
     Result := Buttons[Button];
-end;
-
-function TRSCraftScreen.GetItemBoxes(): TBoxArray;
-var Rings: TBoxArray;
-begin
-  Rings := Grid(9, 1, 31, 31, [14, 30], [Self.X1 + 36, Self.Y1 + 66]);
-  Result := Rings.Combine(Grid(8, 3, 31, 31, [19, 30], [Self.X1 + 36, Self.Y1 + 127]));
 end;
 
 (*
@@ -228,8 +222,7 @@ var
   TPA: TPointArray;
 begin
   if not Self.IsOpen() then Exit;
-  Boxes := Self.GetItemBoxes();
-  Result := SRL.FindColors(TPA, CTS0(GOLD_COLOR, 15), Boxes[CraftItem]) > 0;
+  Result := SRL.FindColors(TPA, CTS0(GOLD_COLOR, 15), Self.ItemBoxes[CraftItem]) > 0;
 end;
 
 (*
@@ -253,7 +246,7 @@ var
 begin
   if not Self.IsOpen() then Exit;
   if not Self.CanCraftItem(CraftItem) then Exit;
-  Result := SRL.FindColors(TPA, HighlightCol, Self.GetItemBoxes()[CraftItem]) > 0;
+  Result := SRL.FindColors(TPA, HighlightCol, Self.ItemBoxes[CraftItem]) > 0;
 end;
 
 (*
@@ -281,12 +274,12 @@ begin
   if Result then
   begin
     if (not UseSpaceBar) then
-      Mouse.Click(Self.GetItemBoxes()[Item], MOUSE_LEFT)
+      Mouse.Click(Self.ItemBoxes[Item], MOUSE_LEFT)
     else
       if Self.IsItemHighlighted(Item) then
         Keyboard.PressKey(VK_SPACE)
       else
-        Mouse.Click(Self.GetItemBoxes()[Item], MOUSE_LEFT);
+        Mouse.Click(Self.ItemBoxes[Item], MOUSE_LEFT);
   end;
 end;
 
@@ -297,7 +290,7 @@ begin
 
   inherited;
 
-  Bitmap.DrawBoxes(Self.GetItemBoxes(), $00FFFF);
+  Bitmap.DrawBoxes(Self.ItemBoxes, $00FFFF);
 end;
 
 var
@@ -307,7 +300,7 @@ procedure TRSClient.ClientModeChanged; override;
 begin
   inherited;
 
-  CraftScreen.SetupAlignment(Self.Mode);
+  CraftScreen.SetupAlignment();
 end;
 
 procedure TSRL.Setup; override;

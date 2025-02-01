@@ -9,44 +9,45 @@ Methods to interact with the silver screen on a furnace.
 {$ENDIF}
 
 type
-  ERSSilverScreenButton = (
-    QUANT_1,
-    QUANT_5,
-    QUANT_10,
-    QUANT_CUSTOM,
-    QUANT_ALL
-  );
+  ERSSilverScreenButton = (QUANT_1, QUANT_5, QUANT_10, QUANT_CUSTOM, QUANT_ALL);
 
-  TRSSilverScreen = type TRSTitledInterface;
+  TRSSilverScreen = record(TRSTitledInterface)
+    Items: TRSItemInterface;
+    SlotBoxes: TBoxArray;
+  end;
 
 
 function TRSSilverScreen.GetItemBoxes(): TBoxArray;
-var
-  jewellery: TBoxArray;
 begin
-  jewellery := Grid(3, 4, 79, 55, [5, 1], [Self.X1 + 10, Self.Y1 + 40]);
-  Result := jewellery.Combine(Grid(2, 4, 109, 55, [5, 1], [Self.X2 - 233, Self.Y1 + 40]));
+  Result := Self.SlotBoxes;
 end;
 
 procedure TRSSilverScreen.Setup(); override;
 begin
   inherited;
 
-  Self.Name := 'Silver Screen';
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetItemBoxes;
+  Self.Name := 'SilverScreen';
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.GetItemBoxes;
 end;
 
-procedure TRSSilverScreen.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSSilverScreen.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+var
+  jewellery: TBoxArray;
 begin
-  inherited;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 505;
+  alignment.MaxHeight := 323;
 
-  Self.Alignment.Left := [@InterfaceArea.X1];
-  Self.Alignment.Right := [@InterfaceArea.X2];
-  Self.Alignment.Top := [@InterfaceArea.Y1];
-  Self.Alignment.Bottom := [@InterfaceArea.Y2];
-  Self.Alignment.Center.MaxWidth := 505;
-  Self.Alignment.Center.MaxHeight := 323;
+  Self.SetupAlignment(alignment);
+
+  jewellery := Grid(3, 4, 79, 55, [5, 1], [Self.Bounds.X1 + 10, Self.Bounds.Y1 + 40]);
+  Self.SlotBoxes := jewellery.Combine(Grid(2, 4, 109, 55, [5, 1], [Self.Bounds.X2 - 233, Self.Bounds.Y1 + 40]));
 end;
 
 function TRSSilverScreen.GetButtons(): TRSButtonArray;
@@ -179,10 +180,9 @@ const
 var
   tpa: TPointArray;
 begin
-  if not Self.IsOpen() then
-    Exit;
+  if not Self.IsOpen() then Exit;
 
-  if not Self.ItemInterface.Find([item], box) then
+  if not Self.Items.Find([item], box) then
     Exit;
 
   Result := (SRL.FindColors(tpa, ORANGE_COLOR, box) > 0) or
@@ -270,7 +270,7 @@ procedure TRSClient.ClientModeChanged; override;
 begin
   inherited;
 
-  SilverScreen.SetupAlignment(Self.Mode);
+  SilverScreen.SetupAlignment();
 end;
 
 procedure TSRL.Setup; override;

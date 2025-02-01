@@ -13,20 +13,11 @@ type
 
   TRSFairyRing = record (TRSInterface)
     Dials: array [ERSFairyRingDial] of String;
+    DialBoxes: array [ERSFairyRingDial] of TBox;
     TravelLog: TRSInterface;
     Item: TRSItem;
     FairyRings: TRSObjectV2;
   end;
-
-
-function TRSFairyRing.ScrollAreaFunction(): TBox;
-begin
-  Result := Self.TravelLog.Bounds();
-  Result.X1 += 6;
-  Result.Y1 += 42;
-  Result.X2 -= 6;
-  Result.Y2 -= 6;
-end;
 
 procedure TRSFairyRing.SetupFairyRings();
 begin
@@ -78,41 +69,57 @@ begin
     Self.Dials[ERSFairyRingDial(i)] := STRINGS[i];
 
   Self.TravelLog.Setup();
-  Self.TravelLog.Name := 'FairyRingTravelLog';
-  Self.TravelLog.GetScrollAreaFunction := @Self.ScrollAreaFunction;
+  Self.TravelLog.Name := 'FairyRing.TravelLog';
 end;
 
-procedure TRSFairyRing.SetupAlignment(mode: ERSClientMode); override;
+procedure TRSFairyRing.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+var
+  boxes: TBoxArray;
+  dial: ERSFairyRingDial;
 begin
-  Self.Mode := mode;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.MaxWidth := 500;
+  alignment.MaxHeight := 320;
 
-  case Self.Mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 500;
-        Self.Alignment.Center.MaxHeight := 320;
-      end;
+    begin
+      alignment.Top := InterfaceArea.Bounds.Y1;
+      alignment.Bottom := InterfaceArea.Bounds.Y2;
+    end;
 
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
-        Self.Alignment.Center.MaxWidth := 500;
-        Self.Alignment.Center.MaxHeight := 320;
-      end;
+    begin
+      alignment.Top := InterfaceArea.Bounds.Y1 + 2;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 - 2;
+    end;
   end;
 
-  Self.TravelLog.SetupAlignment(mode);
-  Self.TravelLog.Alignment.Left := [@GameTab.X1, -3];
-  Self.TravelLog.Alignment.Right := [@GameTab.X2, 3];
-  Self.TravelLog.Alignment.Top := [@GameTab.Y1];
-  Self.TravelLog.Alignment.Bottom := [@GameTab.Y2];
+  Self.SetupAlignment(alignment);
+
+  boxes := Grid(3, 1, 159, 159, [11, 0], [Self.Bounds.X1+2, Self.Bounds.Y1+75]);
+  boxes[2].X1 -= 2;
+  boxes[2].X2 -= 2;
+
+  for dial := Low(ERSFairyRingDial) to High(ERSFairyRingDial) do
+    Self.DialBoxes[dial] := boxes[Ord(dial)];
+
+
+  alignment.Left := GameTab.Bounds.X1 -3;
+  alignment.Right := GameTab.Bounds.X2 + 3;
+  alignment.Top := GameTab.Bounds.Y1;
+  alignment.Bottom := GameTab.Bounds.Y2;
+  alignment.MaxWidth := 0;
+  alignment.MaxHeight := 0;
+  Self.TravelLog.SetupAlignment(alignment);
+
+  Self.ScrollArea.X1 := Self.TravelLog.Bounds.X1 + 6;
+  Self.ScrollArea.Y1 := Self.TravelLog.Bounds.Y1 + 42;
+  Self.ScrollArea.X2 := Self.TravelLog.Bounds.X2 - 6;
+  Self.ScrollArea.Y2 := Self.TravelLog.Bounds.Y2 - 6;
 end;
 
 (*
@@ -129,7 +136,7 @@ Example:
 *)
 function TRSFairyRing.IsOpen(): Boolean;
 begin
-  Result := InRange(SRL.CountColor(CTS2(3949742, 14, 0.03, 0.70), Self.Bounds()), 18000, 19000);
+  Result := InRange(SRL.CountColor(CTS2(3949742, 14, 0.03, 0.70), Self.Bounds), 18000, 19000);
 end;
 
 (*
@@ -178,7 +185,7 @@ const
   ITEMS: TRSItemArray = ['Dramen staff', 'Lunar staff'];
 var
   slot, i: Int32;
-  tabI, otherI: PRSInterface;
+  tabI, otherI: PRSItemGameTab;
   tabE, otherE: ERSGameTab;
 begin
   if Self.Item = 'null' then Exit(True);
@@ -187,20 +194,20 @@ begin
   case tabE of
     ERSGameTab.INVENTORY:
       begin
-        tabI := PRSInterface(@Inventory);
-        otherI := PRSInterface(@Equipment);
+        tabI := PRSItemGameTab(@Inventory);
+        otherI := PRSItemGameTab(@Equipment);
         otherE := ERSGameTab.EQUIPMENT;
       end;
     ERSGameTab.EQUIPMENT:
       begin
-        tabI := PRSInterface(@Equipment);
-        otherI := PRSInterface(@Inventory);
+        tabI := PRSItemGameTab(@Equipment);
+        otherI := PRSItemGameTab(@Inventory);
         otherE := ERSGameTab.INVENTORY;
       end;
     ERSGameTab.COMBAT:
       begin
-        tabI := PRSInterface(@Combat);
-        otherI := PRSInterface(@Inventory);
+        tabI := PRSItemGameTab(@Combat);
+        otherI := PRSItemGameTab(@Inventory);
         otherE := ERSGameTab.INVENTORY;
       end;
     else if Inventory.Open() then Exit(Self.HandleItem()) else Exit;
@@ -233,7 +240,7 @@ begin
     case tabI^.Name of
       'Combat': if LowerCase(Combat.GetWeapon()) = LowerCase(Self.Item) then
         Exit(Self.HandleItem());
-      else if tabI^.ItemInterface.Contains(Self.Item) then
+      else if tabI^.Items.Contains(Self.Item) then
         Exit(Self.HandleItem());
     end;
 
@@ -242,7 +249,7 @@ begin
   if not GameTabs.Open(tabE) then Exit;
 
   for Self.Item in ITEMS do
-    if tabI^.ItemInterface.Contains(Self.Item) then
+    if tabI^.Items.Contains(Self.Item) then
       Exit(Self.HandleItem());
 
   if attempts = 0 then Exit;
@@ -369,44 +376,6 @@ begin
   Result := True;
 end;
 
-
-(*
-## FairyRing.GetDials
-```pascal
-function TRSFairyRing.GetDials(): TBoxArray;
-```
-Returns the fairy ring dials boxes
-
-Example:
-```pascal
- Debug(FairyRing.GetDials());
-```
-*)
-function TRSFairyRing.GetDials(): TBoxArray;
-begin
-  Result := Grid(3, 1, 159, 159, [11, 0], [Self.X1()+2, Self.Y1()+75]);
-  Result[2].X1 -= 2;
-  Result[2].X2 -= 2;
-end;
-
-(*
-## FairyRing.GetDial
-```pascal
-function TRSFairyRing.GetDial(dial: ERSFairyRingDial): TBox;
-```
-Returns the box of a fairy ring dial.
-
-Example:
-```pascal
- Debug(FairyRing.GetDial(ERSFairyRingDial.MIDDLE));
-```
-*)
-function TRSFairyRing.GetDial(dial: ERSFairyRingDial): TBox;
-begin
-  Result := Self.GetDials()[Ord(dial)];
-end;
-
-
 (*
 ## FairyRing.GetLetterBox
 ```pascal
@@ -421,7 +390,7 @@ Example:
 *)
 function TRSFairyRing.GetLetterBox(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetDial(dial);
+  Result := Self.DialBoxes[dial];
   Result.X1 += 60;
   Result.Y1 += 115;
   Result.X2 -= 60;
@@ -494,13 +463,13 @@ Example:
 *)
 function TRSFairyRing.GetLeftRotationBox(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetDial(dial);
+  Result := Self.DialBoxes[dial];
   Result.X2 -= 80;
 end;
 
 function TRSFairyRing.GetRightRotationBox(dial: ERSFairyRingDial): TBox;
 begin
-  Result := Self.GetDial(dial);
+  Result := Self.DialBoxes[dial];
   Result.X1 += 80;
 end;
 
@@ -660,7 +629,7 @@ Example:
 *)
 function TRSFairyRing.GetTeleportButton(): TBox;
 begin
-  Result := Self.Bounds();
+  Result := Self.Bounds;
   Result.X1 += 166;
   Result.Y1 += 247;
   Result.X2 -= 165;
@@ -713,7 +682,7 @@ var
   i: Int32;
   str: String;
 begin
-  if SRL.FindColors(tpa, COLORS, Self.TravelLog.Bounds()) = 0 then
+  if SRL.FindColors(tpa, COLORS, Self.TravelLog.Bounds) = 0 then
     Exit;
 
   atpa := tpa.Cluster(8, 1);
@@ -725,9 +694,9 @@ begin
     str := OCR.Recognize(boxes[i], TOCRColorFilter.Create(COLORS), RS_FONT_PLAIN_12);
     Result += str.Replace(' ', '');
 
-    boxes[i].X2 := Self.TravelLog.X2() - 22;
+    boxes[i].X2 := Self.TravelLog.Bounds.X2 - 22;
     if i = High(boxes) then
-      boxes[i].Y2 := Self.TravelLog.Y2() - 6
+      boxes[i].Y2 := Self.TravelLog.Bounds.Y2 - 6
     else
       boxes[i].Y2 := boxes[i+1].Y1 - 7;
   end;
@@ -743,7 +712,7 @@ var
   str: String;
   boxes: TBoxArray;
 begin
-  if SRL.FindColors(tpa, COLORS, Self.TravelLog.Bounds()) = 0 then
+  if SRL.FindColors(tpa, COLORS, Self.TravelLog.Bounds) = 0 then
     Exit;
 
   atpa := tpa.Cluster(8, 1);
@@ -780,7 +749,7 @@ function TRSFairyRing.FindLogCode(code: String; out b: TBox): Boolean;
     if direction then
       limit := 100;
 
-    Mouse.Move(Self.TravelLog.Bounds(), True);
+    Mouse.Move(Self.TravelLog.Bounds, True);
     while Self.TravelLog.CanScroll() and (Self.TravelLog.GetScrollPosition() <> limit) do
     begin
       Mouse.Scroll(Antiban.GetUniqueInt(4, 2, 7), direction);
@@ -1008,7 +977,7 @@ begin
 
   inherited;
 
-  bitmap.DrawBoxes(Self.GetDials(), $00FFFF);
+  bitmap.DrawBoxes(Self.DialBoxes, $00FFFF);
   for dial := ERSFairyRingDial.LEFT to ERSFairyRingDial.RIGHT do
   begin
     b := Self.GetLeftRotationBox(dial).Expand(-1);
@@ -1018,7 +987,7 @@ begin
   end;
 
   bitmap.DrawBox(Self.GetTeleportButton(), $00FFFF);
-  bitmap.DrawBox(Self.TravelLog.Bounds(), $00FFFF);
+  bitmap.DrawBox(Self.TravelLog.Bounds, $00FFFF);
 end;
 
 (*
@@ -1032,7 +1001,7 @@ procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  FairyRing.SetupAlignment(Self.Mode);
+  FairyRing.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;

@@ -12,35 +12,22 @@ type
 
   TRSLectern = record (TRSTitledInterface)
     TABLETS: array [ERSLecternType] of TRSItemArray;
+    Items: TRSItemInterface;
+    CreateButton: TBox;
   end;
 
-function TRSLectern.ScrollAreaFunction(): TBox;
-begin
-  Result := Self.Bounds();
-  Result.X1 += 11;
-  Result.Y1 += 40;
-  Result.X2 -= 71;
-  Result.Y2 := Result.Y1 + 150;
-end;
-
-function TRSLectern.SearchBoxesFunction(): TBoxArray;
+function TRSLectern.SlotBoxesFunction(): TBoxArray;
 var
   b: TBox;
   tpa: TPointArray;
 begin
-  b := Self.Bounds();
-  b.X1 += 11;
-  b.Y1 += 40;
-  b.X2 -= 71;
-  b.Y2 := b.Y1 + 150;
-
-  SRL.FindColors(tpa, CTS2(1509399, 6, 2.84, 8.78), b);
+  SRL.FindColors(tpa, CTS2(1509399, 6, 2.84, 8.78), Self.ScrollArea);
 
   for tpa in tpa.Cluster(1) do
   begin
     b := tpa.Bounds();
     if InRange(b.Width(), 25, 30) and InRange(b.Height(), 25, 30) then
-      Result += tpa.Bounds();
+      Result += b;
   end;
 end;
 
@@ -81,27 +68,40 @@ begin
   Self.TABLETS[ERSLecternType.LUNAR]    := LUNAR_TABLETS;
   Self.TABLETS[ERSLecternType.ARCEUUS]  := ARCEUUS_TABLETS;
 
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.SearchBoxesFunction;
-  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.SlotBoxesFunction;
 end;
 
-procedure TRSLectern.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSLectern.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  inherited;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 456;
+  alignment.MaxHeight := 302;
 
-  Self.Alignment.Left := [@InterfaceArea.X1];
-  Self.Alignment.Right := [@InterfaceArea.X2];
-  Self.Alignment.Bottom := [@InterfaceArea.Y2];
-  Self.Alignment.Center.MaxWidth := 456;
-  Self.Alignment.Center.MaxHeight := 302;
-
-  case Self.Mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-
+        alignment.Top := InterfaceArea.Bounds.Y1;
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
+        alignment.Top := InterfaceArea.Bounds.Y1 - 1;
   end;
+
+  Self.SetupAlignment(alignment);
+
+  Self.ScrollArea := Self.Bounds;
+  Self.ScrollArea.X1 += 11;
+  Self.ScrollArea.Y1 += 40;
+  Self.ScrollArea.X2 -= 71;
+  Self.ScrollArea.Y2 := Self.ScrollArea.Y1 + 150;
+
+  Self.CreateButton := Self.Bounds;
+  Self.CreateButton.X1 += 294;
+  Self.CreateButton.Y1 := Self.CreateButton.Y2 - 43;
+  Self.CreateButton.X2 -= 60;
+  Self.CreateButton.Y2 -= 18;
 end;
 
 
@@ -127,17 +127,6 @@ begin
 end;
 
 
-function TRSLectern.GetCreateButton(): TBox;
-begin
-  Result := Self.Bounds();
-
-  Result.X1 += 294;
-  Result.Y1 := Result.Y2 - 43;
-  Result.X2 -= 60;
-  Result.Y2 -= 18;
-end;
-
-
 function TRSLectern._FindIndex(lecternType: ERSLecternType = ERSLecternType.UNKNOWN): Int32;
 var
   item: TRSItem;
@@ -152,7 +141,7 @@ begin
   for Result := 0 to High(Self.TABLETS[lecternType]) do
   begin
     item := Self.TABLETS[lecternType][Result];
-    if Self.ItemInterface.Contains(item) then
+    if Self.Items.Contains(item) then
       Exit;
     Result += 2;
   end;
@@ -165,13 +154,13 @@ begin
   if Self.TABLETS[Self.GetLecternType()].Find(ToStr(tablet).ToLower()) = -1  then
     Exit;
 
-  Result := Self.ItemInterface.Contains(tablet);
+  Result := Self.Items.Contains(tablet);
 end;
 
 function TRSLectern.GetTabletBox(tablet: TRSItem): TBox;
 begin
   if Self.TABLETS[Self.GetLecternType()].Find(ToStr(tablet).ToLower()) > -1  then
-    Self.ItemInterface.Find([tablet], Result);
+    Self.Items.Find([tablet], Result);
 end;
 
 
@@ -187,7 +176,7 @@ begin
   Result.X2 := tablet.X2 + 75;
   Result.Y2 := tablet.Y2 + 8;
 
-  limit := Self.ScrollAreaFunction();
+  limit := Self.ScrollArea;
 
   if Result.Y1 < limit.Y1 then
     Result.Y1 := limit.Y1;
@@ -203,7 +192,7 @@ end;
 
 function TRSLectern.CreateButtonEnabled(): Boolean;
 begin
-  Result := SRL.CountColor(2070783, Self.GetCreateButton()) > 0;
+  Result := SRL.CountColor(2070783, Self.CreateButton) > 0;
 end;
 
 function TRSLectern.IsTabletSelected(tablet: TBox): Boolean;
@@ -234,7 +223,7 @@ begin
 
   for j := 0 to 8 do
   begin
-    if Self.ItemInterface.Contains(tablet) then
+    if Self.Items.Contains(tablet) then
       Exit(True);
 
     if not Self.CanScroll() then
@@ -261,7 +250,7 @@ begin
 
   for j := 0 to 8 do
   begin
-    if Self.ItemInterface.Find([tablet], bounds) then
+    if Self.Items.Find([tablet], bounds) then
       Exit(True);
 
     if not Self.CanScroll() then
@@ -279,10 +268,10 @@ function TRSLectern.Close(pressEscape: Boolean = False): Boolean;
   var
     b: TBox;
   begin
-    b.X1 := Self.X2-27;
-    b.X2 := Self.X2-7;
-    b.Y1 := Self.Y1+7;
-    b.Y2 := Self.Y1+27;
+    b.X1 := Self.Bounds.X2-27;
+    b.X2 := Self.Bounds.X2-7;
+    b.Y1 := Self.Bounds.Y1+7;
+    b.Y2 := Self.Bounds.Y1+27;
 
     Result := SRL.CountColor(CTS2(5999522, 16, 0.15, 0.40), b) > 70;
 
@@ -334,7 +323,7 @@ function TRSLectern.ClickCreateButton(): Boolean;
 begin
   if not Self.CreateButtonEnabled() then
     Exit;
-  Mouse.Click(Self.GetCreateButton(), MOUSE_LEFT);
+  Mouse.Click(Self.CreateButton, MOUSE_LEFT);
   Result := WaitUntil(not Self.IsOpen(), 300, 3000);
 end;
 
@@ -344,7 +333,7 @@ begin
   begin
     if Self.IsTabletSelected(tablet) then
     begin
-      Mouse.Click(Self.GetCreateButton(), MOUSE_LEFT);
+      Mouse.Click(Self.CreateButton, MOUSE_LEFT);
       Exit(WaitUntil(not Self.IsOpen(), 300, 3000));
     end;
 
@@ -352,7 +341,7 @@ begin
     begin
       if not Self.ClickTablet(tablet) then
         Exit;
-      Mouse.Click(Self.GetCreateButton(), MOUSE_LEFT);
+      Mouse.Click(Self.CreateButton, MOUSE_LEFT);
       Exit(WaitUntil(not Self.IsOpen(), 300, 3000));
     end;
 
@@ -361,14 +350,14 @@ begin
       if not Self.IsTabletSelected(tablet) then
         if not Self.ClickTablet(tablet) then
           Exit;
-      Mouse.Click(Self.GetCreateButton(), MOUSE_LEFT);
+      Mouse.Click(Self.CreateButton, MOUSE_LEFT);
       Exit(WaitUntil(not Self.IsOpen(), 300, 3000));
     end;
   end;
 
   if Self.ClickTablet(tablet) then
   begin
-    Mouse.Click(Self.GetCreateButton(), MOUSE_LEFT);
+    Mouse.Click(Self.CreateButton, MOUSE_LEFT);
     Result := WaitUntil(not Self.IsOpen(), 300, 3000);
   end;
 end;
@@ -384,11 +373,11 @@ begin
 
   inherited;
 
-  boxes := Self.SearchBoxesFunction();
+  boxes := Self.SlotBoxesFunction();
   bitmap.DrawBoxes(boxes, $00FFFF);
   for b in boxes do
     bitmap.DrawBox(Self._GetTabletButton(b), $00FFFF);
-  bitmap.DrawBox(Self.ScrollAreaFunction(), $00FFFF);
+  bitmap.DrawBox(Self.ScrollArea, $00FFFF);
 end;
 
 var
@@ -398,7 +387,7 @@ procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  Lectern.SetupAlignment(Self.Mode);
+  Lectern.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;

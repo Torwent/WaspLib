@@ -10,24 +10,17 @@ Methods to interact with the CollectBox.
 
 type
   // In order FindButtons returns
-  ERSCollectButton = (
-    CLOSE,
-    COLLECT_INVENTORY,
-    COLLECT_BANK
-  );
+  ERSCollectButton = (CLOSE, COLLECT_INVENTORY, COLLECT_BANK);
+  ERSCollectSlotBoxes = (TRADE_STATUS, OPERATION, ITEM, CHANGE);
 
-  ERSCollectSlotBoxes = (
-    TRADE_STATUS,
-    OPERATION,
-    ITEM,
-    CHANGE
-  );
-
-  TRSCollectBox = type TRSTitledInterface;
+  TRSCollectBox = record(TRSTitledInterface)
+    Items: TRSItemInterface;
+    SlotBoxes: TBoxArray;
+  end;
 
 function TRSCollectBox.GetButtons(): TRSButtonArray;
 begin
-  Result := FindButtons([[83, 19], [21,21]]);
+  Result := Self.FindButtons([[83, 19], [21,21]]);
 end;
 
 function TRSCollectBox.GetButton(button: ERSCollectButton): TRSButton;
@@ -42,7 +35,7 @@ end;
 
 function TRSCollectBox.GetSlots(): TBoxArray;
 begin
-  Result := Grid(4, 2, 100, 74, [10, 10], [Self.X1 + 15, Self.Y1 + 44]);
+  Result := Grid(4, 2, 100, 74, [10, 10], [Self.Bounds.X1 + 15, Self.Bounds.Y1 + 44]);
 end;
 
 function TRSCollectBox.GetSlot(Index: Int32): TBox;
@@ -55,15 +48,13 @@ end;
 
 function TRSCollectBox.GetItemSlots(): TBoxArray;
 begin
-  Result := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.X1 + 25, Self.Y1 + 75]);
+  Result := Self.SlotBoxes;
 end;
 
 function TRSCollectBox.GetItemSlot(index: Int32): TBox;
 begin
-  if not InRange(index, 0, 7) then
-    Exit;
-
-  Result := Self.GetItemSlots[index];
+  if InRange(index, 0, 7) then
+    Result := Self.SlotBoxes[index];
 end;
 
 
@@ -148,35 +139,30 @@ begin
 
   Self.ButtonColors += CTS1(2304814, 0);
 
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetItemSlots;
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.GetItemSlots;
 end;
 
-procedure TRSCollectBox.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSCollectBox.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  Self.Mode := Mode;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1 + 2;
+  alignment.MaxWidth := 460;
+  alignment.MaxHeight := 247;
 
-  case Self.Mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -1];
-        Self.Alignment.Center.MaxWidth := 460;
-        Self.Alignment.Center.MaxHeight := 247;
-      end;
-
+      alignment.Bottom := InterfaceArea.Bounds.Y2 -1;
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, 2];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2, -2];
-        Self.Alignment.Center.MaxWidth := 460;
-        Self.Alignment.Center.MaxHeight := 247;
-      end;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 - 2;
   end;
+
+  Self.SetupAlignment(alignment);
+
+  Self.SlotBoxes := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.Bounds.X1 + 25, Self.Bounds.Y1 + 75]);
 end;
 
 
@@ -202,7 +188,7 @@ end;
 
 function TRSCollectBox.GetUsedSlots(): TIntegerArray;
 begin
-  Result := Self.ItemInterface.GetUsedSlots();
+  Result := Self.Items.GetUsedSlots();
 end;
 
 function TRSCollectBox.HasChange(Slot: Int32): Boolean;
@@ -236,7 +222,7 @@ begin
   if not Self.IsOpen() then
     Exit;
 
-  slots := Self.ItemInterface.IndicesOf(items);
+  slots := Self.Items.IndicesOf(items);
   Result := slots <> [];
 end;
 
@@ -255,7 +241,7 @@ end;
 
 function TRSCollectBox.FindItem(item: TRSItem; out slot: Int32): Boolean; overload;
 begin
-  slot := Self.ItemInterface.IndexOf([item]);
+  slot := Self.Items.IndexOf([item]);
   Result := slot > -1;
 end;
 
@@ -269,7 +255,7 @@ end;
 
 function TRSCollectBox.CountItemStack(item: TRSItem): Int32;
 begin
-  Result := Self.ItemInterface.CountStack(item);
+  Result := Self.Items.CountStack(item);
 end;
 
 
@@ -278,12 +264,12 @@ begin
   if not Self.IsOpen() then
     Exit;
 
-  Self.ItemInterface.ClickSlot(slot);
+  Self.Items.ClickSlot(slot);
 
   if Self.HasChange(slot) then
     Mouse.Click(Self.GetSlotBox(slot, ERSCollectSlotBoxes.CHANGE), MOUSE_LEFT);
 
-  Result := WaitUntil(Self.ItemInterface.SlotEmpty(slot) and not Self.HasChange(slot), SRL.TruncatedGauss(50, 1500), 1000);
+  Result := WaitUntil(Self.Items.SlotEmpty(slot) and not Self.HasChange(slot), SRL.TruncatedGauss(50, 1500), 1000);
 end;
 
 function TRSCollectBox.CollectSlotToBank(slot: Int32): Boolean;
@@ -291,7 +277,7 @@ begin
   if not Self.IsOpen then
     Exit;
 
-  Self.ItemInterface.InteractSlot(slot, 'Bank');
+  Self.Items.InteractSlot(slot, 'Bank');
 
   if Self.HasChange(slot) then
   begin
@@ -300,7 +286,7 @@ begin
       ChooseOption.Select('Bank', MOUSE_LEFT);
   end;
 
-  Result := WaitUntil(Self.ItemInterface.SlotEmpty(Slot) and not Self.HasChange(Slot), SRL.TruncatedGauss(50, 1500), 1000);
+  Result := WaitUntil(Self.Items.SlotEmpty(Slot) and not Self.HasChange(Slot), SRL.TruncatedGauss(50, 1500), 1000);
 end;
 
 function TRSCollectBox.MouseItem(Item: TRSItem): Boolean;
@@ -464,7 +450,7 @@ procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  CollectBox.SetupAlignment(Self.Mode);
+  CollectBox.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;

@@ -35,10 +35,9 @@ type
 
 
 
-  TRSAchievements = type TRSInterface;
-
-
-
+  TRSAchievements = record(TRSInterface)
+    Tabs: array [ERSAchievementTab] of TBox;
+  end;
 
 function TRSAchievements.GetCurrentTab(): ERSAchievementTab;
 const
@@ -49,25 +48,23 @@ const
     [10760042, 20, 0.09, 0.88]
   ];
 var
-  b: TBox;
   i: Int32;
 begin
-  b := GameTabs.GetTabBox(ERSGameTab.QUESTS);
-
   for i := 0 to High(COLORS) do
-    if SRL.CountColor(COLORS[i], b) > 0 then
+    if SRL.CountColor(COLORS[i], GameTabs.Boxes[ERSGameTab.QUESTS]) > 0 then
       Exit(ERSAchievementTab(i));
 end;
 
-function TRSAchievements.ScrollAreaFunction(): TBox;
+
+function TRSAchievements.GetScrollArea(scrollBar: TRSScrollBar): TBox; override;
 var
   tab: ERSAchievementTab;
 begin
   tab := Self.GetCurrentTab();
   if (tab <> ERSAchievementTab.QUESTS) and (tab <> ERSAchievementTab.DIARIES) then
-    Exit;
+    Exit(scrollBar.SliderRegion);
 
-  Result := Self.Bounds();
+  Result := Self.Bounds;
 
   if tab = ERSAchievementTab.QUESTS then
   begin
@@ -86,19 +83,25 @@ end;
 procedure TRSAchievements.Setup(); override;
 begin
   inherited;
-
   Self.Name := 'Achievements';
-  Self.GetScrollAreaFunction := @Self.ScrollAreaFunction;
 end;
 
-procedure TRSAchievements.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSAchievements.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+  boxes: TBoxArray;
+  i: Int32;
 begin
-  inherited;
+  alignment.Left := GameTab.Bounds.X1;
+  alignment.Right := GameTab.Bounds.X2;
+  alignment.Top := GameTab.Bounds.Y1;
+  alignment.Bottom := GameTab.Bounds.Y2;
 
-  Self.Alignment.Left := [@GameTab.X1];
-  Self.Alignment.Right := [@GameTab.X2];
-  Self.Alignment.Top := [@GameTab.Y1];
-  Self.Alignment.Bottom := [@GameTab.Y2];
+  Self.SetupAlignment(alignment);
+
+  boxes := Grid(3, 1, 55, 19, [7, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  for i := 0 to Ord(High(ERSAchievementTab)) do
+    Self.Tabs[ERSAchievementTab(i)] := boxes[i];
 end;
 
 
@@ -126,12 +129,6 @@ begin
     Result := Buttons[Button];
 end;
 
-
-function TRSAchievements.GetTabs(): TBoxArray;
-begin
-  Result := Grid(3, 1, 55, 19, [7, 0], [Self.X1+2, Self.Y1 + 5]);
-end;
-
 function TRSAchievements.OpenTab(tab: ERSAchievementTab): Boolean;
 var
   button: ERSSummaryButton;
@@ -154,7 +151,7 @@ begin
       end;
   end;
 
-  Mouse.Click(Self.GetTabs[tab], MOUSE_LEFT);
+  Mouse.Click(Self.Tabs[tab], MOUSE_LEFT);
   Result := WaitUntil(Self.GetCurrentTab() = tab, SRL.TruncatedGauss(50, 1500), 3000);
 end;
 
@@ -197,7 +194,7 @@ var
   i: Int32;
   b: TBox;
 begin
-  if SRL.FindColors(tpa, CTS2(4156310, 9, 0.05, 1.58), Self.Bounds()) < 1 then
+  if SRL.FindColors(tpa, CTS2(4156310, 9, 0.05, 1.58), Self.Bounds) < 1 then
     Exit;
 
   atpa := tpa.Cluster(1);
@@ -246,7 +243,7 @@ procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
 
-  Achievements.SetupAlignment(Self.Mode);
+  Achievements.SetupAlignment();
 end;
 
 procedure TSRL.Setup(); override;

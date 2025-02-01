@@ -4,22 +4,24 @@
 {$ENDIF}
 
 type
-  TRSStore = type TRSTitledInterface;
+  TRSStore = record(TRSTitledInterface)
+    Items: TRSItemInterface;
+    SlotBoxes: TBoxArray;
+    ItemsArea, InfoBox: TBox;
+  end;
 
 
 function TRSStore.FindItemBoundaries(): TBoxArray;
 var
   tpa, final: TPointArray;
   atpa: T2DPointArray;
-  area, b: TBox;
+  b: TBox;
   c: Int32;
 begin
-  area := Self.GetItemBoxes().Merge();
-
-  if SRL.FindColors(final, RS_ITEM_BORDER, area) = 0 then Exit;
+  if SRL.FindColors(final, RS_ITEM_BORDER, Self.ItemsArea) = 0 then Exit;
 
   for c in [RS_ITEM_YELLOW_STACK, RS_ITEM_WHITE_STACK, RS_ITEM_GREEN_STACK] do
-    if SRL.FindColors(tpa, c, area) > 0 then
+    if SRL.FindColors(tpa, c, Self.ItemsArea) > 0 then
       final += tpa;
 
   atpa := final.Cluster(50, 3);
@@ -27,7 +29,7 @@ begin
   for b in atpa.ToTBA() do
   begin
     if b.Height() <= 5 then Continue;
-    Result += Grid(8, 1, 32, b.Height(), [15], [area.X1, b.Y1 - 1]);
+    Result += Grid(8, 1, 32, b.Height(), [15], [Self.ItemsArea.X1, b.Y1 - 1]);
   end;
 end;
 
@@ -36,57 +38,52 @@ begin
   inherited;
 
   Self.Name := 'Store';
-  Self.ItemInterface.Name := Self.Name + '.ItemInterface';
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.FindItemBoundaries;
-  Self.ItemInterface.DiscoverOffset := [0, 10, 3, 0];
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.FindItemBoundaries;
+  Self.Items.DiscoverOffset := [0, 10, 3, 0];
 end;
 
-procedure TRSStore.SetupAlignment(Mode: ERSClientMode); override;
+procedure TRSStore.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
 begin
-  inherited;
+  alignment.MaxWidth := 488;
+  alignment.MaxHeight := 300;
 
-  case Self.Mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 487;
-        Self.Alignment.Center.MaxHeight := 300;
-      end;
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1;
+      alignment.Right := InterfaceArea.Bounds.X2 + 1;
+      alignment.Top := InterfaceArea.Bounds.Y1 + 3;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 + 3;
+    end;
 
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        Self.Alignment.Left := [@InterfaceArea.X1];
-        Self.Alignment.Right := [@InterfaceArea.X2];
-        Self.Alignment.Top := [@InterfaceArea.Y1, -1];
-        Self.Alignment.Bottom := [@InterfaceArea.Y2];
-        Self.Alignment.Center.MaxWidth := 487;
-        Self.Alignment.Center.MaxHeight := 300;
-      end;
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1 - 1;
+      alignment.Right := InterfaceArea.Bounds.X2;
+      alignment.Top := InterfaceArea.Bounds.Y1 + 1;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 + 4;
+    end;
   end;
+
+  Self.SetupAlignment(alignment);
+
+  Self.SlotBoxes := Grid(8, 5, 35, 32, [12, 16], [Self.Bounds.X1 + 61, Self.Bounds.Y1 + 40]);
+  Self.ItemsArea := Self.SlotBoxes.Merge();
+
+  Self.InfoBox.X1 := Self.Bounds.X1 + 50;
+  Self.InfoBox.Y1 := Self.Bounds.Y2 - 26;
+  Self.InfoBox.X2 := Self.Bounds.X2 - 50;
+  Self.InfoBox.Y2 := Self.Bounds.Y2 - 9;
+  Self.InfoBox.LimitTo(Self.Bounds);
 end;
 
-function TRSStore.GetItemBoxes: TBoxArray;
-begin
-  Result := Grid(8, 5, 35, 32, [12, 16], [Self.X1 + 61, Self.Y1 + 40])
-end;
 
-function TRSStore.IsOpen: Boolean;
-var
-  B: TBox;
-  Txt: String;
+function TRSStore.IsOpen(): Boolean;
 begin
-  B := Self.Bounds();
-  B.X1 += 50;
-  B.Y1 := B.Y2 - 26;
-  B.X2 -= 50;
-  B.Y2 -= 9;
-  B.LimitTo(Self.Bounds);
-
-  Txt := OCR.Recognize(B, TOCRThresholdFilter.Create(15), RS_FONT_PLAIN_12);
-  Result := 'shop' in Txt;
+  Result := 'shop' in OCR.Recognize(Self.InfoBox, TOCRThresholdFilter.Create(15), RS_FONT_PLAIN_12);
 end;
 
 function TRSStore.IsOpen(WaitTime: Int32): Boolean; overload;
@@ -104,16 +101,14 @@ end;
 
 function TRSStore.FindItem(item: TRSItem; out box: TBox): Boolean;
 begin
-  if not Self.IsOpen() then
-    Exit;
-
-  Result := Self.ItemInterface.Find([item], box);
+  if not Self.IsOpen() then Exit;
+  Result := Self.Items.Find([item], box);
 end;
 
 
 function TRSStore.FindAll(items: TRSItemArray; out boxes: TBoxArray): Boolean;
 begin
-  Result := Self.ItemInterface.FindAll(items, boxes);
+  Result := Self.Items.FindAll(items, boxes);
 end;
 
 
@@ -126,7 +121,7 @@ end;
 
 function TRSStore.ContainsAny(itemArray: TRSItemArray): Boolean;
 begin
-  Result := Self.ItemInterface.ContainsAny(itemArray);
+  Result := Self.Items.ContainsAny(itemArray);
 end;
 
 function TRSStore.ContainsAll(itemArray: TRSItemArray): Boolean;
@@ -139,12 +134,12 @@ end;
 
 function TRSStore.CountItemStack(item: TRSItem): Int32;
 begin
-  Result := Self.ItemInterface.CountStack(item);
+  Result := Self.Items.CountStack(item);
 end;
 
 function TRSStore.HoverItem(item: TRSItem): Boolean;
 begin
-  Result := Self.ItemInterface.MouseItem(item);
+  Result := Self.Items.MouseItem(item);
 end;
 
 function TRSStore.ClickItem(item: TRSItem; Option: String = ''): Boolean;
@@ -160,14 +155,11 @@ begin
   Result := ChooseOption.Select(option)
 end;
 
-procedure TRSStore.Draw(Bitmap: TMufasaBitmap); override;
+procedure TRSStore.Draw(bitmap: TMufasaBitmap); override;
 begin
-  if not Self.IsOpen() then
-    Exit;
-
+  if not Self.IsOpen() then Exit;
   inherited;
-
-  Bitmap.DrawBoxes(Self.GetItemBoxes(), $00FFFF);
+  bitmap.DrawBoxes(Self.SlotBoxes, $00FFFF);
 end;
 
 var
@@ -176,28 +168,24 @@ var
 function TRSGameTabs.GetCurrentTab(): ERSGametab; override;
 begin
   Result := inherited;
-
   if (Result = ERSGameTab.UNKNOWN) and Store.IsOpen() then
     Result := ERSGameTab.INVENTORY;
 end;
 
-procedure TRSClient.ClientModeChanged; override;
+procedure TRSClient.ClientModeChanged(); override;
 begin
   inherited;
-
-  Store.SetupAlignment(Self.Mode);
+  Store.SetupAlignment();
 end;
 
-procedure TSRL.Setup; override;
+procedure TSRL.Setup(); override;
 begin
   inherited;
-
   Store.Setup();
 end;
 
-procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
 begin
   inherited;
-
-  Store.Draw(Bitmap);
+  Store.Draw(bitmap);
 end;

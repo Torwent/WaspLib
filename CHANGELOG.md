@@ -1,3 +1,12 @@
+# [20.1.0](https://github.com/Torwent/WaspLib/compare/v20.0.2...v20.1.0) (2025-02-05)
+
+
+### Features
+
+* **webserver:** added a simple, simba only webserver written by slacky ([a151a23](https://github.com/Torwent/WaspLib/commit/a151a23425b611ba4a756c483e42763d31713a09))
+
+
+
 ## [20.0.2](https://github.com/Torwent/WaspLib/compare/v20.0.1...v20.0.2) (2025-02-04)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * force bump ([86deda8](https://github.com/Torwent/WaspLib/commit/86deda85dfe6402f7257ecfaaeeb9874c45066c6))
-
-
-
-## [19.21.4](https://github.com/Torwent/WaspLib/compare/v19.21.3...v19.21.4) (2025-01-20)
-
-
-### Bug Fixes
-
-* **store:** improvements to .ClickItem() ([f7fbf44](https://github.com/Torwent/WaspLib/commit/f7fbf44b348554b551ffb6aff7f27857952fb3ce))
 
 
 

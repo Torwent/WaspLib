@@ -1,0 +1,134 @@
+(*
+Full Simba webserver
+Credits: Slacky
+*)
+
+type
+  PSimbaServer = ^TSimbaServer;
+  TSimbaServer = record
+    ID: Int32;
+    IP, Port: String;
+  end;
+
+procedure TSimbaServer.CloseAndFree();
+begin
+  CloseSocket(Self.ID);
+  FreeSocket(Self.ID);
+end;
+
+type
+  TSimbaServerClient = type TSimbaServer;
+
+procedure TSimbaServerClient.WriteString(s: string);
+begin
+  SendSocket(Self.ID, s);
+end;
+
+function TSimbaServerClient.ReadPath(): String;
+begin
+  Result := RecvSocketStr(Self.ID);
+end;
+
+procedure TSimbaServerClient.SendHTML(content: String);
+begin
+  Self.WriteString('HTTP/1.1 200 OK'+#13#10);
+  Self.WriteString('Content-Type: text/html'+#13#10);
+  Self.WriteString('Connection: close'+#13#10);
+  Self.WriteString('Content-Length: ' + IntToStr(Length(content))+#13#10#13#10);
+  Self.WriteString(content);
+end;
+
+procedure TSimbaServerClient.BasicResponse();
+begin
+  Self.SendHTML(
+    '<!DOCTYPE html>' + LineEnding +
+    '<html>' + LineEnding +
+    ' <head><title>Simba Server</title></head>' + LineEnding +
+    ' <body>' + LineEnding +
+    '   <h1>Welcome to my Simba webserver</h1>' + LineEnding +
+    '   <p>Hello <b>World</b>!</p>' + LineEnding +
+    ' </body>' + LineEnding +
+    '</html>'
+  );
+end;
+
+
+function TSimbaServerClient.Read(bytes: Int32): String;
+begin
+  Result := RecvSocketEx(Self.ID, bytes);
+end;
+
+function TSimbaServerClient.Read(): String; overload;
+begin
+  Result := RecvSocketStr(Self.ID);
+end;
+
+
+procedure TSimbaServerClient.SetTimeout(time: Int32);
+begin
+  SetSocketTimeout(Self.ID, time);
+end;
+
+
+function TSimbaServer.Create(ip: string; port: string): TSimbaServer; static;
+begin
+  Result.ID   := CreateSocket();
+  Result.IP   := ip;
+  Result.Port := port;
+  BindSocket(Result.ID, Result.IP, Result.Port);
+  ListenSocket(Result.ID);
+end;
+
+function TSimbaServer.AcceptClient(): TSimbaServerClient;
+begin
+  Result.ID := AcceptSocket(Self.ID);
+  SocketInfo(Result.ID, Result.IP, Result.Port);
+end;
+
+procedure TSimbaServer.HandleClient(Client: TSimbaServerClient);
+var
+  data: string;
+  path: String;
+begin
+  Client.SetTimeout(1000*60*5); // 5 minutes
+  Writeln('Connection from: ', Client.IP, ':', Client.Port);
+
+  while True do
+  begin
+    try
+      data += Client.Read(1); //read incoming data 1 byte at a time
+
+      if Pos('HTTP/1.1', data) <> 0  then //As soon as our data has a expected string, respond.
+      begin
+        path := Between('GET ', ' HTTP/1.1', data);
+        WriteLn('<<< /GET', path);
+        Client.BasicResponse();
+        WriteLn('>>> Response sent!');
+
+        data := ''; //reset data
+      end;
+    except
+      Exit; //socket auto closed and free'd on timeout
+    end;
+  end;
+
+  Client.CloseAndFree();
+end;
+
+(*
+//Usage example
+var
+  SimbaServer: TSimbaServer;
+  SimbaServerClient: TSimbaServerClient;
+begin
+  SimbaServer := TSimbaServer.Create('127.0.0.1', '5173');
+
+  while True do
+  begin
+    SimbaServerClient := SimbaServer.AcceptClient();
+    SimbaServer.HandleClient(SimbaServerClient);
+  end;
+
+  SimbaServer.CloseAndFree();
+end;
+*)

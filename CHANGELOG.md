@@ -1,3 +1,12 @@
+## [20.1.2](https://github.com/Torwent/WaspLib/compare/v20.1.1...v20.1.2) (2025-02-09)
+
+
+### Bug Fixes
+
+* **geardata:** update ([f78b493](https://github.com/Torwent/WaspLib/commit/f78b49398921f6fbac63c9f8ecde3473a0649f12))
+
+
+
 ## [20.1.1](https://github.com/Torwent/WaspLib/compare/v20.1.0...v20.1.1) (2025-02-08)
 
 
@@ -31,20 +40,6 @@
 ### Bug Fixes
 
 * read notes ([0563f3c](https://github.com/Torwent/WaspLib/commit/0563f3c68f82664d7c7252bdd12d8123b6c536d5))
-
-
-
-# [20.0.0](https://github.com/Torwent/WaspLib/compare/v19.21.5...v20.0.0) (2025-02-01)
-
-
-### Features
-
-* **TRSInterface:** compatibility update with latest SRL-T ([7b0d21b](https://github.com/Torwent/WaspLib/commit/7b0d21bc2a0888b5a2a8190feeee81599d342f58))
-
-
-### BREAKING CHANGES
-
-* **TRSInterface:** This SRL-T update may break compatibility with old scripts that were using TRSInterface bounds related functions
 
 
 

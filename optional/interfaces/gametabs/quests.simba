@@ -1,0 +1,313 @@
+{$DEFINE WL_QUESTS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+//Made by Bootie
+type
+  ERSQuestTab = (CHARACTER_SUMMARY, QUEST_LIST, ACHIEVEMENT_DIARIES);
+  ERSQuestStatus = (NOT_STARTED, IN_PROGRESS, COMPLETED)
+
+  TRSQuests = record(TRSInterface)
+    Tabs: array [ERSQuestTab] of TBox;
+    QuestStatus: TJSONObject;
+    Cached: Boolean;
+    QuestNames: TStringArray;
+  end;
+
+function TRSQuests.QuestsList(): TStringArray;
+var
+  http: Int32;
+  page, f2p, p2p, mini, str: String;
+  temp, f2pQuests, p2pQuests, miniQuests: TStringArray;
+begin
+  http := InitializeHTTPClient();
+  SetHTTPUserAgent(http, 'Simba Quest Scraper');
+
+  // Fetch the page content
+  page := GetHTTPPage(http, 'https://oldschool.runescape.wiki/w/Quests/List');
+
+  mini := Between('are groups of objectives that, unlike', '>See also</span><span', page);
+  mini := Between('<table class="wikitable', '</tbody></table>', mini);
+  f2p := Between('href="/w/Free-to-play" title="Free-to-play">', 'id="Members''_quests">Members'' quests</span>', page);
+  f2p := Between('<table class="wikitable', '</tbody></table>', f2p);
+  p2p := Between('href="/w/Quests/Members" title="Quests/Members">', '<div class="noexcerpt noprint nomobile navigation-not-searchable rs-external-header-links"', page);
+  p2p := Between('<table class="wikitable', '</tbody></table>', p2p);
+
+  temp := f2p.Split('">');
+  for str in temp do
+    if str.contains('</a></td>') then
+    begin
+      str := ' ' + str;
+      f2pQuests += str.Between(' ', '</a></td>');
+    end;
+
+  temp := p2p.Split('">');
+  for str in temp do
+    if str.contains('</a></td>') then
+    begin
+      str := ' ' + str;
+      p2pQuests += str.Between(' ', '</a></td>');
+    end;
+
+  temp := mini.Split('">');
+  for str in temp do
+    if str.contains('</a></td>') then
+    begin
+      str := ' ' + str;
+      str := str.Between(' ', '</a></td>');
+      if length(str) > 5 then
+        miniquests += str;
+    end;
+
+  Result := f2pQuests + p2pQuests + miniquests;
+  FreeHTTPClient(http);
+end;
+
+procedure TRSQuests.Setup(); override;
+begin
+  inherited;
+  Self.Name := 'Quests';
+  Self.ButtonColors += CTS1(2700606, 1);
+end;
+
+procedure TRSQuests.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+  boxes: TBoxArray;
+  i: Int32;
+begin
+  alignment.Left := GameTab.Bounds.X1;
+  alignment.Right := GameTab.Bounds.X2;
+  alignment.Top := GameTab.Bounds.Y1;
+  alignment.Bottom := GameTab.Bounds.Y2;
+
+  Self.SetupAlignment(alignment);
+
+  Self.ScrollArea.X1 := Self.Bounds.X1 + 5;
+  Self.ScrollArea.Y1 := Self.Bounds.Y1 + 50;
+  Self.ScrollArea.X2 := Self.Bounds.X2 - 5;
+  Self.ScrollArea.Y2 := Self.Bounds.Y2 - 44;
+
+  boxes := Grid(3, 1, 55, 20, [7], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4]);
+  for i := 0 to Ord(High(ERSQuestTab)) do
+    Self.Tabs[ERSQuestTab(i)] := boxes[i];
+end;
+
+function TRSQuests.IsOpen(): Boolean;
+begin
+  Result := (GameTabs.GetCurrentTab = ERSGameTab.QUESTS);
+end;
+
+function TRSQuests.Open(): Boolean;
+begin
+  Result := GameTabs.Open(ERSGameTab.QUESTS);
+end;
+
+function TRSQuests.GetCurrentTab(): ERSQuestTab;
+var
+  tab: ERSQuestTab;
+begin
+  for tab := Low(ERSQuestTab) to High(ERSQuestTab) do
+    if SRL.CountColor(2700606, Self.Tabs[tab]) > 50 then //finds the one without the bottom white line
+      Exit(tab);
+end;
+
+function TRSQuests.OpenTab(tab: ERSQuestTab): Boolean;
+begin
+  if not Self.IsOpen then Self.Open();
+  if Self.GetCurrentTab() = tab then Exit(True);
+  Mouse.Click(Self.Tabs[tab], MOUSE_LEFT);
+  Result := WaitUntil(Self.GetCurrentTab() = tab, 200, 3000);
+  Wait(600);
+end;
+
+procedure TRSQuests.Scroll(down: Boolean);
+var
+  scrollBar: TRSScrollBar;
+begin
+  scrollBar := Self.GetScrollBar();
+  if not scrollBar.IsVisible() or not Self.CanScroll() then
+    Exit;
+
+  Mouse.Scroll(Self.GetScrollBar.SliderRegion, Random(1, 3), down, False);
+end;
+
+procedure TJSONObject.setKeys(keys: TStringArray; value: Integer);
+var
+  key: String;
+begin
+  for key in keys do
+    Self.Put(key, value);
+end;
+
+//Finds the best match to a given target string inside the string array
+function TStringArray.FindBestMatch(target: String; out Similarity: Single): String;
+var
+  i, maxSimInd: Integer;
+  similarities: TSingleArray;
+begin
+  SetLength(similarities, Length(Self));
+  Similarity := 0;
+  for i := 0 to high(Self) do
+  begin
+    similarities[i] := StringMatch(Target,Self[i]);
+    if Similarity < similarities[i] then
+    begin
+      Similarity := similarities[i];
+      maxSimInd := i;
+    end;
+  end;
+  Result := Self[maxSimInd];
+end;
+
+//Detects fontsize in the quest window
+function TRSQuests.DetectFont(): TFontSet;
+var
+  i, badCount: Integer;
+  boxes: TBoxArray;
+  tpa: TPointArray;
+  Str: String;
+begin
+  Self.OpenTab(ERSQuestTab.QUEST_LIST);
+  if SRL.FindColors(tpa, [255,65535,901389], Self.ScrollArea) > 0 then
+  begin
+    boxes := tpa.Cluster(12, 4).ToTBA();
+    for i := 0 to High(boxes) do
+    begin
+      if boxes[i].Area < 50 then Continue;
+      Str := OCR.Recognize([boxes[i].X1-5, boxes[i].Y1-3, boxes[i].X2+5, boxes[i].Y2+3], TOCRColorFilter.Create([255,65535,901389]), RS_FONT_PLAIN_12);
+      if Str.Count('.') > 10 then
+        badCount += 1;
+    end;
+  end;
+  if badCount > 3 then Exit(RS_FONT_PLAIN_11) else Exit(RS_FONT_PLAIN_12);
+end;
+
+//Outputs and caches and saves a json with keys the quests and values 0 for not started, 1 for in progress and 2 for completed
+function TRSQuests.ScanAllQuests(Cache: Boolean = True): TJSONObject;
+var
+  tpa: TPointArray;
+  boxes: TBoxArray;
+  i, col: Int32;
+  foundText, LastText, bestMatch: String;
+  sim: Single;
+  timeOut: UInt64;
+  ConfigJSON: TConfigJSON;
+  Colors: TIntegerArray = [255,65535,901389];
+  font: TFontSet;
+begin
+  Self.OpenTab(ERSQuestTab.QUEST_LIST);
+  Result.Init();
+  timeOut := GetSystemTime() + 15000;
+  QuestNames := Self.QuestsList();
+  font := Self.DetectFont();
+
+  if Cache then
+    ConfigJSON.Setup('quest-status-' + Chat.GetDisplayName);
+
+  Self.QuestStatus.Init();
+  Self.QuestStatus.setKeys(QuestNames, -1);
+
+  Self.SetScrollPosition_Mouse(0);
+  Mouse.Move(Self.GetScrollBar.Slider);
+  Debug(Self.GetScrollBar.Slider);
+
+  repeat
+    LastText := foundText;
+    if SRL.FindColors(tpa, colors, Self.ScrollArea) > 0 then
+    begin
+      boxes := tpa.Cluster(12, 4).ToTBA();
+      for i := 0 to High(boxes) do
+      begin
+        if boxes[i].Area < 50 then Continue;
+        for col := 0 to high(colors) do
+        begin
+          foundText := OCR.RecognizeLines([boxes[i].X1-5, boxes[i].Y1-3, boxes[i].X2+5, boxes[i].Y2+3], TOCRColorFilter.Create([colors[col]]), font).merge(' ');
+          if foundText = '' then
+            Continue;
+          bestMatch := QuestNames.FindBestMatch(foundText, sim);
+          if sim > 0.45 then
+            Self.QuestStatus.Put(bestMatch, col);
+          Break;
+        end;
+      end;
+    end;
+
+    Self.Scroll(True);
+  until (GetSystemTime() > timeOut) or ((LastText = FoundText) and (FoundText <> ''));
+
+  if cache then
+  begin
+    ConfigJSON.JSON := Self.QuestStatus;
+    ConfigJSON.SaveConfig();
+  end;
+  Result := Self.QuestStatus;
+  Self.Cached:= True;
+end;
+
+// Returns quest status of the quest with name that is the most similar to argument 'name'
+function TRSQuests.GetQuestStatus(name: String; useJSON: Boolean = True): ERSQuestStatus;
+var
+  ConfigJSON: TConfigJSON;
+  bestMatch: String;
+  Sim: Single;
+  status: Integer;
+begin
+  if not self.Cached then
+  begin
+    if useJSON then
+    begin
+      ConfigJSON.Setup('quest-status-' + Chat.GetDisplayName);
+      Self.QuestStatus := ConfigJSON.JSON;
+    end
+    else
+      Self.ScanAllQuests(True);
+    if Self.QuestNames = [] then
+      Self.QuestNames := Self.QuestsList();
+  end;
+
+  bestMatch := Self.QuestNames.FindBestMatch(name, sim);
+  status := Self.QuestStatus.getInt(bestMatch);
+
+  case status of
+    0: Result := ERSQuestStatus.NOT_STARTED;
+    1: Result := ERSQuestStatus.IN_PROGRESS;
+    2: Result := ERSQuestStatus.COMPLETED;
+  end;
+end;
+
+procedure TRSQuests.Draw(bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then Exit;
+
+  inherited;
+
+  bitmap.DrawBoxes(Self.Tabs, $00FFFF);
+end;
+
+var
+  Quests: TRSQuests;
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+  Quests.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  Quests.Setup();
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Quests.Draw(Bitmap);
+end;
+
+
+
+

@@ -1,3 +1,12 @@
+## [20.1.3](https://github.com/Torwent/WaspLib/compare/v20.1.2...v20.1.3) (2025-02-12)
+
+
+### Bug Fixes
+
+* added semicolon to stop simba warning ([96d70cc](https://github.com/Torwent/WaspLib/commit/96d70cce239c6abf7362f01f4cb53ee8a36a6db0))
+
+
+
 ## [20.1.2](https://github.com/Torwent/WaspLib/compare/v20.1.1...v20.1.2) (2025-02-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * properly allow 7 clients now ([f7ce06a](https://github.com/Torwent/WaspLib/commit/f7ce06a3c3b9ac928a42e2bc9f39ddf31ccf14b8))
-
-
-
-## [20.0.1](https://github.com/Torwent/WaspLib/compare/v20.0.0...v20.0.1) (2025-02-03)
-
-
-### Bug Fixes
-
-* read notes ([0563f3c](https://github.com/Torwent/WaspLib/commit/0563f3c68f82664d7c7252bdd12d8123b6c536d5))
 
 
 

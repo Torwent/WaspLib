@@ -462,3 +462,61 @@ begin
   until (GetTickCount() >= t);
 end;
 
+type
+  TRSMainScreenPrayer = record
+    Position: TPoint;
+    Prayer: ERSPrayer;
+  end;
+
+var
+  OVERHEAD_PRAYER_BMPS: array[ERSPrayer] of TMufasaBitmap;
+
+function TRSMainScreen.FindOverHeadPrayers(prayersToFind: array of ERSPrayer): array of TRSMainScreenPrayer;
+var
+  i, j: Int32;
+  mainScreenBmp: TMufasaBitmap;
+  matrix: TSingleMatrix;
+begin
+  mainScreenBmp.FromClient(Self.Bounds.Expand(-14));
+
+  for i := 0 to High(prayersToFind) do
+  begin
+    if OVERHEAD_PRAYER_BMPS[prayersToFind[i]] = [] then
+      OVERHEAD_PRAYER_BMPS[prayersToFind[i]] := GetMufasaBitmap(LoadBitmap({$MACRO CURRENT_DIRECTORY}
+                                                                            + '\overhead_prayers\'
+                                                                            + ToString(prayersToFind[i]).Lower() + '.png'));
+
+    matrix := mainScreenBmp.MatchTemplate(OVERHEAD_PRAYER_BMPS[prayersToFind[i]], TM_CCOEFF_NORMED);
+    for j := 0 to 5 do
+    begin
+      with matrix.ArgMax() do
+      begin
+        if matrix[Y][X] < 0.99 then
+          Break;
+
+        Result += [Point(X,Y), ERSPrayer(prayersToFind[i])];
+        matrix.Fill(Box(X,Y,X+14,Y+14), 0);
+      end;
+    end;
+  end;
+
+  mainScreenBmp.Free;
+end;
+
+{%codetools off}
+procedure TRSMainScreen.FreeOverheadBitmaps();
+var
+  i : Int32;
+begin
+  for i := 0 to High(OVERHEAD_PRAYER_BMPS) do
+    if OVERHEAD_PRAYER_BMPS[i] <> [] then
+      OVERHEAD_PRAYER_BMPS[i].Free;
+end;
+{%codetools on}
+
+procedure TRSMainScreen.Setup(); override;
+begin
+  inherited;
+  AddOnTerminate(@Self.FreeOverheadBitmaps);
+end;
+

@@ -1,0 +1,140 @@
+{$DEFINE WL_OVERHEADS_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+{$SCOPEDENUMS ON}
+  ERSOverhead = (
+    MAGIC, RANGED, MELEE, RETRIBUTION, REDEMPTION, SMITE,
+    MAGIC_AND_RANGED, MAGIC_AND_MELEE, RANGED_AND_MELEE, ALL,
+    DAMPEN_MELEE
+  );
+
+  TRSOverhead = record
+    Position: TPoint;
+    Prayer: ERSOverhead;
+  end;
+
+  TRSOverheadArray = array of TRSOverhead;
+
+procedure TRSOverhead.Draw(bitmap: TMufasaBitmap; color: Int32 = 0);
+const
+  COLORS = [$FF, $FF00, $FF0000, $1, $1, $1, $FFFF, $FF00FF, $FFFF00, $FFFFFF, $FFFFFF];
+begin
+  if color = 0 then color := COLORS[Ord(Self.Prayer)];
+  bitmap.DrawCircle(Self.Position, 12, color);
+end;
+
+procedure TRSOverheadArray.Draw(bitmap: TMufasaBitmap; color: Int32 = 0);
+var
+  overhead: TRSOverhead;
+begin
+  for overhead in Self do
+    overhead.Draw(bitmap, color);
+end;
+
+type
+  TRSOverheadFinder = record(TRSInterface)
+    Bitmaps: array [ERSOverhead] of TMufasaBitmap;
+  end;
+
+procedure TRSOverheadFinder.Free();
+var
+  overhead: ERSOverhead;
+begin
+  for overhead := Low(ERSOverhead) to High(ERSOverhead) do
+  begin
+    Self.Bitmaps[overhead].Free();
+    Self.Bitmaps[overhead] := nil;
+  end;
+end;
+
+procedure TRSOverheadFinder.Setup(); override;
+var
+  overhead: ERSOverhead;
+begin
+  inherited;
+
+  Self.Name := 'OverheadFinder';
+
+  for overhead := Low(ERSOverhead) to High(ERSOverhead) do
+  begin
+    Self.Bitmaps[overhead].Init();
+    Self.Bitmaps[overhead].LoadFromFile({$MACRO CURRENT_DIRECTORY} + ToStr(overhead).Lower() + '.png');
+  end;
+
+  AddOnTerminate(@Self.Free);
+end;
+
+procedure TRSOverheadFinder.SetupAlignment(); overload;
+var
+  alignment: TRSInterfaceAlignment;
+begin
+  alignment.Left   := InterfaceArea.Bounds.X1 + 14;
+  alignment.Right  := InterfaceArea.Bounds.X2 - 14;
+  alignment.Top    := InterfaceArea.Bounds.Y1 + 14;
+  alignment.Bottom := InterfaceArea.Bounds.Y2 - 14;
+
+  Self.SetupAlignment(alignment);
+end;
+
+
+function TRSOverheadFinder.Find(overheads: set of ERSOverhead): TRSOverheadArray;
+var
+  i: Int32;
+  mainScreenBmp: TMufasaBitmap;
+  matrix: TSingleMatrix;
+  overhead: ERSOverhead;
+begin
+  mainScreenBmp.FromClient(Self.Bounds);
+
+  for overhead in overheads do
+  begin
+    matrix := mainScreenBmp.MatchTemplate(Self.Bitmaps[overhead], TM_CCOEFF_NORMED);
+    for i := 0 to 5 do
+    begin
+      with matrix.ArgMax() do
+      begin
+        if matrix[Y,X] < 0.99 then Break;
+
+        Result += [Point(X+Self.Bounds.X1+6,Y+Self.Bounds.Y1+7), overhead];
+        matrix.Fill(Box(X,Y,X+14,Y+14), 0);
+      end;
+    end;
+  end;
+
+  mainScreenBmp.Free();
+end;
+
+
+procedure TRSOverheadFinder.Draw(bitmap: TMufasaBitmap); override;
+var
+  overheads: TRSOverheadArray;
+begin
+  overheads := Self.Find([ERSOverhead.MAGIC..ERSOverhead.DAMPEN_MELEE]);
+  overheads.Draw(bitmap);
+end;
+
+var
+  OverheadFinder: TRSOverheadFinder;
+
+procedure TRSClient.ClientModeChanged(); override;
+begin
+  inherited;
+  OverheadFinder.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  OverheadFinder.Setup();
+end;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+  OverheadFinder.Draw(bitmap);
+end;
+
+

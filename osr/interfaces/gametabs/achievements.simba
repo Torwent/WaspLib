@@ -7,7 +7,8 @@ type
   ERSAchievementTab = (
     SUMMARY,
     QUESTS,
-    DIARIES
+    DIARIES,
+    PATHS
   );
 
   ERSSummaryButton = (
@@ -37,6 +38,7 @@ type
 
   TRSAchievements = record(TRSInterface)
     Tabs: array [ERSAchievementTab] of TBox;
+    isPostSetup: Boolean;
   end;
 
 function TRSAchievements.GetCurrentTab(): ERSAchievementTab;
@@ -45,7 +47,7 @@ const
     [4418165, 11, 0.18, 0.78],
     [15230302, 13, 0.15, 1.81],
     [5743700, 20, 0.38, 0.58],
-    [10760042, 20, 0.09, 0.88]
+    [2267124, 1, 0.01, 0.01]
   ];
 var
   i: Int32;
@@ -99,11 +101,31 @@ begin
 
   Self.SetupAlignment(alignment);
 
-  boxes := Grid(3, 1, 55, 19, [7, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  //boxes := Grid(3, 1, 55, 19, [7, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  boxes := Grid(4, 1, 41, 19, [5, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
   for i := 0 to Ord(High(ERSAchievementTab)) do
     Self.Tabs[ERSAchievementTab(i)] := boxes[i];
 end;
 
+procedure TRSAchievements.ResetAlignment();
+var
+  boxes: TBoxArray;
+  i: Int32;
+begin
+  boxes := Grid(3, 1, 55, 19, [7, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  for i := 0 to 2 do
+    Self.Tabs[ERSAchievementTab(i)] := boxes[i];
+  Self.Tabs[ERSAchievementTab(3)] := [0,0,0,0];
+end;
+
+procedure TRSAchievements.PostSetup();
+var
+  boxes: TBoxArray;
+begin
+  boxes := Grid(4, 1, 41, 19, [5, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  if SRL.CountColor(2397417, boxes[3]) = 0 then
+    Self.ResetAlignment();
+end;
 
 function TRSAchievements.IsOpen(): Boolean;
 begin
@@ -209,7 +231,7 @@ end;
 
 function TRSAchievements.GetDiaryBox(diary : ERSAchievementDiary): TBox;
 const
-  EXPECTED_TEXT : TStringArray := ['Ardo', 'Dese', 'ador', 'Frem', 'Kand', 'Karam', 'Kour', 'Lumb', 'Mort', 'Varr', 'West', 'dern'];
+  EXPECTED_TEXT : TStringArray := ['Ardo', 'Dese', 'ador', 'Frem', 'Kand', 'Karam', 'Kour', 'Lumb', 'Moryt', 'Varr', 'West', 'dern'];
 var
   DiaryBoxes   : TBoxArray;
   TextBox      : TBox;
@@ -231,6 +253,8 @@ end;
 function TRSAchievements.GetDiaryLevel(diary : ERSAchievementDiary): Int32;
 begin
   if not Self.Open() then Exit(-1);
+  if not Self.isPostSetup then
+    Self.PostSetup();
   if not Self.OpenTab(ERSAChievementTab.DIARIES) then Exit(-1);
   Result := Round(SRL.CountColor(CTS2(1357111, 1, 0.01, 0.01), Self.GetDiaryBox(diary)) / 175);
 end;

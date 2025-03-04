@@ -36,9 +36,8 @@ TItemData type, responsible to handle anything that is related to item data.
 
     PriceData: TJSONObject;
     Definitions: TJSONArray;
-    Mappings: TJSONArray;
     ReloadTimer: TCountDown;
-    IsSetup, OSRSBoxIsSetup, Disabled, MappingsDisabled: Boolean;
+    IsSetup, OSRSBoxIsSetup, Disabled: Boolean;
   end;
 
 procedure TItemData.Free();
@@ -53,12 +52,6 @@ begin
   begin
     Self.Definitions.Free();
     Self.Definitions := nil;
-  end;
-
-  if Assigned(Self.Mappings) then
-  begin
-    Self.Mappings.Free();
-    Self.Mappings := nil;
   end;
 end;
 
@@ -75,7 +68,6 @@ begin
   Client.Init('WikiPricesClient', 'https://prices.runescape.wiki/api/v1/osrs/', True);
   SetHTTPUserAgent(Self.Client.Client, 'Simba WaspScripts bot - User ID: ' + APIClient.GetUUID() + ', Contact: support@waspscripts.com');
   Definitions.Init();
-  Mappings.Init();
   AddOnTerminate(@Self.Free);
   Self.ReloadTimer.Setup(20 * ONE_MINUTE);
   Self.IsSetup := True;
@@ -161,118 +153,6 @@ begin
 
     Self.Definitions.put(Result);
   end;
-end;
-
-(*
-## ItemData.SetupMappings()
-```pascal
-procedure TItemData.SetupMappings();
-```
-Internal method called automatically when we require item metadata. It draws from `https://prices.runescape.wiki/api/v1/osrs/mapping`.
-Gets called automatically when needed.
-*)
-
-procedure TItemData.SetupMappings();
-var
-  response: String;
-begin
-  if not Self.IsSetup then
-    Self.Setup();
-
-  Self.DebugLn('Loading mappings from the wiki API.');
-  try
-    response := Self.Client.GET('mapping', True, False);
-  except
-    Self.DebugLn('Couldn''t connect to https://prices.runescape.wiki');
-    Self.MappingsDisabled := True;
-    Exit;
-  end;
-
-  try
-    Self.Mappings.Init(response);
-  except
-    Self.DebugLn('https://prices.runescape.wiki gave an invalid JSON');
-    Self.MappingsDisabled := True;
-    Exit;
-  end;
-
-  Self.ReloadTimer.Restart();
-end;
-
-(*
-## ItemData.BuyLimit
-```pascal
-function ItemData.BuyLimit(Item: TRSItem): Integer;
-```
-
-Gets the buy limit of any tradeable item from the wiki data. Returns -1 for untradeable items.
-*)
-function TItemData.BuyLimit(item: TRSItem): Integer;
-var
-  id, i: Integer;
-  json: TJSONObject;
-begin
-  if item.IsNull then
-    Exit;
-
-  if Self.Disabled then
-    Exit;
-
-  if (Self.Mappings.length = 0) then
-    Self.SetupMappings();
-
-  if Self.Disabled then
-    Exit;
-
-  id := Self.GetTradeableID(item);
-
-  if id > -1 then
-    for i := 0 to Self.Mappings.High() do
-    begin
-      json := Self.Mappings.getJSONObject(i);
-      if json.GetInt('id') = id then
-        Exit(json.getInt('limit'));
-    end;
-
-  Result := -1;
-end;
-
-(*
-## ItemData.IsMembers
-```pascal
-function ItemData.IsMembers(Item: TRSItem): Integer;
-```
-
-Returns whether an item is tradeable or not. When an item is tradeable it just True, because most untradeable items are members items.
-*)
-function TItemData.IsMembers(item: TRSItem): Boolean;
-var
-  id, i: Integer;
-  json: TJSONObject;
-begin
-  if item.IsNull then
-    Exit;
-
-  if Self.Disabled then
-    Exit;
-
-  if (Self.Mappings.High < 0) then
-    Self.SetupMappings();
-
-  if Self.Disabled then
-    Exit;
-
-  id := Self.GetTradeableID(item);
-
-  if id > -1 then
-    for i := 0 to Self.Mappings.High() do
-    begin
-      json := Self.Mappings.getJSONObject(i);
-      if json.GetInt('id') = id then
-        Exit(json.getBoolean('members'));
-    end;
-
-  Result := True;
 end;
 
 (*

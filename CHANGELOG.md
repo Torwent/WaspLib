@@ -1,3 +1,12 @@
+## [20.1.5](https://github.com/Torwent/WaspLib/compare/v20.1.4...v20.1.5) (2025-03-05)
+
+
+### Bug Fixes
+
+* added adventure paths to quests and small fix to achievements ([22d261f](https://github.com/Torwent/WaspLib/commit/22d261fd69e1a82e6051b9f8d3834a0ae04ea542))
+
+
+
 ## [20.1.4](https://github.com/Torwent/WaspLib/compare/v20.1.3...v20.1.4) (2025-02-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * compatibility with latest SRL-T ([882b9e5](https://github.com/Torwent/WaspLib/commit/882b9e56171ddb4037ddab009e509d5f23df3250))
-
-
-
-# [20.1.0](https://github.com/Torwent/WaspLib/compare/v20.0.2...v20.1.0) (2025-02-05)
-
-
-### Features
-
-* **webserver:** added a simple, simba only webserver written by slacky ([a151a23](https://github.com/Torwent/WaspLib/commit/a151a23425b611ba4a756c483e42763d31713a09))
 
 
 

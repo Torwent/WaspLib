@@ -5,13 +5,13 @@
 
 //Made by Bootie
 type
-  ERSQuestTab = (CHARACTER_SUMMARY, QUEST_LIST, ACHIEVEMENT_DIARIES);
+  ERSQuestTab = (CHARACTER_SUMMARY, QUEST_LIST, ACHIEVEMENT_DIARIES, PATH);
   ERSQuestStatus = (NOT_STARTED, IN_PROGRESS, COMPLETED);
 
   TRSQuests = record(TRSInterface)
     Tabs: array [ERSQuestTab] of TBox;
     QuestStatus: TJSONObject;
-    Cached: Boolean;
+    Cached, isPostSetup: Boolean;
     QuestNames: TStringArray;
   end;
 
@@ -89,9 +89,31 @@ begin
   Self.ScrollArea.X2 := Self.Bounds.X2 - 5;
   Self.ScrollArea.Y2 := Self.Bounds.Y2 - 44;
 
-  boxes := Grid(3, 1, 55, 20, [7], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4]);
+  //boxes := Grid(3, 1, 55, 20, [7,0], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4]);
+  boxes := Grid(4, 1, 41, 19, [5, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
   for i := 0 to Ord(High(ERSQuestTab)) do
     Self.Tabs[ERSQuestTab(i)] := boxes[i];
+end;
+
+procedure TRSQuests.ResetAlignment();
+var
+  boxes: TBoxArray;
+  i: Int32;
+begin
+  boxes := Grid(3, 1, 55, 19, [7, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  for i := 0 to 2 do
+    Self.Tabs[ERSQuestTab(i)] := boxes[i];
+  Self.Tabs[ERSQuestTab(3)] := [0,0,0,0];
+end;
+
+procedure TRSQuests.PostSetup();
+var
+  boxes: TBoxArray;
+begin
+  boxes := Grid(4, 1, 41, 19, [5, 0], [Self.Bounds.X1+2, Self.Bounds.Y1 + 5]);
+  if SRL.CountColor(2397417, boxes[3]) = 0 then
+    Self.ResetAlignment();
+  Self.isPostSetup := True;
 end;
 
 function TRSQuests.IsOpen(): Boolean;
@@ -105,17 +127,26 @@ begin
 end;
 
 function TRSQuests.GetCurrentTab(): ERSQuestTab;
+const
+  COLORS: array of TCTS2Color = [
+    [4418165, 11, 0.18, 0.78],
+    [15230302, 13, 0.15, 1.81],
+    [5743700, 20, 0.38, 0.58],
+    [2267124, 1, 0.01, 0.01]
+  ];
 var
-  tab: ERSQuestTab;
+  i: Int32;
 begin
-  for tab := Low(ERSQuestTab) to High(ERSQuestTab) do
-    if SRL.CountColor(2700606, Self.Tabs[tab]) > 50 then //finds the one without the bottom white line
-      Exit(tab);
+  for i := 0 to High(COLORS) do
+    if SRL.CountColor(COLORS[i], GameTabs.Boxes[ERSGameTab.QUESTS]) > 0 then
+      Exit(ERSQuestTab(i));
 end;
 
 function TRSQuests.OpenTab(tab: ERSQuestTab): Boolean;
 begin
   if not Self.IsOpen then Self.Open();
+  if not Self.isPostSetup then
+    Self.PostSetup();
   if Self.GetCurrentTab() = tab then Exit(True);
   Mouse.Click(Self.Tabs[tab], MOUSE_LEFT);
   Result := WaitUntil(Self.GetCurrentTab() = tab, 200, 3000);
@@ -190,7 +221,7 @@ var
   tpa: TPointArray;
   boxes: TBoxArray;
   i, col: Int32;
-  foundText, LastText, bestMatch: String;
+  foundText, LastMatch, bestMatch: String;
   sim: Single;
   timeOut: UInt64;
   ConfigJSON: TConfigJSON;
@@ -199,7 +230,7 @@ var
 begin
   Self.OpenTab(ERSQuestTab.QUEST_LIST);
   Result.Init();
-  timeOut := GetSystemTime() + 15000;
+  timeOut := GetSystemTime() + 25000;
   QuestNames := Self.QuestsList();
   font := Self.DetectFont();
 
@@ -211,13 +242,13 @@ begin
 
   Self.SetScrollPosition_Mouse(0);
   Mouse.Move(Self.GetScrollBar.Slider);
-  Debug(Self.GetScrollBar.Slider);
 
   repeat
-    LastText := foundText;
+    LastMatch := bestMatch;
     if SRL.FindColors(tpa, colors, Self.ScrollArea) > 0 then
     begin
       boxes := tpa.Cluster(12, 4).ToTBA();
+      boxes.SortByY(True);
       for i := 0 to High(boxes) do
       begin
         if boxes[i].Area < 50 then Continue;
@@ -235,11 +266,12 @@ begin
     end;
 
     Self.Scroll(True);
-  until (GetSystemTime() > timeOut) or ((LastText = FoundText) and (FoundText <> ''));
+  until (GetSystemTime() > timeOut) or ((LastMatch = bestMatch) and (Self.GetScrollPosition > 95));
 
   if cache then
   begin
     ConfigJSON.JSON := Self.QuestStatus;
+    ConfigJSON.Put('timestamp', Unixtime);
     ConfigJSON.SaveConfig();
   end;
   Result := Self.QuestStatus;
@@ -256,7 +288,7 @@ var
 begin
   if not self.Cached then
   begin
-    if useJSON then
+    if useJSON and FileExists(AppPath + 'Configs' + DirectorySeparator + 'quest-status-' + Chat.GetDisplayName + '.json') then
     begin
       ConfigJSON.Setup('quest-status-' + Chat.GetDisplayName);
       Self.QuestStatus := ConfigJSON.JSON;
@@ -266,6 +298,8 @@ begin
     if Self.QuestNames = [] then
       Self.QuestNames := Self.QuestsList();
   end;
+
+  WriteLn(QuestNames);
 
   bestMatch := Self.QuestNames.FindBestMatch(name, sim);
   status := Self.QuestStatus.getInt(bestMatch);
@@ -307,7 +341,3 @@ begin
 
   Quests.Draw(Bitmap);
 end;
-
-
-
-

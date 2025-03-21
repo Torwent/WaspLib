@@ -1,3 +1,12 @@
+## [20.1.6](https://github.com/Torwent/WaspLib/compare/v20.1.5...v20.1.6) (2025-03-21)
+
+
+### Bug Fixes
+
+* Make recorder work again ([32aa9ac](https://github.com/Torwent/WaspLib/commit/32aa9aca79caa6080d86d4723ce17fa347b2777f))
+
+
+
 ## [20.1.5](https://github.com/Torwent/WaspLib/compare/v20.1.4...v20.1.5) (2025-03-05)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **geardata:** update ([f78b493](https://github.com/Torwent/WaspLib/commit/f78b49398921f6fbac63c9f8ecde3473a0649f12))
-
-
-
-## [20.1.1](https://github.com/Torwent/WaspLib/compare/v20.1.0...v20.1.1) (2025-02-08)
-
-
-### Bug Fixes
-
-* compatibility with latest SRL-T ([882b9e5](https://github.com/Torwent/WaspLib/commit/882b9e56171ddb4037ddab009e509d5f23df3250))
 
 
 

@@ -1,3 +1,12 @@
+## [20.1.7](https://github.com/Torwent/WaspLib/compare/v20.1.6...v20.1.7) (2025-03-26)
+
+
+### Bug Fixes
+
+* read notes ([0611f1d](https://github.com/Torwent/WaspLib/commit/0611f1d88b6c7e510cb1f12c6fe59c486f4758c6))
+
+
+
 ## [20.1.6](https://github.com/Torwent/WaspLib/compare/v20.1.5...v20.1.6) (2025-03-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * added semicolon to stop simba warning ([96d70cc](https://github.com/Torwent/WaspLib/commit/96d70cce239c6abf7362f01f4cb53ee8a36a6db0))
-
-
-
-## [20.1.2](https://github.com/Torwent/WaspLib/compare/v20.1.1...v20.1.2) (2025-02-09)
-
-
-### Bug Fixes
-
-* **geardata:** update ([f78b493](https://github.com/Torwent/WaspLib/commit/f78b49398921f6fbac63c9f8ecde3473a0649f12))
 
 
 

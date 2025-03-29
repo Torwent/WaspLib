@@ -69,12 +69,16 @@ begin
 
     if slot <> ERSEquipmentSlot.WEAPON then
     begin
+      Self._UnfilteredLists[slot].BeginUpdate();
       Self._UnfilteredLists[slot].Add('None');
       json := GearData.GetJSONArray(name);
       for i := 0 to json.High() do
-        Self._UnfilteredLists[slot].Add(json.getString(i));
+        Self._UnfilteredLists[slot].Add(json.getString(i).SentenceCase());
+      Self._UnfilteredLists[slot].EndUpdate();
       Continue;
     end;
+
+    Self._ValidGear[slot] += GearData.GetItems(slot);
 
     json := GearData.GetJSONArray(name);
     for i := 0 to json.High() do
@@ -85,11 +89,12 @@ begin
       arr += json.getString(i);
 
     Sort(arr);
-
+    Self._UnfilteredLists[slot].BeginUpdate();
     Self._UnfilteredLists[slot].Add('None');
     json := GearData.GetJSONArray(name);
     for i := 0 to High(arr) do
-      Self._UnfilteredLists[slot].Add(arr[i]);
+      Self._UnfilteredLists[slot].Add(arr[i].SentenceCase());
+    Self._UnfilteredLists[slot].EndUpdate();
   end;
 
   Self.IsSetup := True;
@@ -273,7 +278,9 @@ end;
 procedure TScriptForm._RefreshList(combobox: TCombobox; slot: ERSEquipmentSlot);
 begin
   if not GearHandler._FormFiltered then Exit;
-  combobox.setItems(GearHandler._UnfilteredLists[slot])
+  combobox.getItems().BeginUpdate();
+  combobox.setItems(GearHandler._UnfilteredLists[slot]);
+  combobox.getItems().EndUpdate();
 end;
 
 procedure TScriptForm._RefreshSets(sender: TObject);
@@ -503,18 +510,20 @@ begin
   begin
     name := ToStr(slot).ToLower();
     combobox := parent.GetChild(name + '_slot_combobox');
+    combobox.getItems().BeginUpdate();
     combobox.Clear();
     combobox.getItems().Add('None');
 
     items := Equipment.Discover(slot);
 
     for item in GearHandler._ValidGear[slot].Intersection(items) do
-      combobox.getItems().Add(ToStr(item).Capitalize());
+      combobox.getItems().Add(ToStr(item).SentenceCase());
 
     if combobox.getItems().getCount() = 1 then
       combobox.setItemIndex(0)
     else
       combobox.setItemIndex(1);
+    combobox.getItems().EndUpdate();
 
     Self._OnGearChange(combobox);
   end;

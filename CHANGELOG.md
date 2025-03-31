@@ -1,3 +1,12 @@
+## [20.1.8](https://github.com/Torwent/WaspLib/compare/v20.1.7...v20.1.8) (2025-03-31)
+
+
+### Bug Fixes
+
+* update gear data ([df9afa0](https://github.com/Torwent/WaspLib/commit/df9afa0ba7fb233fe8c769fd1e7ae4d37e11619f))
+
+
+
 ## [20.1.7](https://github.com/Torwent/WaspLib/compare/v20.1.6...v20.1.7) (2025-03-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * mover xj's overheads into it's own file and interface ([cd9046c](https://github.com/Torwent/WaspLib/commit/cd9046c00095f179028e48a26b6e7ca9a71e7b35))
-
-
-
-## [20.1.3](https://github.com/Torwent/WaspLib/compare/v20.1.2...v20.1.3) (2025-02-12)
-
-
-### Bug Fixes
-
-* added semicolon to stop simba warning ([96d70cc](https://github.com/Torwent/WaspLib/commit/96d70cce239c6abf7362f01f4cb53ee8a36a6db0))
 
 
 

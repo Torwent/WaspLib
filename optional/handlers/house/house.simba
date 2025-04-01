@@ -1395,15 +1395,26 @@ var
   tmp: TMufasaBitmap;
   parent: TControl;
   imgbox: TSimbaImageBox;
+  topLeft, bottomRight, offset, center: TPoint;
 begin
+  if not RSInterface.IsOpen(ERSInterfaceType.CLASSIC) then
+  begin
+    MessageDlg('LayoutFinder', 'You need to open the house viewer to read the layout!', mtWarning, [mbOk]);
+    Exit;
+  end;
+
   parent := TComboBox(sender).getParent().getParent();
   imgbox := parent.GetChild('poh_builder');
 
-  matches := LayoutFinder.Run();
+  matches := LayoutFinder.Run(topLeft, bottomRight);
+
+  center := [House.Loader.AMOUNT div 2, House.Loader.AMOUNT div 2];
+  offset := [Abs(bottomRight.X - topLeft.X - center.X), Abs(bottomRight.Y - topLeft.Y - center.Y)];
+
   for match in matches do
   begin
-    House.Loader.DrawMap(match.ToHouseRoom(), match.LayoutPoint);
-    House.Loader.WriteRoom(match.ToHouseRoom(), match.LayoutPoint);
+    House.Loader.DrawMap(match.ToHouseRoom(), match.LayoutPoint + offset + [1,1]);
+    House.Loader.WriteRoom(match.ToHouseRoom(), match.LayoutPoint + offset + [1,1]);
   end;
 
   tmp := House.Loader.Map.Copy();

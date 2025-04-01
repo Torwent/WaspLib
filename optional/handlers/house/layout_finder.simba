@@ -5,6 +5,8 @@
   {$I WaspLib/optional/handlers/house/houseloader.simba}
 {$ENDIF}
 
+{.DEFINE DEBUG_LAYOUT_FINDER}
+
 type
   TPoHLayoutFinder = record(TSRLBaseRecord)
     IMAGES_PATH: String;
@@ -40,7 +42,9 @@ begin
   p := matrix.ArgMax();
   if matrix[p.y][p.x] < matchThreshold then
   begin
+    {$IFDEF DEBUG_LAYOUT_FINDER}
     WriteLn('Best match was ', matrix[p.y][p.x], ', but threshold was ', matchThreshold);
+    {$ENDIF}
     Exit;
   end;
   bestValue := matrix[p.y][p.x];
@@ -73,7 +77,7 @@ begin
       Self.RoomImages[room][i].Free();
 end;
 
-procedure TPoHLayoutFinder.setup();
+procedure TPoHLayoutFinder.Setup();
 begin
   Self.IMAGES_PATH  := {$macro CURRENT_DIRECTORY} + 'images/';
   ForceDirectories(Self.IMAGES_PATH);
@@ -87,7 +91,7 @@ function TPoHLayoutFinder.GetRoomImages(room: EHouseRoom): TMufasaBitmapArray;
 const
   ROTATIONS: TStringArray := ['.png', '_90.png', '_180.png', '_270.png'];
 var
-  fileName, size: String;
+  fileName: String;
   roomImage: TMufasaBitmap;
   rotation: String;
 begin
@@ -97,7 +101,9 @@ begin
   for rotation in ROTATIONS do
   begin
     fileName := ExpandFileName(Self.IMAGES_PATH + LowerCase(ToStr(room)) + rotation);
-    self.DebugLn(Format('reading image: %s', [fileName]));
+    {$IFDEF DEBUG_LAYOUT_FINDER}
+    Self.DebugLn(Format('reading image: %s', [fileName]));
+    {$ENDIF}
     roomImage.Init(Client.GetMBitmaps());
     roomImage.LoadFromFile(fileName);
     roomImage.SetName(ToStr(room));
@@ -122,8 +128,7 @@ end;
 
 function TPoHLayoutFinder.FindAll(rooms: array of EHouseRoom): TPoHLayoutFinderMatchArray;
 var
-  i, j, x1, y1, x2, y2: Int32;
-  b: TBox;
+  i, j: Int32;
   roomBitmaps: array of TMufasaBitmapArray;
   clientImage: TMufasaBitmap;
   layoutPoint: TPoint;
@@ -173,24 +178,28 @@ begin
   SRL.FindAllTemplatesIn(self.GetRoomImages(r)[0], clientImage, 0.95, matches);
 end;
 
-function TPoHLayoutFinder.Run(): TPoHLayoutFinderMatchArray;
+function TPoHLayoutFinder.Run(out topLeft, bottomRight: TPoint): TPoHLayoutFinderMatchArray;
 var
   matches: TPoHLayoutFinderMatchArray;
   match: TPoHLayoutFinderMatch;
   bs: TBoxArray;
-  houseRoom: THouseRoom;
   r: EHouseRoom;
 begin
+  topLeft := [$FFFFFF, $FFFFFF];
+
   for r in EHouseRoom do
   begin
-    if r = EHouseRoom.UNKNOWN then
-      continue;
-    if r = EHouseRoom.MENAGERIE_INDOORS then // couldnt get a picture for this room
-      continue;
+    if r = EHouseRoom.UNKNOWN then Continue;
+    if r = EHouseRoom.MENAGERIE_INDOORS then Continue; //couldnt get a picture for this room
 
-    self.Find([r], matches);
+    Self.Find([r], matches);
     for match in matches do
     begin
+      topLeft.X := Min(topLeft.X, match.LayoutPoint.X);
+      topLeft.Y := Min(topLeft.Y, match.LayoutPoint.Y);
+      bottomRight.X := Max(bottomRight.X, match.LayoutPoint.X);
+      bottomRight.Y := Max(bottomRight.Y, match.LayoutPoint.Y);
+
       bs += match.Box;
       Result += match;
     end;
@@ -201,5 +210,5 @@ end;
 var
   LayoutFinder: TPoHLayoutFinder;
 begin
-  LayoutFinder.setup();
+  LayoutFinder.Setup();
 end;

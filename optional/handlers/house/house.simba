@@ -37,6 +37,10 @@ e.g., Nexus room, Combat Hall and Quest Hall are all identical.
   {$I WaspLib/optional/handlers/house/houseloader.simba}
 {$ENDIF}
 
+{$IFNDEF LAYOUT_FINDER}
+  {$I WaspLib/optional/handlers/house/layout_finder.simba}
+{$ENDIF}
+
 type
 {$SCOPEDENUMS ON}
   EHouseTeleportMode = (SPELL, TABLET, CAPE);
@@ -1384,6 +1388,43 @@ begin
   tmp.Free();
 end;
 
+procedure TScriptForm.FindLayout(sender: TObject);
+var
+  matches: TPoHLayoutFinderMatchArray;
+  match: TPoHLayoutFinderMatch;
+  tmp: TMufasaBitmap;
+  parent: TControl;
+  imgbox: TSimbaImageBox;
+  topLeft, bottomRight, offset, center: TPoint;
+begin
+  if not RSInterface.IsOpen(ERSInterfaceType.CLASSIC) then
+  begin
+    MessageDlg('LayoutFinder', 'You need to open the house viewer to read the layout!', mtWarning, [mbOk]);
+    Exit;
+  end;
+
+  parent := TComboBox(sender).getParent().getParent();
+  imgbox := parent.GetChild('poh_builder');
+
+  matches := LayoutFinder.Run(topLeft, bottomRight);
+
+  center := [House.Loader.AMOUNT div 2, House.Loader.AMOUNT div 2];
+  offset := [Abs(bottomRight.X - topLeft.X - center.X), Abs(bottomRight.Y - topLeft.Y - center.Y)];
+
+  for match in matches do
+  begin
+    House.Loader.DrawMap(match.ToHouseRoom(), match.LayoutPoint + offset + [1,1]);
+    House.Loader.WriteRoom(match.ToHouseRoom(), match.LayoutPoint + offset + [1,1]);
+  end;
+
+  tmp := House.Loader.Map.Copy();
+  tmp._DrawPOHGrid();
+  tmp._DrawPOHIcons();
+  imgbox.getBackground().LoadFromMufasaBitmap(tmp);
+  imgbox.Update();
+  tmp.Free();
+end;
+
 procedure TScriptForm.POHBuilderLeftOnShow(sender: TObject);
 var
   combobox: TComboBox;
@@ -1442,6 +1483,7 @@ var
   location, decoration, room: TLabeledComboBox;
   rotateLeft, rotateRight: TButton;
   caption: TLabel;
+  readHouse: TButton;
 begin
   Self.AddTab('House Builder');
   Result := Self.Tabs[High(Self.Tabs)];
@@ -1478,6 +1520,10 @@ begin
   rotateRight.Create(panel, 'Rotate Right', 'Rotate the current room clockwise', [92,150], [0,0], True);
   rotateRight.setName('rotate_right_button');
   rotateRight.setOnClick(@Self.OnRotateRoom);
+
+  readHouse.Create(panel, 'Read Layout', 'Reads the layout of the house automatically', [92, 180], [0, 0], True);
+  readHouse.setName('read_layout');
+  readHouse.setOnClick(@Self.FindLayout);
 
   panel.Create(panel, [0, 210], [0,300], True);
   panel.SetName('objects_panel');

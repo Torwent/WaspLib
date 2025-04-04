@@ -1,3 +1,12 @@
+## [20.1.10](https://github.com/Torwent/WaspLib/compare/v20.1.9...v20.1.10) (2025-04-04)
+
+
+### Bug Fixes
+
+* optional interfaces compatibility ([f47a20a](https://github.com/Torwent/WaspLib/commit/f47a20aca2dc6403538d60238c61c8b55ed88d6e))
+
+
+
 ## [20.1.9](https://github.com/Torwent/WaspLib/compare/v20.1.8...v20.1.9) (2025-04-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Make recorder work again ([32aa9ac](https://github.com/Torwent/WaspLib/commit/32aa9aca79caa6080d86d4723ce17fa347b2777f))
-
-
-
-## [20.1.5](https://github.com/Torwent/WaspLib/compare/v20.1.4...v20.1.5) (2025-03-05)
-
-
-### Bug Fixes
-
-* added adventure paths to quests and small fix to achievements ([22d261f](https://github.com/Torwent/WaspLib/commit/22d261fd69e1a82e6051b9f8d3834a0ae04ea542))
 
 
 

@@ -10,7 +10,9 @@ DriftNet interface by Reldnahc.
 type
   ERSDriftNetButton = (DISCARD_ALL, BANK_ALL, TAKE_ALL, OVERLAY_CONFIRM, OVERLAY_CANCEL);
 
-  TRSDriftNet = type TRSTitledInterface;
+  TRSDriftNet = record(TRSTitledInterface)
+    Items: TRSItemInterface;
+  end;
 
 
 (*
@@ -83,7 +85,7 @@ begin
   if Self.HasOverlay() then
     Exit;
 
-  Result := Grid(5, 2, 32, 32, [48, 5], [Self.X1 + 27, Self.Y1 + 55]);
+  Result := Grid(5, 2, 32, 32, [48, 5], [Self.Bounds.X1 + 27, Self.Bounds.Y1 + 55]);
 end;
 
 procedure TRSDriftNet.Setup(); override;
@@ -91,36 +93,28 @@ begin
   inherited;
   Self.Name := 'Drift Net';
   Self.ButtonColors := [CTS1(2370349, 0), CTS1(1052431, 26)];
-  Self.ItemInterface.GetSearchBoxesFunction := @Self.GetSlotBoxes;
+  Self.Items.SlotBoxesFunction := @Self.GetSlotBoxes;
 end;
 
 procedure TRSDriftNet.SetupAlignment(); overload;
 var
   alignment: TRSInterfaceAlignment;
 begin
-  inherited;
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 412;
+  alignment.MaxHeight := 254;
 
-  case mode of
+  case RSClient.Mode of
     ERSClientMode.FIXED:
-      begin
-        alignment.Left := [@InterfaceArea.X1];
-        alignment.Right := [@InterfaceArea.X2];
-        alignment.Top := [@InterfaceArea.Y1];
-        alignment.Bottom := [@InterfaceArea.Y2];
-        alignment.MaxWidth := 412;
-        alignment.MaxHeight := 254;
-      end;
+      alignment.Top := InterfaceArea.Bounds.Y1;
 
     ERSClientMode.RESIZABLE_CLASSIC, ERSClientMode.RESIZABLE_MODERN:
-      begin
-        alignment.Left := [@InterfaceArea.X1];
-        alignment.Right := [@InterfaceArea.X2];
-        alignment.Top := [@InterfaceArea.Y1, -1];
-        alignment.Bottom := [@InterfaceArea.Y2];
-        alignment.MaxWidth := 412;
-        alignment.MaxHeight := 254;
-      end;
+      alignment.Top := InterfaceArea.Bounds.Y1-1;
   end;
+
+  Self.SetupAlignment(alignment);
 end;
 
 function TRSDriftNet.IsOpen(): Boolean;
@@ -179,9 +173,9 @@ var
   buttons: TRSButtonArray;
 begin
   case button of
-    DISCARD_ALL,
-    BANK_ALL,
-    TAKE_ALL:
+    ERSDriftNetButton.DISCARD_ALL,
+    ERSDriftNetButton.BANK_ALL,
+    ERSDriftNetButton.TAKE_ALL:
     begin
       if Self.hasOverlay then
         Exit;
@@ -191,8 +185,8 @@ begin
       if buttons <> [] then
         Result := buttons[button];
     end;
-    OVERLAY_CONFIRM,
-    OVERLAY_CANCEL:
+    ERSDriftNetButton.OVERLAY_CONFIRM,
+    ERSDriftNetButton.OVERLAY_CANCEL:
     begin
       if not Self.hasOverlay then
         Exit;

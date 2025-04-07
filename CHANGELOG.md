@@ -1,3 +1,12 @@
+## [20.1.11](https://github.com/Torwent/WaspLib/compare/v20.1.10...v20.1.11) (2025-04-07)
+
+
+### Bug Fixes
+
+* Force bump ([3c86927](https://github.com/Torwent/WaspLib/commit/3c869271337f3ca2a03fa02e7e0f2437d01a91f3))
+
+
+
 ## [20.1.10](https://github.com/Torwent/WaspLib/compare/v20.1.9...v20.1.10) (2025-04-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([0611f1d](https://github.com/Torwent/WaspLib/commit/0611f1d88b6c7e510cb1f12c6fe59c486f4758c6))
-
-
-
-## [20.1.6](https://github.com/Torwent/WaspLib/compare/v20.1.5...v20.1.6) (2025-03-21)
-
-
-### Bug Fixes
-
-* Make recorder work again ([32aa9ac](https://github.com/Torwent/WaspLib/commit/32aa9aca79caa6080d86d4723ce17fa347b2777f))
 
 
 

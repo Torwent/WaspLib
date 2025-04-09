@@ -29,6 +29,26 @@ type
     Config: TConfigJSON;
   end;
 
+type
+  TSubscriptionData = record
+    Product: String;
+    DateStart: String;
+    DateEnd: String;
+  end;
+  TSubscriptionDataArray = array of TSubscriptionData;
+
+  TScriptData = record
+    ID: String;
+    Name: String;
+    Description: String;
+    Content: String;
+    URL: String;
+    Categories: TStringArray;
+    Revision: Int32;
+  end;
+
+  TScriptDataArray = array of TScriptData;
+
 (*
 There's some bug that makes it required to "refresh" the client after logging in.
 Oh Simba... you never stop surprising me.
@@ -254,6 +274,211 @@ begin
   end;
 end;
 
+(*
+## TWaspClient.CheckRoleAccess
+```pascal
+function TWaspClient.CheckRoleAccess(): Boolean;
+```
+This queries the `/roles` endpoint on WaspScripts database to determine if the user
+has any roles which grant automatic script access. Returns True/False based on the
+user's role. Modified based on WaspLauncher source.
+*)
+function TWaspClient.CheckRoleAccess(): Boolean;
+const
+  ROUTE: String = 'rest/v1/roles';
+var
+  query: String = '?select=tester,moderator,administrator';
+  response: String;
+  tmp: TJSONArray;
+begin
+  Self.SetSchema('profiles');
+  query += '&id=eq.' + Self.User.ID + '&limit=1';
+  try
+    response := Self.GET(ROUTE + query, False);
+    if Self.GetHTTPCode() = 200 then
+    begin
+      tmp.Init(response);
+      if tmp.length > 0 then
+      begin
+        // These are the only three roles with auto-access to scripts
+        if tmp.getJSONObject(0).getString('tester') = 'true' then Exit(True);
+        if tmp.getJSONObject(0).getString('moderator') = 'true' then Exit(True);
+        if tmp.getJSONObject(0).getString('administrator') = 'true' then Exit(True);
+      end;
+      tmp.Free();
+    end;
+  except
+    TerminateScript(GetExceptionMessage());
+  end;
+end;
+
+(*
+## TWaspClient.GetSubscriptions
+```pascal
+function TWaspClient.GetSubscriptions(): TSubscriptionDataArray;
+```
+This queries the `/subscriptions` endpoint on WaspScripts database to create an
+array of all active subscriptions the user has. Modified based on WaspLauncher source.
+*)
+function TWaspClient.GetSubscriptions(): TSubscriptionDataArray;
+var
+  jsonArray: TJSONArray;
+  i: Int32;
+  sub: TSubscriptionData;
+begin
+  jsonArray := Self.Select('profiles', 'subscription', 'id,date_start,date_end', ['id=eq.' + Self.User.ID]);
+
+  for i := 0 to jsonArray.High() do
+  begin
+    with jsonArray.getJSONObject(i) do
+    begin
+      sub.Product := getString('product');
+      sub.DateStart := getString('date_start');
+      sub.DateEnd := getString('date_end');
+    end;
+
+    Result += sub;
+  end;
+end;
+
+(*
+## TWaspClient.GetFreeAccess
+```pascal
+function TWaspClient.GetFreeAccess(): TSubscriptionDataArray;
+```
+This queries the `/free_access` table on WaspScripts database to create an
+array of all granted access the user has. Modified based on WaspLauncher source.
+*)
+function TWaspClient.GetFreeAccess(): TSubscriptionDataArray;
+var
+  jsonArray: TJSONArray;
+  i: Int32;
+  sub: TSubscriptionData;
+begin
+  jsonArray := Self.Select('profiles', 'free_access', '*', ['id=eq.' + Self.User.ID]);
+
+  for i := 0 to jsonArray.High() do
+  begin
+    with jsonArray.getJSONObject(i) do
+    begin
+      sub.Product := getString('product');
+      sub.DateStart := getString('date_start');
+      sub.DateEnd := getString('date_end');
+    end;
+
+    Result += sub;
+  end;
+end;
+
+(*
+## tSubscriptionDataArray._MatchProduct
+```pascal
+function tSubscriptionDataArray._MatchProduct(product : String; out MatchedProduct : tSubscriptionData): Boolean;
+```
+A helper function that searches the `tSubscriptionDataArray` for the matching product.
+Returns True/False to identify if a product was matched. `out MatchedProduct` is
+the `tSubscriptionData` for the product ID that matched.
+*)
+function tSubscriptionDataArray._MatchProduct(product : String; out MatchedProduct : tSubscriptionData) : Boolean;
+var
+  i : Int32;
+begin
+  for i := 0 to high(self) do
+    if Self[i].Product = product then
+    begin
+      MatchedProduct := Self[i];
+      exit(True);
+    end;
+end;
+
+(*
+## TWaspClient.GetProductCode
+```pascal
+function TWaspClient.GetProductCode(scriptID : String): String;
+```
+A function which converts a script ID to product code. In some tables, only the
+script ID is given, and in other tables only the product code is given. This is
+required to ensure all functions are comparing the same identifier.
+*)
+function TWaspClient.GetProductCode(scriptID : String): String;
+var
+  jsonArray: TJSONArray;
+begin
+  try
+    jsonArray := Self.Select('scripts', 'products', 'id,user_id,bundle,script', ['script=eq.' + ScriptID]);
+
+    if jsonArray.length() > 0 then
+      // There should only be one match to the script UUID
+      with jsonArray.getJSONObject(0) do
+        exit(getString('id'));
+  finally
+    jsonArray.Free();
+  end;
+end;
+
+(*
+## TWaspClient.GetProductLink
+```pascal
+function TWaspClient.GetProductLink(ScriptID : String): String;
+```
+A function which looks up a given script ID and returns the URL to that
+script's WaspScripts page.
+*)
+function TWaspClient.GetProductLink(ScriptID : String): String;
+var
+  jsonArray: TJSONArray;
+begin
+  try
+    jsonArray := Self.Select('scripts','scripts','url', ['id=eq.'+ScriptID]);
+
+    if jsonArray.length() > 0 then
+    // There should only be one match to the script UUID
+      with jsonArray.getJSONObject(0) do
+        exit(getString('url'));
+  finally
+    jsonArray.Free();
+  end;
+end;
+
+(*
+## TWaspClient.ExplodeBundles
+```pascal
+function TWaspClient.ExplodeBundles(subs : tSubscriptionDataArray): tSubscriptionDataArray;
+```
+This function looks up all bundles in the WaspScripts database, and compares them
+against the subscriptions `subs` argument. Any bundles in the `subs` array will be
+decomposed to the constituent scripts. The `Result` is only the exploded bundle
+and does not include the originally input `subs`
+*)
+function TWaspClient.ExplodeBundles(subs : tSubscriptionDataArray): tSubscriptionDataArray;
+var
+  allBundles, scriptsJSON: TJSONArray;
+  bundleProduct, subProduct : tSubscriptionData;
+  i, j: Int32;
+begin
+  allBundles := Self.Select('scripts', 'bundles', 'product,id,name,scripts,user_id');
+
+  for i := 0 to allBundles.High() do
+    with allBundles.getJSONObject(i) do
+    begin
+      // If this bundle is a product in "sub" - aka the user is subscribed to it
+      if subs._MatchProduct(getString('product'), subProduct) then
+      begin
+        scriptsJSON := getJSONArray('scripts');
+
+        for j := 0 to scriptsJSON.High() do
+        begin
+          bundleProduct.Product := Self.GetProductCode(scriptsJSON.getString(j));
+          bundleProduct.DateStart := subProduct.DateStart;
+          bundleProduct.DateEnd := subProduct.DateEnd;
+
+          Result += bundleProduct;
+        end;
+      end;
+    end;
+
+  allBundles.Free();
+end;
 
 {$H-}
 var

@@ -1,3 +1,12 @@
+# [20.2.0](https://github.com/Torwent/WaspLib/compare/v20.1.12...v20.2.0) (2025-04-10)
+
+
+### Features
+
+* bump ([50ff506](https://github.com/Torwent/WaspLib/commit/50ff50688e6153a67199fbfc65cc3786857f6f40))
+
+
+
 ## [20.1.12](https://github.com/Torwent/WaspLib/compare/v20.1.11...v20.1.12) (2025-04-08)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * read notes ([25807d1](https://github.com/Torwent/WaspLib/commit/25807d1cac17d6592fa369fceb1fbb7b384e4f0a))
-
-
-
-## [20.1.8](https://github.com/Torwent/WaspLib/compare/v20.1.7...v20.1.8) (2025-03-31)
-
-
-### Bug Fixes
-
-* update gear data ([df9afa0](https://github.com/Torwent/WaspLib/commit/df9afa0ba7fb233fe8c769fd1e7ae4d37e11619f))
 
 
 

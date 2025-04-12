@@ -1,3 +1,12 @@
+## [20.2.1](https://github.com/Torwent/WaspLib/compare/v20.2.0...v20.2.1) (2025-04-12)
+
+
+### Bug Fixes
+
+* handle users with no subscription ([049dca6](https://github.com/Torwent/WaspLib/commit/049dca6cfb9928f72f88a5391020733cae58ec3f))
+
+
+
 # [20.2.0](https://github.com/Torwent/WaspLib/compare/v20.1.12...v20.2.0) (2025-04-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * optional interfaces compatibility ([f47a20a](https://github.com/Torwent/WaspLib/commit/f47a20aca2dc6403538d60238c61c8b55ed88d6e))
-
-
-
-## [20.1.9](https://github.com/Torwent/WaspLib/compare/v20.1.8...v20.1.9) (2025-04-01)
-
-
-### Bug Fixes
-
-* read notes ([25807d1](https://github.com/Torwent/WaspLib/commit/25807d1cac17d6592fa369fceb1fbb7b384e4f0a))
 
 
 

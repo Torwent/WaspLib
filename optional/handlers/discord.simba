@@ -1,0 +1,783 @@
+(*
+# Discord
+A library for sending messages and files to Discord channels via webhooks.
+*)
+
+{$DEFINE WL_DISCORD_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+(*
+(TDiscordEmbed)=
+## type TDiscordEmbed
+```pascal
+TDiscordEmbed = record
+  Title: String;
+  Description: String;
+  Color: Int32;
+  Footer: String;
+  ImageURL: String;
+  ThumbnailURL: String;
+end;
+```
+Represents a Discord embed object that can be attached to messages.
+*)
+  TDiscordEmbed = record
+    Title: String;
+    Description: String;
+    Color: Int32;
+    Footer: String;
+    ImageURL: String;
+    ThumbnailURL: String;
+  end;
+
+(*
+(TDiscordWebhook)=
+## type TDiscordWebhook
+```pascal
+TDiscordWebhook = record
+  URL: String;
+  Username: String;
+  AvatarURL: String;
+  Content: String;
+  Embeds: array of TDiscordEmbed;
+end;
+```
+Represents a Discord webhook configuration with content and embeds.
+*)
+  TDiscordWebhook = record
+    URL: String;
+    Username: String;
+    AvatarURL: String;
+    Content: String;
+    Embeds: array of TDiscordEmbed;
+  end;
+
+(*
+(TDiscordClient)=
+## type TDiscordClient
+```pascal
+TDiscordClient = record(TSRLBaseRecord)
+  Webhook: TDiscordWebhook;
+  Config: TConfigJSON;
+  HTTP: Int32;
+  LastResponse: String;
+  LastError: String;
+  RetryCount: Int32;
+  RetryDelay: Int32;
+  ScreenshotPath: String;
+end;
+```
+Main client for interacting with Discord webhooks.
+*)
+  TDiscordClient = record(TSRLBaseRecord)
+    Webhook: TDiscordWebhook;
+    Config: TConfigJSON;
+    HTTP: Int32;
+    LastResponse: String;
+    LastError: String;
+    RetryCount: Int32;
+    RetryDelay: Int32;
+    ScreenshotPath: String;
+  end;
+
+(*
+## TDiscordWebhook.Setup
+```pascal
+procedure TDiscordWebhook.Setup(URL: String);
+```
+Setup a webhook with the given URL.
+
+Example:
+```pascal
+MyWebhook.Setup('https://discord.com/api/webhooks/your_webhook_id/your_webhook_token');
+```
+*)
+// TDiscordWebhook methods
+procedure TDiscordWebhook.Setup(URL: String);
+begin
+  Self.URL := URL;
+  Self.Embeds := [];
+end;
+
+(*
+## TDiscordWebhook.AddEmbed
+```pascal
+function TDiscordWebhook.AddEmbed: Int32;
+```
+Adds a new embed to the webhook and returns its index.
+
+Example:
+```pascal
+EmbedIdx := MyWebhook.AddEmbed();
+MyWebhook.Embeds[EmbedIdx].Title := 'Status Report';
+```
+*)
+function TDiscordWebhook.AddEmbed: Int32;
+var
+  NewEmbed: TDiscordEmbed;
+begin
+  NewEmbed := Default(TDiscordEmbed);
+  SetLength(Self.Embeds, Length(Self.Embeds) + 1);
+  Self.Embeds[High(Self.Embeds)] := NewEmbed;
+  Result := High(Self.Embeds);
+end;
+
+(*
+## TDiscordWebhook.ClearEmbeds
+```pascal
+procedure TDiscordWebhook.ClearEmbeds;
+```
+Removes all embeds from the webhook.
+*)
+procedure TDiscordWebhook.ClearEmbeds;
+begin
+  Self.Embeds := [];
+end;
+
+(*
+## TDiscordWebhook.ClearAll
+```pascal
+procedure TDiscordWebhook.ClearAll;
+```
+Clears both content and embeds from the webhook.
+*)
+procedure TDiscordWebhook.ClearAll;
+begin
+  Self.Content := '';
+  Self.ClearEmbeds();
+end;
+
+(*
+## TDiscordWebhook.ToJSON
+```pascal
+function TDiscordWebhook.ToJSON: String;
+```
+Converts the webhook to a JSON string for API requests.
+*)
+function TDiscordWebhook.ToJSON: String;
+var
+  JSON: TJSONObject;
+  EmbedsArray: TJSONArray;
+  EmbedObj, FooterObj, ImageObj, ThumbObj: TJSONObject;
+  i: Int32;
+begin
+  JSON.Init();
+
+  try
+    if Self.Content <> '' then
+      JSON.Put('content', Self.Content);
+
+    if Self.Username <> '' then
+      JSON.Put('username', Self.Username);
+
+    if Self.AvatarURL <> '' then
+      JSON.Put('avatar_url', Self.AvatarURL);
+
+    if Length(Self.Embeds) > 0 then
+    begin
+      EmbedsArray.Init();
+      
+      for i := 0 to High(Self.Embeds) do
+      begin
+        EmbedObj.Init();
+
+        if Self.Embeds[i].Title <> '' then
+          EmbedObj.Put('title', Self.Embeds[i].Title);
+          
+        if Self.Embeds[i].Description <> '' then
+          EmbedObj.Put('description', Self.Embeds[i].Description);
+          
+        if Self.Embeds[i].Color <> 0 then
+          EmbedObj.Put('color', Self.Embeds[i].Color);
+
+        if Self.Embeds[i].Footer <> '' then
+        begin
+          FooterObj.Init();
+          FooterObj.Put('text', Self.Embeds[i].Footer);
+          EmbedObj.Put('footer', FooterObj);
+        end;
+
+        if Self.Embeds[i].ImageURL <> '' then
+        begin
+          ImageObj.Init();
+          ImageObj.Put('url', Self.Embeds[i].ImageURL);
+          EmbedObj.Put('image', ImageObj);
+        end;
+
+        if Self.Embeds[i].ThumbnailURL <> '' then
+        begin
+          ThumbObj.Init();
+          ThumbObj.Put('url', Self.Embeds[i].ThumbnailURL);
+          EmbedObj.Put('thumbnail', ThumbObj);
+        end;
+        
+        EmbedsArray.Put(EmbedObj);
+      end;
+      
+      JSON.Put('embeds', EmbedsArray);
+    end;
+
+    Result := JSON.ToString();
+  finally
+    JSON.Free();
+  end;
+end;
+
+(*
+## TDiscordClient.Setup
+```pascal
+procedure TDiscordClient.Setup(ConfigPath: String = '');
+```
+Setup the Discord client from a configuration file.
+
+Example:
+```pascal
+MyDiscord.Setup(); // Uses default 'discord.json'
+MyDiscord.Setup('my_config.json'); // Uses specified file
+```
+*)
+// TDiscordClient methods
+procedure TDiscordClient.Setup(ConfigPath: String = '');
+var
+  Path: String;
+  webhookFromConfig: String;
+begin
+  Self.Name := 'Discord';
+  if ConfigPath = '' then
+    Path := 'discord.json'
+  else
+    Path := ConfigPath;
+    
+  Self.Config.Setup(Path);
+
+  // Load webhook URL from config but don't validate it yet
+  if Self.Config.Has('webhook_url') then
+  begin
+    webhookFromConfig := Self.Config.GetString('webhook_url');
+    if webhookFromConfig <> '' then
+    begin
+      Self.Webhook.URL := webhookFromConfig; // Just set the URL without validation
+      Self.DebugLn('Loaded webhook URL from config');
+    end;
+  end;
+  
+  // Load username if available
+  if Self.Config.Has('webhook_username') then
+  begin
+    Self.Webhook.Username := Self.Config.GetString('webhook_username');
+    Self.DebugLn('Loaded username from config');
+  end;
+  
+  // Load avatar if available  
+  if Self.Config.Has('webhook_avatar') then
+  begin
+    Self.Webhook.AvatarURL := Self.Config.GetString('webhook_avatar');
+    Self.DebugLn('Loaded avatar from config');
+  end;
+  
+  Self.RetryCount := 3;
+  Self.RetryDelay := 1000;
+  Self.HTTP := InitializeHTTPClient(False);
+end;
+
+(*
+## TDiscordClient.SetWebhook
+```pascal
+function TDiscordClient.SetWebhook(WebhookURL: String): Boolean;
+```
+Sets the webhook URL for the Discord client.
+
+Example:
+```pascal
+MyDiscord.SetWebhook('https://discord.com/api/webhooks/your_webhook_id/your_webhook_token');
+```
+*)
+function TDiscordClient.SetWebhook(WebhookURL: String): Boolean;
+var
+  tempHTTP: Int32;
+  response: String;
+  statusCode: Int32;
+  emptyPayload: String;
+  oldURL: String;
+begin
+  Self.LastError := '';
+  
+  if WebhookURL = '' then
+  begin
+    Self.LastError := 'Webhook URL cannot be empty';
+    Exit(False);
+  end;
+  
+  // Store the old URL in case validation fails
+  oldURL := Self.Webhook.URL;
+  
+  // Basic pattern validation for Discord webhook URLs
+  if not (Pos('https://discord.com/api/webhooks/', WebhookURL) = 1) then
+  begin
+    Self.LastError := 'Invalid webhook URL format: ' + WebhookURL;
+    Self.DebugLn('Webhook URL does not match Discord pattern');
+    Exit(False);
+  end;
+  
+  // Split by '/' and expect at least 6 parts for a valid webhook URL
+  // Format: https://discord.com/api/webhooks/{webhook_id}/{webhook_token}
+  if Length(WebhookURL.Split('/')) < 6 then
+  begin
+    Self.LastError := 'Incomplete webhook URL: ' + WebhookURL;
+    Self.DebugLn('Webhook URL is missing ID or token');
+    Exit(False);
+  end;
+  
+  // Validate the webhook URL by making a minimal POST request
+  try
+    tempHTTP := InitializeHTTPClient(False);
+    SetHTTPHeader(tempHTTP, 'Content-Type', 'application/json');
+    
+    // Empty payload that won't actually send a message
+    emptyPayload := '{}';
+    
+    response := PostHTTPPage(tempHTTP, WebhookURL, emptyPayload);
+    statusCode := GetHTTPResponseCode(tempHTTP);
+    FreeHTTPClient(tempHTTP);
+    
+    // Check for specific webhook errors
+    if (statusCode = 404) or (Pos('"code": 10015', response) > 0) then
+    begin
+      Self.LastError := 'Invalid webhook URL: ' + WebhookURL;
+      Self.DebugLn('Webhook validation failed: ' + response);
+      // Restore previous URL if there was one
+      if oldURL <> '' then
+        Self.Webhook.URL := oldURL;
+      Exit(False);
+    end;
+    
+    // A 400 status might mean the webhook is valid but the payload is invalid
+    // which is what we expect with our empty payload
+    if (statusCode = 400) and (Pos('"code": 50006', response) > 0) then
+    begin
+      // This is actually good - webhook exists but empty payload is invalid
+      Self.Webhook.Setup(WebhookURL);
+      Self.Config.Put('webhook_url', WebhookURL);
+      Self.DebugLn('Webhook URL set and validated');
+      Exit(True);
+    end;
+    
+    // For other successful responses, accept the webhook
+    if (statusCode >= 200) and (statusCode < 300) then
+    begin
+      Self.Webhook.Setup(WebhookURL);
+      Self.Config.Put('webhook_url', WebhookURL);
+      Self.DebugLn('Webhook URL set and validated');
+      Exit(True);
+    end;
+    
+    // If we get here, something unexpected happened
+    Self.LastError := 'Webhook validation received unexpected response: ' + IntToStr(statusCode) + ' - ' + response;
+    Self.DebugLn(Self.LastError);
+    // Restore previous URL if there was one
+    if oldURL <> '' then
+      Self.Webhook.URL := oldURL;
+    Result := False;
+  except
+    Self.LastError := 'Error validating webhook: ' + GetExceptionMessage;
+    Self.DebugLn('Webhook validation exception: ' + Self.LastError);
+    // Restore previous URL if there was one
+    if oldURL <> '' then
+      Self.Webhook.URL := oldURL;
+    Result := False;
+  end;
+end;
+
+(*
+## TDiscordClient.SetUsername
+```pascal
+procedure TDiscordClient.SetUsername(Username: String);
+```
+Sets the username that appears for webhook messages.
+
+Example:
+```pascal
+MyDiscord.SetUsername('OSRS Bot');
+```
+*)
+procedure TDiscordClient.SetUsername(Username: String);
+begin
+  Self.Webhook.Username := Username;
+  Self.Config.Put('webhook_username', Username);
+  Self.DebugLn('Username set to: ' + Username);
+end;
+
+(*
+## TDiscordClient.SetAvatar
+```pascal
+procedure TDiscordClient.SetAvatar(AvatarURL: String);
+```
+Sets the avatar image URL for webhook messages.
+
+Example:
+```pascal
+MyDiscord.SetAvatar('https://example.com/avatar.png');
+```
+*)
+procedure TDiscordClient.SetAvatar(AvatarURL: String);
+begin
+  Self.Webhook.AvatarURL := AvatarURL;
+  Self.Config.Put('webhook_avatar', AvatarURL);
+  Self.DebugLn('Avatar URL set to: ' + AvatarURL);
+end;
+
+(*
+## TDiscordClient.Send
+```pascal
+function TDiscordClient.Send: Boolean;
+```
+Sends the current webhook content and embeds to Discord.
+
+Example:
+```pascal
+MyDiscord.Webhook.Content := 'Hello from Simba!';
+if MyDiscord.Send() then
+  WriteLn('Message sent successfully');
+```
+*)
+function TDiscordClient.Send: Boolean;
+var
+  Payload: String;
+  Attempts: Int32;
+  AttemptFailedDueToException: Boolean;
+  StatusCode: Int32; // Added to store HTTP status code
+begin
+  Self.LastError := '';
+  Self.LastResponse := '';
+  
+  if Self.Webhook.URL = '' then
+  begin
+    Self.LastError := 'No webhook URL configured';
+    Exit(False);
+  end;
+
+  // Abort if this webhook was previously found to be invalid via SetWebhook
+  if Self.LastError.Contains('Invalid webhook URL') or Self.LastError.Contains('webhook validation failed') then
+  begin
+    Self.DebugLn('Aborting send: webhook previously failed validation: ' + Self.LastError);
+    Exit(False);
+  end;
+
+  Payload := Self.Webhook.ToJSON();
+  Attempts := 0;
+
+  repeat
+    try
+      AttemptFailedDueToException := False; // Reset flag for this attempt
+      Inc(Attempts);
+
+      if Self.HTTP <> 0 then
+        FreeHTTPClient(Self.HTTP);
+        
+      Self.HTTP := InitializeHTTPClient(False);
+      SetHTTPHeader(Self.HTTP, 'Content-Type', 'application/json');
+
+      Self.LastResponse := PostHTTPPage(Self.HTTP, Self.Webhook.URL, Payload);
+      StatusCode := GetHTTPResponseCode(Self.HTTP);
+
+      // Check for 2xx status code and no exception for success
+      if (StatusCode >= 200) and (StatusCode < 300) and (not AttemptFailedDueToException) then
+      begin
+        Self.DebugLn('Discord webhook sent successfully (Status: ' + IntToStr(StatusCode) + ')');
+        Self.Webhook.ClearAll();
+        Exit(True);
+      end;
+      
+      // If not successful yet, store error details if not already set by exception
+      if (Self.LastError = '') and (not AttemptFailedDueToException) then
+        Self.LastError := 'HTTP Error: ' + IntToStr(StatusCode) + ' - Response: ' + Self.LastResponse;
+
+      // Check for permanent errors that shouldn't be retried
+      if (StatusCode = 404) or (Pos('"code": 10015', Self.LastResponse) > 0) then
+      begin
+        Self.DebugLn('Permanent error detected - webhook not found. Aborting retries.');
+        Exit(False);
+      end;
+
+      if Pos('"code": 429', Self.LastResponse) > 0 then
+      begin
+        Wait(Self.RetryDelay);
+        Continue;
+      end;
+
+      if Pos('"code": 50006', Self.LastResponse) > 0 then
+      begin
+        // Try alternative method for empty content
+        if Self.HTTP <> 0 then
+          FreeHTTPClient(Self.HTTP);
+          
+        Self.HTTP := InitializeHTTPClient(False);
+        SetHTTPHeader(Self.HTTP, 'Content-Type', 'application/x-www-form-urlencoded');
+        AddPostVariable(Self.HTTP, 'content', Self.Webhook.Content);
+        
+        // Note: This alternative method might need status code checking too,
+        // but leaving it as is for now unless it also proves problematic.
+        Self.LastResponse := PostHTTPPageEx(Self.HTTP, Self.Webhook.URL);
+        
+        if (Self.LastResponse = '') and (not AttemptFailedDueToException) then
+        begin
+          Self.Webhook.Content := ''; // Assuming empty response means success here
+          Exit(True);
+        end;
+      end;
+
+      // Log error before potential retry
+      Self.DebugLn('Webhook attempt failed. Status: ' + IntToStr(StatusCode) + ', Error: ' + Self.LastError + ', Response: ' + Self.LastResponse);
+
+    except
+      AttemptFailedDueToException := True;
+      Self.LastError := GetExceptionMessage;
+      Self.DebugLn('Discord error: ', Self.LastError);
+    end;
+
+  until (Attempts >= Self.RetryCount);
+
+  Result := False;
+end;
+
+(*
+## TDiscordClient.SendFile
+```pascal
+function TDiscordClient.SendFile(FilePath: String): Boolean;
+```
+Sends a file to the Discord channel.
+
+Example:
+```pascal
+if MyDiscord.SendFile('C:\path\to\image.png') then
+  WriteLn('File sent successfully');
+```
+*)
+function TDiscordClient.SendFile(FilePath: String): Boolean;
+var
+  Boundary, FileContents, Ext, MimeType: String;
+  Payload: String;
+  Attempts: Int32;
+  AttemptFailedDueToException: Boolean;
+  StatusCode: Int32; // Added to store HTTP status code
+begin
+  Self.LastError := '';
+  Self.LastResponse := '';
+  
+  if Self.Webhook.URL = '' then
+  begin
+    Self.LastError := 'No webhook URL configured';
+    Exit(False);
+  end;
+
+  if not FileExists(FilePath) then
+  begin
+    Self.LastError := 'File does not exist: ' + FilePath;
+    Exit(False);
+  end;
+
+  Self.ScreenshotPath := FilePath;
+  Attempts := 0;
+  Boundary := '---------------------------' + ToStr(Random(100000000));
+  
+  // Determine MIME type based on file extension
+  Ext := LowerCase(ExtractFileExt(FilePath));
+  if (Ext = '.png') then
+    MimeType := 'image/png'
+  else if (Ext = '.jpg') or (Ext = '.jpeg') then
+    MimeType := 'image/jpeg'
+  else if (Ext = '.gif') then
+    MimeType := 'image/gif'
+  else
+    MimeType := 'application/octet-stream';
+
+  repeat
+    try
+      AttemptFailedDueToException := False; // Reset flag for this attempt
+      Inc(Attempts);
+
+      if Self.HTTP <> 0 then
+        FreeHTTPClient(Self.HTTP);
+        
+      Self.HTTP := InitializeHTTPClient(False);
+      SetHTTPHeader(Self.HTTP, 'Content-Type', 'multipart/form-data; boundary=' + Boundary);
+
+      FileContents := ReadFileContents(Self.ScreenshotPath);
+      if FileContents = '' then
+      begin
+        Self.LastError := 'Failed to read file';
+        Exit(False);
+      end;
+
+      Payload := '--' + Boundary + LineEnding;
+      Payload += 'Content-Disposition: form-data; name="payload_json"' + LineEnding;
+      Payload += 'Content-Type: application/json' + LineEnding + LineEnding;
+      Payload += Self.Webhook.ToJSON() + LineEnding;
+      Payload += '--' + Boundary + LineEnding;
+      Payload += 'Content-Disposition: form-data; name="file"; filename="' + ExtractFileName(Self.ScreenshotPath) + '"' + LineEnding;
+      Payload += 'Content-Type: ' + MimeType + LineEnding + LineEnding;
+      Payload += FileContents + LineEnding;
+      Payload += '--' + Boundary + '--' + LineEnding;
+
+      Self.LastResponse := PostHTTPPage(Self.HTTP, Self.Webhook.URL, Payload);
+      StatusCode := GetHTTPResponseCode(Self.HTTP); // Assumes this function exists!
+
+      // Check for 2xx status, "attachments" in response, and no exception for success
+      if (StatusCode >= 200) and (StatusCode < 300) and (Pos('"attachments":', Self.LastResponse) > 0) and (not AttemptFailedDueToException) then
+      begin
+        Self.DebugLn('Discord file sent successfully (Status: ' + IntToStr(StatusCode) + ')');
+        Self.Webhook.ClearAll();
+        Exit(True);
+      end;
+
+      // If not successful yet, store error details if not already set by exception
+      if (Self.LastError = '') and (not AttemptFailedDueToException) then
+        Self.LastError := 'HTTP Error: ' + IntToStr(StatusCode) + ' - Response: ' + Self.LastResponse;
+
+      // Check for permanent errors that shouldn't be retried
+      if (StatusCode = 404) or (Pos('"code": 10015', Self.LastResponse) > 0) then
+      begin
+        Self.DebugLn('Permanent error detected - webhook not found. Aborting retries.');
+        Exit(False);
+      end;
+
+      if Pos('"code": 429', Self.LastResponse) > 0 then
+      begin
+        Wait(Self.RetryDelay);
+        Continue;
+      end;
+
+      // Log error before potential retry
+      Self.DebugLn('Webhook file attempt failed. Status: ' + IntToStr(StatusCode) + ', Error: ' + Self.LastError + ', Response: ' + Self.LastResponse);
+
+    except
+      AttemptFailedDueToException := True;
+      Self.LastError := GetExceptionMessage;
+      Self.DebugLn('Discord error: ', Self.LastError);
+    end;
+
+  until (Attempts >= Self.RetryCount);
+
+  Result := False;
+end;
+
+(*
+## TDiscordClient.SendScreenshot
+```pascal
+function TDiscordClient.SendScreenshot(Anonymous: Boolean = True): Boolean;
+```
+Takes a screenshot of the client and sends it to Discord.
+When Anonymous is True, account-identifying information is hidden.
+
+Example:
+```pascal
+if MyDiscord.SendScreenshot(True) then
+  WriteLn('Screenshot sent successfully');
+```
+*)
+function TDiscordClient.SendScreenshot(Anonymous: Boolean = True): Boolean;
+var
+  bmp: TMufasaBitmap;
+  fileName: String;
+  bounds: TBox := GetClientBounds;
+begin
+  Self.LastError := '';
+  
+  bmp.FromClient();
+  bmp.Crop(bounds.X1, bounds.Y1, bounds.X2, bounds.Y2);
+
+  if Anonymous then
+  begin
+    bmp.HideAccountDetails();
+    bmp.DrawBoxFilled(XPBar.Bounds, false, clBlack);
+  end;
+
+  fileName := GetScreenshotPath('discord_temp');
+  bmp.SaveToFile(fileName);
+  bmp.Free();
+
+  Result := Self.SendFile(fileName);
+  DeleteFile(fileName);
+end;
+
+(*
+## TDiscordClient.MentionUser
+```pascal
+function TDiscordClient.MentionUser(UserID: String): String;
+```
+Returns a formatted mention for a Discord user.
+
+Example:
+```pascal
+Discord.Webhook.Content := 'Alert! ' + Discord.MentionUser('123456789012345678');
+```
+*)
+function TDiscordClient.MentionUser(UserID: String): String;
+begin
+  Result := '<@' + UserID + '>';
+end;
+
+(*
+## TDiscordClient.Free
+```pascal
+procedure TDiscordClient.Free;
+```
+Cleans up resources used by the Discord client.
+*)
+procedure TDiscordClient.Free;
+begin
+  if Self.HTTP <> 0 then
+    FreeHTTPClient(Self.HTTP);
+    
+  Self.Config.Free();
+  Self.HTTP := 0;
+end;
+
+
+{
+// Example Usage
+var
+  Discord: TDiscordClient;
+  EmbedIdx: Int32;
+
+begin
+  // First setup the client
+  Discord.Setup();
+
+  // Then set/override specific properties
+  if not Discord.SetWebhook('https://discord.com/api/webhooks/your_webhook_id/your_webhook_token') then
+    Exit;
+  Discord.SetUsername('OSRS Bot');
+  Discord.SetAvatar('https://raw.githubusercontent.com/Torwent/wasp-webapp/refs/heads/main/static/favicon.png');
+
+  try
+    // Send a simple text message
+    Discord.Webhook.Content := 'Hello from Simba!';
+    if Discord.Send() then
+      Discord.DebugLn('Message sent successfully')
+    else
+      Discord.DebugLn('Failed to send message: ' + Discord.LastError);
+
+    // Send a message with an embed
+    Discord.Webhook.Content := 'Player stats:';
+    EmbedIdx := Discord.Webhook.AddEmbed();
+    with Discord.Webhook.Embeds[EmbedIdx] do
+    begin
+      Title := 'Current Status';
+      Description := ':crown: Combat Level: ' + ToStr(126);
+      Color := clGreen;
+    end;
+    Discord.Send();
+
+    // Send a screenshot
+    Discord.Webhook.Content := 'Current game state:';
+    Discord.SendScreenshot(True);
+  finally
+    Discord.Free();
+  end;
+
+end.
+}

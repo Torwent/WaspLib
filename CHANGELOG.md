@@ -1,45 +1,45 @@
-## [20.1.10](https://github.com/Torwent/WaspLib/compare/v20.1.9...v20.1.10) (2025-04-04)
+## [20.2.3](https://github.com/Torwent/WaspLib/compare/v20.2.2...v20.2.3) (2025-04-12)
 
 
 ### Bug Fixes
 
-* optional interfaces compatibility ([f47a20a](https://github.com/Torwent/WaspLib/commit/f47a20aca2dc6403538d60238c61c8b55ed88d6e))
+* force bump ([df4e915](https://github.com/Torwent/WaspLib/commit/df4e915fb4cfeca2c0d076ee80171f7d096f10a3))
 
 
 
-## [20.1.9](https://github.com/Torwent/WaspLib/compare/v20.1.8...v20.1.9) (2025-04-01)
-
-
-### Bug Fixes
-
-* read notes ([25807d1](https://github.com/Torwent/WaspLib/commit/25807d1cac17d6592fa369fceb1fbb7b384e4f0a))
-
-
-
-## [20.1.8](https://github.com/Torwent/WaspLib/compare/v20.1.7...v20.1.8) (2025-03-31)
+## [20.2.2](https://github.com/Torwent/WaspLib/compare/v20.2.1...v20.2.2) (2025-04-12)
 
 
 ### Bug Fixes
 
-* update gear data ([df9afa0](https://github.com/Torwent/WaspLib/commit/df9afa0ba7fb233fe8c769fd1e7ae4d37e11619f))
+* Corrected query error ([4a59e4a](https://github.com/Torwent/WaspLib/commit/4a59e4a9460acaa52737f2c32f6af8f19309dde0))
 
 
 
-## [20.1.7](https://github.com/Torwent/WaspLib/compare/v20.1.6...v20.1.7) (2025-03-26)
-
-
-### Bug Fixes
-
-* read notes ([0611f1d](https://github.com/Torwent/WaspLib/commit/0611f1d88b6c7e510cb1f12c6fe59c486f4758c6))
-
-
-
-## [20.1.6](https://github.com/Torwent/WaspLib/compare/v20.1.5...v20.1.6) (2025-03-21)
+## [20.2.1](https://github.com/Torwent/WaspLib/compare/v20.2.0...v20.2.1) (2025-04-12)
 
 
 ### Bug Fixes
 
-* Make recorder work again ([32aa9ac](https://github.com/Torwent/WaspLib/commit/32aa9aca79caa6080d86d4723ce17fa347b2777f))
+* handle users with no subscription ([049dca6](https://github.com/Torwent/WaspLib/commit/049dca6cfb9928f72f88a5391020733cae58ec3f))
+
+
+
+# [20.2.0](https://github.com/Torwent/WaspLib/compare/v20.1.12...v20.2.0) (2025-04-10)
+
+
+### Features
+
+* bump ([50ff506](https://github.com/Torwent/WaspLib/commit/50ff50688e6153a67199fbfc65cc3786857f6f40))
+
+
+
+## [20.1.12](https://github.com/Torwent/WaspLib/compare/v20.1.11...v20.1.12) (2025-04-08)
+
+
+### Bug Fixes
+
+* force bump ([94f8e28](https://github.com/Torwent/WaspLib/commit/94f8e28f3826e5bda3a2ea611be898835f5f9e9b))
 
 
 

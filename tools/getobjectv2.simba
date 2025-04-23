@@ -1,0 +1,67 @@
+(*
+# Tool GetObject
+Tool to gather tile coordinates. Simply hover the tile you want the coordinate
+of and click with the mouse middle button.
+You can record several tiles at once into an array by click several tiles in
+a row.
+The Tile or TileArray will be printed everytime you add a tile.
+
+To reset the array press space bar for a couple of seconds, maybe even
+a couple of times because Simba is bad at registering user key presses.
+
+Once the message "Array cleared." shows up you can start again.
+*)
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+{$I WaspLib/osr.simba}
+
+const
+  CHUNKS: array of TRSMapChunk := [Chunk([48,55,50,53], 0)]; //CHUNKS you want to load. Smaller the CHUNKS the faster it is. find from https://map.waspscripts.com/?m=-1&z=2&p=0&x=3116&y=3465
+  SCALE = 8;
+
+procedure Init();
+begin
+  Map.AddChunks(CHUNKS, SCALE);
+end;
+
+
+procedure Run();
+var
+  P: TPoint;
+  TPA: TPointArray;
+  Str: String;
+begin
+  while True do
+  begin
+    Sleep(10);
+    if Keyboard.IsKeyDown(VK_SPACE) then
+    begin
+      TPA := [];
+      WriteLn 'Array cleared.';
+    end;
+
+    if IsMouseButtonDown(MOUSE_MIDDLE) then
+    begin
+      P := (Map.MS2Map(Mouse.Position(), 0));
+      TPA += P;
+
+      if Length(TPA) = 1 then
+        WriteLn('[', P.X, ', ', P.Y, '];')
+      else if Length(TPA) > 1 then
+      begin
+        Str := '';
+
+        for P in TPA do
+          Str += ', [' + ToStr(P.X) + ', ' + ToStr(P.Y) + ']';
+        Str := '[' + Str.After(', ') + '];';
+        Writeln(Str);
+      end;
+    end;
+  end;
+end;
+
+
+begin
+  Init();
+  ClearDebug();
+  Run();
+end.

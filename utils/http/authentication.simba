@@ -94,6 +94,36 @@ begin
 end;
 
 (*
+## TWaspClient.GetScriptInfo
+```pascal
+function TWaspClient.GetScriptInfo(ScriptID : String): tScriptData;
+```
+A function which looks up a given script ID and returns the script data.
+*)
+function TWaspClient.GetScriptInfo(ScriptID : String): tScriptData;
+var
+  jsonArray: TJSONArray;
+begin
+  try
+    jsonArray := Self.Select('scripts','scripts','*', ['id=eq.'+ScriptID]);
+
+    if jsonArray.length() > 0 then
+    // There should only be one match to the script UUID
+      with jsonArray.getJSONObject(0) do
+      begin
+        result.ID := getString('id');
+        result.Name := getString('title');
+        result.Content := getString('content');
+        result.Revision := getJSONObject('protected').getInt('revision');
+
+        result.Content := result.Content.Replace('{$id}', result.ID).Replace('{$title}', result.Name).Replace('{$revision}', ToStr(result.Revision));
+      end;
+  finally
+    jsonArray.Free();
+  end;
+end;
+
+(*
 ## TWaspClient.HasAccess
 ```pascal
 function TWaspClient.HasAccess(scriptID : String) : Boolean;
@@ -101,22 +131,29 @@ function TWaspClient.HasAccess(scriptID : String) : Boolean;
 This function checks whether the current User has access to the given Script ID.
 Returns True if the User has access.
 *)
-function TWaspClient.HasAccess(scriptID : String) : Boolean;
+function TWaspClient.HasAccess(scriptID: String; scriptRevision : String = '') : Boolean;
+const
+  ROUTE: String = 'storage/v1/object/authenticated/scripts/';
 var
-  subs: TSubscriptionDataArray;
-  i: Int32;
-  product : String;
+  revision, string1, string2, string3 : String;
 begin
-  if Self.CheckRoleAccess() then Exit(True);
+  if Length(scriptID) < 1 then
+    Exit(false);
 
-  subs := Self.GetFreeAccess() + Self.GetSubscriptions();
-  subs += Self.ExplodeBundles(subs);
+  if not Self.IsSetup then
+    Self.Setup();
 
-  product := Self.GetProductCode(scriptID);
+  if Self.CheckRoleAccess() then Exit(true);
 
-  for i := 0 to High(subs) do
-    if subs[i].Product = product then
-      Exit(True);
+  if Length(scriptRevision) < 1 then
+    revision := toStr(Self.GetScriptInfo(scriptID).Revision)
+  else
+    revision := scriptRevision;
+
+  string2 := PadL(revision, 9, '0');
+  string1 := ROUTE + scriptID + '/' + string2 + '/script.simba';
+  string3 := GetHTTPPage(Self.Client, Self.Server + string1);
+  Result := (Self.GetHTTPCode() = 200);
 end;
 
 (*
@@ -136,6 +173,6 @@ begin
   if not Self.IsSetup then
     Self.Setup();
 
-  if not Self.HasAccess({$MACRO SCRIPT_ID}) then
+  if not Self.HasAccess({$MACRO SCRIPT_ID}, {$MACRO SCRIPT_REVISION}) then
     AccessWarning.Run();
 end;

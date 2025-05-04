@@ -1,3 +1,12 @@
+## [20.2.5](https://github.com/Torwent/WaspLib/compare/v20.2.4...v20.2.5) (2025-05-04)
+
+
+### Bug Fixes
+
+* add Dual macuahuitl as a weapon to the gear handler ([8d5a36a](https://github.com/Torwent/WaspLib/commit/8d5a36a89599791e000746ed4c1176ce6f41f480))
+
+
+
 ## [20.2.4](https://github.com/Torwent/WaspLib/compare/v20.2.3...v20.2.4) (2025-05-01)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * handle users with no subscription ([049dca6](https://github.com/Torwent/WaspLib/commit/049dca6cfb9928f72f88a5391020733cae58ec3f))
-
-
-
-# [20.2.0](https://github.com/Torwent/WaspLib/compare/v20.1.12...v20.2.0) (2025-04-10)
-
-
-### Features
-
-* bump ([50ff506](https://github.com/Torwent/WaspLib/commit/50ff50688e6153a67199fbfc65cc3786857f6f40))
 
 
 

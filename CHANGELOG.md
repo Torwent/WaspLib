@@ -1,3 +1,12 @@
+## [20.2.6](https://github.com/Torwent/WaspLib/compare/v20.2.5...v20.2.6) (2025-05-12)
+
+
+### Bug Fixes
+
+* force bump ([33af6fc](https://github.com/Torwent/WaspLib/commit/33af6fc4e5785d975f62c0c947be3f100c7bc751))
+
+
+
 ## [20.2.5](https://github.com/Torwent/WaspLib/compare/v20.2.4...v20.2.5) (2025-05-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Corrected query error ([4a59e4a](https://github.com/Torwent/WaspLib/commit/4a59e4a9460acaa52737f2c32f6af8f19309dde0))
-
-
-
-## [20.2.1](https://github.com/Torwent/WaspLib/compare/v20.2.0...v20.2.1) (2025-04-12)
-
-
-### Bug Fixes
-
-* handle users with no subscription ([049dca6](https://github.com/Torwent/WaspLib/commit/049dca6cfb9928f72f88a5391020733cae58ec3f))
 
 
 

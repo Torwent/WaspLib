@@ -1,0 +1,2396 @@
+{$DEFINE XJ_FARM_RUNNER}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/optional.simba}
+{$ENDIF}
+
+type
+  EFarmPatch = (
+    WEISS_HERB,
+    STRONGHOLD_HERB,
+    CATHERBY_HERB,
+    CATHERBY_FLOWER,
+    CATHERBY_ALLOT_N,
+    CATHERBY_ALLOT_S,
+    ARDY_HERB,
+    ARDY_FLOWER,
+    HOSIDIOUS_HERB,
+    HOSIDIOUS_FLOWER,
+    FALLY_HERB,
+    FALLY_FLOWER,
+    PHASMATYS_HERB,
+    GUILD_HERB,
+    GUILD_FLOWER,
+    GUILD_ALLOT_N,
+    GUILD_ALLOT_S,
+    GUILD_BUSH,
+    GUILD_CACTUS,
+    MONESTARY_BUSH,
+    GIANT_SEAWEED_NORTH,
+    GIANT_SEAWEED_SOUTH
+  );
+
+  ETravelMethod = (
+   ICY_BASALT,                  {Weiss}
+   STONY_BASALT,                {Troll Stronghold}
+   CATHERBY_TABLET,             {Catherby}
+   CATHERBY_TELEPORT,           {Catherby}
+   CAMELOT_TELEPORT,            {Catherby}
+   CAMELOT_TABLET,              {Catherby}
+   ARDY_CLOAK_2,                {Ardy}
+   ARDY_CLOAK_3,                {Ardy}
+   ARDY_CLOAK_4,                {Ardy}
+   ARDY_CLOAK_1_BUSH,           {Monastery}
+   ARDY_CLOAK_2_BUSH,           {Monastery}
+   ARDY_CLOAK_3_BUSH,           {Monastery}
+   ARDY_CLOAK_4_BUSH,           {Monastery}
+   XERICS_TALISMAN,             {Hosidious}
+   HOSIDIOUS_TABLET,            {Hosidious}
+   HOUSE_TELEPORT,              {Hosidious}
+   CON_CAPE_HOSIDIUS,           {Hosidious}
+   EXPLORERS_RING_2,            {Fally}
+   EXPLORERS_RING_3,            {Fally}
+   EXPLORERS_RING_4,            {Fally}
+   FENKENSTRAIN_TELEPORT,       {Phasmatys}
+   ECTOPHIAL,                   {Phasmatys}
+   FARMING_CAPE,                {Guild}
+   SKILLS_NECKLACE,             {Guild}
+   NONE,                        {Guild}
+   DIGSITE_TO_SEAWEED,          {Underwater}
+   CON_CAPE_SPIRIT_TREE_GUILD,  {POH}
+   HOUSE_TAB_SPIRIT_TREE_GUILD, {POH}
+   HOUSE_TELE_SPIRIT_TREE_GUILD {POH}
+  );
+
+  ECompostMethod = (
+    REGULAR,
+    SUPER,
+    ULTRA,
+    BOTTOMLESS,
+    FERTILE_SOIL
+  );
+
+  EPatchType = (
+    HERB,
+    FLOWER,
+    BUSH,
+    ALLOTMENT,
+    CACTUS,
+    SEAWEED
+  );
+
+  EPatchState = (
+    TELEPORT_TO,
+    DEAD,
+    DISEASED,
+    HARVEST,
+    PLANT,
+    COMPOST,
+    NOTE_ITEMS,
+    FAILED,
+    COMPLETE,
+    SKIP,
+    HARVEST_WHITEBERRIES,
+    HARVEST_CACTUS,
+    HARVEST_SEAWEED
+  );
+
+  TFarmContract = record
+    Seed                            : TRSItem;
+    GrowTimer                       : TCountdown;
+  end;
+
+  TPatchData = record
+    PatchType                       : EPatchType;
+    BorderColor, SoilColor          : TCTS2Color;
+    Coords, LeprechaunCoords        : TPoint;
+    LeprechaunColor                 : TCTS2Color;
+    Name                            : String;
+    MapCoords                       : TBox;
+  end;
+
+  TFarmPatch = record
+    Data                            : TPatchData;
+    TPA                             : TPointArray;
+    SearchBox                       : TBox;
+    TravelMethod                    : ETravelMethod;
+    Seed                            : TRSItem;
+    EmptyUpText                     : String;
+    PlantedUpText                   : String;
+    HarvestUpText                   : String;
+    Complete                        : Boolean;
+    Skip                            : Boolean;
+  end;
+
+  TFarmRun = record
+    Patches                         : array of TFarmPatch;
+    LeprechaunItems                 : TRSItemArray;
+    CurrentPatch                    : TFarmPatch;
+    InactivityTimer                 : TCountdown;
+    PatchesCompleted                : Int32;
+    PatchesSkipped                  : Int32;
+    ResurrectCrop                   : Boolean;
+    CompostMethod                   : ECompostMethod;
+    CleanHerbs                      : Boolean;
+    MaxRuns                         : Int32;
+    RunsComplete                    : Int32;
+    Runtime                         : TStopWatch;
+    HarvestQuantities               : TIntegerArray;
+    XPGained, LastXPRead            : Int32;
+    DoReport, DoBreak               : Boolean;
+    ReadyTimer                      : TCountDown;
+    BoatyShore                      : TRSObject;
+    BoatyIsland                     : TRSObject;
+    BargeAttendant                  : TRSObject;
+  end;
+
+const
+  GRIMY_HERBS       : TRSItemArray := [
+    'Grimy guam leaf', 'Grimy marrentill',
+    'Grimy tarromin', 'Grimy harralander',
+    'Grimy ranarr weed', 'Grimy toadflax',
+    'Grimy irit leaf', 'Grimy avantoe',
+    'Grimy kwuarm', 'Grimy snapdragon',
+    'Grimy cadantine', 'Grimy lantadyme',
+    'Grimy dwarf weed', 'Grimy torstol'
+    ];
+
+  CONTRACT_TEXT     : TStringArray = [
+    'torstol', 'dwarf weed', 'lantadyme', 'cadantine', 'snapdragon',
+    'kwuarm', 'avantoe', 'irit', 'toadflax', 'ranarr', 'harralander',
+    'tarromin', 'marrentill', 'guam',
+
+    'magic', 'yew', 'maple', 'willow', 'oak',
+
+    'white lily', 'limpwurt', 'woad', 'nasturtium', 'rosemary', 'marigold',
+
+    'poison ivy', 'white berry', 'jangerberry', 'dwellberry', 'cadavaberry',
+    'redberry',
+
+    'snape grass', 'watermelon', 'strawberr', 'sweetcorn', 'tomatoe',
+    'cabbage', 'onion', 'potatoe',
+
+    'potato cacti', 'cacti',
+
+    'celastrus',
+
+    'dragonfruit', 'palm', 'papaya', 'pineapple', 'curry', 'orange',
+    'banana', 'apple',
+
+    'redwood'
+  ];
+
+var
+  PatchData                         : array of TPatchData;
+
+begin
+
+ PatchData += [    {Weiss/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(6520971, 8, 0.05, 0.27),
+      {soil color}        CTS2(408653, 7, 0.11, 2.64),
+      {patch coords}      [6787, 710],
+      {leprechaun coords} [6785, 728],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Weiss herb',
+      {map coords}        [6500,  600, 7000,  800]];
+
+  PatchData += [    {Stronghold/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(408653, 7, 0.11, 2.64),
+      {patch coords}      [6699, 1670],
+      {leprechaun coords} [6697, 1704],
+      {leprechaun color}  CTS2(3830139, 13, 0.03, 0.44),
+      {name}              'Stronghold herb',
+      {map coords}        [6550, 1550, 6850, 1800]];
+
+  PatchData += [    {Catherby/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [6646, 2594],
+      {leprechaun coords} [6653, 2583],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Catherby herb',
+      {map coords}        [6286, 2351, 6910, 2850]];
+
+  PatchData += [    {Catherby/limp}
+      {patch type}        EPatchType.FLOWER,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [6630, 2594],
+      {leprechaun coords} [6653, 2583],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Catherby flower',
+      {map coords}        [6286, 2351, 6910, 2850]];
+
+  PatchData += [    {Catherby/north allotment}
+      {patch type}        EPatchType.ALLOTMENT,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3431524, 12, 0.05, 0.16),
+      {patch coords}      [6644, 2578],
+      {leprechaun coords} [6653, 2583],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Catherby north allotment',
+      {map coords}        [6286, 2351, 6910, 2850]];
+
+  PatchData += [    {Catherby/south allotment}
+      {patch type}        EPatchType.ALLOTMENT,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3431524, 12, 0.05, 0.16),
+      {patch coords}      [6646, 2609],
+      {leprechaun coords} [6653, 2583],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Catherby south allotment',
+      {map coords}        [6286, 2351, 6910, 2850]];
+
+  PatchData += [    {Ardy/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3893618, 8, 0.06, 0.14),
+      {patch coords}      [6075, 2949],
+      {leprechaun coords} [6080, 2923],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Ardy herb',
+      {map coords}        [5855, 2792, 6286, 3070]];
+
+  PatchData += [    {Ardy/limp}
+      {patch type}        EPatchType.FLOWER,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3893618, 8, 0.06, 0.14),
+      {patch coords}      [6058, 2949],
+      {leprechaun coords} [6080, 2923],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Ardy flower',
+      {map coords}        [5855, 2792, 6286, 3070]];
+
+  PatchData += [    {Hosidious/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(6127499, 6, 0.10, 0.71),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [2346, 2258],
+      {leprechaun coords} [2357, 2252],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Hosidious herb',
+      {map coords}        [2150, 2050, 2600, 2600]];
+
+  PatchData += [    {Hosidious/limp}
+      {patch type}        EPatchType.FLOWER,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [2331, 2242],
+      {leprechaun coords} [2357, 2252],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Hosidious flower',
+      {map coords}        [2150, 2050, 2600, 2600]];
+
+  PatchData += [    {Fally/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3762031, 9, 0.08, 0.16),
+      {patch coords}      [7626, 3202],
+      {leprechaun coords} [7604, 3228],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Fally herb',
+      {map coords}        [7500, 3100, 7700, 3450]];
+
+  PatchData += [    {Fally/limp}
+      {patch type}        EPatchType.FLOWER,
+      {border color}      CTS2(5927804, 9, 0.05, 0.11),
+      {soil color}        CTS2(3762031, 9, 0.08, 0.16),
+      {patch coords}      [7610, 3218],
+      {leprechaun coords} [7604, 3228],
+      {leprechaun color}  CTS2(3108159, 13, 0.08, 1.39),
+      {name}              'Fally flower',
+      {map coords}        [7500, 3100, 7700, 3450]];
+
+  PatchData += [    {Phasmatys/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(2646105, 4, 0.14, 0.45),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [9814, 2330],
+      {leprechaun coords} [9780, 2360],
+      {leprechaun color}  CTS2(2385461, 9, 0.09, 1.08),
+      {name}              'Port Phasmatys herb',
+      {map coords}        [9385, 2036, 10384, 2680]];
+
+  PatchData += [    {Guild/herb}
+      {patch type}        EPatchType.HERB,
+      {border color}      CTS2(5332322, 17, 0.14, 0.10),
+      {soil color}        CTS2(2972511, 10, 0.53, 0.59),
+      {patch coords}      [346, 1554],
+      {leprechaun coords} [336, 1532],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Farming Guild herb',
+      {map coords}        [  45, 1263,  648, 1721]];
+
+  PatchData += [    {Guild/limp}
+      {patch type}        EPatchType.FLOWER,
+      {border color}      CTS2(5332322, 17, 0.14, 0.10),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [434, 1558],
+      {leprechaun coords} [440, 1536],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Farming Guild herb',
+      {map coords}        [  45, 1263,  648, 1721]];
+
+  PatchData += [    {Guild/north allotment}
+      {patch type}        EPatchType.ALLOTMENT,
+      {border color}      CTS2(5332322, 17, 0.14, 0.10),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [461, 1530],
+      {leprechaun coords} [440, 1536],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Farming Guild north allotment',
+      {map coords}        [  45, 1263,  648, 1721]];
+
+  PatchData += [    {Guild/south allotment}
+      {patch type}        EPatchType.ALLOTMENT,
+      {border color}      CTS2(5332322, 17, 0.14, 0.10),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [463, 1552],
+      {leprechaun coords} [440, 1536],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Farming Guild south allotment',
+      {map coords}        [  45, 1263,  648, 1721]];
+
+  PatchData += [    {Guild/bush}
+      {patch type}        EPatchType.BUSH,
+      {border color}      CTS2(5332322, 17, 0.14, 0.10),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [434, 1527],
+      {leprechaun coords} [440, 1536],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Farming Guild bush',
+      {map coords}        [  45, 1263,  648, 1721]];
+
+  PatchData += [    {Guild/cactus}
+      {patch type}        EPatchType.CACTUS,
+      {border color}      CTS2(5332322, 17, 0.14, 0.10),
+      {soil color}        CTS2(3299681, 11, 0.06, 0.16),
+      {patch coords}      [450, 1470],
+      {leprechaun coords} [440, 1536],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Farming Guild cactus',
+      {map coords}        [  45, 1263,  648, 1721]];
+
+  PatchData += [    {Monestary/bush}
+      {patch type}        EPatchType.BUSH,
+      {border color}      CTS2(6127499, 7, 0.08, 0.61),
+      {soil color}        CTS2(3497831, 7, 0.07, 0.20),
+      {patch coords}      [5864, 3546],
+      {leprechaun coords} [5846, 3544],
+      {leprechaun color}  CTS2(2782782, 5, 0.13, 1.58),
+      {name}              'Monestary bush',
+      {map coords}        [5650, 3350, 6050, 3750]];
+
+  PatchData += [    {Underwater/North Seaweed}
+      {patch type}        EPatchType.SEAWEED,
+      {border color}      CTS2(4745297, 4, 1.30, 2.30),
+      {soil color}        CTS2(5926241, 4, 0.92, 0.38),
+      {patch coords}      [1282, 5616],
+      {leprechaun coords} [1276, 5630],
+      {leprechaun color}  CTS2(6189902, 6, 0.52, 0.52),
+      {name}              'Giant seaweed north',
+      {map coords}        [1129, 5407, 1769, 5824]];
+
+    PatchData += [    {Underwater/South Seaweed}
+      {patch type}        EPatchType.SEAWEED,
+      {border color}      CTS2(4745297, 4, 1.30, 2.30),
+      {soil color}        CTS2(5926241, 4, 0.92, 0.38),
+      {patch coords}      [1282, 5640],
+      {leprechaun coords} [1276, 5630],
+      {leprechaun color}  CTS2(6189902, 6, 0.52, 0.52),
+      {name}              'Giant seaweed south',
+      {map coords}        [1129, 5407, 1769, 5824]];
+end;
+
+procedure TerminateScript(Reason: String); override; begin
+  WriteLn(Reason);
+  TerminateScript;
+end;
+
+function ProgReport(
+                           ResultType:int32; ScriptName, ScriptAuthor, ScriptVersion: String;
+                           varNames: TStringArray;
+                           varValues: TvariantArray
+                          ): variant;
+var
+  TSA        : TStringArray;
+  s,s2       : String;
+  s3         : String := '=';
+  s4         : String := ' ';
+  i, i2, L   : Int32;
+begin
+  if (ResultType = 2) then
+    Result := '';
+
+  if length(varNames) <> Length(varValues) then
+  begin
+    Writeln('varNames and varValues must be the same length');
+    exit;
+  end;
+  SetLength(TSA, 3 + Length(varNames) + 4);
+  s2 := 'by '+ScriptAuthor;
+
+  TSA[0] := s3;
+  TSA[1] := ScriptName.Capitalize+' '+ScriptVersion;
+  TSA[2] := s2;
+  TSA[3] := s3;
+
+  i2 := 3 + Length(varNames);
+
+  for i:= 4 to i2 do
+    L := Max(L, Length(varNames[i-4]));
+
+  for i:= 4 to i2 do
+  begin
+    s := varValues[i-4];
+    TSA[i] := Padr((varNames[i-4]).Capitalize, L)+' : '+ s.Capitalize;
+  end;
+
+  TSA[i2+1] := s3;
+  TSA[i2+2] := ScriptName.Capitalize+' '+ScriptVersion;
+  TSA[i2+3] := s3;
+
+  i2 := 0;
+  for i:= 0 to High(TSA) do
+    i2 := Max(i2, Length(TSA[i]));
+
+  TSA[0]           := s3.Replicate(i2);
+  TSA[3]           := s3.Replicate(i2);
+  TSA[High(TSA)-2] := s3.Replicate(i2);
+  TSA[High(TSA)]   := s3.Replicate(i2);
+
+  TSA[2] := s4.Replicate(round((i2 - Length(TSA[2]))/2)) + TSA[2]; //centering by ScriptAuthor
+  TSA[High(TSA)-1] := s4.Replicate(round((i2 - Length(TSA[High(TSA)-1]))/2)) + TSA[High(TSA)-1];
+
+  for i:= 0 to High(TSA) do
+    if (TSA[i][1] = s3) then
+      case ResultType of
+        0 : writeln     ('[='+Padr(TSA[i], i2)+'=]');
+        1 : writeln     ('[='+Padr(TSA[i], i2)+'=]');
+        2 : Result := Result + '[='+Padr(TSA[i], i2)+'=]' + chr(13);
+        else begin Writeln('Invalid Result Type'); exit; end;
+      end
+    else
+      case ResultType of
+        0 : writeln     ('[ '+Padr(TSA[i], i2)+' ]');
+        1 : writeln     ('[ '+Padr(TSA[i], i2)+' ]');
+        2 : Result := Result + '[ '+Padr(TSA[i], i2)+' ]' + chr(13);
+        else begin Writeln('Invalid Result Type'); exit; end;
+      end;
+
+  if not ResultType = 2 then Result := true;
+end;
+
+function TRSMainScreen.IsUpText(Text: TStringArray; Timeout: Int32 = -1): Boolean; override;
+
+  function IsUpText: Boolean;
+  var
+    I: Int32;
+    UpText: String;
+  begin
+    UpText := Self.GetUpText();
+
+    for I := 0 to High(Text) do
+      if (Text[I] in UpText) or (StringMatch(Text[I], UpText) > 0.9) then
+        Exit(True);
+  end;
+
+var
+  T: UInt64;
+begin
+  if (Timeout = -1) then
+    T := GetTickCount() + Round(SRL.SkewedRand(100, 85, 250))
+  else
+    T := GetTickCount() + Timeout;
+
+  repeat
+    if IsUpText() then
+    begin
+      Wait(50); // Uptext is delayed at least a frame. wait 50ms for confirmation.
+      if IsUpText() then
+        Exit(True);
+    end;
+
+    Wait(25);
+  until (GetTickCount() >= T);
+end;
+
+procedure TRSItemArray.Add(Items : TRSItemArray);
+var
+  Item : TRSItem;
+begin
+  for Item in Items do
+    Self += Item;
+end;
+
+function TRSInventory.Count(): Int32; override;
+var
+  Slot: int32;
+begin
+  if not Self.Open() then
+    Exit;
+  for slot := 0 to 27 do
+   if self.isslotused(slot) then
+    Inc(result)
+end;
+
+procedure TFarmRun.AddPatch(patch: EFarmPatch; travel: ETravelMethod; seed: TRSItem);
+var
+  emptyUpText   : TStringArray := ['Herb', 'Flower', 'Bush', 'Allotment', 'Cactus', 'Seaweed patch'];
+  harvestUpText : TStringArray := ['ick', 'ick', 'ick', 'arves', 'ick', 'ick'];
+  data : TPatchData := PatchData[patch];
+  tpa  : TPointArray := [];
+  searchBox : TBox := [0, 0, 0, 0];
+  empty : String := emptyUpText[data.PatchType];
+  planted : String := ToStr(seed).Before(' ');
+  harvest : String := harvestUpText[data.PatchType];
+begin
+  if data.PatchType = EPatchType.HERB then
+    planted := 'Herb';
+
+  Self.Patches += [data, tpa, searchBox, travel, seed,
+                   empty, planted, harvest];
+end;
+
+function TFarmPatch.Find(retry: Boolean = True): Boolean;
+var
+  attempts        : Int32;
+
+  function F(): Boolean
+  var
+    borderTPA             : TPointArray;
+    borderATPA            : T2DPointArray;
+    i                     : Int32;
+    filterPt              : TPoint      := ScriptWalker^.GetTileMS(Self.Data.Coords).Mean;
+    SearchPt              : TPoint;
+    SearchFiltered        : TPointArray;
+  begin
+    if not (filterPt in Mainscreen.Bounds) then
+      Exit(False);
+
+    if SRL.FindColors(borderTPA, Self.Data.BorderColor, MainScreen.Bounds) = 0 then
+      Exit(False);
+
+    borderATPA := borderTPA.Cluster(Mainscreen.NormalizeDistance(32));
+    for i := 0 to High(borderATPA) do begin
+      Self.TPA := borderATPA[i].ConvexHull.Connect;
+      if SRL.PointInPoly(filterPt, Self.TPA) then begin
+        Self.TPA := Self.TPA.SortFrom(MainScreen.Center);
+        SearchFiltered := Self.TPA.FilterDist(0, MainScreen.NormalizeDistance(140), Self.TPA[0].X, Self.TPA[0].Y);
+        SearchFiltered := SearchFiltered.SortFrom(MainScreen.Center);
+        SearchPt := SearchFiltered.Mean;
+        Self.SearchBox := Box(SearchPt, MainScreen.NormalizeDistance(14), MainScreen.NormalizeDistance(14));
+        Self.SearchBox.LimitTo(MainScreen.Bounds);
+        RSClient.Image.Clear;
+        //RSClient.Image.DrawRect(Self.TPA.MinAreaRect, CHAT_COLOR_LIGHT_PURPLE);
+        //RSClient.Image.DrawBox(Self.SearchBox, CHAT_COLOR_MAROON);
+        Exit(True);
+      end;
+    end;
+    Self.SearchBox := [0, 0, 0, 0];
+    Self.TPA := [];
+    Result := False;
+  end;
+
+begin
+  if not retry then
+    Exit(F());
+  Result := False;
+  for attempts := 0 to 3 do begin
+    if F() then
+      Exit(True);
+
+    Try
+    case attempts of
+      0:    begin
+              if not ScriptWalker^.MakePointVisible(Self.Data.Coords) then begin
+                ScriptWalker^.WebWalk([Self.Data.Coords.X + 4, Self.Data.Coords.Y + 4]);
+                ScriptWalker^.MakePointVisible(Self.Data.Coords);
+              end
+            end;
+      1:    Antiban.RandomRotate;
+      2:    begin
+              ScriptWalker^.WebWalk([Self.Data.Coords.X + 4, Self.Data.Coords.Y + 4]);
+              ScriptWalker^.MakePointVisible(Self.Data.Coords);
+            end;
+      3:    begin
+              WriteLn('Failed to find patch.');
+              Exit;
+            end;
+    end;
+    Except
+    Exit;
+    end;
+  end;
+end;
+
+function TFarmPatch.IsDead(): Boolean;
+var
+  colorCount      : Int32;
+begin
+  colorCount := SRL.CountColor(CTS2(6050153, 7, 2.73, 0.61), Self.SearchBox);
+  Result := colorCount > MainScreen.NormalizeDistance(24);
+
+  //DEBUG
+  if colorCount > 0 then
+    WriteLn('Found dead patch colors. Count: ', colorCount);
+end;
+
+function TFarmPatch.IsDiseased(): Boolean;
+var
+  colorCount      : Int32;
+begin
+  //diseasable :=
+  colorCount := SRL.CountColor(CTS2(1272942, 14, 0.03, 2.31), Self.SearchBox);
+  Result := colorCount > MainScreen.NormalizeDistance(40);
+
+  //DEBUG
+  if colorCount > 0 then
+    WriteLn('Found diseased patch colors. Count: ', colorCount);
+end;
+
+function TFarmPatch.IsEmpty(): Boolean;
+var
+  colorCount      : Int32;
+begin
+  colorCount := SRL.CountColor(Self.Data.SoilColor, Self.SearchBox);
+  Result := colorCount = Self.SearchBox.Area;
+end;
+
+function TFarmPatch.FindLeprechaun(out Point: TPoint; Retry: Boolean = True): Boolean;
+var
+  attempts        : Int32;
+
+  function F(): Boolean;
+  var
+    Cuboids : TCuboidExArray;
+    FindBox : TBox;
+    SearchTPA : TPointArray;
+    LeprechaunTPA   : TPointArray;
+  begin
+    Cuboids := ScriptWalker^.GetCuboidArrayMS([Self.Data.LeprechaunCoords], [1.5, 1.5, 8], [0, 0]);
+
+    if Length(Cuboids) = 0 then
+      Exit;
+
+    FindBox := Cuboids[0].Bounds;
+    FindBox.LimitTo(MainScreen.Bounds);
+
+    //Writeln(Cuboids[0]);
+    if SRL.FindColors(SearchTPA, Self.Data.LeprechaunColor, FindBox) = 0 then
+      Exit;
+
+    LeprechaunTPA := Cuboids[0].Filter(SearchTPA);
+
+    if LeprechaunTPA.Len = 0 then
+      Exit;
+
+    Point := LeprechaunTPA.Mean;
+    Result := True;
+  end;
+
+begin
+  if not Retry then
+    Exit(F());
+
+  for attempts := 0 to 3 do begin
+    if F() then
+      Exit(True);
+
+    case attempts of
+      0, 2: begin
+              if not ScriptWalker^.MakePointVisible(Self.Data.LeprechaunCoords) then begin
+                ScriptWalker^.WebWalk([Self.Data.LeprechaunCoords.X + 4, Self.Data.LeprechaunCoords.Y + 4]);
+                ScriptWalker^.MakePointVisible(Self.Data.LeprechaunCoords);
+              end
+            end;
+      1:    Antiban.RandomRotate;
+      3:    begin
+              WriteLn('Failed to find leprechaun.');
+              Exit;
+            end;
+    end;
+  end;
+
+end;
+
+function TFarmPatch.GetState(): EPatchState;
+label
+  inspect;
+var
+  msg : String;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit(EPatchState.FAILED);
+
+  RSInterface.Close();
+  Inventory.SetSelectedSlot(-1);
+
+  if Self.Complete then
+    Exit(EPatchState.COMPLETE);
+  if Self.Skip then
+    Exit(EPatchState.SKIP);
+
+  if Minimap.InPOH then
+    Exit(EPatchState.TELEPORT_TO);
+
+  if not (ScriptWalker^.GetMyPos in Self.Data.MapCoords) then
+    Exit(EPatchState.TELEPORT_TO);
+
+  if not Self.Find then
+    Exit(EPatchState.FAILED);
+
+  if Self.Data.PatchType = EPatchType.BUSH then
+    Exit(EPatchState.HARVEST_WHITEBERRIES);
+  if Self.Data.PatchType = EPatchType.CACTUS then
+    Exit(EPatchState.HARVEST_CACTUS);
+  if Self.IsEmpty then
+    Exit(EPatchState.PLANT);
+  if Self.IsDiseased then
+    Exit(EPatchState.DISEASED);
+  if Self.IsDead then
+    Exit(EPatchState.DEAD);
+
+  if Inventory.IsFull then
+    Exit(EPatchState.NOTE_ITEMS);
+
+  if SRL.Dice(65) then begin
+    Mouse.HumanMove(SRL.RandomPoint(Self.SearchBox));
+  end
+  else begin
+    Mouse.Move(Self.SearchBox);
+  end;
+
+  if Mainscreen.IsUpText(Self.HarvestUpText) then
+    Exit(EPatchState.HARVEST);
+  if Mainscreen.IsUpText('Dead') then
+    Exit(EPatchState.DEAD);
+  if Mainscreen.IsUpText('Cure') then
+    Exit(EPatchState.DISEASED);
+  if MainScreen.IsUpText('Inspect') then begin
+    Mouse.Click(MOUSE_LEFT);
+    goto inspect;
+  end;
+
+  Mouse.Click(MOUSE_RIGHT);
+  if ChooseOption.HasOption('Dead', True, False) then
+    Exit(EPatchState.DEAD);
+  if ChooseOption.HasOption(Self.HarvestUpText, True, False) then
+    Exit(EPatchState.HARVEST);
+  if ChooseOption.HasOption('Cure', True, False) then
+    Exit(EPatchState.DISEASED);
+  if ChooseOption.Select('Inspect') then
+      goto inspect
+  else
+    Exit(EPatchState.FAILED);
+
+  inspect:
+  if not WaitUntil(Chat.FindMessage('The soil'), 15, 10000) then
+    Exit(EPatchState.FAILED);
+
+  msg += Chat.GetMessage(5);
+  msg += Chat.GetMessage(6);
+  msg += Chat.GetMessage(7);
+  msg += Chat.GetMessage(8);
+
+  if msg.Contains('is empty') then
+    Exit(EPatchState.PLANT);
+  if msg.Contains('not been') then
+    Exit(EpatchState.COMPOST);
+  if msg.Contains('fully grown') then
+    Exit(EPatchState.HARVEST);
+  if msg.ContainsAll(['has been', 'growing in it']) then
+    Exit(EPatchState.COMPLETE);
+  if msg.Contains('dead') then
+    Exit(EPatchState.DEAD);
+  if msg.Contains('diseas') then
+    Exit(EPatchState.DISEASED);
+  Exit(EPatchState.FAILED);
+end;
+
+procedure TFarmRun.OnStart(); begin
+
+end;
+
+procedure TFarmRun.OnComplete(); begin
+
+end;
+
+function TRSChat.ChatUntilOptions(): Boolean;
+var
+  Timeout: TCountdown;
+begin
+  Timeout.Init(10000);
+  while (not Timeout.IsFinished) and (not ('Select' in Self.GetChatTitle)) and Self.ClickContinue() do
+    Wait(0, 2500, wdLeft);
+
+  Result := 'Select' in Self.GetChatTitle;
+end;
+
+function TFarmRun.GetFarmRunesNeeded(): TRSItemArray;
+var
+  SpellBook : ERSSpellBook;
+  TmpRunes : TRSItemArray;
+  I : Int32;
+  CanSBS, NeedsSBS : Boolean;
+begin
+  WriteLn('Getting runes needed for farm run.');
+  WriteLn('Spellbook detected: ', SpellBook := Magic.GetSpellBook);
+
+  CanSBS := (SpellBook = ERSSpellBook.LUNAR) and (Stats.GetLevel(ERSSkill.MAGIC) >= 96);
+
+  if Self.CompostMethod = ECompostMethod.FERTILE_SOIL then begin
+    if SpellBook <> ERSSpellBook.LUNAR then
+      TerminateScript('Cannot use Fertile Spoil with your current spellbook.');
+
+    if Stats.GetLevel(ERSSkill.MAGIC, True) < 83 then
+      TerminateScript('You don''t have the required magic level for fertile soil.');
+
+    TmpRunes += ['Nature rune', 'Astral rune', 'Earth rune'];
+  end;
+
+  {if Self.CurePlant then begin
+    if SpellBook <> ERSSpellBook.LUNAR then
+      TerminateScript('Cannot use Cure Plant with your current spellbook.');
+
+    TmpRunes += ['Astral rune', 'Earth rune'];
+  end;}
+
+  if Self.ResurrectCrop then begin
+    if not ((SpellBook = ERSSpellBook.ARCEUUS) or CanSBS) then
+      TerminateScript('Cannot use Resurrect Crop with your current spellbook. Arceuss or Lunars and 96 magic required.');
+    TmpRunes += ['Soul rune', 'Nature rune', 'Blood rune', 'Earth rune'];
+    NeedsSBS := SpellBook = ERSSpellBook.LUNAR;
+  end;
+
+  for I := 0 to High(Self.Patches) do begin
+    case Self.Patches[I].TravelMethod of
+
+      ETravelMethod.CATHERBY_TELEPORT:
+      begin
+        if SpellBook <> ERSSpellBook.LUNAR then
+          TerminateScript('Cannot use Catherby teleport with your current spellbook. Lunars required.');
+        TmpRunes += ['Law rune', 'Astral rune', 'Water rune'];
+      end;
+
+      ETravelMethod.CAMELOT_TELEPORT:
+      begin
+        if not ((SpellBook = ERSSpellBook.STANDARD) or CanSBS) then
+          TerminateScript('Cannot use Camelot teleport with your current spellbook. Standard or Lunars and 96 magic required.');
+       TmpRunes += ['Law rune', 'Air rune'];
+       NeedsSBS := SpellBook = ERSSpellBook.LUNAR;
+      end;
+
+      ETravelMethod.FENKENSTRAIN_TELEPORT:
+      begin
+        if not ((SpellBook = ERSSpellBook.ARCEUUS) or CanSBS) then
+          TerminateScript('Cannot use Fenkenstrain teleport with your current spellbook. Arceuss or Lunars and 96 magic required.');
+        TmpRunes += ['Law rune', 'Soul rune', 'Earth rune'];
+        NeedsSBS := SpellBook = ERSSpellBook.LUNAR;
+      end;
+
+      ETravelMethod.HOUSE_TELEPORT:
+      begin
+        if not ((SpellBook = ERSSpellBook.STANDARD) or CanSBS) then
+          TerminateScript('Cannot use House teleport with your current spellbook. Standard or Lunars and 96 magic required.');
+        TmpRunes += ['Law rune', 'Air rune', 'Earth rune'];
+        NeedsSBS := SpellBook = ERSSpellBook.LUNAR;
+      end;
+
+      {ETravelMethod.HARMONY_ISLAND_TELEPORT:
+      begin
+        if not ((SpellBook = ERSSpellBook.ARCEUUS) or CanSBS) then
+          TerminateScript('Cannot use Harmony Island teleport with your current spellbook. Arceuss or Lunars and 96 magic required.');
+        TmpRunes += ['Law rune', 'Soul rune', 'Nature rune'];
+        NeedsSBS := SpellBook = ERSSpellBook.LUNAR;
+      end;}
+
+    end;
+  end;
+
+  if NeedsSBS then
+    TmpRunes += ['Astral rune', 'Cosmic rune', 'Law rune'];
+
+  //remove duplicates
+  Sort(TmpRunes);
+  Result += TmpRunes[0];
+
+  for I := 1 to High(TmpRunes) do
+    if TmpRunes[I] <> Result[High(Result)] then
+      Result += TmpRunes[I];
+end;
+
+{procedure TFarmRun.GetContract();
+var
+  Jane                    : TRSNPC;
+  HasContract,
+  FinishedContract,
+  GetContract             : Boolean;
+  JaneOptions             : TRSChatboxOptionArray;
+  CurrentContract         : String;
+  i                       : Int32;
+begin
+  //RSW.Setup([GUILD]);
+  //TODO move to WL
+  Jane.Setup(['master', 'Jane']);
+  Jane.Setup(32, 1, 8, [[384, 1556]]);
+  Jane.Finder.Colors += CTS2(7511716, 22, 0.03, 0.43);
+
+  if not (Jane.WalkSelectOption(['Contract'], 1) and WaitUntil(Chat.HasContinue, 15, 10000)) then
+    WriteLn('Couldn''t find chat continue');
+    //TODO handle this error.
+
+  HasContract := 'current' in Chat.GetChat;
+  FinishedContract := 'reward' in Chat.GetChat;
+  GetContract := 'kind' in Chat.GetChat;
+
+  Chat.ClickContinue;
+
+  if HasContract then begin
+    for i := 0 to High(FarmContracts) do
+      if FarmContracts[i].Before(' ') in Chat.GetChat then begin
+        CurrentContract := FarmContracts[i];
+        Wait(418, 1197);
+        Break;
+      end;
+  end else begin
+    if not Chat.ChatUntilOptions then
+      WriteLn('Didn''t progress to chat options.');
+
+    JaneOptions := Chat.GetOptions;
+    Keyboard.PressKey(JaneOptions[HIGH(JaneOptions)].Number);
+    Chat.ClickContinue;
+    WaitUntil(('Jane' in Chat.GetChatTitle), 15, 10000);
+    for i := 0 to High(FarmContracts) do
+      if FarmContracts[i].Before(' ') in Chat.GetChat then begin
+        CurrentContract := FarmContracts[i];
+        Wait(418, 1197);
+        Break;
+      end;
+  end;
+
+  WriteLn('Contract: ', CurrentContract);
+end;}
+
+procedure TFarmRun.TravelToGiantSeaweed();
+var
+  T : TCountdown;
+  b : TBox;
+  MyPos : TPoint;
+  attempts: int32;
+  item            : TRSItem         := '';
+begin
+  T.init(one_minute);
+
+  while not (MyPos := ScriptWalker^.GetMyPos).InBox([1129, 5407, 1769, 5824]) and not T.IsFinished do
+  begin
+    MyPos := ScriptWalker^.GetMyPos;
+
+    if MyPos.InBox([8448, 2342, 9273, 2895]) then begin
+      for attempts := 1 to 3 do begin
+        if not ScriptWalker^.AtTile([8840,2672], 16) then
+          ScriptWalker^.WebWalk([8832,2672]);
+
+        BargeAttendant.SelectOption(['uick'], 10);
+
+        if WaitUntil(ScriptWalker^.GetMyPos().InBox([9113, 908, 9467, 1266]), 15, 5000) then
+          Break;
+      end;
+    end
+    else
+    if MyPos.InBox([9113, 908, 9467, 1266]) then begin
+      for attempts := 1 to 3 do begin
+        Wait(750,1000);
+        BoatyShore.WalkSelectOption(['ravel '], 10);
+
+        if WaitUntil(Chat.FindOption('Row out to sea', [CHAT_COLOR_BLACK]), 15, 5000) then begin
+          b := ([146,431,371,435]);
+          Mouse.Click(b, MOUSE_LEFT);
+
+          if WaitUntil(ScriptWalker^.GetMyPos().InBox([9303, 530, 9657, 888]), 15, 5000) then
+            Break;
+        end;
+      end;
+    end
+    else
+    if MyPos.InBox([9303, 530, 9657, 888]) then begin
+      if Chat.HasContinue or (Chat.GetChatTitle.Len > 0) then begin
+        if Chat.FindOption('Dive and walk', [CHAT_COLOR_BLACK]) then begin
+          b := ([67,399,442,403]);
+          Mouse.Click(b, MOUSE_LEFT);
+          WaitUntil((not Chat.FindOption('Dive and walk', [CHAT_COLOR_BLACK])), 15, 5000);
+        end else if Chat.FindOption('it would be easier', [CHAT_COLOR_BLACK])then begin
+          Chat.ClickContinue(True);
+          WaitUntil((not Chat.FindOption('it would be easier', [CHAT_COLOR_BLACK])), 15, 5000);
+        end else if Chat.FindOption('dive anyway', [CHAT_COLOR_BLACK]) then begin
+          b := ([120,412,401,421]);
+          Mouse.Click(b, MOUSE_LEFT);
+          WaitUntil((not Chat.FindOption('dive anyway', [CHAT_COLOR_BLACK])), 15, 5000);
+        end else if Chat.FindOption('airin', [CHAT_COLOR_BLACK]) then begin
+          Chat.ClickContinue(True);
+          WaitUntil((not Chat.FindOption('airin', [CHAT_COLOR_BLACK])), 15, 5000);
+        end;
+      end else begin
+        try
+          if BoatyIsland.WalkSelectOption(['Dive'], 10) then
+            WaitUntil(Chat.FindOption('Dive and walk', [CHAT_COLOR_BLACK]) or Chat.FindOption('it would be easier', [CHAT_COLOR_BLACK]) or (MyPos := ScriptWalker^.GetMyPos()).InBox([1129, 5407, 1769, 5824]), 15, 10000);
+        except
+          Break;
+        end;
+      end;
+    end
+    else
+    begin
+      item := 'Digsite pendant (5)';
+      wait(250,500);
+      if Inventory.ClickItem(item, 'Rub') and WaitUntil(Chat.FindOption('Digsite', [CHAT_COLOR_BLACK]), 10, 10000) then begin
+        b := ([241,396,279,406]);
+        Mouse.Click(b, MOUSE_LEFT);
+      end
+      else
+        Equipment.ClickItem(item, 'Digsite');
+
+      WaitUntil(ScriptWalker^.GetMyPos().InBox([8448, 2342, 9273, 2895]), 15, 10000);
+    end;
+  end;
+end;
+
+procedure TFarmRun.CleanGrimyHerbs();
+var
+  slot            : Int32;
+  slots           : TIntegerArray;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+  if not Inventory.FindItems(GRIMY_HERBS, slots) then
+    Exit;
+  for slot in slots do begin
+    Mouse.Move(Inventory.GetSlotBox(slot));
+    Mouse.Click(MOUSE_LEFT); //TODO Faster click w/ drag
+    Wait(32, 56);
+
+    if ('You need level' in Chat.GetMessage(7)) then begin
+      Self.CleanHerbs := False;
+      Self.LeprechaunItems.Add(GRIMY_HERBS);
+      SetLength(Self.HarvestQuantities, Length(Self.LeprechaunItems));
+      Exit;
+    end;
+  end;
+end;
+
+procedure TFarmRun.NoteItems();
+var
+  count, slot, i  : Int32;
+  item            : TRSItem;
+  items           : TRSItemArray;
+  slots, lepItems : TIntegerArray;
+  lepPT           : TPoint;
+  playerBox       : TBox;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  if Self.CleanHerbs then
+    Self.CleanGrimyHerbs;
+
+  WriteLn('Noting items at ', Self.CurrentPatch.Data.Name);
+
+  for I := 0 to High(LeprechaunItems) do begin
+    if Inventory.FindItem(item := LeprechaunItems[i], slot) then begin
+      slots += slot;
+      items += item;
+      lepItems += i;
+    end
+  end;
+
+  if slots.Len < 1 then
+    Exit;
+
+  for i := 0 to High(slots) do begin
+    RSInterface.Close();
+
+    if ScriptWalker^.GetMyPos = Self.CurrentPatch.Data.LeprechaunCoords then begin
+      playerBox := Mainscreen.GetPlayerBox;
+      playerBox.Y1 := playerBox.Y1 - Floor(playerBox.Height / 2);
+      lepPT := playerBox.Middle;
+    end else if not Self.CurrentPatch.FindLeprechaun(lepPT) then
+      Exit;
+
+    count := Inventory.CountItem(items[i]);
+    Inventory.SetSelectedSlot(slots[i]);
+
+    if SRL.Dice(65) then
+      Mouse.HumanMove(lepPT)
+    else
+      Mouse.Move(lepPT);
+
+    if Mainscreen.IsUpText('Tool') then begin
+      Mouse.Click(MOUSE_LEFT);
+    end else if not ChooseOption.Select('Tool') then begin
+      WriteLn('Failed to choose option leprechaun.');
+      Inventory.SetSelectedSlot(-1);
+      Exit;
+    end;
+
+    if not Mainscreen.DidRedClick then begin
+      WriteLn('Failed to find red click.');
+      Inventory.SetSelectedSlot(-1);
+      Exit;
+    end;
+
+    if SRL.Dice(65) and (i <> High(slots)) then begin
+      Wait(187, 317);
+      Mouse.Move(Inventory.GetSlotBox(slots[i+1]));
+    end else if SRL.Dice(65) then begin
+      Mouse.RandomMovement;
+    end;
+
+    if WaitUntil((Inventory.CountItem(items[i]) = 0), 15, 10000) then
+      Self.HarvestQuantities[lepItems[i]] += count;
+
+    Minimap.WaitPlayerMoving;
+  end;
+  Inventory.SetSelectedSlot(-1);
+end;
+
+procedure TFarmRun.HandleDeadPatch(); begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  if Self.ResurrectCrop then begin
+    case Magic.GetSpellBook of
+      ERSSpellBook.ARCEUUS:
+        begin
+          Magic.ClickSpell(ERSSpell.RESURRECT_CROPS);
+          if Chat.FindMessage('to cast') then begin
+            Self.ResurrectCrop := False;
+            WriteLn('Out of runes for resurrect crop. Disabling.');
+          end
+        end;
+      ERSSpellBook.LUNAR:
+        begin
+          //TODO spellbook swap
+        end;
+    end;
+  end;
+
+  if Self.ResurrectCrop then
+    Wait(16, 53);
+
+  if SRL.Dice(65) then
+    Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, MainScreen.NormalizeDistance(15)))
+  else
+    Mouse.Move(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, MainScreen.NormalizeDistance(15)));
+
+  if MainScreen.IsUpText('Dead') then begin
+    Mouse.Click(MOUSE_LEFT);
+  end else if not ChooseOption.Select('Dead') then begin
+    Mouse.RandomMovement;
+    Exit;
+  end;
+
+  if not MainScreen.DidRedClick then
+    Exit;
+
+  Wait(583, 792);
+  Minimap.WaitPlayerMoving;
+  Wait(583, 792);
+
+  if not Self.CurrentPatch.Find(False) then
+    Exit;
+
+  if not WaitUntil((Chat.FindMessage('restore') or Chat.HasContinue or Self.CurrentPatch.IsEmpty), 15, 15000) then
+    Exit;
+
+  if Chat.HasContinue then begin
+    if SRL.Dice(65) then
+      Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, Mainscreen.NormalizeDistance(15)))
+    else
+      Mouse.Move(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, Mainscreen.NormalizeDistance(15)));
+
+    if MainScreen.IsUpText('Dead') then begin
+      Mouse.Click(MOUSE_LEFT);
+    end else if not ChooseOption.Select('Dead') then begin
+      Mouse.RandomMovement;
+      Exit;
+    end;
+
+    if not MainScreen.DidRedClick then
+      Exit;
+
+    Wait(583, 792);
+    Minimap.WaitPlayerMoving;
+    Wait(583, 792);
+
+    if not Self.CurrentPatch.Find(False) then
+      Exit;
+
+    WaitUntil((Chat.FindMessage('restore') or Chat.HasContinue or Self.CurrentPatch.IsEmpty), 15, 15000);
+  end;
+
+  Wait(159, 658);
+end;
+
+procedure TFarmRun.HandleDiseasedPatch();
+begin
+  Self.CurrentPatch.Skip := True;
+end;
+
+procedure TFarmRun.WithdrawCompost;
+var
+  withdrawAmt      : Int32 := Round(Inventory.CountEmptySlots * 0.2) + 1;
+  leprechaunPt     : TPoint;
+  boxes            : TBoxArray := [[160, 210, 245, 245],
+                                   [275, 210, 360, 245],
+                                   [390, 210, 475, 245],
+                                   [390, 210, 475, 245],
+                                   [  0,   0,   0,   0]];
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  if not Self.CurrentPatch.FindLeprechaun(leprechaunPt) then
+    Exit;
+
+  Mouse.Move(leprechaunPt);
+  if not ChooseOption.Select('Exchange') then
+    Exit;
+
+  if not WaitUntil(RSInterface.IsOpen(), 15, 15000) then
+    Exit;
+
+  if BankPin.IsOpen then
+    BankPin.Enter(Login.GetPlayer.Pin);
+
+  if SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), boxes[Self.CompostMethod]) = 0 then begin
+    //TODO no green = no items
+    //downgrade compost?
+  end;
+
+  Mouse.Move(boxes[Self.CompostMethod]);
+  if withdrawAmt = 1 then begin
+    ChooseOption.Select('Remove-1');
+  end else if withdrawAmt = 5 then begin
+    ChooseOption.Select('Remove-5');
+  end else begin
+    ChooseOption.Select('Remove-X');
+    Chat.AnswerQuery('Enter amount', ToStr(withdrawAmt), 5000);
+  end;
+
+  RSInterface.Close(True);
+end;
+
+procedure TFarmRun.DropBuckets();
+var
+  Tmp, Slots : TIntegerArray;
+  I : Int32;
+begin
+  if not Inventory.FindItems(['Bucket'], Tmp) then
+    Exit;
+
+  for I := 0 to High(Tmp) do begin
+    if SRL.CountColor(CTS2(4087132, 1, 3.61, 4.36), Inventory.GetSlotBox(Tmp[I])) > 2 then
+      Continue
+    else
+      Slots += Tmp[I];
+  end;
+
+  if Slots.Len < 1 then
+    Exit;
+
+  Inventory.ShiftDrop(Slots);
+end;
+
+procedure TFarmRun.CompostPatch();
+var
+  compostArray    : TStringArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', ''];
+  compostItem     : TRSItem := compostArray[Self.CompostMethod];
+  slot, attempts  : Int32;
+  T : TCountdown;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  if not Self.CurrentPatch.Find then begin
+    WriteLn('Couldn''t find patch to compost!');
+    Exit;
+  end;
+
+  WriteLn('Composting at ' + Self.CurrentPatch.Data.Name + ' patch.');
+
+  if not Inventory.SetSelectedSlot(-1) then begin
+    Writeln('Failed to unselect item before searching for compost');
+    Exit;
+  end;
+
+  if Self.CompostMethod = ECompostMethod.FERTILE_SOIL then begin
+    if not WaitUntil((Magic.GetSpellBook = ERSSpellBook.LUNAR), 1200, 2*ONE_MINUTE) then
+      TerminateScript('Couldn''t compost because you''re on the wrong spellbook for fertile soil.');
+    Magic.CastSpell(ERSSpell.FERTILE_SOIL);
+  end else if Self.CompostMethod = ECompostMethod.BOTTOMLESS then begin
+    if not Inventory.FindItem('Bottomless compost bucket', slot) then begin
+      WriteLn('Failed to find bottomless compost bucket in inventory.');
+      Exit;
+    end;
+
+    Inventory.SetSelectedSlot(slot);
+  end else begin
+    if not Inventory.FindItem(compostItem, slot) then begin
+      WithdrawCompost;
+      if not Inventory.FindItem(compostItem, slot) then begin
+        WriteLn('Failed to find compost after withdrawing.');
+        Exit;
+      end;
+    end;
+
+    Inventory.SetSelectedSlot(slot);
+  end;
+
+  Wait(142, 379);
+
+  XPBar.Read;
+  for attempts := 0 to 2 do begin
+    WriteLn('Attempting to hover patch for composting. Attempt ' + ToStr(attempts + 1));
+    if attempts = 2 then begin
+      WriteLn('Failed too many times to hover patch for composting.');
+      Antiban.RandomMouse;
+      Wait(142, 379);
+      Exit;
+    end;
+
+    if not Self.CurrentPatch.Find then begin
+      Writeln('Failed to find patch.');
+      Continue;
+    end;
+
+    if Self.CompostMethod = ECompostMethod.FERTILE_SOIL then begin
+      if not Magic.IsSelected(ERSSpell.FERTILE_SOIL) then begin
+        WriteLn('Fertile soil spell isn''t selected anymore');
+        Exit;
+      end;
+    end else if Inventory.GetSelectedSlot <> slot then begin
+      WriteLn('Compost item isn''t selected anymore');
+      Exit;
+    end;
+
+    if SRL.Dice(65) then
+      Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.SearchBox))
+    else
+      Mouse.Move(Self.CurrentPatch.SearchBox);
+
+    if MainScreen.IsUpText(Self.CurrentPatch.PlantedUpText) then begin
+      WriteLn('Clicking patch');
+      Mouse.Click(MOUSE_LEFT);
+      Break;
+    end else if ChooseOption.Select(Self.CurrentPatch.PlantedUpText) then begin
+      Writeln('Right click selecting patch.');
+      Break;
+    end;
+    Mouse.RandomMovement;
+  end;
+
+  if not MainScreen.DidRedClick then begin
+    WriteLn('No red X found!');
+    Exit;
+  end;
+
+  T.Init(6000);
+
+  while not T.IsFinished do begin
+    if XPBar.EarnedXP then begin
+      Self.InactivityTimer.Restart;
+      WriteLn('Completed compost by earning xp.');
+      Break;
+    end;
+  end;
+
+  if T.IsFinished then begin
+    WriteLn('Failed to confirm composting action.');
+  end;
+
+  if SRL.Dice(40) and Self.CleanHerbs then begin
+    Self.CleanGrimyHerbs;
+
+  if SRL.Dice(80) then
+    Self.NoteItems;
+  end;
+
+  Wait(600, 750);
+  Self.DropBuckets;
+
+  Wait(208, 313);
+  Self.CurrentPatch.Complete := True;
+end;
+
+procedure TFarmRun.Plant();
+var
+  slot, attempts  : Int32;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  if not Self.CurrentPatch.Find then
+    Exit;
+
+  if (Self.CurrentPatch.Data.PatchType = EPatchType.ALLOTMENT) and (Inventory.CountItemStack(Self.CurrentPatch.Seed) < 3) then begin
+    Self.CurrentPatch.Skip := True;
+    Exit;
+  end;
+
+  WriteLn('Planting ' + toStr(Self.CurrentPatch.Seed) + ' at ' + Self.CurrentPatch.Data.Name + ' patch.');
+
+  if Inventory.GetSelectedSlot = -1 then begin
+    if not Inventory.FindItem(Self.CurrentPatch.Seed, slot) then begin
+      WriteLn('Couldn''t find seed in inventory.');
+      Self.CurrentPatch.Skip := True;
+      Exit;
+    end;
+
+    if not Inventory.SetSelectedSlot(slot) then begin
+      WriteLn('Failed to select seed in inventory.');
+      Exit;
+    end;
+  end;
+
+  XPBar.Read;
+  for attempts := 0 to 2 do begin
+    if attempts = 2 then begin
+      WriteLn('Failed to find correct patch uptext or choose option while planting.');
+      Inventory.SetSelectedSlot(-1);
+      Antiban.RandomMouse;
+      Wait(142, 379);
+      Exit;
+    end;
+
+    if not Self.CurrentPatch.Find then
+      Continue;
+
+    if (not MainScreen.IsUpText(Self.CurrentPatch.EmptyUpText))
+      or (Self.CurrentPatch.Data.PatchType = EPatchType.SEAWEED) then begin
+      if SRL.Dice(65) then
+        Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.SearchBox))
+      else
+        Mouse.Move(Self.CurrentPatch.SearchBox);
+    end;
+
+    if (Self.CurrentPatch.Data.PatchType <> EPatchType.HERB)
+     and (Self.CurrentPatch.Data.PatchType <> EPatchType.SEAWEED)
+     and (Self.CurrentPatch.PlantedUpText in MainScreen.GetUpText.After('>')) then begin
+      if MainScreen.IsUpText(Self.CurrentPatch.HarvestUpText) then
+        Self.Harvest
+      else
+        Self.CompostPatch;
+      Exit;
+    end;
+
+    if MainScreen.IsUpText(Self.CurrentPatch.EmptyUpText) then begin
+      Mouse.Click(MOUSE_LEFT);
+      Break;
+    end else if ChooseOption.Select(Self.CurrentPatch.EmptyUpText) then begin
+      Break;
+    end;
+
+    Mouse.RandomMovement;
+  end;
+
+  if not MainScreen.DidRedClick then begin
+    Exit;
+  end;
+
+  if WaitUntil(Minimap.IsPlayerMoving, 17, Random(713, 809)) then
+    while Minimap.IsPlayerMoving do
+      Wait(36, 58);
+
+  if Chat.HasContinue then begin
+    if Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER then
+      Self.CompostPatch
+    else
+      Self.CurrentPatch.Complete := True;
+    Exit;
+  end;
+
+  if not Self.CurrentPatch.Find(False) then begin
+    Exit;
+  end;
+
+  if WaitUntil(XPBar.EarnedXP, 15, 6000) then begin
+    Self.InactivityTimer.Restart;
+    Wait(338, 562);
+    if Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER then
+      Self.CompostPatch
+    else
+      Self.CurrentPatch.Complete := True;
+  end;
+end;
+
+procedure TFarmRun.HarvestWait();
+var
+  T : TCountdown;
+begin
+  T.Init(300);
+
+  if not (ScriptWalker^.GetMyPos in PatchData[EFarmPatch.PHASMATYS_HERB].MapCoords) then begin
+    Wait(T.TimeRemaining);
+    Exit;
+  end;
+
+
+  repeat
+    if (Length(MainScreen.FindHitsplats(MainScreen.GetPlayerBox)) > 0) then begin
+      WriteLn('Combat detected in Port Phasmatys. Running away.');
+      T.Init(ONE_MINUTE);
+      repeat
+        ScriptWalker^.WebWalk([10030, 2320], 50);
+      until (ScriptWalker^.GetMyPos.DistanceTo([10030, 2320]) <= 50) or T.IsFinished;
+      Self.CurrentPatch.Skip := True;
+      Break;
+    end;
+  until T.IsFinished;
+end;
+
+procedure TFarmRun.Harvest();
+var
+   slot           : Int32;
+  HarvestTimer    : TCountdown;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  WriteLn('Harvesting at ' + Self.CurrentPatch.Data.Name + ' patch.');
+
+  if Inventory.IsFull or (Self.CurrentPatch.Data.PatchType = EPatchType.FLOWER) then
+    Self.NoteItems;
+
+  Minimap.WaitPlayerMoving;
+  if not Self.CurrentPatch.Find then
+    Exit;
+
+  if not Mainscreen.IsUpText(Self.CurrentPatch.HarvestUpText) or (Self.CurrentPatch.Data.PatchType = EPatchType.SEAWEED) then begin
+    if SRL.Dice(65) then
+      Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.SearchBox))
+    else
+      Mouse.Move(Self.CurrentPatch.SearchBox);
+  end;
+
+  if Mainscreen.IsUpText(Self.CurrentPatch.HarvestUpText) then begin
+    Mouse.Click(MOUSE_LEFT);
+  end else if not ChooseOption.Select(Self.CurrentPatch.HarvestUpText) then begin
+    WriteLn('Failed to find harvest uptext or choose option.');
+    Antiban.SmallCameraRotation();
+    Exit;
+  end;
+
+  if not Mainscreen.DidRedClick then begin
+    WriteLn('Failed to find red click.');
+    Exit;
+  end;
+
+  if WaitUntil(Minimap.IsPlayerMoving, 17, Random(707, 803)) then
+    while Minimap.IsPlayerMoving do
+      Wait(17, 28);
+
+  if not Self.CurrentPatch.Find(False) then
+    Exit;
+
+  if SRL.Dice(35) and Inventory.FindItem(Self.CurrentPatch.Seed, slot) then begin
+    Inventory.SetSelectedSlot(slot);
+    if SRL.Dice(65) then
+      Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.SearchBox))
+    else
+      Mouse.Move(Self.CurrentPatch.SearchBox);
+  end;
+
+  HarvestTimer.Init(4000);
+  while not HarvestTimer.IsFinished do begin
+
+    if XPBar.EarnedXP then begin
+      HarvestTimer.Restart;
+      Self.InactivityTimer.Restart;
+    end;
+
+    if Inventory.IsFull then begin
+      Inventory.SetSelectedSlot(-1);
+      Wait(532, 718);
+      Self.NoteItems;
+      Exit;
+    end;
+
+    if HarvestTimer.IsFinished or Self.CurrentPatch.IsEmpty then begin
+      Plant;
+      Exit;
+    end;
+
+    HarvestWait;
+    if Self.CurrentPatch.Skip = True then
+      Break;
+  end;
+
+end;
+
+procedure TFarmRun.HarvestWhiteBerries();
+var
+  HarvestTimer : TCountdown;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  WriteLn('Harvesting whiteberries at ' + Self.CurrentPatch.Data.Name + ' patch.');
+
+  if Inventory.IsFull then
+    Self.NoteItems;
+
+  if WaitUntil(Minimap.IsPlayerMoving, 17, 600) then
+    while Minimap.IsPlayerMoving do
+      Wait(13, 199);
+
+  if not Self.CurrentPatch.Find then
+    Exit;
+
+  if not Mainscreen.IsUpText('Pick') then begin
+      if SRL.Dice(65) then
+        Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.SearchBox))
+      else
+        Mouse.Move(Self.CurrentPatch.SearchBox);
+  end;
+
+  if Mainscreen.IsUpText('Clear') then begin
+      Self.CurrentPatch.Complete := True;
+      Exit;
+  end;
+
+  if Mainscreen.IsUpText('Inspect') then begin
+      Self.CurrentPatch.Complete := True;
+      Exit;
+  end;
+
+  if Mainscreen.IsUpText('Check-health') then begin
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(XPBar.EarnedXP(), 15, 2600);
+  end;
+
+  if Mainscreen.IsUpText('Pick') then begin
+    Mouse.Click(MOUSE_LEFT);
+  end else if not ChooseOption.Select('Pick', MOUSE_LEFT, True, False) then begin
+    if ChooseOption.HasOption('Clear', True, False) then begin
+      Self.CurrentPatch.Complete := True
+    end else begin
+      WriteLn('Failed to find harvest uptext or choose option.');
+    end;
+    Exit;
+  end;
+
+  if not Mainscreen.DidRedClick then begin
+    WriteLn('Failed to find red click.');
+    Exit;
+  end;
+
+  if WaitUntil(Minimap.IsPlayerMoving, 17, 600) then
+    while Minimap.IsPlayerMoving do
+      Wait(13, 199);
+
+  if not Self.CurrentPatch.Find(False) then
+    Exit;
+
+  if SRL.Dice(65) then
+    Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.SearchBox))
+  else
+    Mouse.Move(Self.CurrentPatch.SearchBox);
+
+  HarvestTimer.Init(4000);
+  while not HarvestTimer.IsFinished do begin
+
+    if XPBar.EarnedXP then
+      HarvestTimer.Restart;
+
+    if Mainscreen.IsUpText('ear') then begin
+      Self.CurrentPatch.Complete := True;
+      Exit;
+    end else if Inventory.IsFull then begin
+      Inventory.SetSelectedSlot(-1);
+      Self.NoteItems;
+      HarvestWhiteBerries;
+    end;
+    Wait(300);
+  end;
+end;
+
+procedure TFarmRun.HarvestCactus();
+var
+  HarvestTimer: TCountdown;
+begin
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  WriteLn('Harvesting cactus at ' + Self.CurrentPatch.Data.Name + ' patch.');
+
+  if Inventory.IsFull then
+    Self.NoteItems;
+
+  if WaitUntil(Minimap.IsPlayerMoving, 17, 600) then
+    while Minimap.IsPlayerMoving do
+      Wait(13, 199);
+
+  if not Self.CurrentPatch.Find then
+    Exit;
+
+  if not Mainscreen.IsUpText('Pick') then begin
+    if SRL.Dice(65) then
+      Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, Mainscreen.NormalizeDistance(15)))
+    else
+      Mouse.Move(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, Mainscreen.NormalizeDistance(15)));
+  end;
+
+  if Mainscreen.IsUpText('Clear') then begin
+      Self.CurrentPatch.Complete := True;
+      Exit;
+  end;
+
+  if Mainscreen.IsUpText('Inspect') then begin
+      Self.CurrentPatch.Complete := True;
+      Exit;
+  end;
+
+  if Mainscreen.IsUpText('Check-health') then begin
+      Mouse.Click(MOUSE_LEFT);
+      WaitUntil(XPBar.EarnedXP(), 15, 2600);
+  end;
+
+    if Mainscreen.IsUpText('Pick') then begin
+    Mouse.Click(MOUSE_LEFT);
+  end else if MainScreen.IsUpText('Clear') then begin
+    Self.CurrentPatch.Complete := True;
+    Exit;
+  end else if not ChooseOption.Select('Pick', MOUSE_LEFT, True, False) then begin
+    if ChooseOption.HasOption('Clear', True, False) then begin
+      Self.CurrentPatch.Complete := True
+    end else begin
+      WriteLn('Failed to find harvest uptext or choose option.');
+    end;
+    Exit;
+  end;
+
+  if not Mainscreen.DidRedClick then begin
+    WriteLn('Failed to find red click.');
+    Exit;
+  end;
+
+  if WaitUntil(Minimap.IsPlayerMoving, 17, 600) then
+    while Minimap.IsPlayerMoving do
+      Wait(13, 199);
+
+  if not Self.CurrentPatch.Find(False) then
+    Exit;
+
+  if SRL.Dice(65) then
+    Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, Mainscreen.NormalizeDistance(15)))
+  else
+    Mouse.Move(SRL.RandomPoint(Self.CurrentPatch.TPA.Mean, Mainscreen.NormalizeDistance(15)));
+
+  HarvestTimer.Init(4000);
+  while not HarvestTimer.IsFinished do begin
+
+    if XPBar.EarnedXP then
+      HarvestTimer.Restart;
+
+    if Mainscreen.IsUpText('ear') then begin
+      Self.CurrentPatch.Complete := True;
+      Exit;
+    end else if Inventory.IsFull then begin
+      Inventory.SetSelectedSlot(-1);
+      Self.NoteItems;
+      HarvestCactus;
+    end;
+    Wait(300);
+  end;
+end;
+
+procedure TFarmRun.UsePOHSpiritTree(Location: String);
+var
+  Primary, Secondary,
+  TPA                 : TPointArray;
+  ATPA                : T2DPointArray;
+  attempts : int32;
+begin
+
+  if not WaitUntil(Minimap.InPOH, 15, 15000) then begin
+    WriteLn('Not in POH!');
+    Exit;
+  end;
+
+  for attempts := 1 to 3 do begin
+    if (SRL.FindColors(Primary, CTS2(1649718, 5, 0.15, 1.14), MainScreen.Bounds) = 0)
+     or (SRL.FindColors(Secondary, CTS2(1720892, 10, 0.21, 1.42), MainScreen.Bounds) = 0) then begin
+      if SRL.Dice(50) then
+        MiniMap.SetCompassAngle(Random(106, 153))
+      else
+        MiniMap.SetCompassAngle(Random(209, 248));
+      Continue;
+    end;
+
+    TPA := Primary.PointsInRangeOf(Secondary, 0, MainScreen.NormalizeDistance(38));
+
+    TPA.Grow(MainScreen.NormalizeDistance(8));
+    TPA.Erode(MainScreen.NormalizeDistance(6));
+
+    if TPA = [] then begin
+      if SRL.Dice(50) then
+        MiniMap.SetCompassAngle(Random(106, 153))
+      else
+        MiniMap.SetCompassAngle(Random(209, 248));
+    end;
+  end;
+
+  if TPA = [] then begin
+    WriteLn('Failed to find spirit tree. Skipping.');
+    Self.CurrentPatch.Skip := True;
+    Exit;
+  end;
+
+  ATPA := TPA.Cluster(MainScreen.NormalizeDistance(18));
+  ATPA.SortBySize;
+
+  if SRL.Dice(65) then
+    Mouse.HumanMove(SRL.RandomPoint(ATPA[0].Mean, MainScreen.NormalizeDistance(20)))
+  else
+    Mouse.Move(SRL.RandomPoint(ATPA[0].Mean, MainScreen.NormalizeDistance(20)));
+
+  if MainScreen.IsUpText('Spirit') then
+    Mouse.Click(MOUSE_LEFT)
+  else if not ChooseOption.Select('Travel') then begin
+    WriteLn('Failed to find spirit tree uptext!');
+    Self.CurrentPatch.Skip := True;
+    Exit;
+  end;
+
+  if SRL.Dice(66) then begin
+    Wait(718, 2168);
+    case Location of
+      'guild': KeyBoard.KeyDown(VK_B);
+    end;
+  end;
+
+  if not WaitUntil(RSInterface.IsOpen(), 15, 10000) then begin
+    WriteLn('Timed out waiting for spirit tree interface.');
+    Exit;
+  end;
+
+  if not KeyBoard.IsKeyDown(VK_B) then
+    KeyBoard.PressKey(VK_B);
+
+  WaitUntil((not Minimap.InPOH), 15, 10000);
+  KeyBoard.KeyUp(VK_B);
+end;
+
+procedure TFarmRun.TeleportTo(TravelMethod : ETravelMethod; ConfirmPos : Boolean);
+label
+  teleport_complete;
+var
+  item            : TRSItem         := '';
+  items           : TRSItemArray;
+  spell           : ERSSpell        := ERSSpell.BAKE_PIE;
+  b: TBox;
+begin
+  WriteLn('Teleporting to ' + Self.CurrentPatch.Data.Name);
+
+  if not RSClient.IsLoggedIn then
+    Exit;
+
+  Inventory.SetSelectedSlot(-1);
+
+  if Minimap.InPOH then begin
+
+    case TravelMethod of
+      ETravelMethod.HOUSE_TAB_SPIRIT_TREE_GUILD,
+      ETravelMethod.HOUSE_TELE_SPIRIT_TREE_GUILD,
+      ETravelMethod.CON_CAPE_SPIRIT_TREE_GUILD:
+        begin
+          Self.UsePOHSpiritTree('guild');
+          goto teleport_complete;
+        end;
+    end;
+  end;
+
+  if ScriptWalker^.GetMyPos in Self.CurrentPatch.Data.MapCoords then begin
+    Exit;
+  end;
+
+  case TravelMethod of
+    ETravelMethod.ICY_BASALT:
+      begin
+        item := 'Icy basalt';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Weiss');
+      end;
+    ETravelMethod.STONY_BASALT:
+      begin
+        item := 'Stony basalt';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Stronghold');
+      end;
+    ETravelMethod.CATHERBY_TABLET:
+      begin
+        item := 'Catherby teleport';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Break');
+      end;
+    ETravelMethod.CATHERBY_TELEPORT:
+      begin
+        spell := ERSSpell.CATHERBY_TELEPORT;
+        wait(250,500);
+        Magic.CastSpell(spell, 'Cast');
+      end;
+    ETravelMethod.CAMELOT_TELEPORT:
+      begin
+        spell := ERSSpell.CAMELOT_TELEPORT;
+        wait(250,500);
+        Magic.CastSpell(spell, 'Cast');
+      end;
+    ETravelMethod.CAMELOT_TABLET:
+      begin
+        item := 'Camelot teleport';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Break');
+      end;
+    ETravelMethod.FENKENSTRAIN_TELEPORT:
+      begin
+        spell := ERSSpell.FENKENSTRAINS_CASTLE_TELEPORT;
+        wait(250,500);
+        Magic.ClickSpell(spell);
+      end;
+    ETravelMethod.ECTOPHIAL:
+      begin
+        item := 'Ectophial';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Empty');
+        wait(4000,5000);
+      end;
+    ETravelMethod.XERICS_TALISMAN:
+      begin
+        item := 'Xeric''s talisman';
+        wait(250,500);
+        if Inventory.ContainsItem('Xeric''s talisman') then
+        begin
+          Inventory.ClickItem(item, 'Rub');
+          WaitUntil(RSInterface.IsOpen(), 10, 5000);
+          b := ([219,92,293,101]);
+          Mouse.Click(b, MOUSE_LEFT);
+        end
+        else
+          Equipment.ClickItem(item, 'Xeric''s Glade');
+      end;
+    ETravelMethod.HOSIDIOUS_TABLET:
+      begin
+        item := 'Hosidius teleport';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Break');
+      end;
+    ETravelMethod.HOUSE_TELEPORT:
+      begin
+        item := 'Teleport to house';
+        wait(250,500);
+        if Inventory.ContainsItem('Teleport to house') then
+        begin
+          Inventory.ClickItem(item, 'Outside');
+        end
+        else
+          Magic.CastSpell(ERSSpell.TELEPORT_TO_HOUSE, 'Outside');
+      end;
+     ETravelMethod.CON_CAPE_HOSIDIUS:
+    begin
+        items := (['Construct. cape', 'Construct. cape(t)']);
+        for item in items do
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Teleport') then
+          Equipment.ClickItem(item, 'Teleport');
+        WaitUntil(RSInterface.IsOpen(), 10, 5000);
+        b := ([235,144,278,148]);
+        Mouse.Click(b, MOUSE_LEFT);
+      end;
+    ETravelMethod.FARMING_CAPE:
+      begin
+        items := (['Farming cape', 'Farming cape(t)']);
+        for item in items do
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Teleport') then
+          Equipment.ClickItem(item, 'Teleport');
+      end;
+    ETravelMethod.EXPLORERS_RING_2:
+      begin
+        item := 'Explorer''s ring 2';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Teleport') then
+          Equipment.ClickItem(item, 'Teleport');
+      end;
+    ETravelMethod.EXPLORERS_RING_3:
+      begin
+        item := 'Explorer''s ring 3';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Teleport') then
+          Equipment.ClickItem(item, 'Teleport');
+      end;
+    ETravelMethod.EXPLORERS_RING_4:
+      begin
+        item := 'Explorer''s ring 4';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Teleport') then
+          Equipment.ClickItem(item, 'Teleport');
+      end;
+    ETravelMethod.ARDY_CLOAK_1_BUSH:
+      begin
+        item := 'Ardougne cloak 1';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Monastery Teleport') then
+          Equipment.ClickItem(item, 'Kandarin Monastery');
+      end;
+    ETravelMethod.ARDY_CLOAK_2:
+      begin
+        item := 'Ardougne cloak 2';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Farm Teleport') then
+          Equipment.ClickItem(item, 'Ardougne Farm');
+      end;
+    ETravelMethod.ARDY_CLOAK_2_BUSH:
+      begin
+        item := 'Ardougne cloak 2';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Monastery Teleport') then
+          Equipment.ClickItem(item, 'Kandarin Monastery');
+      end;
+    ETravelMethod.ARDY_CLOAK_3:
+      begin
+        item := 'Ardougne cloak 3';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Farm Teleport') then
+          Equipment.ClickItem(item, 'Ardougne Farm');
+      end;
+    ETravelMethod.ARDY_CLOAK_3_BUSH:
+      begin
+        item := 'Ardougne cloak 3';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Monastery Teleport') then
+          Equipment.ClickItem(item, 'Kandarin Monastery');
+      end;
+    ETravelMethod.ARDY_CLOAK_4:
+      begin
+        item := 'Ardougne cloak 4';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Farm Teleport') then
+          Equipment.ClickItem(item, 'Ardougne Farm');
+      end;
+    ETravelMethod.ARDY_CLOAK_4_BUSH:
+      begin
+        item := 'Ardougne cloak 4';
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Monastery Teleport') then
+          Equipment.ClickItem(item, 'Kandarin Monastery');
+      end;
+    ETravelMethod.SKILLS_NECKLACE:
+      begin
+        item := 'Skills necklace(6)';
+        wait(250,500);
+        if Inventory.ContainsItem(item) then
+        begin
+          Inventory.ClickItem(item, 'Rub');
+          WaitUntil(RSInterface.IsOpen(), 10, 5000);
+          b := ([219,155,295,165]);
+          Mouse.Click(b, MOUSE_LEFT);
+        end
+        else
+          Equipment.ClickItem(item, 'Farming Guild');
+      end;
+    ETravelMethod.NONE:
+      begin
+      end;
+    ETravelMethod.DIGSITE_TO_SEAWEED:
+      begin
+          Self.TravelToGiantSeaweed();
+          Exit;
+      end;
+    ETravelMethod.HOUSE_TAB_SPIRIT_TREE_GUILD:
+      begin
+        item := 'Teleport to house';
+        wait(250,500);
+        Inventory.ClickItem(item, 'Break');
+      end;
+    ETravelMethod.HOUSE_TELE_SPIRIT_TREE_GUILD:
+      begin
+        spell := ERSSpell.TELEPORT_TO_HOUSE;
+        wait(250,500);
+        Magic.CastSpell(spell);
+      end;
+     ETravelMethod.CON_CAPE_SPIRIT_TREE_GUILD:
+      begin
+        items := (['Construct. cape', 'Construct. cape(t)']);
+        wait(250,500);
+        if not Inventory.ClickItem(item, 'Tele to POH') then
+        Equipment.ClickItem(item, 'Tele to POH');
+      end;
+  end;
+
+  Wait(548, 732); Wait(118, 278);
+
+  if ('Ardougne' in item) then begin
+    if Chat.FindMessage('cape has recharged') then begin
+      WriteLn('Out of ardy cape charges. Skipping patch.');
+      Self.CurrentPatch.Skip := True;
+      Exit;
+    end;
+  end else if ('Explorer' in item) then begin
+    if Chat.FindMessage('ring recharges') then begin
+      WriteLn('Out of explorer''s ring charges. Skipping patch.');
+      Self.CurrentPatch.Skip := True;
+      Exit;
+    end;
+  end else if TravelMethod = ETravelMethod.XERICS_TALISMAN then begin
+    if Equipment.ContainsItem('Xeric''s talisman (inert)') then begin
+      WriteLn('Out of xeric''s talisman charges. Skipping patch.');
+      Self.CurrentPatch.Skip := True;
+      Exit;
+
+    end else if ((not Equipment.ContainsItem('Xeric''s talisman')) and (not Inventory.ContainsItem('Xeric''s talisman'))) then begin
+      WriteLn('No xeric''s talisman equipped. Skipping patch.');
+      Self.CurrentPatch.Skip := True;
+      Exit;
+    end;
+
+  end else if spell <> ERSSpell.BAKE_PIE then begin
+    if Chat.FindMessage('to cast') then begin
+      WriteLn('Out of runes for ' + ToStr(spell) + '. Skipping patch.');
+      Self.CurrentPatch.Skip := True;
+      Exit;
+    end;
+  end;
+
+  if (TravelMethod = ETravelMethod.HOUSE_TAB_SPIRIT_TREE_GUILD)
+    or (TravelMethod = ETravelMethod.HOUSE_TELE_SPIRIT_TREE_GUILD)
+    or  (TravelMethod = ETravelMethod.CON_CAPE_SPIRIT_TREE_GUILD) then
+      Self.UsePOHSpiritTree('guild');
+
+  teleport_complete:
+  if not ConfirmPos then
+    Exit;
+
+  if not WaitUntil((ScriptWalker^.GetMyPos in Self.CurrentPatch.Data.MapCoords), 10, 10000) then
+    Exit;
+
+  if TravelMethod = ETravelMethod.ICY_BASALT then begin
+    ScriptWalker^.WalkBlind(Self.CurrentPatch.Data.Coords.Random(8,8));
+  end;
+
+  if Inventory.IsFull then
+    Self.NoteItems;
+end;
+
+procedure TFarmRun.Report();
+var
+  strings                   : TStringArray;
+  variants                  : TVariantArray;
+  i                         : Int32;
+begin
+  strings := ['Runs complete'];
+  variants := [Self.RunsComplete];
+
+  for i:= 0 to High(LeprechaunItems) do begin
+    if Self.HarvestQuantities[i] > 0 then begin
+      strings += LeprechaunItems[i];
+      variants += Self.HarvestQuantities[i];
+    end;
+  end;
+
+  ProgReport(1, 'Farm Run Report','XJ & Student', '', strings, variants);
+end;
+
+operator in(Left: TBox; Right: TBoxArray): Boolean;
+var
+  I : Int32;
+begin
+  for I := 0 to High(Right) do
+    if Left = Right[I] then
+      Exit(True);
+end;
+
+procedure TFarmRun.Init();
+var
+  tmp: TBoxArray;
+  i: Int32;
+  rsw: TRSWalker;
+begin
+  if not RSClient.IsLoggedIn then
+    Login.LoginPlayer;
+
+  for i := 0 to High(Self.Patches) do begin
+    if not (Self.Patches[i].Data.MapCoords in tmp) then
+      tmp += Self.Patches[i].Data.MapCoords;
+  end;
+
+  LeprechaunItems := [
+    'Guam leaf', 'Marrentill',
+    'Tarromin', 'Harralander',
+    'Ranarr weed', 'Toadflax',
+    'Irit leaf', 'Avantoe',
+    'Kwuarm', 'Snapdragon',
+    'Cadantine', 'Lantadyme',
+    'Dwarf weed', 'Torstol',
+    'Limpwurt root', 'Potato',
+    'Onion', 'Cabbage',
+    'Tomato', 'Sweetcorn',
+    'Strawberry', 'Watermelon',
+    'Snape grass',
+    'White berries', 'Potato cactus',
+    'Cactus spine', 'Giant seaweed'
+    ];
+
+  if not Self.CleanHerbs then begin
+    LeprechaunItems.Add(GRIMY_HERBS);
+  end;
+
+  if ScriptWalker = nil then
+  begin
+    rsw.SetupRegions(tmp);
+    rsw.AdaptiveWalk := True;
+  end
+  else
+    ScriptWalker^.AddRegions(tmp);
+
+  BoatyShore.SetupCoordinates([[9294,1075]]);
+  BoatyShore.SetupUpText(['ravel']);
+  BoatyShore.Finder.Colors += CTS2(6124929, 5, 0.15, 0.13);
+
+  BoatyIsland.SetupCoordinates([[9463,704]]);
+  BoatyIsland.SetupUpText(['ravel']);
+  BoatyIsland.Finder.Colors += CTS2(5401465, 20, 0.02, 0.23);
+
+  BargeAttendant.ShapeArray += [[2, 2, 7], 0];
+  BargeAttendant.SetupCoordinates([[8840, 2663]]);
+  BargeAttendant.SetupUpText(['uard']);
+  BargeAttendant.Finder.Colors += CTS2(1911645, 6, 0.08, 0.27);
+
+  Self.InactivityTimer.Init(6*ONE_MINUTE);
+  ReadyTimer.Init(Random(86*ONE_MINUTE, 97*ONE_MINUTE));
+
+  SetLength(Self.HarvestQuantities, Length(LeprechaunItems));
+end;
+
+procedure TFarmRun.Run();
+var
+  state           : EPatchState;
+  failedCount     : Int32;
+  AntibanMinZ, AntibanMaxZ: Int32;
+begin
+  if not RSClient.IsLoggedIn then
+    Login.LoginPlayer;
+
+  Antiban.DebugLn('Starting farm run.');
+  Self.Runtime.Start;
+
+  AntibanMinZ := Antiban.MinZoom;
+  AntibanMaxZ := Antiban.MaxZoom;
+  Antiban.MinZoom := 17;
+  Antiban.MaxZoom := 23;
+  Mainscreen.SetHighestPitch;
+  Options.SetZoomLevel(Random(17, 23));
+
+  Self.OnStart;
+
+  Self.LastXPRead := XPBar.Read;
+  Self.InactivityTimer.Restart;
+
+  if not RSClient.IsLoggedIn then
+    Login.LoginPlayer;
+
+  for Self.CurrentPatch in Self.Patches do begin
+    if not RSClient.IsLoggedIn then
+      Login.LoginPlayer;
+
+    repeat
+      if ChatButtons.GetState(ERSChatButton.GAME_CHAT) <> ERSChatButtonState.ENABLED then
+        ChatButtons.ChangeState(ERSChatButton.GAME_CHAT, ERSChatButtonState.ENABLED);
+
+      if not ChatButtons.IsActive(ERSChatButton.GAME_CHAT) then
+        ChatButtons.Open(ERSChatButton.GAME_CHAT);
+
+      state := Self.CurrentPatch.GetState;
+
+      if failedCount = 8 then
+        state := EPatchState.SKIP;
+
+      if state <> EPatchState.FAILED then
+        failedCount := 0;
+
+      WriteLn('State: ' + ToStr(state));
+      case state of
+        EPatchState.HARVEST_WHITEBERRIES: Self.HarvestWhiteBerries;
+        EPatchState.HARVEST_CACTUS: Self.HarvestCactus;
+        EPatchState.HARVEST     : Self.Harvest;
+        EPatchState.PLANT       : Self.Plant;
+        EPatchState.COMPOST     : Self.CompostPatch;
+        EPatchState.DISEASED    : Self.HandleDiseasedPatch;
+        EPatchState.DEAD        : Self.HandleDeadPatch;
+        EPatchState.TELEPORT_TO : Self.TeleportTo(Self.CurrentPatch.TravelMethod, True);
+        EPatchState.NOTE_ITEMS  : Self.NoteItems;
+        EPatchState.FAILED      : Inc(failedCount);
+        EPatchState.COMPLETE    :
+          begin
+            WriteLn('Patch complete.');
+            Inc(Self.PatchesCompleted);
+            Break;
+          end;
+        EPatchState.SKIP        :
+          begin
+            WriteLn('Skipping patch.');
+            Inc(Self.PatchesSkipped);
+            Break;
+          end;
+      end;
+
+      if XPBar.EarnedXP then
+        InactivityTimer.Restart;
+
+    until InactivityTimer.IsFinished;
+
+    Self.CurrentPatch.Skip := Self.CurrentPatch.Complete := False;
+    if Self.DoReport then
+      Self.Report;
+  end;
+
+  if InactivityTimer.IsFinished then
+    TerminateScript('Terminating due to inactivity.');
+
+  Inc(Self.RunsComplete);
+
+  Self.NoteItems();
+
+  Antiban.MinZoom := AntibanMinZ;
+  Antiban.MaxZoom := AntibanMaxZ;
+
+  Self.OnComplete;
+
+  Self.Runtime.Pause;
+
+  Self.XPGained += XPBar.Read - Self.LastXPRead;
+  Self.Report;
+end;
+
+procedure TerminateScript(Reason: String); override; begin
+  WriteLn(Reason);
+  TerminateScript;
+end;
+
+procedure TFarmRun.DoFarmRun(); begin
+
+  if not ReadyTimer.IsFinished then begin
+    Exit;
+  end;
+
+  Self.Run;
+
+  ReadyTimer.Init(Random(86*ONE_MINUTE, 97*ONE_MINUTE));
+
+  if Length(Self.Patches) = 2 then begin
+    if ('seaweed' in Self.Patches[0].Data.Name) and ('seaweed' in Self.Patches[1].Data.Name) then
+      ReadyTimer.Init(Random(46*ONE_MINUTE, 55*ONE_MINUTE));
+  end;
+end;

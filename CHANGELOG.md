@@ -1,3 +1,12 @@
+# [20.3.0](https://github.com/Torwent/WaspLib/compare/v20.2.6...v20.3.0) (2025-05-26)
+
+
+### Features
+
+* added CJ's bh runner and XJ's farm runner ([aa74125](https://github.com/Torwent/WaspLib/commit/aa74125186ca12a5c2e1a0cddb050a07b6d8c579))
+
+
+
 ## [20.2.6](https://github.com/Torwent/WaspLib/compare/v20.2.5...v20.2.6) (2025-05-12)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([df4e915](https://github.com/Torwent/WaspLib/commit/df4e915fb4cfeca2c0d076ee80171f7d096f10a3))
-
-
-
-## [20.2.2](https://github.com/Torwent/WaspLib/compare/v20.2.1...v20.2.2) (2025-04-12)
-
-
-### Bug Fixes
-
-* Corrected query error ([4a59e4a](https://github.com/Torwent/WaspLib/commit/4a59e4a9460acaa52737f2c32f6af8f19309dde0))
 
 
 

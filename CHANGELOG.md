@@ -1,3 +1,12 @@
+## [20.3.1](https://github.com/Torwent/WaspLib/compare/v20.3.0...v20.3.1) (2025-05-28)
+
+
+### Bug Fixes
+
+* force bump ([da8c8d9](https://github.com/Torwent/WaspLib/commit/da8c8d97d755f442e20211cc598d54edb40fdd65))
+
+
+
 # [20.3.0](https://github.com/Torwent/WaspLib/compare/v20.2.6...v20.3.0) (2025-05-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Made Auth check fast ([1540d71](https://github.com/Torwent/WaspLib/commit/1540d71e43ed250a49596a73cd9f83e2cec4c87f))
-
-
-
-## [20.2.3](https://github.com/Torwent/WaspLib/compare/v20.2.2...v20.2.3) (2025-04-12)
-
-
-### Bug Fixes
-
-* force bump ([df4e915](https://github.com/Torwent/WaspLib/commit/df4e915fb4cfeca2c0d076ee80171f7d096f10a3))
 
 
 

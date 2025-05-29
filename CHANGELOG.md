@@ -1,3 +1,12 @@
+## [20.3.2](https://github.com/Torwent/WaspLib/compare/v20.3.1...v20.3.2) (2025-05-29)
+
+
+### Bug Fixes
+
+* Height map issues with some patches ([3957f2c](https://github.com/Torwent/WaspLib/commit/3957f2c14e8f6793d379b2381720e2139093925a))
+
+
+
 ## [20.3.1](https://github.com/Torwent/WaspLib/compare/v20.3.0...v20.3.1) (2025-05-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * add Dual macuahuitl as a weapon to the gear handler ([8d5a36a](https://github.com/Torwent/WaspLib/commit/8d5a36a89599791e000746ed4c1176ce6f41f480))
-
-
-
-## [20.2.4](https://github.com/Torwent/WaspLib/compare/v20.2.3...v20.2.4) (2025-05-01)
-
-
-### Bug Fixes
-
-* Made Auth check fast ([1540d71](https://github.com/Torwent/WaspLib/commit/1540d71e43ed250a49596a73cd9f83e2cec4c87f))
 
 
 

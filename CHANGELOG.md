@@ -4,6 +4,7 @@
 ### Bug Fixes
 
 * update gear.json ([43eb5b2](https://github.com/Torwent/WaspLib/commit/43eb5b2fe16f52ac1dbaec640bc3e3689eeee7b4))
+* rsfishinghandler: fix SpotMove check ([78bff0e](https://github.com/Torwent/WaspLib/pull/238/commits/78bff0e62aaf63a0c2afdb7cda3f538f5198ff00))
 
 
 

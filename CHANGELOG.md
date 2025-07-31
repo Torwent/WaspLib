@@ -1,3 +1,12 @@
+## [20.3.7](https://github.com/Torwent/WaspLib/compare/v20.3.6...v20.3.7) (2025-07-31)
+
+
+### Bug Fixes
+
+* force bump ([c5cf435](https://github.com/Torwent/WaspLib/commit/c5cf435153aae66de2273ad3f9ecb9e35a3db4f6))
+
+
+
 ## [20.3.6](https://github.com/Torwent/WaspLib/compare/v20.3.5...v20.3.6) (2025-06-27)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * update gear.json ([43eb5b2](https://github.com/Torwent/WaspLib/commit/43eb5b2fe16f52ac1dbaec640bc3e3689eeee7b4))
-
-
-
-## [20.3.2](https://github.com/Torwent/WaspLib/compare/v20.3.1...v20.3.2) (2025-05-29)
-
-
-### Bug Fixes
-
-* Height map issues with some patches ([3957f2c](https://github.com/Torwent/WaspLib/commit/3957f2c14e8f6793d379b2381720e2139093925a))
 
 
 

@@ -1,3 +1,12 @@
+## [20.3.8](https://github.com/Torwent/WaspLib/compare/v20.3.7...v20.3.8) (2025-08-10)
+
+
+### Bug Fixes
+
+* fairyring.simba ([0148bbb](https://github.com/Torwent/WaspLib/commit/0148bbb9a90dbbe8c717c7927b125c5bea015ca4))
+
+
+
 ## [20.3.7](https://github.com/Torwent/WaspLib/compare/v20.3.6...v20.3.7) (2025-07-31)
 
 
@@ -32,15 +41,6 @@
 
 * revert gitignore changes ([755d898](https://github.com/Torwent/WaspLib/commit/755d89830a0127322692c9e5d921b5d53f76f62a))
 * rsfishinghandler: fix TRSFishingHandler.SpotMove check ([b601243](https://github.com/Torwent/WaspLib/commit/b6012432064baa1e8516d24c1f27d02c2182cecf))
-
-
-
-## [20.3.3](https://github.com/Torwent/WaspLib/compare/v20.3.2...v20.3.3) (2025-06-18)
-
-
-### Bug Fixes
-
-* update gear.json ([43eb5b2](https://github.com/Torwent/WaspLib/commit/43eb5b2fe16f52ac1dbaec640bc3e3689eeee7b4))
 
 
 

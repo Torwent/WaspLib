@@ -1,3 +1,12 @@
+## [20.3.9](https://github.com/Torwent/WaspLib/compare/v20.3.8...v20.3.9) (2025-08-16)
+
+
+### Bug Fixes
+
+* force bump ([cf77630](https://github.com/Torwent/WaspLib/commit/cf7763051afa5609f02e91e88580d381f8777170))
+
+
+
 ## [20.3.8](https://github.com/Torwent/WaspLib/compare/v20.3.7...v20.3.8) (2025-08-10)
 
 
@@ -31,16 +40,6 @@
 ### Bug Fixes
 
 * force bump ([5b88895](https://github.com/Torwent/WaspLib/commit/5b88895e2ef6fadf861bb631feac03949a7b9f29))
-
-
-
-## [20.3.4](https://github.com/Torwent/WaspLib/compare/v20.3.3...v20.3.4) (2025-06-18)
-
-
-### Bug Fixes
-
-* revert gitignore changes ([755d898](https://github.com/Torwent/WaspLib/commit/755d89830a0127322692c9e5d921b5d53f76f62a))
-* rsfishinghandler: fix TRSFishingHandler.SpotMove check ([b601243](https://github.com/Torwent/WaspLib/commit/b6012432064baa1e8516d24c1f27d02c2182cecf))
 
 
 

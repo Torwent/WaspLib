@@ -140,6 +140,7 @@ type
     BoatyShore                      : TRSObject;
     BoatyIsland                     : TRSObject;
     BargeAttendant                  : TRSObject;
+    ZiplineObj                      : TRSObject;
   end;
 
 const
@@ -475,6 +476,20 @@ begin
 
   upText := Copy(upText, 1, Length(text));
   Result := StringMatch(uptext, text) >= similarity;
+end;
+
+procedure TRSMinimap.RotateWithinAngles(min, max: Int32); // Skunk
+var
+  minMaxAvg: Int32 := Floor((min + max) div 2);
+  preferredAngle: Int32 := SRL.SkewedRand(minMaxAvg, min, max);
+begin
+  if preferredAngle < 0 then
+    preferredAngle := preferredAngle + 360;
+
+  if InRange(self.getCompassAngle(True), min, max) then
+    Exit;
+
+  Minimap.SetCompassAngle(preferredAngle);
 end;
 
 procedure TRSItemArray.Add(Items : TRSItemArray);
@@ -828,6 +843,19 @@ begin
   begin
     MyPos := ScriptWalker^.GetMyPos;
 
+    if MyPos.InBox([10020, 846, 10315, 1126]) then begin
+      for attempts := 1 to 3 do begin
+        if not ScriptWalker^.AtTile([10160,940], 16) then
+          ScriptWalker^.WalkBlind([10160,940]);
+
+        Minimap.RotateWithinAngles(145,200);
+        ZiplineObj.SelectOption(['eeth-grip'], 10);
+
+        if WaitUntil(ScriptWalker^.GetMyPos().InBox([9303, 530, 9657, 888]), 15, 10000) then
+          Break;
+      end;
+    end
+    else
     if MyPos.InBox([8448, 2342, 9273, 2895]) then begin
       for attempts := 1 to 3 do begin
         if not ScriptWalker^.AtTile([8840,2672], 16) then
@@ -885,14 +913,28 @@ begin
     begin
       item := 'Digsite pendant (5)';
       wait(250,500);
-      if Inventory.ClickItem(item, 'Rub') and WaitUntil(Chat.FindOption('Digsite', [CHAT_COLOR_BLACK]), 10, 10000) then begin
-        b := ([241,396,279,406]);
-        Mouse.Click(b, MOUSE_LEFT);
-      end
-      else
-        Equipment.ClickItem(item, 'Digsite');
 
-      WaitUntil(ScriptWalker^.GetMyPos().InBox([8448, 2342, 9273, 2895]), 15, 10000);
+      if (Stats.GetLevel(ERSSkill.AGILITY) >= 74) then begin
+        if Inventory.ClickItem(item, 'Rub') and WaitUntil(Chat.FindOption('Digsite', [CHAT_COLOR_BLACK]), 10, 10000) then begin
+          b := ([224,431,297,437]);
+          Mouse.Click(b, MOUSE_LEFT);
+        end
+        else
+          Equipment.ClickItem(item, 'Fossil Island');
+
+        WaitUntil(ScriptWalker^.GetMyPos().InBox([10020, 846, 10315, 1126]), 15, 10000);
+      end;
+
+      if (Stats.GetLevel(ERSSkill.AGILITY) < 74) then begin
+        if Inventory.ClickItem(item, 'Rub') and WaitUntil(Chat.FindOption('Digsite', [CHAT_COLOR_BLACK]), 10, 10000) then begin
+          b := ([241,396,279,406]);
+          Mouse.Click(b, MOUSE_LEFT);
+        end
+        else
+          Equipment.ClickItem(item, 'Digsite');
+
+        WaitUntil(ScriptWalker^.GetMyPos().InBox([8448, 2342, 9273, 2895]), 15, 10000);
+      end;
     end;
   end;
 end;
@@ -2053,6 +2095,9 @@ begin
   if not RSClient.IsLoggedIn then
     Login.LoginPlayer;
 
+  Stats.Setup();
+  Stats.GetLevel(ERSSkill.AGILITY);
+
   for i := 0 to High(Self.Patches) do begin
     if not (Self.Patches[i].Data.MapCoords in tmp) then
       tmp += Self.Patches[i].Data.MapCoords;
@@ -2099,6 +2144,10 @@ begin
   BargeAttendant.SetupCoordinates([[8840, 2663]]);
   BargeAttendant.SetupUpText(['uard']);
   BargeAttendant.Finder.Colors += CTS2(1911645, 6, 0.08, 0.27);
+
+  ZiplineObj.SetupCoordinates([[10160,938]]);
+  ZiplineObj.SetupUpText(['eeth-grip']);
+  ZiplineObj.Finder.Colors += CTS2(4474199, 5, 0.26, 0.87);
 
   Self.InactivityTimer.Init(6*ONE_MINUTE);
   ReadyTimer.Init(Random(86*ONE_MINUTE, 97*ONE_MINUTE));

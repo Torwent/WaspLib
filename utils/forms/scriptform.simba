@@ -326,7 +326,6 @@ begin
   TForm(sender).EnsureVisible(False);
 end;
 
-
 (*
 ## TScriptForm.CreateTabs
 ```pascal
@@ -776,73 +775,18 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
   end;
 
   procedure TScriptForm._OnAddClick(sender: TObject);
+    begin
+      Self.UpdateOrAddAccount(-1);
+      Self._SelectorOnChange(Self.Form.GetChild('am_selector_combobox'));
+    end;
+
+    procedure TScriptForm._OnSaveClick(sender: TObject);
   var
     selector: TComboBox;
-    user, pass, pin: TEdit;
-    worlds: TMemo;
-    worldsArray: TIntegerArray;
   begin
     selector := Self.Form.GetChild('am_selector_combobox');
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin  := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
-
-    if user.IsEmpty() then
-    begin
-      Self._ClearInputs(sender);
-      Exit;
-    end;
-
-    worldsArray := worlds.GetIntegerArray(301, 700);
-
-    Login.Players += [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
-    Login.PlayerIndex := High(Login.Players);
-
-    RewriteCredentials();
-    Self._ReloadSelector(selector);
-    Self._SelectorOnChange(selector);
-  end;
-
-  procedure TScriptForm._OnSaveClick(sender: TObject);
-  var
-    selector: TComboBox;
-    user, pass, pin: TEdit;
-    worlds: TMemo;
-    worldsArray: TIntegerArray;
-    i: Int32;
-    player: TRSLoginPlayer;
-  begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin  := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
-
-    if user.IsEmpty() then
-    begin
-      Self._ClearInputs(sender);
-      Exit;
-    end;
-
-    i := selector.getItemIndex();
-    if i > High(Login.Players) then
-    begin
-      Self._OnAddClick(sender);
-      Exit;
-    end;
-
-    worldsArray := worlds.GetIntegerArray(301, 700);
-
-    player := [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
-
-    if i = -1 then
-      Login.Players += player
-    else
-      Login.Players[i] := player;
-
-    RewriteCredentials();
-    Self._ReloadSelector(sender);
+    if selector <> nil then
+      Self.UpdateOrAddAccount(selector.getItemIndex());
   end;
 
   procedure TScriptForm._OnDeleteClick(sender: TObject);
@@ -864,6 +808,51 @@ function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
     RewriteCredentials();
     Self._ReloadSelector(selector);
     Self._SelectorOnChange(selector);
+  end;
+
+  procedure TScriptForm.UpdateOrAddAccount(i: Int32);
+    var
+      selector: TComboBox;
+      user, pass, pin: TEdit;
+      worlds: TMemo;
+      worldsArray: TIntegerArray;
+      player: TRSLoginPlayer;
+    begin
+      selector := Self.Form.GetChild('am_selector_combobox');
+      user     := Self.Form.GetChild('am_user_edit');
+      pass     := Self.Form.GetChild('am_pass_edit');
+      pin      := Self.Form.GetChild('am_pin_edit');
+      worlds   := Self.Form.GetChild('am_worlds_memo');
+
+      if (user = nil) or user.IsEmpty() then
+      begin
+        Self._ClearInputs(selector);
+        Exit;
+      end;
+
+      worldsArray := worlds.GetIntegerArray(301, 700);
+      player := [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
+
+      if (i = -1) or (i > High(Login.Players)) then
+        Login.Players += player
+      else
+        Login.Players[i] := player;
+
+      RewriteCredentials();
+      Self._ReloadSelector(selector);
+  end;
+
+  procedure TScriptForm.SaveAccounts();
+    var
+      selector: TComboBox;
+      idx: Int32;
+    begin
+      selector := Self.Form.GetChild('am_selector_combobox');
+      if selector <> nil then
+      begin
+        idx := selector.getItemIndex();
+        Self.UpdateOrAddAccount(idx);
+      end;
   end;
 
 var
@@ -2121,10 +2110,10 @@ end;
 *)
 procedure TScriptForm.StartScript({$H-}sender: TObject);{$H+}
 begin
+  Self.SaveAccounts();
   Self.Form.SetOnClose(nil);
   Self.Form.Close();
 end;
-
 
 (*
 ## TScriptForm.Setup

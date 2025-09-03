@@ -1,6 +1,6 @@
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
-{$ENDIF} 
+{$ENDIF}
 
 type
   EFarmPatch = (
@@ -538,7 +538,7 @@ var
   compassAngle, angle: Single;
   worldZoomQuad, rotatedQuad: TRectangle;
   offset, direction, i, xd, yd, boxMod: Integer;
-  tpa, allCoordinates, coordinates: TPointArray;
+  tpa, allCoordinates, coordinates, soil: TPointArray;
   tiles : TRectArray;
   tile: TRectangle;
 begin
@@ -583,10 +583,12 @@ begin
   boxMod := MainScreen.NormalizeDistance(15);
   Self.SearchBox := Box(Self.PatchRect.Mean, boxMod, boxMod);
   Self.SearchBox.LimitTo(MainScreen.Bounds);
- 
+
   ChooseOption.Close(); // Fix for cactus patch issues?
 
-  if SRL.CountColor(Self.Data.SoilColor, Self.SearchBox) < 5 then
+  SRL.FindColors(soil, Self.Data.SoilColor, Self.SearchBox);
+  soil := soil.Difference(soil.FilterBox(XPBar.Bounds));
+  if soil.Len() < 5 then
     Exit;
   Self.ClickBox := Box(tiles[0].NearestEdge(Self.SearchBox.Center), 2, 2);
   Result := True;
@@ -834,7 +836,7 @@ begin
       for attempts := 1 to 3 do begin
         if not ScriptWalker^.AtTile([10160,940], 16) then
           ScriptWalker^.WalkBlind([10160,940]);
-        
+
         Minimap.SetCompassAngle(random(145,200));
         ZiplineObj.SelectOption(['eeth-grip'], 10);
 
@@ -1361,7 +1363,7 @@ end;
 
 procedure TFarmRun.Plant();
 var
-  slot, attempts  : Int32;
+  slot, attempts, seedCount  : Int32;
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -1373,6 +1375,9 @@ begin
     Self.CurrentPatch.Skip := True;
     Exit;
   end;
+
+  seedCount := (Inventory.CountItemStack(Self.CurrentPatch.Seed));
+  WriteLn('Our seed count is ' + ToStr(seedCount));
 
   WriteLn('Planting ' + toStr(Self.CurrentPatch.Seed) + ' at ' + Self.CurrentPatch.Data.Name + ' patch.');
 
@@ -1389,7 +1394,6 @@ begin
     end;
   end;
 
-  XPBar.Read;
   for attempts := 0 to 2 do begin
     if attempts = 2 then begin
       WriteLn('Failed to find correct patch uptext or choose option while planting.');
@@ -1438,22 +1442,14 @@ begin
     while Minimap.IsPlayerMoving do
       Wait(36, 58);
 
-  if Chat.HasContinue then begin
-    if Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER then
-      Self.CompostPatch
-    else
-      Self.CurrentPatch.Complete := True;
-    Exit;
-  end;
-
   if not Self.CurrentPatch.Find() then begin
     Exit;
   end;
 
-  if WaitUntil(XPBar.EarnedXP, 15, 6000) then begin
+  if WaitUntil(Inventory.CountItemStack(self.CurrentPatch.Seed) < seedCount, 15, 6000) then begin
     Self.InactivityTimer.Restart;
     Wait(338, 562);
-    if Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER then
+    if (Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER) then
       Self.CompostPatch
     else
       Self.CurrentPatch.Complete := True;
@@ -1471,7 +1467,6 @@ begin
     Exit;
   end;
 
-
   repeat
     if (Length(MainScreen.FindHitsplats(MainScreen.GetPlayerBox)) > 0) then begin
       WriteLn('Combat detected in Port Phasmatys. Running away.');
@@ -1487,7 +1482,6 @@ end;
 
 procedure TFarmRun.Harvest();
 var
-   slot           : Int32;
   HarvestTimer    : TCountdown;
 begin
   if not RSClient.IsLoggedIn then
@@ -1528,14 +1522,6 @@ begin
 
   if not Self.CurrentPatch.Find() then
     Exit;
-
-  if SRL.Dice(35) and Inventory.FindItem(Self.CurrentPatch.Seed, slot) then begin
-    Inventory.SetSelectedSlot(slot);
-    if SRL.Dice(65) then
-      Mouse.HumanMove(SRL.RandomPoint(Self.CurrentPatch.ClickBox))
-    else
-      Mouse.Move(Self.CurrentPatch.ClickBox);
-  end;
 
   HarvestTimer.Init(4000);
   while not HarvestTimer.IsFinished do begin

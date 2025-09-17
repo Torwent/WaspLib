@@ -1,3 +1,12 @@
+## [20.3.10](https://github.com/Torwent/WaspLib/compare/v20.3.9...v20.3.10) (2025-09-17)
+
+
+### Bug Fixes
+
+* force bump ([081586b](https://github.com/Torwent/WaspLib/commit/081586ba17b02bf293a3e39806127d6a75e483df))
+
+
+
 ## [20.3.9](https://github.com/Torwent/WaspLib/compare/v20.3.8...v20.3.9) (2025-08-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * make some github actions only run on my account ([73a9cd6](https://github.com/Torwent/WaspLib/commit/73a9cd69b774dbb8acc7835ac767059d25d98438))
-
-
-
-## [20.3.5](https://github.com/Torwent/WaspLib/compare/v20.3.4...v20.3.5) (2025-06-20)
-
-
-### Bug Fixes
-
-* force bump ([5b88895](https://github.com/Torwent/WaspLib/commit/5b88895e2ef6fadf861bb631feac03949a7b9f29))
 
 
 

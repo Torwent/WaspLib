@@ -1,6 +1,9 @@
 {$IFNDEF WL_OSR}
   {$I WaspLib/osr.simba}
 {$ENDIF}
+{$IFNDEF SKUNK_UNIVERSAL_TRANSPORT}
+  {$I Includes\WaspLib\optional\handlers\teleports\transport.simba}
+{$ENDIF}
 
 type
   EFarmPatch = (
@@ -825,6 +828,7 @@ var
   MyPos: TPoint;
   attempts: int32;
   item: TRSItem         := '';
+  transporter: TUniversalTransport;
 begin
   T.init(one_minute);
 
@@ -900,28 +904,13 @@ begin
     end
     else
     begin
-      item := 'Digsite pendant (5)';
-      wait(250,500);
-
       if (Stats.GetLevel(ERSSkill.AGILITY) >= 74) then begin
-        if Inventory.ClickItem(item, 'Rub') and WaitUntil(Chat.FindOption('Digsite', [CHAT_COLOR_BLACK]), 10, 10000) then begin
-          b := ([224,431,297,437]);
-          Mouse.Click(b, MOUSE_LEFT);
-        end
-        else
-          Equipment.ClickItem(item, 'Fossil Island');
-
+        transporter.Run(RSTEleports.FOSSIL_ISLAND);
         WaitUntil(ScriptWalker^.GetMyPos().InBox([10020, 846, 10315, 1126]), 15, 10000);
       end;
 
       if (Stats.GetLevel(ERSSkill.AGILITY) < 74) then begin
-        if Inventory.ClickItem(item, 'Rub') and WaitUntil(Chat.FindOption('Digsite', [CHAT_COLOR_BLACK]), 10, 10000) then begin
-          b := ([241,396,279,406]);
-          Mouse.Click(b, MOUSE_LEFT);
-        end
-        else
-          Equipment.ClickItem(item, 'Digsite');
-
+        transporter.Run(RSTEleports.DIGSITE);
         WaitUntil(ScriptWalker^.GetMyPos().InBox([8448, 2342, 9273, 2895]), 15, 10000);
       end;
     end;
@@ -1743,6 +1732,7 @@ var
   items           : TRSItemArray;
   spell           : ERSSpell        := ERSSpell.BAKE_PIE;
   b: TBox;
+  transporter: TUniversalTransport;
 begin
   WriteLn('Teleporting to ' + Self.CurrentPatch.Data.Name);
 
@@ -1758,15 +1748,11 @@ begin
   case TravelMethod of
     ETravelMethod.ICY_BASALT:
       begin
-        item := 'Icy basalt';
-        wait(250,500);
-        Inventory.ClickItem(item, 'Weiss');
+        transporter.Run(RSTeleports.WEISS);
       end;
     ETravelMethod.STONY_BASALT:
       begin
-        item := 'Stony basalt';
-        wait(250,500);
-        Inventory.ClickItem(item, 'Stronghold');
+        transporter.Run(RSTeleports.TROLL_STRONGHOLD);
       end;
     ETravelMethod.CATHERBY_TABLET:
       begin
@@ -1794,16 +1780,11 @@ begin
       end;
     ETravelMethod.FENKENSTRAIN_TELEPORT:
       begin
-        spell := ERSSpell.FENKENSTRAINS_CASTLE_TELEPORT;
-        wait(250,500);
-        Magic.ClickSpell(spell);
+        transporter.Run(RSTeleports.FENKENSTRAINS_CASTLE)
       end;
     ETravelMethod.ECTOPHIAL:
       begin
-        item := 'Ectophial';
-        wait(250,500);
-        Inventory.ClickItem(item, 'Empty');
-        wait(4000,5000);
+        transporter.Run(RSTeleports.ECTOFUNTUS);
       end;
     ETravelMethod.XERICS_TALISMAN:
       begin
@@ -1837,7 +1818,7 @@ begin
           Magic.CastSpell(ERSSpell.TELEPORT_TO_HOUSE, 'Outside');
       end;
      ETravelMethod.CON_CAPE_HOSIDIUS:
-    begin
+      begin
         items := (['Construct. cape', 'Construct. cape(t)']);
         for item in items do
         wait(250,500);
@@ -1849,11 +1830,7 @@ begin
       end;
     ETravelMethod.FARMING_CAPE:
       begin
-        items := (['Farming cape', 'Farming cape(t)']);
-        for item in items do
-        wait(250,500);
-        if not Inventory.ClickItem(item, 'Teleport') then
-          Equipment.ClickItem(item, 'Teleport');
+        transporter.Run(RSTeleports.FARMING_GUILD_CAPE);
       end;
     ETravelMethod.EXPLORERS_RING_2:
       begin
@@ -1876,12 +1853,12 @@ begin
         if not Inventory.ClickItem(item, 'Teleport') then
           Equipment.ClickItem(item, 'Teleport');
       end;
-    ETravelMethod.ARDY_CLOAK_1_BUSH:
+    ETravelMethod.ARDY_CLOAK_1_BUSH,
+    ETravelMethod.ARDY_CLOAK_2_BUSH,
+    ETravelMethod.ARDY_CLOAK_3_BUSH,
+    ETravelMethod.ARDY_CLOAK_4_BUSH:
       begin
-        item := 'Ardougne cloak 1';
-        wait(250,500);
-        if not Inventory.ClickItem(item, 'Monastery Teleport') then
-          Equipment.ClickItem(item, 'Kandarin Monastery');
+        transporter.Run(RSTeleports.MONASTERY);
       end;
     ETravelMethod.ARDY_CLOAK_2:
       begin
@@ -1890,26 +1867,12 @@ begin
         if not Inventory.ClickItem(item, 'Farm Teleport') then
           Equipment.ClickItem(item, 'Ardougne Farm');
       end;
-    ETravelMethod.ARDY_CLOAK_2_BUSH:
-      begin
-        item := 'Ardougne cloak 2';
-        wait(250,500);
-        if not Inventory.ClickItem(item, 'Monastery Teleport') then
-          Equipment.ClickItem(item, 'Kandarin Monastery');
-      end;
     ETravelMethod.ARDY_CLOAK_3:
       begin
         item := 'Ardougne cloak 3';
         wait(250,500);
         if not Inventory.ClickItem(item, 'Farm Teleport') then
           Equipment.ClickItem(item, 'Ardougne Farm');
-      end;
-    ETravelMethod.ARDY_CLOAK_3_BUSH:
-      begin
-        item := 'Ardougne cloak 3';
-        wait(250,500);
-        if not Inventory.ClickItem(item, 'Monastery Teleport') then
-          Equipment.ClickItem(item, 'Kandarin Monastery');
       end;
     ETravelMethod.ARDY_CLOAK_4:
       begin
@@ -1918,26 +1881,9 @@ begin
         if not Inventory.ClickItem(item, 'Farm Teleport') then
           Equipment.ClickItem(item, 'Ardougne Farm');
       end;
-    ETravelMethod.ARDY_CLOAK_4_BUSH:
-      begin
-        item := 'Ardougne cloak 4';
-        wait(250,500);
-        if not Inventory.ClickItem(item, 'Monastery Teleport') then
-          Equipment.ClickItem(item, 'Kandarin Monastery');
-      end;
     ETravelMethod.SKILLS_NECKLACE:
       begin
-        item := 'Skills necklace(6)';
-        wait(250,500);
-        if Inventory.ContainsItem(item) then
-        begin
-          Inventory.ClickItem(item, 'Rub');
-          WaitUntil(RSInterface.IsOpen(), 10, 5000);
-          b := ([219,155,295,165]);
-          Mouse.Click(b, MOUSE_LEFT);
-        end
-        else
-          Equipment.ClickItem(item, 'Farming Guild');
+        transporter.Run(RSTeleports.FARMING_GUILD);
       end;
     ETravelMethod.NONE:
       begin
@@ -1966,7 +1912,7 @@ begin
         if not Inventory.ClickItem(item, 'Tele to POH') then
         Equipment.ClickItem(item, 'Tele to POH');
       end;
-      ETravelMethod.HARMONY_ISLAND_TELEPORT:
+    ETravelMethod.HARMONY_ISLAND_TELEPORT:
       begin
         if not (Magic.GetSpellBook in [ERSSpellBook.ARCEUUS, ERSSpellBook.LUNAR]) then
           Wait(130*ONE_SECOND);

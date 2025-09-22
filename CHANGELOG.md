@@ -1,3 +1,12 @@
+## [20.3.12](https://github.com/Torwent/WaspLib/compare/v20.3.11...v20.3.12) (2025-09-22)
+
+
+### Bug Fixes
+
+* farmrunner.simba ([aaaa23f](https://github.com/Torwent/WaspLib/commit/aaaa23f792c742bedd82b8b033ca3550bdba10c0))
+
+
+
 ## [20.3.11](https://github.com/Torwent/WaspLib/compare/v20.3.10...v20.3.11) (2025-09-21)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * fairyring.simba ([0148bbb](https://github.com/Torwent/WaspLib/commit/0148bbb9a90dbbe8c717c7927b125c5bea015ca4))
-
-
-
-## [20.3.7](https://github.com/Torwent/WaspLib/compare/v20.3.6...v20.3.7) (2025-07-31)
-
-
-### Bug Fixes
-
-* force bump ([c5cf435](https://github.com/Torwent/WaspLib/commit/c5cf435153aae66de2273ad3f9ecb9e35a3db4f6))
 
 
 

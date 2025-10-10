@@ -1,3 +1,12 @@
+## [20.3.13](https://github.com/Torwent/WaspLib/compare/v20.3.12...v20.3.13) (2025-10-10)
+
+
+### Bug Fixes
+
+* **Minimap:** read notes ([63fc462](https://github.com/Torwent/WaspLib/commit/63fc462660f590aff6b8da64160fa63ee9a223bb))
+
+
+
 ## [20.3.12](https://github.com/Torwent/WaspLib/compare/v20.3.11...v20.3.12) (2025-09-22)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([cf77630](https://github.com/Torwent/WaspLib/commit/cf7763051afa5609f02e91e88580d381f8777170))
-
-
-
-## [20.3.8](https://github.com/Torwent/WaspLib/compare/v20.3.7...v20.3.8) (2025-08-10)
-
-
-### Bug Fixes
-
-* fairyring.simba ([0148bbb](https://github.com/Torwent/WaspLib/commit/0148bbb9a90dbbe8c717c7927b125c5bea015ca4))
 
 
 

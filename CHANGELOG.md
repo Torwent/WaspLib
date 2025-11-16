@@ -1,3 +1,12 @@
+## [20.3.16](https://github.com/Torwent/WaspLib/compare/v20.3.15...v20.3.16) (2025-11-16)
+
+
+### Bug Fixes
+
+* **heightmap:** read notes ([58efd96](https://github.com/Torwent/WaspLib/commit/58efd963998d002697909a5d62ef8aacd5b0572a))
+
+
+
 ## [20.3.15](https://github.com/Torwent/WaspLib/compare/v20.3.14...v20.3.15) (2025-11-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * farmrunner.simba ([aaaa23f](https://github.com/Torwent/WaspLib/commit/aaaa23f792c742bedd82b8b033ca3550bdba10c0))
-
-
-
-## [20.3.11](https://github.com/Torwent/WaspLib/compare/v20.3.10...v20.3.11) (2025-09-21)
-
-
-### Bug Fixes
-
-* force bump ([7519e38](https://github.com/Torwent/WaspLib/commit/7519e38f10ab9d39a0d2868b103e9b7fa2bdf2e0))
 
 
 

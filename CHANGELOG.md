@@ -1,3 +1,12 @@
+## [20.3.18](https://github.com/Torwent/WaspLib/compare/v20.3.17...v20.3.18) (2025-11-20)
+
+
+### Bug Fixes
+
+* **rsheightmap:** rollback walkerv1 heightmap changes ([504bdd0](https://github.com/Torwent/WaspLib/commit/504bdd0e2e3d1dd7e25fa5f29c0636763df475be))
+
+
+
 ## [20.3.17](https://github.com/Torwent/WaspLib/compare/v20.3.16...v20.3.17) (2025-11-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * farmrunner.simba ([4ecef39](https://github.com/Torwent/WaspLib/commit/4ecef392a2e61067697f32febdfe1bdcedfa0ea0))
-
-
-
-## [20.3.13](https://github.com/Torwent/WaspLib/compare/v20.3.12...v20.3.13) (2025-10-10)
-
-
-### Bug Fixes
-
-* **Minimap:** read notes ([63fc462](https://github.com/Torwent/WaspLib/commit/63fc462660f590aff6b8da64160fa63ee9a223bb))
 
 
 

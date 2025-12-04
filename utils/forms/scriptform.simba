@@ -49,6 +49,7 @@ TScriptForm is the record responsible for handling the WaspLib form.
     Tabs: array of TTabSheet;
     Start: TButton;
     LightMode, Running: Boolean;
+    LastUsedAccount: String;
   class var
     Form: TForm;
   end;
@@ -76,12 +77,22 @@ Example:
 ```pascal
 begin
   Login.AddPlayer('USERNAME1', 'PASSWORD1', 'PIN1', []); //[] is an array of world numbers.
-  Login.AddPlayer('USERNAME2', 'PASSWORD2', 'PIN2', []);
-  Login.AddPlayer('USERNAME3', 'PASSWORD3', 'PIN3', []);
+  Login.AddPlayer('USERNAME2', 'PASSWORD2', 'PIN2', []); 
+  Login.AddPlayer('USERNAME3', 'PASSWORD3', 'PIN3', []); 
 end;
 ```
 *)
-procedure RewriteCredentials();
+
+procedure TScriptForm.EnsureLastUsedExists();
+  begin
+    if Length(Login.Players) = 0 then
+      Exit;
+
+    if (Login.PlayerIndex < 0) or (Login.PlayerIndex > High(Login.Players)) then
+      Login.PlayerIndex := High(Login.Players);
+  end;
+
+procedure TScriptForm.RewriteCredentials();
   function _FilterDuplicatePlayers(players: array of TRSLoginPlayer): array of TRSLoginPlayer;
   var
     i, j: Int32;
@@ -107,7 +118,7 @@ procedure RewriteCredentials();
   function _BuildCredentials(): String;
   var
     player: TRSLoginPlayer;
-    world: Int32;
+    i: Int32;
   begin
     Result := 'begin'#13#10'';
     for player in Login.Players do
@@ -115,28 +126,122 @@ procedure RewriteCredentials();
       Result += '  Login.AddPlayer(''' +
                   player.User + ''', ''' + player.Password + ''', ''' + player.Pin + ''', [';
 
-      for world in player.Worlds do
+      for i := 0 to High(player.Worlds) do
       begin
-        Result += ToStr(world);
-        if world <> player.Worlds[High(player.Worlds)] then
-          Result += ', ';
+        Result += ToStr(player.Worlds[i]);
+        if i < High(player.Worlds) then
+          Result += ',';
       end;
 
       Result += ']);'#13#10'';
     end;
-    Result += 'end;';
+    Result += 'end;'#13#10;
+
+    if (Login.PlayerIndex >= 0) and (Login.PlayerIndex <= High(Login.Players)) then
+      Result += '// lastUsed=' + Login.Players[Login.PlayerIndex].User + #13#10;
   end;
 
+  begin
+    Login.Players := _FilterDuplicatePlayers(Login.Players);
+    EnsureLastUsedExists();
+
+    try
+      WriteFileContents(CREDENTIALS_FILE, _BuildCredentials());
+    except
+      WriteLn GetExceptionMessage();
+      WriteLn 'It''s possible you lost your saved accounts!';
+      WriteLn 'If you have issues with the Account Manager delete the following file:';
+    end;
+  end;
+
+procedure TScriptForm.LoadLastUsedFromFile();
+var
+  content, line, username: String;
+  lines: TStringArray;
+  i, j: Int32;
 begin
-  Login.Players := _FilterDuplicatePlayers(Login.Players);
+  if not FileExists(CREDENTIALS_FILE) then
+    Exit;
 
-  try
-    WriteFileContents(CREDENTIALS_FILE, _BuildCredentials());
-  except
-    WriteLn GetExceptionMessage();
-    WriteLn 'It''s possible you lost your saved accounts!';
-    WriteLn 'If you have issues with the Account Manager delete the following file:';
+  content := ReadFileContents(CREDENTIALS_FILE);
+  lines := content.Split(#10);
+
+  for i := High(lines) downto 0 do
+  begin
+    line := Trim(lines[i]);
+    if Pos('// lastUsed=', line) = 1 then
+    begin
+      username := Copy(line, 12, Length(line) - 11);
+      for j := 0 to High(Login.Players) do
+        if Login.Players[j].User = username then
+        begin
+          Login.PlayerIndex := j;
+          Exit;
+        end;
+    end;
   end;
+
+  if Length(Login.Players) > 0 then
+    Login.PlayerIndex := High(Login.Players);
+end;
+
+procedure TScriptForm.LoadCredentials();
+var
+  content, line, user, pass, pin, worldsStr: String;
+  lines, parts, worldParts: TStringArray;
+  i, j: Int32;
+  worlds: TIntegerArray;
+begin
+  if not FileExists(CREDENTIALS_FILE) then
+    Exit;
+
+  content := ReadFileContents(CREDENTIALS_FILE);
+  lines := content.Split(#10);
+
+  SetLength(Login.Players, 0);
+
+  for i := 0 to High(lines) do
+  begin
+    line := Trim(lines[i]);
+
+    if Pos('Login.AddPlayer(', line) > 0 then
+    begin
+      line := Copy(line, Pos('Login.AddPlayer(', line) + 16, Length(line));
+
+      if (Length(line) >= 2) and (Copy(line, Length(line) - 1, 2) = ');') then
+        Delete(line, Length(line) - 1, 2);
+
+      parts := line.Split('''');
+      if Length(parts) >= 6 then
+      begin
+        user := parts[1].Trim();
+        pass := parts[3].Trim();
+        pin  := parts[5].Trim();
+      end;
+
+      worlds := [];
+      if Pos('[', line) > 0 then
+      begin
+        worldsStr := Copy(line, Pos('[', line) + 1, Pos(']', line) - Pos('[', line) - 1);
+        if worldsStr <> '' then
+        begin
+          worldParts := worldsStr.Split(',');
+          for j := 0 to High(worldParts) do
+            if Trim(worldParts[j]) <> '' then
+              worlds += [StrToInt(Trim(worldParts[j]))];
+        end;
+      end;
+
+      Login.Players += [Default(TRSLoginPlayer)];
+      Login.Players[High(Login.Players)].User := user;
+      Login.Players[High(Login.Players)].Password := pass;
+      Login.Players[High(Login.Players)].Pin := pin;
+      Login.Players[High(Login.Players)].Worlds := worlds;
+    end;
+  end;
+
+  LoadLastUsedFromFile();
+  EnsureLastUsedExists();
 end;
 
 (*
@@ -217,7 +322,6 @@ begin
     Self.AddTab(caption);
 end;
 
-
 (*
 ## TScriptForm.InsertTab
 ```pascal
@@ -264,7 +368,7 @@ Returns a tab based on index or caption.
 
 Example:
 ```pascal
-MyForm.AddTab('Hello wolrd');
+MyForm.AddTab('Hello world');
 tab := MyForm.GetTab('Hello world');
 ```
 *)
@@ -312,7 +416,6 @@ begin
   Self.Tabs := tmp;
 end;
 
-
 procedure TScriptForm.OnClose({$H-}sender: TObject; var closeAction: TCloseAction);{$H+}
 begin
   TerminateScript();
@@ -325,7 +428,6 @@ begin
     SetWindowDarkTitleBar(TForm(sender).getHandle());
   TForm(sender).EnsureVisible(False);
 end;
-
 
 (*
 ## TScriptForm.CreateTabs
@@ -418,6 +520,262 @@ begin
 end.
 ```
 *)
+
+procedure TScriptForm._ClearInputs();
+var
+  edit: TCustomEdit;
+  btn: TButton;
+begin
+  edit := Self.Form.GetChild('am_user_edit');   if edit <> nil then edit.Clear();
+  edit := Self.Form.GetChild('am_pass_edit');   if edit <> nil then edit.Clear();
+  edit := Self.Form.GetChild('am_pin_edit');    if edit <> nil then edit.Clear();
+  edit := Self.Form.GetChild('am_worlds_memo'); if edit <> nil then edit.Clear();
+
+  btn := Self.Form.GetChild('am_save_button');   if btn <> nil then btn.setEnabled(False);
+  btn := Self.Form.GetChild('am_delete_button'); if btn <> nil then btn.setEnabled(False);
+end;
+
+procedure TScriptForm._FillInputs();
+var
+  idx, i: Int32;
+  worldsStr: String;
+  user, pass, pin: TEdit;
+  worlds: TMemo;
+  btn: TButton;
+begin
+  idx := Login.PlayerIndex;
+  if (idx < 0) or (idx > High(Login.Players)) then
+  begin
+    Self._ClearInputs();
+    Exit;
+  end;
+
+  user   := Self.Form.GetChild('am_user_edit');
+  pass   := Self.Form.GetChild('am_pass_edit');
+  pin    := Self.Form.GetChild('am_pin_edit');
+  worlds := Self.Form.GetChild('am_worlds_memo');
+
+  if user <> nil then user.SetText(Login.Players[idx].User);
+  if pass <> nil then pass.SetText(Login.Players[idx].Password);
+  if pin  <> nil then pin.SetText(Login.Players[idx].Pin);
+
+  worldsStr := '';
+  for i := 0 to High(Login.Players[idx].Worlds) do
+  begin
+    worldsStr += ToStr(Login.Players[idx].Worlds[i]);
+    if i < High(Login.Players[idx].Worlds) then
+      worldsStr += ', ';
+  end;
+
+  if worlds <> nil then worlds.SetText(worldsStr);
+
+  btn := Self.Form.GetChild('am_save_button');   if btn <> nil then btn.setEnabled(True);
+  btn := Self.Form.GetChild('am_delete_button'); if btn <> nil then btn.setEnabled(True);
+end;
+
+procedure TScriptForm._ReloadSelector(selector: TComboBox);
+var
+  hasPlayers: Boolean;
+  save, delete: TButton;
+  player: TRSLoginPlayer;
+begin
+  selector.Clear();
+
+  hasPlayers := (Length(Login.Players) > 0);
+  selector.SetEnabled(hasPlayers);
+
+  save := Self.Form.GetChild('am_save_button');
+  delete := Self.Form.GetChild('am_delete_button');
+
+  if save <> nil then save.SetEnabled(hasPlayers);
+  if delete <> nil then delete.SetEnabled(hasPlayers);
+
+  for player in Login.Players do
+    selector.GetItems().Add(player.User);
+
+  if hasPlayers then
+  begin
+    if (Login.PlayerIndex >= 0) and (Login.PlayerIndex <= High(Login.Players)) then
+      selector.SetItemIndex(Login.PlayerIndex)
+    else
+    begin
+      selector.SetItemIndex(High(Login.Players));
+      Login.PlayerIndex := High(Login.Players);
+    end;
+  end;
+end;
+
+procedure TScriptForm._SelectorOnChange(Sender: TObject);
+var
+  i: Int32;
+  selector: TComboBox;
+begin
+  selector := TComboBox(Sender);
+  i := selector.GetItemIndex();
+
+  case i of
+    -1:
+      begin
+        Login.PlayerIndex := 0;
+        Self._ClearInputs();
+      end;
+    0..High(Login.Players):
+      begin
+        Login.PlayerIndex := i;
+        Self._FillInputs();
+        Self._SetLastUsedAccount(i);
+        RewriteCredentials();
+      end;
+  end;
+
+  Antiban.SetupBiometrics();
+end;
+
+procedure TScriptForm._SetLastUsedAccount(index: Int32);
+begin
+  if (index >= 0) and (index <= High(Login.Players)) then
+    Login.PlayerIndex := index
+  else if Length(Login.Players) > 0 then
+    Login.PlayerIndex := High(Login.Players);
+end;
+
+procedure TScriptForm._CommitAccountField(field: String);
+var
+  user, pass, pin: TEdit;
+  worlds: TMemo;
+  worldsArray: TIntegerArray;
+  i, idx: Int32;
+  exists: Boolean;
+begin
+  user   := Self.Form.GetChild('am_user_edit');
+  pass   := Self.Form.GetChild('am_pass_edit');
+  pin    := Self.Form.GetChild('am_pin_edit');
+  worlds := Self.Form.GetChild('am_worlds_memo');
+
+  worldsArray := [];
+  if not worlds.IsEmpty() then
+    for i := 0 to High(Explode(',', worlds.GetText())) do
+      worldsArray += [StrToIntDef(Trim(Explode(',', worlds.GetText())[i]), 0)];
+
+  exists := False;
+  for i := 0 to High(Login.Players) do
+    if LowerCase(Login.Players[i].User) = LowerCase(user.GetText()) then
+    begin
+      exists := True;
+      idx := i;
+      Break;
+    end;
+
+  if field = 'user' then
+  begin
+    if not exists then
+    begin
+      Login.Players += [user.GetText(), pass.GetText(), pin.GetText(), worldsArray, False];
+      idx := High(Login.Players);
+      Login.PlayerIndex := idx;
+      Self._SetLastUsedAccount(idx);
+    end
+    else
+    begin
+      Login.PlayerIndex := idx;
+      Self._SetLastUsedAccount(idx);
+    end;
+  end
+  else if (Login.PlayerIndex >= 0) and (Login.PlayerIndex <= High(Login.Players)) then
+  begin
+    case field of
+      'pass':   Login.Players[Login.PlayerIndex].Password := pass.GetText();
+      'pin':    Login.Players[Login.PlayerIndex].Pin := pin.GetText();
+      'worlds': Login.Players[Login.PlayerIndex].Worlds := worldsArray;
+    end;
+  end;
+
+  RewriteCredentials();
+end;
+
+procedure TScriptForm._UserOnDone(Sender: TObject);
+var
+  selector: TComboBox;
+begin
+  Sender := Sender;
+
+  Self._CommitAccountField('user');
+
+  selector := TComboBox(Self.Form.GetChild('am_selector_combobox'));
+  if selector <> nil then
+  begin
+    Self._ReloadSelector(selector);
+    selector.SetItemIndex(Login.PlayerIndex);
+  end;
+end;
+
+procedure TScriptForm._PassOnDone(Sender: TObject);
+begin
+  Sender := Sender;
+  Self._CommitAccountField('pass');
+end;
+
+procedure TScriptForm._PinOnDone(Sender: TObject);
+begin
+  Sender := Sender;
+  Self._CommitAccountField('pin');
+end;
+
+procedure TScriptForm._WorldsOnDone(Sender: TObject);
+begin
+  Sender := Sender;
+  Self._CommitAccountField('worlds');
+end;
+
+procedure TScriptForm._OnAddOrSaveClick(Sender: TObject);
+begin
+  Sender := Sender;
+  Self._CommitAccountField('user');
+  Self._CommitAccountField('pass');
+  Self._CommitAccountField('pin');
+  Self._CommitAccountField('worlds');
+end;
+
+procedure TScriptForm._OnDeleteClick(Sender: TObject);
+var
+  selector: TComboBox;
+  i: Int32;
+begin
+  Sender := Sender;
+  selector := TComboBox(Self.Form.GetChild('am_selector_combobox'));
+  i := selector.GetItemIndex();
+
+  if i > High(Login.Players) then Exit;
+
+  Delete(Login.Players, i, 1);
+  if Login.PlayerIndex > 0 then
+    Login.PlayerIndex -= 1;
+
+  Self._ClearInputs();
+  RewriteCredentials();
+  Self._ReloadSelector(selector);
+  Self._SelectorOnChange(selector);
+end;
+
+procedure TScriptForm._CommitAccountChanges();
+var
+  selector: TComboBox;
+begin
+  selector := TComboBox(Self.Form.GetChild('am_selector_combobox'));
+
+  if selector <> nil then
+  begin
+    Self._SelectorOnChange(selector);
+    RewriteCredentials();
+  end;
+end;
+
+procedure TScriptForm._OnStartClick(sender: TObject);
+begin
+  Self._CommitAccountChanges();
+  Self.StartScript(sender);
+end;
+
 function TScriptForm.CreateAPISettings(): TTabSheet;
   type TScriptForm = TScriptForm;
   procedure TScriptForm._NewUUIDOnChange(sender: TObject);
@@ -521,14 +879,6 @@ function TScriptForm.CreateAPISettings(): TTabSheet;
 
     oldEdit.setCaption(new);
     newEdit.Clear();
-  end;
-
-  procedure TScriptForm._UserOnDone(sender: TObject);
-  var
-    user: TEdit;
-  begin
-    user := sender;
-    APIClient.SetUsername(Trim(user.getText()));
   end;
 
 var
@@ -661,211 +1011,6 @@ begin
 end;
 
 function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
-  type TScriptForm = TScriptForm;
-   //This doesn't have to clutter things outside.
-
-  procedure TScriptForm._ClearInputs({$H-}sender: TObject);{$H+}
-  var
-    edit: TCustomEdit;
-    btn: TButton;
-  begin
-    edit := Self.Form.GetChild('am_user_edit');
-    edit.Clear();
-
-    edit := Self.Form.GetChild('am_pass_edit');
-    edit.Clear();
-
-    edit := Self.Form.GetChild('am_pin_edit');
-    edit.Clear();
-
-    edit := Self.Form.GetChild('am_worlds_memo');
-    edit.Clear();
-
-    btn := Self.Form.GetChild('am_save_button');
-    btn.setEnabled(False);
-    btn := Self.Form.GetChild('am_delete_button');
-    btn.setEnabled(False);
-  end;
-
-  procedure TScriptForm._FillInputs({$H-}sender: TObject);{$H+}
-  var
-    idx, i: Int32;
-    worldsStr: String;
-    user, pass, pin: TEdit;
-    worlds: TMemo;
-    btn: TButton;
-  begin
-    idx := Login.PlayerIndex;
-
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
-
-    user.SetText(Login.Players[idx].User);
-    pass.setText(Login.Players[idx].Password);
-    pin.setText(Login.Players[idx].Pin);
-
-    for i := 0 to High(Login.Players[idx].Worlds) do
-    begin
-      worldsStr += ToStr(Login.Players[idx].Worlds[i]);
-      if i < High(Login.Players[idx].Worlds) then
-        worldsStr += ', ';
-    end;
-
-    worlds.SetText(worldsStr);
-
-    btn := Self.Form.GetChild('am_save_button');
-    btn.setEnabled(True);
-    btn := Self.Form.GetChild('am_delete_button');
-    btn.setEnabled(True);
-  end;
-
-  procedure TScriptForm._ReloadSelector({$H-}sender: TObject);{$H+}
-  var
-    selector: TComboBox;
-    hasPlayers: Boolean;
-    save, delete: TButton;
-    player: TRSLoginPlayer;
-  begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    selector.Clear();
-
-    hasPlayers := Login.Players <> [];
-    selector.SetEnabled(hasPlayers);
-    save := Self.Form.GetChild('am_save_button');
-    delete := Self.Form.GetChild('am_delete_button');
-
-    save.SetEnabled(hasPlayers);
-    delete.SetEnabled(hasPlayers);
-
-    for player in Login.Players do
-      selector.getItems().Add(player.User);
-
-    if hasPlayers then
-      selector.SetItemIndex(Login.PlayerIndex);
-  end;
-
-  procedure TScriptForm._SelectorOnChange(sender: TObject);
-  var
-    i: Int32;
-    selector: TComboBox;
-  begin
-    selector := sender;
-
-    i := selector.GetItemIndex();
-    case i of
-      -1:
-      begin
-        Login.PlayerIndex := 0;
-        Self._ClearInputs(selector);
-      end;
-      0..High(Login.Players):
-      begin
-        Login.PlayerIndex := i;
-        Self._FillInputs(selector);
-      end;
-      else
-      begin
-        Login.PlayerIndex := i;
-        Self._ClearInputs(selector);
-      end;
-    end;
-
-    Antiban.SetupBiometrics();
-  end;
-
-  procedure TScriptForm._OnAddClick(sender: TObject);
-  var
-    selector: TComboBox;
-    user, pass, pin: TEdit;
-    worlds: TMemo;
-    worldsArray: TIntegerArray;
-  begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin  := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
-
-    if user.IsEmpty() then
-    begin
-      Self._ClearInputs(sender);
-      Exit;
-    end;
-
-    worldsArray := worlds.GetIntegerArray(301, 700);
-
-    Login.Players += [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
-    Login.PlayerIndex := High(Login.Players);
-
-    RewriteCredentials();
-    Self._ReloadSelector(selector);
-    Self._SelectorOnChange(selector);
-  end;
-
-  procedure TScriptForm._OnSaveClick(sender: TObject);
-  var
-    selector: TComboBox;
-    user, pass, pin: TEdit;
-    worlds: TMemo;
-    worldsArray: TIntegerArray;
-    i: Int32;
-    player: TRSLoginPlayer;
-  begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    user := Self.Form.GetChild('am_user_edit');
-    pass := Self.Form.GetChild('am_pass_edit');
-    pin  := Self.Form.GetChild('am_pin_edit');
-    worlds := Self.Form.GetChild('am_worlds_memo');
-
-    if user.IsEmpty() then
-    begin
-      Self._ClearInputs(sender);
-      Exit;
-    end;
-
-    i := selector.getItemIndex();
-    if i > High(Login.Players) then
-    begin
-      Self._OnAddClick(sender);
-      Exit;
-    end;
-
-    worldsArray := worlds.GetIntegerArray(301, 700);
-
-    player := [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
-
-    if i = -1 then
-      Login.Players += player
-    else
-      Login.Players[i] := player;
-
-    RewriteCredentials();
-    Self._ReloadSelector(sender);
-  end;
-
-  procedure TScriptForm._OnDeleteClick(sender: TObject);
-  var
-    selector: TComboBox;
-    i: Int32;
-  begin
-    selector := Self.Form.GetChild('am_selector_combobox');
-    i := selector.getItemIndex();
-
-    if i > High(Login.Players) then
-      Exit;
-
-    Delete(Login.Players, i, 1);
-    Login.PlayerIndex -= 1;
-
-    Self._ClearInputs(sender);
-
-    RewriteCredentials();
-    Self._ReloadSelector(selector);
-    Self._SelectorOnChange(selector);
-  end;
-
 var
   selector: TLabeledCombobox;
   addButton, saveButton, deleteButton:  TButton;
@@ -887,10 +1032,8 @@ begin
   fullWidth := Floor(Self.Size.X/2);
   space := Floor(fullWidth * 0.08);
   w := fullWidth - (space * 2);
-
   passW := Floor(w * 0.6);
   pinW := Floor(w * 0.3);
-
   y := TControl.AdjustToDPI(5);
 
   with selector do
@@ -915,6 +1058,7 @@ begin
     SetLeft(space);
     SetTop(selector.GetBottom() + TControl.AdjustToDPI(2));
     SetWidth(w);
+    Edit.SetOnEditingDone(@Self._UserOnDone);
   end;
 
   with pass do
@@ -927,6 +1071,7 @@ begin
     SetTop(user.GetBottom() + TControl.AdjustToDPI(2));
     SetWidth(passW);
     SetPasswordChar('*');
+    Edit.SetOnEditingDone(@Self._PassOnDone);
   end;
 
   with pin do
@@ -941,6 +1086,7 @@ begin
     SetPasswordChar('*');
     SetMaxLength(4);
     Edit.SetOnKeyPress(@Edit.NumberField);
+    Edit.SetOnEditingDone(@Self._PinOnDone);
   end;
 
   with worlds do
@@ -954,6 +1100,7 @@ begin
     SetHeight(user.GetBottom());
     SetWidth(TControl.AdjustToDPI(336));
     Memo.setOnKeyPress(@Memo.NumberArrayField);
+    Memo.SetOnChange(@Self._WorldsOnDone);
   end;
 
   fullWidth := Floor(worlds.GetWidth()/3);
@@ -966,24 +1113,24 @@ begin
     SetCaption('Add Account');
     SetName('am_add_button');
     SetTooltip('Adds the currently input information into the credentials file if not already existing.');
-    SetLeft(worlds.GetLeft() - 1);   // Why is GetLeft() off by 1 pixel??
+    SetLeft(worlds.GetLeft() - 1);
     SetWidth(w);
     SetHeight(TControl.AdjustToDPI(27));
-    SetTop(pass.GetBottom() - GetHeight() + 1); // Off by 1 pixel again?
-    setOnClick(@Self._OnAddClick);
+    SetTop(pass.GetBottom() - GetHeight() + 1);
+    setOnClick(@Self._OnAddOrSaveClick);
   end;
 
   with saveButton do
   begin
     Create(Result);
-    SetCaption('Update Account'); //Only changing the display text of the button, not the underlying code.
+    SetCaption('Update Account');
     SetName('am_save_button');
     SetTooltip('Updates account information of the selected account.');
     SetLeft(addButton.GetRight() + space * 2);
     SetTop(addButton.GetTop());
-    SetWidth(w );
+    SetWidth(w);
     SetHeight(addButton.getHeight());
-    setOnClick(@Self._OnSaveClick);
+    setOnClick(@Self._OnAddOrSaveClick);
   end;
 
   with deleteButton do
@@ -991,7 +1138,7 @@ begin
     Create(Result);
     SetCaption('Delete Account');
     SetName('am_delete_button');
-    SetTooltip('Deletes the selected account from the credientials file.');
+    SetTooltip('Deletes the selected account from the credentials file.');
     SetLeft(saveButton.GetRight() + space * 2);
     SetTop(addButton.GetTop());
     SetWidth(w);
@@ -1196,23 +1343,6 @@ function TScriptForm.CreateAntibanManager(): TTabSheet;
     WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', False);
     WLSettings.GetObject('antiban').getJSONObject('sleep').Put('length', len);
     WLSettings.SaveConfig();
-  end;
-
-  procedure TScriptForm._SelectorOnChange(sender: TObject); override;
-  var
-    edit: TEdit;
-  begin
-    inherited;
-
-    edit := Self.Form.GetChild('ab_biohash_edit');
-    if edit <> nil then
-      edit.setText(FormatFloat('0.000000000000000', BioHash));
-
-    edit := Self.Form.GetChild('ab_sleep_hour_edit');
-    if edit <> nil then edit.SetText(Antiban.GetSleepHour());
-
-    edit := Self.Form.GetChild('ab_sleep_length_edit');
-    if edit <> nil then edit.SetText(ToStr(Antiban.GetSleepLength()));
   end;
 
 var
@@ -2099,7 +2229,6 @@ begin
   revPanel.SetLeft(TControl.AdjustToDPI(5));
 end;
 
-
 (*
 ## TScriptForm.StartScript
 ```pascal
@@ -2119,12 +2248,13 @@ begin
 end;
 ```
 *)
-procedure TScriptForm.StartScript({$H-}sender: TObject);{$H+}
+procedure TScriptForm.StartScript(sender: TObject);
 begin
+  Sender := Sender;
+  Self._CommitAccountChanges();
   Self.Form.SetOnClose(nil);
   Self.Form.Close();
 end;
-
 
 (*
 ## TScriptForm.Setup
@@ -2135,8 +2265,12 @@ Responsible for setting your TScriptForm up.
 This sets up the sekeleton of your TScriptForm ready to take in tabs.
 *)
 procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
+var
+  selector: TComboBox;
 begin
   Self.Size := [TControl.AdjustToDPI(size.X), TControl.AdjustToDPI(size.Y)];
+
+  LoadCredentials();
 
   with Self.Form do
   begin
@@ -2164,9 +2298,13 @@ begin
   begin
     Create(Self.Form);
     setAlign(alBottom);
-    SetCaption('Start!');
-    setOnClick(@Self.StartScript);
+    setCaption('Start!');
+    setOnClick(@Self._OnStartClick);
   end;
+
+  selector := TComboBox(Self.Form.GetChild('am_selector_combobox'));
+  if selector <> nil then
+    Self._ReloadSelector(selector);
 end;
 
 (*
@@ -2212,4 +2350,6 @@ begin
   end
   else if RSClient.RemoteInput.IsSetup() then RSClient.RemoteInput.Free();
   {$ENDIF}
+
+  Self.Start.setOnClick(@Self._OnStartClick);
 end;

@@ -1,3 +1,12 @@
+## [20.3.19](https://github.com/Torwent/WaspLib/compare/v20.3.18...v20.3.19) (2025-12-04)
+
+
+### Bug Fixes
+
+* force bump ([da1bfdf](https://github.com/Torwent/WaspLib/commit/da1bfdf1eaa3a8370e5f9f987d75a08c7980ee7f))
+
+
+
 ## [20.3.18](https://github.com/Torwent/WaspLib/compare/v20.3.17...v20.3.18) (2025-11-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Update minimap.simba ([c44a5ae](https://github.com/Torwent/WaspLib/commit/c44a5ae98255ad5f51b1ce809eb4b2df503cea7b))
-
-
-
-## [20.3.14](https://github.com/Torwent/WaspLib/compare/v20.3.13...v20.3.14) (2025-11-11)
-
-
-### Bug Fixes
-
-* farmrunner.simba ([4ecef39](https://github.com/Torwent/WaspLib/commit/4ecef392a2e61067697f32febdfe1bdcedfa0ea0))
 
 
 

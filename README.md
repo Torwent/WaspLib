@@ -17,7 +17,7 @@ Some things in WaspLib could be coming to SRL in the future but others are just 
 
  ## Better walker maps
  WaspLib includes custom runescape maps that are more reliable and contain way more locations than the original SRL-Development maps.
- The reason I say they are more reliable is because it has proper edges around the map edges unlike SRL-Development.
+ The reason I say they are more reliable is because it has proper edges around the map edges unlike SRL-Development. 
  A good example of this would be the western edge of the desert, if you ever tried using RSWalker around the map edges in the desert you know it doesn't work properly.
  With my maps it should accurately walk around most edges.
 

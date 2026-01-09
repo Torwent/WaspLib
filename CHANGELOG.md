@@ -1,3 +1,12 @@
+## [20.3.20](https://github.com/Torwent/WaspLib/compare/v20.3.19...v20.3.20) (2026-01-09)
+
+
+### Bug Fixes
+
+* Update README.md ([bd59a74](https://github.com/Torwent/WaspLib/commit/bd59a74b34c85b4ce0d2672fa9b4673e1bd53a09))
+
+
+
 ## [20.3.19](https://github.com/Torwent/WaspLib/compare/v20.3.18...v20.3.19) (2025-12-04)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **heightmap:** read notes ([58efd96](https://github.com/Torwent/WaspLib/commit/58efd963998d002697909a5d62ef8aacd5b0572a))
-
-
-
-## [20.3.15](https://github.com/Torwent/WaspLib/compare/v20.3.14...v20.3.15) (2025-11-15)
-
-
-### Bug Fixes
-
-* Update minimap.simba ([c44a5ae](https://github.com/Torwent/WaspLib/commit/c44a5ae98255ad5f51b1ce809eb4b2df503cea7b))
 
 
 

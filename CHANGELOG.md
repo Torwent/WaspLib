@@ -1,3 +1,12 @@
+## [20.3.21](https://github.com/Torwent/WaspLib/compare/v20.3.20...v20.3.21) (2026-01-14)
+
+
+### Bug Fixes
+
+* **TBaseBankScript:** remove unneeded out parameter ([8330086](https://github.com/Torwent/WaspLib/commit/83300868d063541452974c3fac7e917ecfa5c0ec))
+
+
+
 ## [20.3.20](https://github.com/Torwent/WaspLib/compare/v20.3.19...v20.3.20) (2026-01-09)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * bump ([53dadd2](https://github.com/Torwent/WaspLib/commit/53dadd2d7a32df9690078c19f4b24b880c1fb608))
-
-
-
-## [20.3.16](https://github.com/Torwent/WaspLib/compare/v20.3.15...v20.3.16) (2025-11-16)
-
-
-### Bug Fixes
-
-* **heightmap:** read notes ([58efd96](https://github.com/Torwent/WaspLib/commit/58efd963998d002697909a5d62ef8aacd5b0572a))
 
 
 

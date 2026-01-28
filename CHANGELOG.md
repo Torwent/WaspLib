@@ -1,3 +1,12 @@
+## [20.3.22](https://github.com/Torwent/WaspLib/compare/v20.3.21...v20.3.22) (2026-01-28)
+
+
+### Bug Fixes
+
+* **bank:** compatibility with latest srlt ([2276351](https://github.com/Torwent/WaspLib/commit/2276351f94c64ad88b2bb2bc561f9d36c138d46d))
+
+
+
 ## [20.3.21](https://github.com/Torwent/WaspLib/compare/v20.3.20...v20.3.21) (2026-01-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **rsheightmap:** rollback walkerv1 heightmap changes ([504bdd0](https://github.com/Torwent/WaspLib/commit/504bdd0e2e3d1dd7e25fa5f29c0636763df475be))
-
-
-
-## [20.3.17](https://github.com/Torwent/WaspLib/compare/v20.3.16...v20.3.17) (2025-11-17)
-
-
-### Bug Fixes
-
-* bump ([53dadd2](https://github.com/Torwent/WaspLib/commit/53dadd2d7a32df9690078c19f4b24b880c1fb608))
 
 
 

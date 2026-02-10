@@ -1,3 +1,12 @@
+## [20.3.23](https://github.com/Torwent/WaspLib/compare/v20.3.22...v20.3.23) (2026-02-10)
+
+
+### Bug Fixes
+
+* waspweb.graph ([2508055](https://github.com/Torwent/WaspLib/commit/250805543b4eb91740c54bbe9e9efe99b029bb12))
+
+
+
 ## [20.3.22](https://github.com/Torwent/WaspLib/compare/v20.3.21...v20.3.22) (2026-01-28)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * force bump ([da1bfdf](https://github.com/Torwent/WaspLib/commit/da1bfdf1eaa3a8370e5f9f987d75a08c7980ee7f))
-
-
-
-## [20.3.18](https://github.com/Torwent/WaspLib/compare/v20.3.17...v20.3.18) (2025-11-20)
-
-
-### Bug Fixes
-
-* **rsheightmap:** rollback walkerv1 heightmap changes ([504bdd0](https://github.com/Torwent/WaspLib/commit/504bdd0e2e3d1dd7e25fa5f29c0636763df475be))
 
 
 

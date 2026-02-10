@@ -1,3 +1,12 @@
+## [20.3.24](https://github.com/Torwent/WaspLib/compare/v20.3.23...v20.3.24) (2026-02-10)
+
+
+### Bug Fixes
+
+* waspweb.graph revert for now ([f312cf7](https://github.com/Torwent/WaspLib/commit/f312cf739f51471f22f35643301938457d2723ff))
+
+
+
 ## [20.3.23](https://github.com/Torwent/WaspLib/compare/v20.3.22...v20.3.23) (2026-02-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Update README.md ([bd59a74](https://github.com/Torwent/WaspLib/commit/bd59a74b34c85b4ce0d2672fa9b4673e1bd53a09))
-
-
-
-## [20.3.19](https://github.com/Torwent/WaspLib/compare/v20.3.18...v20.3.19) (2025-12-04)
-
-
-### Bug Fixes
-
-* force bump ([da1bfdf](https://github.com/Torwent/WaspLib/commit/da1bfdf1eaa3a8370e5f9f987d75a08c7980ee7f))
 
 
 

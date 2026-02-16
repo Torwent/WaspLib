@@ -1,3 +1,12 @@
+## [20.3.25](https://github.com/Torwent/WaspLib/compare/v20.3.24...v20.3.25) (2026-02-16)
+
+
+### Bug Fixes
+
+* Update rsteleports.simba ([f2ab111](https://github.com/Torwent/WaspLib/commit/f2ab1112a776a45db82e85084536754d608e492d))
+
+
+
 ## [20.3.24](https://github.com/Torwent/WaspLib/compare/v20.3.23...v20.3.24) (2026-02-10)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **TBaseBankScript:** remove unneeded out parameter ([8330086](https://github.com/Torwent/WaspLib/commit/83300868d063541452974c3fac7e917ecfa5c0ec))
-
-
-
-## [20.3.20](https://github.com/Torwent/WaspLib/compare/v20.3.19...v20.3.20) (2026-01-09)
-
-
-### Bug Fixes
-
-* Update README.md ([bd59a74](https://github.com/Torwent/WaspLib/commit/bd59a74b34c85b4ce0d2672fa9b4673e1bd53a09))
 
 
 

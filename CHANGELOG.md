@@ -1,3 +1,12 @@
+## [20.3.29](https://github.com/Torwent/WaspLib/compare/v20.3.28...v20.3.29) (2026-02-20)
+
+
+### Bug Fixes
+
+* Update farmrunnerupdate.simba ([2d710f9](https://github.com/Torwent/WaspLib/commit/2d710f993b97b058d51cccc75573f3eb7360fd46))
+
+
+
 ## [20.3.28](https://github.com/Torwent/WaspLib/compare/v20.3.27...v20.3.28) (2026-02-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Update rsteleports.simba ([f2ab111](https://github.com/Torwent/WaspLib/commit/f2ab1112a776a45db82e85084536754d608e492d))
-
-
-
-## [20.3.24](https://github.com/Torwent/WaspLib/compare/v20.3.23...v20.3.24) (2026-02-10)
-
-
-### Bug Fixes
-
-* waspweb.graph revert for now ([f312cf7](https://github.com/Torwent/WaspLib/commit/f312cf739f51471f22f35643301938457d2723ff))
 
 
 

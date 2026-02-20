@@ -763,7 +763,7 @@ begin
   FarmConfig.flowerseedint := StrToIntDef(ReadINI('Farm Tab' + ToStr(Login.PlayerIndex), 'Flower seed', AppPath+'Configs/FarmRunSettings'), 0);
   FarmConfig.allotmentseedint := StrToIntDef(ReadINI('Farm Tab' + ToStr(Login.PlayerIndex), 'Allotment seed', AppPath+'Configs/FarmRunSettings'), 0);
 
-  FarmConfig.composttypeint := StrToIntDef(ReadINI('Farm Tab' + ToStr(Login.PlayerIndex), 'Allotment seed', AppPath+'Configs/FarmRunSettings'), 0);
+  FarmConfig.composttypeint := StrToIntDef(ReadINI('Farm Tab' + ToStr(Login.PlayerIndex), 'Compost', AppPath+'Configs/FarmRunSettings'), 0);
 
   FarmConfig.ardougnetpint := StrToIntDef(ReadINI('Farm Tab' + ToStr(Login.PlayerIndex), 'Ardougne TP', AppPath+'Configs/FarmRunSettings'), 0);
   FarmConfig.faladortpint := StrToIntDef(ReadINI('Farm Tab' + ToStr(Login.PlayerIndex), 'Falador TP', AppPath+'Configs/FarmRunSettings'), 0);
@@ -1306,7 +1306,6 @@ procedure TFarmRun.OnStart(); begin
 
   if (Self.ArdyHerbPatch or Self.ArdyFlowerPatch or Self.ArdyWhiteberryPatch or Self.ArdyAllotmentPatches) and (not Self.ArdyCloakEquipped) and Self.ArdougneTP.Contains('cape') then
     Self.FarmWithdrawHelper(Self.ArdyCloak, 1);
-
 
   case Self.FaladorTP of
   'Normal spellbook TELEPORT':
@@ -2787,14 +2786,48 @@ var
                               'Kodai wand', 'Twinflame staff'];
   Hits     : TRSItemFinderMatchArray;
 begin
-  if Self.ArdougneTP.Contains('cape') and (Self.ArdyDiary <> 0) then
+  if Self.StrongholdHerbPatch then
+    Self.StrongholdDiary := Achievements.GetDiaryLevel(ERSAchievementDiary.FREMENNIK);
+
+  if (Self.ArdyHerbPatch or Self.ArdyFlowerPatch or Self.ArdyWhiteberryPatch or Self.ArdyAllotmentPatches) and Self.ArdougneTP.Contains('cape') then
+    Self.ArdyDiary := Achievements.GetDiaryLevel(ERSAchievementDiary.ARDOUGNE);
+
+  if (Self.FallyHerbPatch or Self.FallyFlowerPatch or Self.FallyAllotmentPatches) and Self.FaladorTP.Contains('ring') then
+    Self.LumbyDiary := Achievements.GetDiaryLevel(ERSAchievementDiary.LUMBRIDGE_AND_DRAYNOR);
+
+  if Self.StrongholdHerbPatch then
   begin
+    if (Self.StrongholdDiary < 2) or (Stats.GetLevel(ERSSkill.AGILITY, True) < 73) then
+      TerminateScript('Stronghold doesnt work without 73+ agility and hard frem diary complete');
+
+    Self.WriteMsg('Stronghold diary ' + ToStr(StrongholdDiary));
+  end;
+
+  if (Self.ArdyHerbPatch or Self.ArdyFlowerPatch or Self.ArdyWhiteberryPatch or Self.ArdyAllotmentPatches) and Self.ArdougneTP.Contains('cape') then
+  begin
+    if (Self.ArdyDiary = 0) then
+      TerminateScript('Ardougne herb and flower patch require Ardy cloak 2 or higher. Kandarin bush patch requires Ardy cloak 1 or higher');
+
+    if (Self.ArdyDiary = 1) and (Self.ArdyHerbPatch or Self.ArdyFlowerPatch or Self.ArdyAllotmentPatches) then
+      TerminateScript('Ardougne herb, flower and allotment patches require Ardy cloak 2 or higher.');
+
+    Self.ArdyCloak := 'Ardougne cloak ' + ToStr(ArdyDiary);
+    Self.WriteMsg('Ardougne diary ' + ToStr(ArdyDiary));
+    Self.WriteMsg('Ardougne cloak ' + ToStr(ArdyDiary));
+
     if Equipment.ContainsItem(ArdyCloak) then
       Self.ArdyCloakEquipped := True;
   end;
 
-  if Self.FaladorTP.Contains('ring') and (Self.LumbyDiary <> 0) then
+  if (Self.FallyHerbPatch or Self.FallyFlowerPatch or Self.FallyAllotmentPatches) and Self.FaladorTP.Contains('ring') then
   begin
+    if (Self.LumbyDiary = 0) then
+      TerminateScript('Falador patches require Explorers ring 2 or higher.');
+
+    Self.LumbyRing := "Explorer's ring " + ToStr(LumbyDiary);
+    Self.WriteMsg('Lumbridge diary ' + ToStr(LumbyDiary));
+    Self.WriteMsg("Explorers ring " + ToStr(LumbyDiary));
+
     if Equipment.ContainsItem(LumbyRing) then
       Self.LumbyringEquipped := True;
   end;
@@ -3387,49 +3420,6 @@ begin
   ReadyTimer.Init(Random(86*ONE_MINUTE, 97*ONE_MINUTE));
 
   SetLength(Self.HarvestQuantities, Length(LeprechaunItems));
-
-  if Self.StrongholdHerbPatch then
-  begin
-    Self.StrongholdDiary := Achievements.GetDiaryLevel(ERSAchievementDiary.FREMENNIK);
-
-    if (Self.StrongholdDiary < 2) or (Stats.GetLevel(ERSSkill.AGILITY, True) < 73) then
-      TerminateScript('Stronghold doesnt work without 73+ agility and hard frem diary complete');
-
-    Self.WriteMsg('Stronghold diary ' + ToStr(StrongholdDiary));
-  end;
-
-  if (Self.ArdyHerbPatch or Self.ArdyFlowerPatch or Self.ArdyWhiteberryPatch or Self.ArdyAllotmentPatches) and Self.ArdougneTP.Contains('cape') then
-  begin
-    Self.ArdyDiary := Achievements.GetDiaryLevel(ERSAchievementDiary.ARDOUGNE);
-
-    if (Self.ArdyDiary = 0) then
-      TerminateScript('Ardougne herb and flower patch require Ardy cloak 2 or higher. Kandarin bush patch requires Ardy cloak 1 or higher');
-
-    if (Self.ArdyDiary = 1) and (Self.ArdyHerbPatch or Self.ArdyFlowerPatch or Self.ArdyAllotmentPatches) then
-      TerminateScript('Ardougne herb, flower and allotment patches require Ardy cloak 2 or higher.');
-  end;
-
-  if (Self.ArdyDiary <> 0) then
-  begin
-    Self.ArdyCloak := 'Ardougne cloak ' + ToStr(ArdyDiary);
-    Self.WriteMsg('Ardougne diary ' + ToStr(ArdyDiary));
-    Self.WriteMsg('Ardougne cloak ' + ToStr(ArdyDiary));
-  end;
-
-  if (Self.FallyHerbPatch or Self.FallyFlowerPatch or Self.FallyAllotmentPatches) and Self.FaladorTP.Contains('ring') then
-  begin
-    Self.LumbyDiary := Achievements.GetDiaryLevel(ERSAchievementDiary.LUMBRIDGE_AND_DRAYNOR);
-
-    if (Self.LumbyDiary = 0) then
-      TerminateScript('Falador patches require Explorers ring 2 or higher.');
-  end;
-
-  if (Self.LumbyDiary <> 0) then
-  begin
-    Self.LumbyRing := "Explorer's ring " + ToStr(LumbyDiary);
-    Self.WriteMsg('Lumbridge diary ' + ToStr(LumbyDiary));
-    Self.WriteMsg("Explorers ring " + ToStr(LumbyDiary));
-  end;
 
   Self.IncludeEquipmentSetup();
   Self.ResurrectCrop := False;

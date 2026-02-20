@@ -1,3 +1,12 @@
+## [20.3.27](https://github.com/Torwent/WaspLib/compare/v20.3.26...v20.3.27) (2026-02-20)
+
+
+### Bug Fixes
+
+* Update farmrunner.simba ([9fd8347](https://github.com/Torwent/WaspLib/commit/9fd834749b2f4f3de0ce192f46c156c2e44f6c4c))
+
+
+
 ## [20.3.26](https://github.com/Torwent/WaspLib/compare/v20.3.25...v20.3.26) (2026-02-20)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * waspweb.graph ([2508055](https://github.com/Torwent/WaspLib/commit/250805543b4eb91740c54bbe9e9efe99b029bb12))
-
-
-
-## [20.3.22](https://github.com/Torwent/WaspLib/compare/v20.3.21...v20.3.22) (2026-01-28)
-
-
-### Bug Fixes
-
-* **bank:** compatibility with latest srlt ([2276351](https://github.com/Torwent/WaspLib/commit/2276351f94c64ad88b2bb2bc561f9d36c138d46d))
 
 
 

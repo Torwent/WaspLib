@@ -1,3 +1,12 @@
+## [20.3.44](https://github.com/Torwent/WaspLib/compare/v20.3.43...v20.3.44) (2026-02-27)
+
+
+### Bug Fixes
+
+* Update birdhouserunner.simba ([0907cb0](https://github.com/Torwent/WaspLib/commit/0907cb0a487616d7d445d1379197168bc8646bcc))
+
+
+
 ## [20.3.43](https://github.com/Torwent/WaspLib/compare/v20.3.42...v20.3.43) (2026-02-26)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Update farmrunnerupdate.simba ([b202c87](https://github.com/Torwent/WaspLib/commit/b202c872759f0dc2aaf38f377f80d3ae91a14663))
-
-
-
-## [20.3.39](https://github.com/Torwent/WaspLib/compare/v20.3.38...v20.3.39) (2026-02-25)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([3216e3c](https://github.com/Torwent/WaspLib/commit/3216e3c0c8cb80349e57399ac93ad1eb2ac19ae1))
 
 
 

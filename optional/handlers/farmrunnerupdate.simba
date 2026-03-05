@@ -1964,6 +1964,8 @@ var
                                    [390, 210, 475, 245],
                                    [390, 140, 475, 180],
                                    [  0,   0,   0,   0]];
+  compostArray    : TStringArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', '', ''];
+  compostItem     : TRSItem := compostArray[Self.CompostMethod];
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -1993,6 +1995,8 @@ begin
   else
     ChooseOption.Select('Remove-1');
 
+  WaitUntil(Inventory.ContainsItem(compostItem), 115, 5000);
+
   RSInterface.Close(True);
 end;
 
@@ -2004,6 +2008,8 @@ var
                                    [650, 430, 730, 455],
                                    [650, 340, 730, 370],
                                    [  0,   0,   0,   0]];
+  compostArray    : TStringArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', '', ''];
+  compostItem     : TRSItem := compostArray[Self.CompostMethod];
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -2027,6 +2033,8 @@ begin
     ChooseOption.Select('Store')
   else
     ChooseOption.Select('Store-All');
+
+  WaitUntil(not Inventory.ContainsItem(compostItem), 115, 5000);
 
   RSInterface.Close(True);
 end;
@@ -2077,11 +2085,6 @@ begin
       TerminateScript('Couldn''t compost because you''re on the wrong spellbook for fertile soil.');
     Magic.CastSpell(ERSSpell.FERTILE_SOIL);
   end else if Self.CompostMethod = ECompostMethod.BOTTOMLESS then begin
-    if not Inventory.FindItem('Bottomless compost bucket', slot) then begin
-      Self.WriteMsg('Failed to find bottomless compost bucket in inventory.');
-      WithdrawCompost;
-    end;
-
     Inventory.MouseItem('Bottomless compost bucket');
     if Mainscreen.IsUpText('Fill ') then
       TerminateScript('Our bottomless compost bucket is out of compost');
@@ -2717,16 +2720,20 @@ begin
         wait(250,500);
         if Inventory.ContainsItem(item) then
           Inventory.ClickItem(item, 'Check');
-        WaitUntil(Chat.GetMessage(7).ContainsAny(['quetzal']), 10, 5000);
+        WaitUntil(Chat.GetMessage(7).ContainsAny(['charges']), 10, 5000);
         c := Chat.GetMessage(7).ExtractInteger;
+        Wait(800,1600);
         if (c >= 1) then begin
-          Inventory.ClickItem(item, 'Teleport');
-          if WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) > 100), 10, 5000) then begin
+          if not Self.RepeatLoop then begin
             b := [294,177,308,200];
+            if Inventory.ClickItem(item, 'Signal') then
+            WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) > 100), 415, 5000);
             Mouse.Click(b, MOUSE_LEFT);
             Wait(800,1600);
             WaitUntil(Minimap.PercentBlack < 25, 115, 3500);
-          end;
+            RepeatLoop := True;
+          end else
+            ChooseOption.Select('Last-destination ');
         end;
       end;
     ETravelMethod.HUNTER_CAPE:

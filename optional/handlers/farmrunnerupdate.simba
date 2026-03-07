@@ -224,6 +224,11 @@ type
     AllotmentSeedEmpty              : Boolean;
     TUTransport                     : TUniversalTransport;
     RunesInPouch                    : TStringArray;
+    leprechaunPt                    : TPoint;
+    lepboxes                        : TBoxArray;
+    invyboxes                       : TBoxArray;
+    compostArray                    : TStringArray;
+    compostItem                     : TRSItem;
   end;
 
   TIniFConfig = record
@@ -1956,16 +1961,6 @@ begin
 end;
 
 procedure TFarmRun.WithdrawCompost;
-var
-  //withdrawAmt      : Int32 := Round(Inventory.CountEmptySlots * 0.2) + 1;
-  leprechaunPt     : TPoint;
-  boxes            : TBoxArray := [[160, 210, 245, 245],
-                                   [275, 210, 360, 245],
-                                   [390, 210, 475, 245],
-                                   [390, 140, 475, 180],
-                                   [  0,   0,   0,   0]];
-  compostArray    : TStringArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', '', ''];
-  compostItem     : TRSItem := compostArray[Self.CompostMethod];
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -1983,33 +1978,27 @@ begin
   if BankPin.IsOpen then
     BankPin.Enter(Login.GetPlayer.Pin);
 
-  if SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), boxes[Self.CompostMethod]) = 0 then begin
+  if SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), lepboxes[Self.CompostMethod]) = 0 then begin
     //TODOdowngrade compost?
     TerminateScript('Out of compost');
   end;
 
-  Mouse.Move(boxes[Self.CompostMethod]);
+  Mouse.Move(lepboxes[Self.CompostMethod]);
 
   if ECompostMethod.BOTTOMLESS then
     ChooseOption.Select('Remove')
   else
     ChooseOption.Select('Remove-1');
 
-  WaitUntil(Inventory.ContainsItem(compostItem), 115, 5000);
+  WaitUntil((SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), invyboxes[Self.CompostMethod]) > 30), 115, 5000);
 
+  writeln(SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), invyboxes[Self.CompostMethod]));
   RSInterface.Close(True);
 end;
 
 procedure TFarmRun.DepositCompost;
 var
   leprechaunPt     : TPoint;
-  boxes            : TBoxArray := [[650, 385, 730, 410],
-                                   [555, 425, 625, 455],
-                                   [650, 430, 730, 455],
-                                   [650, 340, 730, 370],
-                                   [  0,   0,   0,   0]];
-  compostArray    : TStringArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', '', ''];
-  compostItem     : TRSItem := compostArray[Self.CompostMethod];
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -2027,14 +2016,14 @@ begin
   if BankPin.IsOpen then
     BankPin.Enter(Login.GetPlayer.Pin);
 
-  Mouse.Move(boxes[Self.CompostMethod]);
+  Mouse.Move(invyboxes[Self.CompostMethod]);
 
   if ECompostMethod.BOTTOMLESS then
     ChooseOption.Select('Store')
   else
     ChooseOption.Select('Store-All');
 
-  WaitUntil(not Inventory.ContainsItem(compostItem), 115, 5000);
+  WaitUntil((SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), invyboxes[Self.CompostMethod]) = 0), 115, 5000);
 
   RSInterface.Close(True);
 end;
@@ -3499,6 +3488,21 @@ begin
   ZiplineObj.SetupCoordinates([[10160,938]]);
   ZiplineObj.SetupUpText(['eeth-grip']);
   ZiplineObj.Finder.Colors += CTS2(4474199, 5, 0.26, 0.87);
+
+  lepboxes := [[160, 210, 245, 245],
+               [275, 210, 360, 245],
+               [390, 210, 475, 245],
+               [390, 140, 475, 180],
+               [  0,   0,   0,   0]];
+
+  invyboxes := [[650, 385, 730, 410],
+                [555, 425, 625, 455],
+                [650, 430, 730, 455],
+                [650, 340, 730, 370],
+                [  0,   0,   0,   0]];
+
+  compostArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', '', ''];
+  compostItem := compostArray[Self.CompostMethod];
 
   Self.InactivityTimer.Init(6*ONE_MINUTE);
 

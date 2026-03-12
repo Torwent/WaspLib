@@ -224,6 +224,11 @@ type
     AllotmentSeedEmpty              : Boolean;
     TUTransport                     : TUniversalTransport;
     RunesInPouch                    : TStringArray;
+    leprechaunPt                    : TPoint;
+    lepboxes                        : TBoxArray;
+    invyboxes                       : TBoxArray;
+    compostArray                    : TStringArray;
+    compostItem                     : TRSItem;
   end;
 
   TIniFConfig = record
@@ -1280,8 +1285,11 @@ begin
   if not Inventory.ContainsItem(item) then
   begin
     Self.WriteMsg('Withdrawing ' + item);
-    for attempts := 0 to 8 do
+    for attempts := 0 to 4 do
     begin
+      if (attempts > 1) and not Inventory.ContainsItem(item) then
+        Bank.SetScrollPosition(0);
+
       withdrawItem := TRSBankItem.Setup(item, quant, False);
       Bank.WithdrawItem(withdrawItem, False);
       Result := Waituntil(Inventory.ContainsItem(item), 315, 3000);
@@ -1289,7 +1297,7 @@ begin
       if Inventory.ContainsItem(item) then
         Break;
 
-      if (attempts > 7) and not Inventory.ContainsItem(item) then
+      if (attempts > 3) and not Inventory.ContainsItem(item) then
       begin
         Logout.ClickLogout();
         TerminateScript('Did not find ' + item);
@@ -1956,14 +1964,6 @@ begin
 end;
 
 procedure TFarmRun.WithdrawCompost;
-var
-  //withdrawAmt      : Int32 := Round(Inventory.CountEmptySlots * 0.2) + 1;
-  leprechaunPt     : TPoint;
-  boxes            : TBoxArray := [[160, 210, 245, 245],
-                                   [275, 210, 360, 245],
-                                   [390, 210, 475, 245],
-                                   [390, 140, 475, 180],
-                                   [  0,   0,   0,   0]];
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -1981,17 +1981,21 @@ begin
   if BankPin.IsOpen then
     BankPin.Enter(Login.GetPlayer.Pin);
 
-  if SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), boxes[Self.CompostMethod]) = 0 then begin
+  WaitUntil((SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), lepboxes[Self.CompostMethod]) > 30), 115, 1500);
+
+  if SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), lepboxes[Self.CompostMethod]) = 0 then begin
     //TODOdowngrade compost?
     TerminateScript('Out of compost');
   end;
 
-  Mouse.Move(boxes[Self.CompostMethod]);
+  Mouse.Move(lepboxes[Self.CompostMethod]);
 
   if ECompostMethod.BOTTOMLESS then
     ChooseOption.Select('Remove')
   else
     ChooseOption.Select('Remove-1');
+
+  WaitUntil((SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), invyboxes[Self.CompostMethod]) > 30), 115, 5000);
 
   RSInterface.Close(True);
 end;
@@ -1999,11 +2003,6 @@ end;
 procedure TFarmRun.DepositCompost;
 var
   leprechaunPt     : TPoint;
-  boxes            : TBoxArray := [[650, 385, 730, 410],
-                                   [555, 425, 625, 455],
-                                   [650, 430, 730, 455],
-                                   [650, 340, 730, 370],
-                                   [  0,   0,   0,   0]];
 begin
   if not RSClient.IsLoggedIn then
     Exit;
@@ -2021,12 +2020,16 @@ begin
   if BankPin.IsOpen then
     BankPin.Enter(Login.GetPlayer.Pin);
 
-  Mouse.Move(boxes[Self.CompostMethod]);
+  WaitUntil((SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), invyboxes[Self.CompostMethod]) > 30), 115, 1500);
+
+  Mouse.Move(invyboxes[Self.CompostMethod]);
 
   if ECompostMethod.BOTTOMLESS then
     ChooseOption.Select('Store')
   else
     ChooseOption.Select('Store-All');
+
+  WaitUntil((SRL.CountColor(CTS2(2154272, 1, 0.01, 0.01), invyboxes[Self.CompostMethod]) = 0), 115, 5000);
 
   RSInterface.Close(True);
 end;
@@ -2077,11 +2080,6 @@ begin
       TerminateScript('Couldn''t compost because you''re on the wrong spellbook for fertile soil.');
     Magic.CastSpell(ERSSpell.FERTILE_SOIL);
   end else if Self.CompostMethod = ECompostMethod.BOTTOMLESS then begin
-    if not Inventory.FindItem('Bottomless compost bucket', slot) then begin
-      Self.WriteMsg('Failed to find bottomless compost bucket in inventory.');
-      WithdrawCompost;
-    end;
-
     Inventory.MouseItem('Bottomless compost bucket');
     if Mainscreen.IsUpText('Fill ') then
       TerminateScript('Our bottomless compost bucket is out of compost');
@@ -2717,16 +2715,20 @@ begin
         wait(250,500);
         if Inventory.ContainsItem(item) then
           Inventory.ClickItem(item, 'Check');
-        WaitUntil(Chat.GetMessage(7).ContainsAny(['quetzal']), 10, 5000);
+        WaitUntil(Chat.GetMessage(7).ContainsAny(['charges']), 10, 5000);
         c := Chat.GetMessage(7).ExtractInteger;
+        Wait(800,1600);
         if (c >= 1) then begin
-          Inventory.ClickItem(item, 'Teleport');
-          if WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) > 100), 10, 5000) then begin
+          if not Self.RepeatLoop then begin
             b := [294,177,308,200];
+            if Inventory.ClickItem(item, 'Signal') then
+            WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) > 100), 415, 5000);
             Mouse.Click(b, MOUSE_LEFT);
             Wait(800,1600);
             WaitUntil(Minimap.PercentBlack < 25, 115, 3500);
-          end;
+            RepeatLoop := True;
+          end else
+            ChooseOption.Select('Last-destination ');
         end;
       end;
     ETravelMethod.HUNTER_CAPE:
@@ -3430,6 +3432,7 @@ begin
 
   Stats.Setup();
   Stats.GetLevel(ERSSkill.AGILITY);
+  Stats.GetLevel(ERSSkill.HITPOINTS);
 
    for i := 0 to High(Self.Patches) do begin
     if Self.Patches[i].Data.Name.Contains('Civitas') then
@@ -3492,6 +3495,23 @@ begin
   ZiplineObj.SetupCoordinates([[10160,938]]);
   ZiplineObj.SetupUpText(['eeth-grip']);
   ZiplineObj.Finder.Colors += CTS2(4474199, 5, 0.26, 0.87);
+
+  lepboxes := [[160, 210, 245, 245],
+               [275, 210, 360, 245],
+               [390, 210, 475, 245],
+               [390, 140, 475, 180],
+               [  0,   0,   0,   0],
+               [  0,   0,   0,   0]];
+
+  invyboxes := [[650, 385, 730, 410],
+                [555, 425, 625, 455],
+                [650, 430, 730, 455],
+                [650, 340, 730, 370],
+                [  0,   0,   0,   0],
+                [  0,   0,   0,   0]];
+
+  compostArray := ['Compost', 'Supercompost', 'Ultracompost', 'Bottomless compost bucket', '', ''];
+  compostItem := compostArray[Self.CompostMethod];
 
   Self.InactivityTimer.Init(6*ONE_MINUTE);
 
@@ -3662,31 +3682,31 @@ begin
   FarmRunner.CompostType := CompType.getText();
   FarmConfig.composttypeint := CompType.getItemIndex();
 
-  ArdyTeleportType := Self.Form.GetChild('lcb_ardytp_combobox');
+  ArdyTeleportType := Self.Form.GetChild('lcb_ardytp_fr_combobox');
   FarmRunner.ArdougneTP := ArdyTeleportType.getText();
   FarmConfig.ardougnetpint := ArdyTeleportType.getItemIndex();
 
-  FallyTeleportType := Self.Form.GetChild('lcb_fallytp_combobox');
+  FallyTeleportType := Self.Form.GetChild('lcb_fallytp_fr_combobox');
   FarmRunner.FaladorTP := FallyTeleportType.getText();
   FarmConfig.faladortpint := FallyTeleportType.getItemIndex();
 
-  CathTeleportType := Self.Form.GetChild('lcb_cathtp_combobox');
+  CathTeleportType := Self.Form.GetChild('lcb_cathtp_fr_combobox');
   FarmRunner.CatherbyTP := CathTeleportType.getText();
   FarmConfig.catherbytpint := CathTeleportType.getItemIndex();
 
-  HosiTeleportType := Self.Form.GetChild('lcb_hostp_combobox');
+  HosiTeleportType := Self.Form.GetChild('lcb_hostp_fr_combobox');
   FarmRunner.HosidiusTP := HosiTeleportType.getText();
   FarmConfig.hosidiustpint := HosiTeleportType.getItemIndex();
 
-  CiviTeleportType := Self.Form.GetChild('lcb_civtp_combobox');
+  CiviTeleportType := Self.Form.GetChild('lcb_civtp_fr_combobox');
   FarmRunner.CivitasTP := CiviTeleportType.getText();
   FarmConfig.civitastpint := CiviTeleportType.getItemIndex();
 
-  FarmGuildTeleportType := Self.Form.GetChild('lcb_fguildtp_combobox');
+  FarmGuildTeleportType := Self.Form.GetChild('lcb_fguildtp_fr_combobox');
   FarmRunner.FarmguildTP := FarmGuildTeleportType.getText();
   FarmConfig.farmguildtpint := FarmGuildTeleportType.getItemIndex();
 
-  RPouchType := Self.Form.GetChild('lcb_rpouch_combobox');
+  RPouchType := Self.Form.GetChild('lcb_rpouch_fr_combobox');
   FarmRunner.RPouchMethod := RPouchType.getText();
   FarmConfig.runepouchint := RPouchType.getItemIndex();
 
@@ -3837,7 +3857,7 @@ var
   cb_hap, cb_civhp, cb_civfp, cb_civap, cb_gap,
   cb_gbp, cb_gcp, cb_kbp, cb_gsp,
   cb_runinit, cb_clherbs, cb_barbdibber, cb_msecat: TLabeledCheckBox;
-  lcb_herbseed, lcb_flowerseed, lcb_allotmentseed, lcb_compost, lcb_ardytp, lcb_fallytp, lcb_cathtp, lcb_hostp, lcb_civtp, lcb_fguildtp, lcb_rpouch: TLabeledComboBox;
+  lcb_herbseed, lcb_flowerseed, lcb_allotmentseed, lcb_compost, lcb_ardytp_fr, lcb_fallytp_fr, lcb_cathtp_fr, lcb_hostp_fr, lcb_civtp_fr, lcb_fguildtp_fr, lcb_rpouch_fr: TLabeledComboBox;
   box_runespouch: TLabeledEdit;
 begin
   Self.AddTab('Farm Run Settings');
@@ -4232,12 +4252,12 @@ begin
     SetCaption('Clean herbs');
   end;
 
-  with lcb_ardytp do
+  with lcb_ardytp_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(562));
     SetTop(TControl.AdjustToDPI(15));
-    SetName('lcb_ardytp');
+    SetName('lcb_ardytp_fr');
     SetCaption('Ardougne teleport');
     AddItemArray(['Not using Ardougne patch', 'Normal spellbook TELEPORT',  'Ardougne TABLET', 'Ardougne cape']);
     SetItemIndex(0);
@@ -4246,12 +4266,12 @@ begin
     ComboBox.SetFontColor(0);
   end;
 
-  with lcb_fallytp do
+  with lcb_fallytp_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(562));
     SetTop(TControl.AdjustToDPI(55));
-    SetName('lcb_fallytp');
+    SetName('lcb_fallytp_fr');
     SetCaption('Falador teleport');
     AddItemArray(['Not using Falador patch', 'Normal spellbook TELEPORT',  'Falador TABLET', 'Explorer ring']);
     SetItemIndex(0);
@@ -4260,12 +4280,12 @@ begin
     ComboBox.SetFontColor(0);
   end;
 
-  with lcb_cathtp do
+  with lcb_cathtp_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(562));
     SetTop(TControl.AdjustToDPI(95));
-    SetName('lcb_cathtp');
+    SetName('lcb_cathtp_fr');
     SetCaption('Catherby teleport');
     AddItemArray(['Not using Catherby patch', 'Normal spellbook TELEPORT',  'Lunar spellbook TELEPORT', 'Camelot TABLET', 'Catherby TABLET']);
     SetItemIndex(0);
@@ -4274,12 +4294,12 @@ begin
     ComboBox.SetFontColor(0);
   end;
 
-  with lcb_hostp do
+  with lcb_hostp_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(562));
     SetTop(TControl.AdjustToDPI(135));
-    SetName('lcb_hostp');
+    SetName('lcb_hostp_fr');
     SetCaption('Hosidius teleport');
     AddItemArray(['Not using Hosidius Patch', 'Xerics Talisman (CHARGED)', 'Hosidius TABLET', 'House teleport TABLET', 'House teleport RUNES', 'Construction cape UNTRIMMED', 'Construction cape TRIMMED']);
     SetItemIndex(0);
@@ -4288,12 +4308,12 @@ begin
     ComboBox.SetFontColor(0);
   end;
 
-  with lcb_civtp do
+  with lcb_civtp_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(562));
     SetTop(TControl.AdjustToDPI(175));
-    SetName('lcb_civtp');
+    SetName('lcb_civtp_fr');
     SetCaption('Civitas teleport');
     AddItemArray(['Not using Civitas Patch', 'Normal spellbook TELEPORT', 'Civitas TABLET', 'Hunter cape UNTRIMMED', 'Hunter cape TRIMMED', 'Basic quetzal whistle', 'Enhanced quetzal whistle', 'Perfected quetzal whistle']);
     SetItemIndex(0);
@@ -4302,12 +4322,12 @@ begin
     ComboBox.SetFontColor(0);
   end;
 
-  with lcb_fguildtp do
+  with lcb_fguildtp_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(562));
     SetTop(TControl.AdjustToDPI(215));
-    SetName('lcb_fguildtp');
+    SetName('lcb_fguildtp_fr');
     SetCaption('Farming guild teleport');
     AddItemArray(['Not using Farm guild patch', 'Skills necklace', 'Farming cape UNTRIMMED', 'Farming cape TRIMMED']);
     SetItemIndex(0);
@@ -4316,12 +4336,12 @@ begin
     ComboBox.SetFontColor(0);
   end;
 
-  with lcb_rpouch do
+  with lcb_rpouch_fr do
   begin
     Create(Result);
     SetLeft(TControl.AdjustToDPI(385));
     SetTop(TControl.AdjustToDPI(175));
-    SetName('lcb_rpouch');
+    SetName('lcb_rpouch_fr');
     SetCaption('Rune pouch');
     AddItemArray(['Not using/use runes', 'Rune pouch', 'Divine rune pouch']);
     SetItemIndex(0);
@@ -4361,17 +4381,17 @@ begin
 
   lcb_compost.SetItemIndex(FarmConfig.composttypeint);
 
-  lcb_rpouch.SetItemIndex(FarmConfig.runepouchint);
+  lcb_rpouch_fr.SetItemIndex(FarmConfig.runepouchint);
 
   if length(FarmConfig.runepouchstring) > 0 then
     box_runespouch.SetText(FarmConfig.runepouchstring);
 
-  lcb_ardytp.SetItemIndex(FarmConfig.ardougnetpint);
-  lcb_fallytp.SetItemIndex(FarmConfig.faladortpint);
-  lcb_cathtp.SetItemIndex(FarmConfig.catherbytpint);
-  lcb_hostp.SetItemIndex(FarmConfig.hosidiustpint);
-  lcb_civtp.SetItemIndex(FarmConfig.civitastpint);
-  lcb_fguildtp.SetItemIndex(FarmConfig.farmguildtpint);
+  lcb_ardytp_fr.SetItemIndex(FarmConfig.ardougnetpint);
+  lcb_fallytp_fr.SetItemIndex(FarmConfig.faladortpint);
+  lcb_cathtp_fr.SetItemIndex(FarmConfig.catherbytpint);
+  lcb_hostp_fr.SetItemIndex(FarmConfig.hosidiustpint);
+  lcb_civtp_fr.SetItemIndex(FarmConfig.civitastpint);
+  lcb_fguildtp_fr.SetItemIndex(FarmConfig.farmguildtpint);
 
   if FarmConfig.wherbEnabled then
     cb_whp.CheckBox.SetChecked(True);

@@ -1,3 +1,12 @@
+## [20.4.3](https://github.com/Torwent/WaspLib/compare/v20.4.2...v20.4.3) (2026-03-14)
+
+
+### Bug Fixes
+
+* Update farmrunnerupdate.simba ([4c89fbd](https://github.com/Torwent/WaspLib/commit/4c89fbd5b16571af5102684c5f9d2d181e1d571c))
+
+
+
 ## [20.4.2](https://github.com/Torwent/WaspLib/compare/v20.4.1...v20.4.2) (2026-03-14)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * Update farmrunnerupdate.simba ([0cbc0c7](https://github.com/Torwent/WaspLib/commit/0cbc0c78809e5bca8ba1f5dff5eb9b4f4eda37e1))
-
-
-
-## [20.3.59](https://github.com/Torwent/WaspLib/compare/v20.3.58...v20.3.59) (2026-03-13)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([b6329f6](https://github.com/Torwent/WaspLib/commit/b6329f67535b798a094d3d3afeda31ff8dff7f6f))
 
 
 

@@ -1,0 +1,878 @@
+(*
+# SettingsHandler
+SettingsHandler is responsible for detecting and remediating an enabled GPU plugin
+in the active RuneLite profile. An active GPU plugin can cause instability and other
+issues with Simba scripts and should be disabled before running.
+
+It also provides methods for verifying and correcting common in-game settings
+including display options, XP bar configuration, magic spell filters, and
+general gameplay toggles.
+*)
+
+(*
+  Big thanks to CanadianJames (CJ) for the Settings Searcher script which is
+  now the heart and soul of this handler.
+*)
+
+{$DEFINE WL_SETTINGSHANDLER_INCLUDED}
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+(*
+## type TSettingsHandler
+```pascal
+  TSettingsHandler = record(TSRLBaseRecord)
+    ActiveProfile: String;
+    ActiveProfileFile: String;
+    GPUPluginActive: Boolean;
+  end;
+```
+Record responsible for checking the active RuneLite profile for an enabled GPU plugin
+and optionally applying an automated fix. Also provides methods for verifying and
+correcting common in-game settings including display options, XP bar configuration,
+magic spell filters, and general gameplay toggles such as shift drop, roof hiding,
+and escape to close.
+*)
+  TSettingsHandler = record(TSRLBaseRecord)
+    ActiveProfile: String;
+    ActiveProfileFile: String;
+    GPUPluginActive: Boolean;
+    BackBuffer: TMufasaBitmap;
+  end;
+
+(*
+## SettingsHandler.Setup()
+```pascal
+procedure TSettingsHandler.Setup();
+```
+Initializes the handler. Must be called before using any other methods,
+or is called automatically on first use.
+
+Example:
+```pascal
+SettingsHandler.Setup();
+```
+*)
+procedure TSettingsHandler.Setup();
+begin
+  Self.Name := 'SettingsHandler';
+  Self.DebugLn('Handler initialized');
+end;
+
+(*
+## SettingsHandler.GetProfilesPath()
+```pascal
+function TSettingsHandler.GetProfilesPath(): String;
+```
+Returns the path to the RuneLite profiles2 directory.
+*)
+function TSettingsHandler.GetProfilesPath(): String;
+begin
+  Self.DebugLn('GetProfilesPath -> Returning profiles2 path');
+  Result := GetEnvironmentVariable('userprofile') +
+            DirectorySeparator + '.runelite' +
+            DirectorySeparator + 'profiles2';
+end;
+
+(*
+## SettingsHandler.FindActiveProfile()
+```pascal
+function TSettingsHandler.FindActiveProfile(path: String): Boolean;
+```
+Reads profiles.json to identify the active profile name and constructs its
+associated config filename from the profile id. Populates
+TSettingsHandler.ActiveProfile and TSettingsHandler.ActiveProfileFile.
+
+Returns True if a matching active profile config file was found.
+*)
+function TSettingsHandler.FindActiveProfile(path: String): Boolean;
+var
+  jsonContent, activeName, candidateFile: String;
+  profilesJson: TJSONObject;
+  profilesArray: TJSONArray;
+  profileEntry: TJSONObject;
+  i, profileCount: Int32;
+begin
+  jsonContent := ReadFileContents(path + DirectorySeparator + 'profiles.json');
+
+  if jsonContent = '' then
+  begin
+    Self.DebugLn('FindActiveProfile -> profiles.json is empty or unreadable');
+    Exit;
+  end;
+
+  try
+    profilesJson.Init(jsonContent);
+  except
+    Self.DebugLn('FindActiveProfile -> Failed to parse profiles.json');
+    Exit;
+  end;
+
+  try
+    profilesArray.Init();
+    profilesArray := profilesJson.getJSONArray('profiles');
+  except
+    Self.DebugLn('FindActiveProfile -> Failed to read "profiles" array from JSON');
+    Exit;
+  end;
+
+  profileCount := profilesArray.length();
+
+  for i := 0 to profileCount - 1 do
+  begin
+    try
+      profileEntry := profilesArray.getJSONObject(i);
+      if profileEntry.getString('active') = 'true' then
+      begin
+        activeName    := profileEntry.getString('name');
+        candidateFile := activeName + '-' + profileEntry.getString('id') + '.properties';
+        Break;
+      end;
+    except
+      Self.DebugLn('FindActiveProfile -> Exception on entry [' + ToStr(i) + ']');
+    end;
+  end;
+
+  if activeName = '' then
+  begin
+    Self.DebugLn('FindActiveProfile -> Could not identify active RuneLite profile');
+    Exit;
+  end;
+
+  if (Length(activeName) <> 8) or (LowerCase(activeName) = 'default') then
+  begin
+    Self.DebugLn('FindActiveProfile -> Active profile does not appear to be a Wasp Profile, skipping: ' + activeName);
+    Exit;
+  end;
+
+  Self.DebugLn('FindActiveProfile -> Active profile identified: ' + activeName);
+
+  if not FileExists(path + DirectorySeparator + candidateFile) then
+  begin
+    Self.DebugLn('FindActiveProfile -> Config file not found: ' + candidateFile);
+    Exit;
+  end;
+
+  Self.ActiveProfile     := activeName;
+  Self.ActiveProfileFile := candidateFile;
+  Exit(True);
+end;
+
+(*
+## SettingsHandler.CloseWarningForm()
+```pascal
+procedure TSettingsHandler.CloseWarningForm(Sender: TObject);
+```
+Event handler for the "CONTINUE ANYWAY" button on the GPU warning form.
+Closes the modal form without applying any fix.
+*)
+procedure TSettingsHandler.CloseWarningForm(Sender: TObject);
+begin
+  Self.DebugLn('CloseWarningForm -> User chose to continue with GPU Plugin enabled for profile: ' + Self.ActiveProfile);
+  TForm(TButton(Sender).GetParent()).Close();
+end;
+
+(*
+## SettingsHandler.ApplyFix()
+```pascal
+procedure TSettingsHandler.ApplyFix(Sender: TObject);
+```
+Event handler for the "APPLY FIX" button on the GPU warning form.
+Disables the GPU plugin in the active RuneLite profile config file,
+terminates RuneLite, and stops the script.
+
+Example:
+```pascal
+fixButton.SetOnClick(@SettingsHandler.ApplyFix);
+```
+*)
+procedure TSettingsHandler.ApplyFix(Sender: TObject);
+var
+  filePath, configContent, newContent: String;
+  KillTask: TProcess;
+begin
+  filePath := Self.GetProfilesPath() + DirectorySeparator + Self.ActiveProfileFile;
+  Self.DebugLn('ApplyFix -> Attempting fix for: ' + Self.ActiveProfileFile);
+
+  if not FileExists(filePath) then
+  begin
+    Self.DebugLn('ApplyFix -> Error: Profile file no longer exists at expected path');
+    Exit;
+  end;
+
+  configContent := ReadFileContents(filePath);
+  newContent := Replace(configContent, 'runelite.gpuplugin=true', 'runelite.gpuplugin=false', [rfReplaceAll]);
+
+  if WriteFileContents(filePath, newContent) then
+  begin
+    Self.DebugLn('ApplyFix -> Write successful. Terminating RuneLite (PID: ' + ToStr(RSClient.RemoteInput.PID) + ')...');
+    Self.GPUPluginActive := False;
+
+    try
+      KillTask.Init(nil);
+      KillTask.SetCommandLine('taskkill /f /pid ' + ToStr(RSClient.RemoteInput.PID));
+      KillTask.SetOptions([poNoConsole]);
+      KillTask.Execute();
+      KillTask.Free();
+    except
+      Self.DebugLn('ApplyFix -> taskkill failed');
+    end;
+
+    TForm(TButton(Sender).GetParent()).Close();
+
+    Self.DebugLn('ApplyFix -> ------------------------- [FIX APPLIED] -------------------------');
+    Self.DebugLn('ApplyFix -> GPU Plugin disabled for profile: ' + Self.ActiveProfile);
+    Self.DebugLn('ApplyFix -> RuneLite has been closed. Please restart RuneLite and the script.');
+    TerminateScript();
+  end
+  else
+    Self.DebugLn('ApplyFix -> Failed to write to file. Check permissions.');
+end;
+
+(*
+## SettingsHandler.Widest()
+```pascal
+function TSettingsHandler.Widest(boxes: TBoxArray): TBox;
+```
+Returns the widest TBox from the given TBoxArray.
+*)
+function TSettingsHandler.Widest(boxes: TBoxArray): TBox;
+var
+  i, wideVal, widestInd: Int32;
+begin
+  Self.DebugLn('Widest -> Finding widest box from ' + ToStr(Length(boxes)) + ' boxes');
+  wideVal := -1;
+  for i := 0 to High(boxes) do
+    if boxes[i].Width() > wideVal then
+    begin
+      widestInd := i;
+      wideVal := boxes[i].Width();
+    end;
+  Result := boxes[widestInd];
+end;
+
+(*
+## SettingsHandler.ShuffleStrings()
+```pascal
+procedure TSettingsHandler.ShuffleStrings(var arr: TStringArray);
+```
+Shuffles the elements of the given TStringArray in place.
+*)
+procedure TSettingsHandler.ShuffleStrings(var arr: TStringArray);
+var
+  i: Integer;
+begin
+  Self.DebugLn('ShuffleStrings -> Shuffling ' + ToStr(Length(arr)) + ' strings');
+  for i := High(arr) downto 0 do
+    System.Swap(arr[i], arr[Random(i + 1)]);
+end;
+
+(*
+## SettingsHandler.ChangeXPBarDropDown()
+```pascal
+function TSettingsHandler.ChangeXPBarDropDown(dropDown: ERSXPBarSetupDropDown; text: String): Boolean;
+```
+Sets the given XP bar setup dropdown to the specified text if it differs from the current
+selection. Handles the Colour dropdown as a special case by selecting the first option.
+Returns True if the setting was changed or already correct.
+*)
+function TSettingsHandler.ChangeXPBarDropDown(dropDown: ERSXPBarSetupDropDown; text: String): Boolean;
+var
+  dd: TRSDropDown;
+  currentSetting: String;
+begin
+  dd := XPBarSetup.GetDropDown(dropDown);
+  currentSetting := dd.GetText(RS_FONT_PLAIN_12);
+
+  if currentSetting = text then
+  begin
+    Self.DebugLn('ChangeXPBarDropDown -> Already set to: ' + text);
+    Exit(True);
+  end;
+
+  if dropDown = ERSXPBarSetupDropDown.COLOUR then
+  begin
+    dd.Select(dd.GetOptions(RS_FONT_PLAIN_12)[0], MOUSE_LEFT);
+    Wait(350);
+    Result := True;
+  end
+  else
+    Result := XPBarSetup.ChangeDropDown(dropDown, text);
+
+  if Result then
+    Self.DebugLn('ChangeXPBarDropDown -> Adjusted from: ' + currentSetting + ' to: ' + text)
+  else
+    Self.DebugLn('ChangeXPBarDropDown -> Failed to set from: ' + currentSetting + ' to: ' + text);
+end;
+
+(*
+## SettingsHandler.OpenSettings()
+```pascal
+function TSettingsHandler.OpenSettings(): Boolean;
+```
+Opens the RuneScape settings interface if it is not already open.
+Returns True if the settings interface is open.
+*)
+function TSettingsHandler.OpenSettings(): Boolean;
+var
+  settingsCornerColor: TCTS1Color;
+  settingsBorder: TPointArray;
+begin
+  settingsCornerColor := CTS1(9346462, 0);
+
+  if RSInterface.IsOpen() then
+  begin
+    Self.DebugLn('OpenSettings -> Settings already open');
+    Exit(True);
+  end;
+
+  if not Options.Open() then
+  begin
+    Self.DebugLn('OpenSettings -> Failed to open options');
+    Exit;
+  end;
+
+  SRL.FindColors(settingsBorder, settingsCornerColor, Options.Bounds);
+  if settingsBorder.Len > 0 then
+  begin
+    Mouse.Click(settingsBorder.Bounds.Middle.Random(-15, 30, -4, 5, True), MOUSE_LEFT);
+    if WaitUntil(RSInterface.IsOpen(), 75, 2000) then
+      Exit(True);
+  end;
+end;
+
+(*
+## SettingsHandler.ToggleSetting()
+```pascal
+function TSettingsHandler.ToggleSetting(textToFind: String; enable: Boolean): Boolean;
+```
+Searches the in-game settings interface for the given text and enables or disables
+the associated checkbox. Returns True if the setting was found and actioned.
+*)
+function TSettingsHandler.ToggleSetting(textToFind: String; enable: Boolean): Boolean;
+var
+  checkBoxColor: TCTS1Color;
+  checkmarkColor: TCTS2Color;
+  bgColor1, bgColor2, searchBarColor: TCTS2Color;
+  bgTPA, otherBGTPA, checkBoxArea, checkMark, settingBar, searchBarArea: TPointArray;
+  ATPA: T2DPointArray;
+  i: Int32;
+  match, debugString: String;
+begin
+  checkBoxColor  := CTS1(1184531, 13);
+  checkmarkColor := CTS2(2740765, 3, 0.41, 8.26);
+  bgColor1       := CTS2(2502455, 1, 0.99, 1.80);
+  bgColor2       := CTS2(2766141, 1, 0.54, 1.47);
+  searchBarColor := CTS2(2240055, 1, 0.01, 0.01);
+
+  if SRL.FindColors(searchBarArea, searchBarColor, MainScreen.Bounds) < 1 then
+  begin
+    Self.DebugLn('ToggleSetting -> Search bar not found');
+    Exit;
+  end;
+
+  Mouse.Click(searchBarArea.Mean, MOUSE_LEFT);
+
+  while SRL.CountColor(CTS2(2070783, 1, 0.01, 0.01), searchBarArea.Bounds) > 0 do
+    Keyboard.PressKey(VK_BACK);
+
+  Keyboard.Send(textToFind, VK_ENTER);
+
+  SRL.FindColors(bgTPA, bgColor1, MainScreen.Bounds);
+  SRL.FindColors(otherBGTPA, bgColor2, MainScreen.Bounds);
+
+  if (Length(bgTPA) < 1) and (Length(otherBGTPA) < 1) then
+  begin
+    Self.DebugLn('ToggleSetting -> Could not find setting background colors');
+    Exit;
+  end;
+
+  ATPA := bgTPA.Erode(1).Cluster(10) + otherBGTPA.Erode(1).Cluster(10);
+
+  for i := 0 to High(ATPA) do
+  begin
+    match       := OCR.Recognize(ATPA[i].Bounds, TOCRColorFilter.Create([2070783], [2]), RS_FONT_BOLD_12);
+    debugString := match;
+    match       := match.ToLower();
+    if match.Contains(textToFind.ToLower()) then
+    begin
+      settingBar := ATPA[i];
+      Break;
+    end;
+  end;
+
+  if settingBar = [] then
+  begin
+    Self.DebugLn('ToggleSetting -> Setting not found: ' + textToFind);
+    Exit;
+  end;
+
+  if SRL.FindColors(checkBoxArea, checkBoxColor, settingBar.Bounds) < 1 then
+  begin
+    Self.DebugLn('ToggleSetting -> Checkbox not found for: ' + debugString);
+    Exit;
+  end;
+
+  if SRL.FindColors(checkMark, checkmarkColor, checkBoxArea.Bounds) < 1 then
+  begin
+    if enable then
+    begin
+      Mouse.Click(checkBoxArea.Mean, MOUSE_LEFT);
+      Self.DebugLn('ToggleSetting -> Enabled: ' + debugString);
+      Exit(True);
+    end;
+    Self.DebugLn('ToggleSetting -> Already disabled: ' + debugString);
+    Exit(True);
+  end;
+
+  if enable then
+  begin
+    Self.DebugLn('ToggleSetting -> Already enabled: ' + debugString);
+    Exit(True);
+  end;
+
+  Mouse.Click(checkBoxArea.Mean, MOUSE_LEFT);
+  Self.DebugLn('ToggleSetting -> Disabled: ' + debugString);
+  Exit(True);
+end;
+
+(*
+## SettingsHandler.DisableMagicFilters()
+```pascal
+function TSettingsHandler.DisableMagicFilters(out actionsTaken: Int32): Boolean;
+```
+Opens the magic spell filter panel, disables all active filters, and closes the panel.
+Returns True if the filter panel was successfully closed. Outputs the number of filters disabled.
+*)
+function TSettingsHandler.DisableMagicFilters(out actionsTaken: Int32): Boolean;
+var
+  button: TRSButton;
+begin
+  Self.DebugLn('DisableMagicFilters -> Attempting to disable magic filters');
+  if not Magic.OpenFilters() then
+  begin
+    Self.DebugLn('DisableMagicFilters -> Failed to open magic filters');
+    Exit;
+  end;
+  if not Magic.IsFiltered() then
+  begin
+    Self.DebugLn('DisableMagicFilters -> No filters active');
+    Exit;
+  end;
+  for button in Magic.GetFilterButtons() do
+  begin
+    if not button.Enabled() then
+    begin
+      if button.Enable() then
+        if WaitUntil(button.Enabled(), 300, 4000) then
+          Inc(actionsTaken);
+    end;
+  end;
+  Result := WaitUntil(Magic.CloseFilters(), 400, 3000);
+end;
+
+(*
+## SettingsHandler.FixScreenPostResolutionChange()
+```pascal
+procedure TSettingsHandler.FixScreenPostResolutionChange();
+```
+Redraws the debug back buffer for a period after a resolution or client mode change.
+Used to stabilize the display following a switch to fixed mode.
+*)
+procedure TSettingsHandler.FixScreenPostResolutionChange();
+var
+  W, H: Int32;
+  R_EIOS: Pointer;
+  Bmp: TMufasaBitmap;
+  countdown: TCountDown;
+begin
+  R_EIOS := RSClient.RemoteInput.EIOS;
+  GetClientDimensions(W, H);
+
+  Self.BackBuffer.Init();
+  Self.BackBuffer.SetPersistentMemory(PtrUInt(EIOS_GetDebugImageBuffer(R_EIOS)), W, H);
+  Self.BackBuffer.Rectangle([0, 0, W - 1, H - 1], $00);
+  Self.BackBuffer.SetFontAntialiasing(False);
+  Self.BackBuffer.SetFontSize(13);
+  EIOS_SetGraphicsDebugging(R_EIOS, True);
+
+  countdown.Setup(1500);
+  countdown.Restart();
+
+  while not countdown.IsFinished() do
+  begin
+    GetClientDimensions(W, H);
+    Self.BackBuffer.ResetPersistentMemory();
+    Self.BackBuffer.SetPersistentMemory(PtrUInt(EIOS_GetDebugImageBuffer(R_EIOS)), W, H);
+    Bmp := GetMufasaBitmap(BitmapFromClient(0, 0, W - 1, H - 1));
+    Self.BackBuffer.DrawBitmap(Bmp, [0, 0]);
+    Bmp.Free();
+  end;
+end;
+
+(*
+## SettingsHandler.ClearBitmaps()
+```pascal
+procedure TSettingsHandler.ClearBitmaps();
+```
+Clears and frees the back buffer and remote input image bitmaps.
+Should be called on script termination.
+*)
+procedure TSettingsHandler.ClearBitmaps();
+begin
+  Self.DebugLn('ClearBitmaps -> Clearing and freeing bitmaps');
+  if Self.BackBuffer <> nil then
+    Self.BackBuffer.Clear();
+  if RSClient.RemoteInput.Image <> nil then
+    RSClient.RemoteInput.Image.Clear();
+  Self.BackBuffer.Free();
+end;
+
+(*
+## SettingsHandler.CheckRegularSettings()
+```pascal
+procedure TSettingsHandler.CheckRegularSettings();
+```
+Verifies and applies common in-game toggle settings such as shift drop,
+escape to close, roof removal, and others. Opens the settings interface
+and closes it when done.
+*)
+procedure TSettingsHandler.CheckRegularSettings();
+var
+  iterStr: String;
+  offArray, onArray: TStringArray;
+begin
+  Self.DebugLn('CheckRegularSettings -> Verifying settings options');
+
+  onArray := [
+    Copy('shift', 0, Random(3, 5)),
+    'esc',
+    Copy('middle', 0, Random(3, 6)),
+    'tint',
+    Copy('roofs', 0, Random(3, 4)),
+    Copy('worn items from gravestone', 0, Random(4, 12))
+  ];
+  Self.ShuffleStrings(onArray);
+
+  offArray := [Copy('switcher', 0, Random(2, 5))];
+
+  if Self.OpenSettings() then
+  begin
+    for iterStr in onArray do
+    begin
+      Self.ToggleSetting(iterStr, True);
+      Wait(250, 450);
+    end;
+    for iterStr in offArray do
+    begin
+      Self.ToggleSetting(iterStr, False);
+      Wait(200, 450);
+    end;
+    RSInterface.Close(True);
+  end;
+end;
+
+(*
+## SettingsHandler.SetDropDownText()
+```pascal
+function TSettingsHandler.SetDropDownText(dropdown: TRSDropDown; text: String): Boolean;
+```
+Sets the given dropdown to the specified text if it differs from the current selection.
+Returns True if the setting was changed.
+*)
+function TSettingsHandler.SetDropDownText(dropdown: TRSDropDown; text: String): Boolean;
+var
+  currentSetting: String;
+begin
+  currentSetting := dropdown.GetText(RS_FONT_PLAIN_12);
+  if CompareStr(currentSetting, text) = 0 then
+    Exit;
+  if text = 'White' then
+  begin
+    dropdown.Select(dropdown.GetOptions(RS_FONT_PLAIN_12)[0], MOUSE_LEFT);
+    Wait(350);
+    Result := True;
+  end
+  else if dropdown.Select(text, MOUSE_LEFT, False, True, RS_FONT_PLAIN_12) then
+  begin
+    Wait(350);
+    Result := True;
+  end
+  else
+  begin
+    Self.DebugLn('SetDropDownText -> Failed to set dropdown from: ' + currentSetting + ' to: ' + text);
+    Exit;
+  end;
+  Self.DebugLn('SetDropDownText -> Adjusted XP setting from: ' + currentSetting + ' to: ' + text);
+end;
+
+(*
+## SettingsHandler.CheckXPBarSettings()
+```pascal
+procedure TSettingsHandler.CheckXPBarSettings();
+```
+Verifies and corrects XP bar dropdown settings and ensures the XP bar is visible.
+*)
+procedure TSettingsHandler.CheckXPBarSettings();
+begin
+  if Self.Name = '' then
+    Self.Setup();
+  Self.DebugLn('CheckXPBarSettings -> Checking XP bar setup');
+
+  XPBar.IsOpen();
+  Mouse.Move(MainScreen.Center);
+
+  if XPBarSetup.Open() then
+  begin
+    Self.DebugLn('CheckXPBarSettings -> Checking XP bar setup options');
+
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.POSITION,     'Right');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.DURATION,     'Permanent');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.SIZE,         'Smallest');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.SPEED,        'Default');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.COUNTER,      'Total XP');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.PROGRESS_BAR, 'Most recent');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.COLOUR,       'White');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.GROUP,        'Off');
+    Self.ChangeXPBarDropDown(ERSXPBarSetupDropDown.FAKE_DROPS,   'On');
+
+    XPBarSetup.ProperSettings();
+    XPBarSetup.Close(True);
+    WaitUntil(not XPBarSetup.IsOpen(), 200, 4000);
+
+    if not WaitUntil(XPBar.IsEnabled(), 200, 3000) then
+    begin
+      Self.DebugLn('CheckXPBarSettings -> XP bar not visible, clicking orb to show it');
+      Mouse.Click(Minimap.Orbs[ERSMinimapOrb.EXPERIENCE], MOUSE_LEFT);
+      WaitUntil(XPBar.IsEnabled(), 200, 3000);
+    end;
+  end
+  else
+    Self.DebugLn('CheckXPBarSettings -> Failed to open XP bar setup');
+
+  Self.DebugLn('CheckXPBarSettings -> XP bar appears to be set up correctly');
+end;
+
+(*
+## SettingsHandler.CheckMagicSettings()
+```pascal
+procedure TSettingsHandler.CheckMagicSettings();
+```
+Opens the magic tab and disables any active spell filters.
+*)
+procedure TSettingsHandler.CheckMagicSettings();
+var
+  filtersDisabled: Int32;
+begin
+  Self.DebugLn('CheckMagicSettings -> Checking magic settings');
+
+  if WaitUntil(Magic.Open(), 30, 3000) then
+  begin
+    if WaitUntil(Self.DisableMagicFilters(filtersDisabled), 250, 1500) then
+    begin
+      if filtersDisabled > 0 then
+        Self.DebugLn('CheckMagicSettings -> Filtering detected and deactivated');
+    end;
+  end;
+end;
+
+(*
+## SettingsHandler.CheckDisplaySettings()
+```pascal
+procedure TSettingsHandler.CheckDisplaySettings();
+```
+Verifies display settings including brightness and client mode.
+If the client is not in fixed mode it will switch it and wait until
+the mode change is confirmed before continuing.
+*)
+procedure TSettingsHandler.CheckDisplaySettings();
+begin
+  if Self.Name = '' then
+    Self.Setup();
+  Self.DebugLn('CheckDisplaySettings -> Checking display settings');
+
+  if not Options.OpenTab(ERSOptionsTab.DISPLAY) then
+    Exit;
+
+  if Options.GetBrightness() < 100 then
+  begin
+    Self.DebugLn('CheckDisplaySettings -> Setting max brightness');
+    Options.SetMaxBrightness();
+  end;
+
+  if RSClient.Mode <> ERSClientMode.FIXED then
+  begin
+    if Options.GetDropDown(ERSOptionsDropDown.CLIENT_MODE).Select('Fixed', MOUSE_LEFT, True, True) then
+    begin
+      Self.DebugLn('CheckDisplaySettings -> Client mode set to fixed');
+      WaitUntil(RSClient.DetectClientMode(True) = ERSClientMode.FIXED, 500, 5000);
+      RSClient.ClientModeChanged();
+      Self.DebugLn('CheckDisplaySettings -> Client mode confirmed: ' + ToStr(RSClient.Mode));
+    end;
+  end;
+end;
+
+procedure TSettingsHandler._CheckGPUPlugin();
+var
+  path, configContent: String;
+  warningForm: TForm;
+  detProbMsg: TLabel;
+  gpuWarnMsg, warningMsg: TMemo;
+  fixButton, continueButton: TButton;
+  nextTop: Int32;
+begin
+  if Self.Name = '' then
+    Self.Setup();
+
+  Self.DebugLn('CheckGPUPlugin -> Running profile configuration check');
+
+  path := Self.GetProfilesPath();
+
+  if not FileExists(path + DirectorySeparator + 'profiles.json') then
+  begin
+    Self.DebugLn('CheckGPUPlugin -> profiles.json not found, skipping check');
+    Exit;
+  end;
+
+  if not Self.FindActiveProfile(path) then
+    Exit;
+
+  configContent := ReadFileContents(path + DirectorySeparator + Self.ActiveProfileFile);
+
+  if Pos('runelite.gpuplugin=true', configContent) = 0 then
+  begin
+    Self.DebugLn('CheckGPUPlugin -> runelite.gpuplugin = false, no action required');
+    Exit;
+  end;
+
+  Self.DebugLn('CheckGPUPlugin -> runelite.gpuplugin = true');
+  Self.DebugLn('CheckGPUPlugin -> GPU issue found in: ' + Self.ActiveProfileFile);
+  Self.GPUPluginActive := True;
+
+  with warningForm do
+  begin
+    Init(nil);
+    SetCaption('!!! GPU PLUGIN DETECTED !!!');
+    SetBounds(0, 0, TControl.AdjustToDPI(630), TControl.AdjustToDPI(300));
+    SetPosition(poScreenCenter);
+    GetFont().SetStyle([fsBold]);
+  end;
+
+  with detProbMsg do
+  begin
+    Init(warningForm);
+    SetParent(warningForm);
+    SetLeft(TControl.AdjustToDPI(5));
+    SetTop(TControl.AdjustToDPI(0));
+    GetFont().SetSize(18);
+    SetCaption('GPU Plugin is ENABLED in the currently active profile!');
+  end;
+
+  nextTop := detProbMsg.GetTop() + detProbMsg.GetHeight() + TControl.AdjustToDPI(25);
+
+  with gpuWarnMsg do
+  begin
+    Init(warningForm);
+    SetParent(warningForm);
+    SetBounds(TControl.AdjustToDPI(5), nextTop,
+              warningForm.GetWidth() - TControl.AdjustToDPI(10), TControl.AdjustToDPI(100));
+    GetFont().SetSize(13);
+    SetCaption('The GPU Plugin is enabled in profile: ' + Self.ActiveProfile + '.' + LineEnding + LineEnding +
+               'This can cause instability and other issues with Simba scripts, most likely breaking them. ' +
+               'It is recommended to disable it for the best experience.');
+    SetReadOnly(True);
+  end;
+
+  with warningMsg do
+  begin
+    Init(warningForm);
+    SetParent(warningForm);
+    SetBounds(TControl.AdjustToDPI(5), gpuWarnMsg.GetBottom() + TControl.AdjustToDPI(20),
+              warningForm.GetWidth() - TControl.AdjustToDPI(10), TControl.AdjustToDPI(60));
+    GetFont().SetSize(13);
+    SetCaption('Clicking "APPLY FIX" will disable the plugin and close RuneLite.' + LineEnding +
+               'Clicking "CONTINUE ANYWAY" will ignore this and continue the script.');
+    SetReadOnly(True);
+  end;
+
+  with fixButton do
+  begin
+    Init(warningForm);
+    SetParent(warningForm);
+    SetBounds(TControl.AdjustToDPI(5),
+              warningMsg.GetBottom() + TControl.AdjustToDPI(10),
+              TControl.AdjustToDPI(308), TControl.AdjustToDPI(62));
+    GetFont().SetSize(16);
+    SetCaption('APPLY FIX');
+    SetOnClick(@Self.ApplyFix);
+  end;
+
+  with continueButton do
+  begin
+    Init(warningForm);
+    SetParent(warningForm);
+    SetBounds(fixButton.GetRight() + TControl.AdjustToDPI(5), fixButton.GetTop(),
+              TControl.AdjustToDPI(308), TControl.AdjustToDPI(62));
+    GetFont().SetSize(16);
+    SetCaption('CONTINUE ANYWAY');
+    SetOnClick(@Self.CloseWarningForm);
+  end;
+
+  warningForm.ShowModal();
+  warningForm.Free();
+end;
+
+(*
+## SettingsHandler.CheckGPUPlugin()
+```pascal
+procedure TSettingsHandler.CheckGPUPlugin();
+```
+Checks the active RuneLite profile for an enabled GPU plugin. If detected,
+displays a modal warning form giving the user the option to auto-fix the
+setting or continue regardless. Automatically synchronizes to the main thread.
+
+Example:
+```pascal
+SettingsHandler.CheckGPUPlugin();
+```
+*)
+procedure TSettingsHandler.CheckGPUPlugin();
+begin
+  if Self.Name = '' then
+    Self.Setup();
+  Sync(@Self._CheckGPUPlugin);
+end;
+
+(*
+## SettingsHandler.CheckGameSettings()
+```pascal
+procedure TSettingsHandler.CheckGameSettings();
+```
+Runs all in-game settings checks including regular toggles, XP bar setup,
+magic spell filters, and display settings.
+
+Example:
+```pascal
+SettingsHandler.CheckGameSettings();
+```
+*)
+procedure TSettingsHandler.CheckGameSettings();
+begin
+  if Self.Name = '' then
+    Self.Setup();
+  Self.DebugLn('CheckGameSettings -> Running game settings checks');
+  Self.CheckDisplaySettings();
+  Self.CheckRegularSettings();
+  Self.CheckXPBarSettings();
+  Self.CheckMagicSettings();
+end;
+
+var
+(*
+(SettingsHandler)=
+## var SettingsHandler
+Global `TSettingsHandler` variable.
+*)
+  SettingsHandler: TSettingsHandler;

@@ -2079,7 +2079,7 @@ begin
     Exit;
   end;
 
-  if not Inventory.FindItem(compostItem, slot) then
+  if not Inventory.FindItem(compostItem, slot) and not (Self.CompostMethod = ECompostMethod.FERTILE_SOIL) then
     Self.WithdrawCompost;
 
   Self.WriteMsg('Composting at ' + Self.CurrentPatch.Data.Name + ' patch.');
@@ -2191,7 +2191,7 @@ begin
     Exit;
   end;
 
-  if (Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER) and not Inventory.ContainsItem(compostItem) then
+  if (Self.CurrentPatch.Data.PatchType <> EPatchType.FLOWER) and not Inventory.ContainsItem(compostItem) and not (Self.CompostMethod = ECompostMethod.FERTILE_SOIL) then
     Self.WithdrawCompost();
 
   seedCount := (Inventory.CountItemStack(Self.CurrentPatch.Seed));
@@ -2563,7 +2563,7 @@ var
   item            : TRSItem         := '';
   items           : TRSItemArray;
   spell           : ERSSpell        := ERSSpell.BAKE_PIE;
-  b, d: TBox;
+  b: TBox;
   c: Int32;
   transporter: TUniversalTransport;
   tpa : TPointArray;
@@ -2729,9 +2729,10 @@ begin
         Wait(800,1600);
         if (c >= 1) then begin
           if not Self.RepeatLoop then begin
-            b := [294,177,308,200];
+            b := [350,177,361,185];
             if Inventory.ClickItem(item, 'Signal') then
-            WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) > 100), 415, 5000);
+              WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) >= 75), 15, 8000);
+            b := [294,177,308,200];
             Mouse.Click(b, MOUSE_LEFT);
             Wait(800,1600);
             WaitUntil(Minimap.PercentBlack < 25, 115, 3500);
@@ -2797,15 +2798,16 @@ begin
       if not Self.RepeatLoop then begin
         ChooseOption.Select('Travel ');
         b := [350,177,361,185];
-        if WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) > 100), 10, 5000) then begin
-          d := [294,177,308,200];
-          Mouse.Click(d, MOUSE_LEFT);
+        if WaitUntil((SRL.CountColor(CTS2(1781155, 1, 0.01, 0.01), b) >= 75), 15, 8000) then begin
+          b := [294,177,308,200];
+          Mouse.Click(b, MOUSE_LEFT);
           RepeatLoop := True;
         end;
       end else
         ChooseOption.Select('Last-destination ');
        Wait(800,1600);
        WaitUntil(Minimap.PercentBlack < 25, 15, 5000);
+       RSInterface.Close();
     end else if ('quetzal' in item) then begin
     if (c <= 0) then begin
       Self.WriteMsg('Out of quetzal charges. Skipping patch.');
@@ -2980,11 +2982,11 @@ begin
     FarmRunner.CompostMethod := ECompostMethod.FERTILE_SOIL
   else FarmRunner.CompostMethod := ECompostMethod.REGULAR;
 
-  if Self.HerbSeedType = '' then
+  if Self.HerbSeedType = 'None' then
     HerbSeedEmpty := True;
-  if Self.FlowerSeedType = '' then
+  if Self.FlowerSeedType = 'None' then
     FlowerSeedEmpty := True;
-  if Self.AllotSeedType = '' then
+  if Self.AllotSeedType = 'None' then
     AllotmentSeedEmpty := True;
 
   if Self.WeissHerbPatch and not HerbSeedEmpty then

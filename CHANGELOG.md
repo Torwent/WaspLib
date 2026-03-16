@@ -1,3 +1,12 @@
+## [20.4.4](https://github.com/Torwent/WaspLib/compare/v20.4.3...v20.4.4) (2026-03-16)
+
+
+### Bug Fixes
+
+* pdate farmrunnerupdate.simba ([c9c1abc](https://github.com/Torwent/WaspLib/commit/c9c1abc9fcfba5399c3b7acfec53f98e371df1a9))
+
+
+
 ## [20.4.3](https://github.com/Torwent/WaspLib/compare/v20.4.2...v20.4.3) (2026-03-14)
 
 
@@ -32,15 +41,6 @@
 
 * Added profilehandler.simba ([32182cf](https://github.com/Torwent/WaspLib/commit/32182cf0dc840a03baa85fe52247d6eef47b61a7))
 * Added settingshandler.simba ([faba9bc](https://github.com/Torwent/WaspLib/commit/faba9bca74da0e925b3ec91951c2bf0ea6b5037f))
-
-
-
-## [20.3.60](https://github.com/Torwent/WaspLib/compare/v20.3.59...v20.3.60) (2026-03-13)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([0cbc0c7](https://github.com/Torwent/WaspLib/commit/0cbc0c78809e5bca8ba1f5dff5eb9b4f4eda37e1))
 
 
 

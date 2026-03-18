@@ -1,3 +1,12 @@
+## [20.4.6](https://github.com/Torwent/WaspLib/compare/v20.4.5...v20.4.6) (2026-03-18)
+
+
+### Bug Fixes
+
+* Added modern menu interface setting check ([2c50a75](https://github.com/Torwent/WaspLib/commit/2c50a750e0dd3aedf33f71d1f123e9d5a1d93f84))
+
+
+
 ## [20.4.5](https://github.com/Torwent/WaspLib/compare/v20.4.4...v20.4.5) (2026-03-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * Update farmrunnerupdate.simba ([c402370](https://github.com/Torwent/WaspLib/commit/c402370d5a36e725382e34ab1a6e9ce55a8ce4b3))
-
-
-
-## [20.4.1](https://github.com/Torwent/WaspLib/compare/v20.4.0...v20.4.1) (2026-03-14)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([96c4c07](https://github.com/Torwent/WaspLib/commit/96c4c07c642debafd3a8e11e6cb6e7e1aea549c7))
 
 
 

@@ -356,7 +356,7 @@ var
   checkBoxColor: TCTS1Color;
   checkmarkColor: TCTS2Color;
   bgColor1, bgColor2, searchBarColor: TCTS2Color;
-  bgTPA, otherBGTPA, checkBoxArea, checkMark, settingBar, searchBarArea: TPointArray;
+  bgTPA, otherBGTPA, checkBoxArea, checkMark, searchBarArea: TPointArray;
   ATPA: T2DPointArray;
   i: Int32;
   match, debugString: String;
@@ -396,46 +396,42 @@ begin
     match       := OCR.Recognize(ATPA[i].Bounds, TOCRColorFilter.Create([2070783], [2]), RS_FONT_BOLD_12);
     debugString := match;
     match       := match.ToLower();
-    if match.Contains(textToFind.ToLower()) then
+    if not match.Contains(textToFind.ToLower()) then
+      Continue;
+
+    if SRL.FindColors(checkBoxArea, checkBoxColor, ATPA[i].Bounds) < 1 then
     begin
-      settingBar := ATPA[i];
-      Break;
+      Self.DebugLn('ToggleSetting -> Checkbox not found for: ' + debugString);
+      Continue;
     end;
-  end;
 
-  if settingBar = [] then
-  begin
-    Self.DebugLn('ToggleSetting -> Setting not found: ' + textToFind);
-    Exit;
-  end;
+    if SRL.FindColors(checkMark, checkmarkColor, checkBoxArea.Bounds) < 1 then
+    begin
+      if enable then
+      begin
+        Mouse.Click(checkBoxArea.Mean, MOUSE_LEFT);
+        Self.DebugLn('ToggleSetting -> Enabled: ' + debugString);
+        Result := True;
+        Wait(150, 300);
+        Continue;
+      end;
+      Self.DebugLn('ToggleSetting -> Already disabled: ' + debugString);
+      Result := True;
+      Continue;
+    end;
 
-  if SRL.FindColors(checkBoxArea, checkBoxColor, settingBar.Bounds) < 1 then
-  begin
-    Self.DebugLn('ToggleSetting -> Checkbox not found for: ' + debugString);
-    Exit;
-  end;
-
-  if SRL.FindColors(checkMark, checkmarkColor, checkBoxArea.Bounds) < 1 then
-  begin
     if enable then
     begin
-      Mouse.Click(checkBoxArea.Mean, MOUSE_LEFT);
-      Self.DebugLn('ToggleSetting -> Enabled: ' + debugString);
-      Exit(True);
+      Self.DebugLn('ToggleSetting -> Already enabled: ' + debugString);
+      Result := True;
+      Continue;
     end;
-    Self.DebugLn('ToggleSetting -> Already disabled: ' + debugString);
-    Exit(True);
-  end;
 
-  if enable then
-  begin
-    Self.DebugLn('ToggleSetting -> Already enabled: ' + debugString);
-    Exit(True);
+    Mouse.Click(checkBoxArea.Mean, MOUSE_LEFT);
+    Self.DebugLn('ToggleSetting -> Disabled: ' + debugString);
+    Result := True;
+    Wait(150, 300);
   end;
-
-  Mouse.Click(checkBoxArea.Mean, MOUSE_LEFT);
-  Self.DebugLn('ToggleSetting -> Disabled: ' + debugString);
-  Exit(True);
 end;
 
 (*
@@ -544,19 +540,23 @@ var
   iterStr: String;
   offArray, onArray: TStringArray;
 begin
+  if Self.Name = '' then
+    Self.Setup();
   Self.DebugLn('CheckRegularSettings -> Verifying settings options');
 
   onArray := [
-    Copy('shift', 0, Random(3, 5)),
+    Copy('shift', 0, Random(4, 6)),
     'esc',
     Copy('middle', 0, Random(3, 6)),
     'tint',
     Copy('roofs', 0, Random(3, 4)),
-    Copy('worn items from gravestone', 0, Random(4, 12))
+    Copy('worn items from gravestone', 0, Random(7, 9))
   ];
   Self.ShuffleStrings(onArray);
 
-  offArray := [Copy('switcher', 0, Random(2, 5))];
+  offArray := [Copy('switcher', 0, Random(3, 5)),
+               Copy('modern menu interface', 0, Random(8, 10))
+  ];
 
   if Self.OpenSettings() then
   begin
@@ -666,6 +666,8 @@ procedure TSettingsHandler.CheckMagicSettings();
 var
   filtersDisabled: Int32;
 begin
+  if Self.Name = '' then
+    Self.Setup();
   Self.DebugLn('CheckMagicSettings -> Checking magic settings');
 
   if WaitUntil(Magic.Open(), 30, 3000) then

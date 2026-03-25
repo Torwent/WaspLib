@@ -1,45 +1,45 @@
-## [20.3.21](https://github.com/Torwent/WaspLib/compare/v20.3.20...v20.3.21) (2026-01-14)
+## [20.4.9](https://github.com/Torwent/WaspLib/compare/v20.4.8...v20.4.9) (2026-03-25)
 
 
 ### Bug Fixes
 
-* **TBaseBankScript:** remove unneeded out parameter ([8330086](https://github.com/Torwent/WaspLib/commit/83300868d063541452974c3fac7e917ecfa5c0ec))
+* Update farmrunnerupdate.simba ([3185f9b](https://github.com/Torwent/WaspLib/commit/3185f9bce61932b80dca5bb1322f3e5098dbb5a7))
 
 
 
-## [20.3.20](https://github.com/Torwent/WaspLib/compare/v20.3.19...v20.3.20) (2026-01-09)
-
-
-### Bug Fixes
-
-* Update README.md ([bd59a74](https://github.com/Torwent/WaspLib/commit/bd59a74b34c85b4ce0d2672fa9b4673e1bd53a09))
-
-
-
-## [20.3.19](https://github.com/Torwent/WaspLib/compare/v20.3.18...v20.3.19) (2025-12-04)
+## [20.4.8](https://github.com/Torwent/WaspLib/compare/v20.4.7...v20.4.8) (2026-03-23)
 
 
 ### Bug Fixes
 
-* force bump ([da1bfdf](https://github.com/Torwent/WaspLib/commit/da1bfdf1eaa3a8370e5f9f987d75a08c7980ee7f))
+* Update farmrunnerupdate.simba ([339003c](https://github.com/Torwent/WaspLib/commit/339003c044a545f70836ead588defe6f25fdbc87))
 
 
 
-## [20.3.18](https://github.com/Torwent/WaspLib/compare/v20.3.17...v20.3.18) (2025-11-20)
-
-
-### Bug Fixes
-
-* **rsheightmap:** rollback walkerv1 heightmap changes ([504bdd0](https://github.com/Torwent/WaspLib/commit/504bdd0e2e3d1dd7e25fa5f29c0636763df475be))
-
-
-
-## [20.3.17](https://github.com/Torwent/WaspLib/compare/v20.3.16...v20.3.17) (2025-11-17)
+## [20.4.7](https://github.com/Torwent/WaspLib/compare/v20.4.6...v20.4.7) (2026-03-21)
 
 
 ### Bug Fixes
 
-* bump ([53dadd2](https://github.com/Torwent/WaspLib/commit/53dadd2d7a32df9690078c19f4b24b880c1fb608))
+* Delete optional/handlers/farmrunner.simba ([d40f0ef](https://github.com/Torwent/WaspLib/commit/d40f0ef79950949658cab6f5a1f172c49b01f92a))
+
+
+
+## [20.4.6](https://github.com/Torwent/WaspLib/compare/v20.4.5...v20.4.6) (2026-03-18)
+
+
+### Bug Fixes
+
+* Added modern menu interface setting check ([2c50a75](https://github.com/Torwent/WaspLib/commit/2c50a750e0dd3aedf33f71d1f123e9d5a1d93f84))
+
+
+
+## [20.4.5](https://github.com/Torwent/WaspLib/compare/v20.4.4...v20.4.5) (2026-03-18)
+
+
+### Bug Fixes
+
+* coal finder for rsobjects ([662c85f](https://github.com/Torwent/WaspLib/commit/662c85f6686cc7a5147484f548ddab295a04262a))
 
 
 

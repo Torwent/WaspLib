@@ -995,6 +995,49 @@ begin
 end;
 {%codetools on}
 
+function TRSMinimap.FRIsUnloadedVisible(out unloadedBlackTPA: TPointArray): Boolean; // Skunkworks
+var
+  unloadedClusters: T2DPointArray;
+begin
+  if Minimap.IsPlayerMoving() then // if we are still moving we don't care about unloaded
+    Exit(False);
+  SRL.FindColors(unloadedBlackTPA, 0, Minimap.Bounds);
+  unloadedClusters := unloadedBlackTPA.Cluster(1);
+  unloadedClusters.FilterSize(200, EComparator.__GT__);
+  if unloadedClusters.Len() = 0 then
+    Exit(False);
+
+  unloadedBlackTPA := unloadedClusters.Biggest();
+end;
+
+function TRSMinimap.FRClickIntoUnloaded(): Boolean; // Skunkworks
+var
+  blackTPA: TPointArray;
+begin
+  if not self.FRIsUnloadedVisible(blackTPA) then
+    Exit(False);
+
+  WriteLn('clicking into unloaded minimap region');
+  Mouse.Click(blackTPA.RandomMean(), MOUSE_LEFT);
+  if Mainscreen.DidRedClick() then
+    Debug(Mainscreen.Bounds);
+end;
+
+procedure _OnWalkEvent(Sender: PRSWalker; Position: TPoint; Destination: TPoint);
+begin
+  if Sender <> @ScriptWalker^ then
+    Exit;
+
+  if SRL.Dice(5) then
+    Mouse.RandomMovement;
+
+  if Minimap.FRClickIntoUnloaded() then
+    Writeln('We had to click into unloaded');
+
+  Position := [];
+  Destination := [];
+end;
+
 function TFarmPatch.Find(): Boolean;
 var
   playerPosition, coordinate: TPoint;
@@ -3490,6 +3533,8 @@ begin
     ScriptWalker^.AddRegions(tmp);
 
   ScriptWalker^.AddRegionFromURL('https://raw.githubusercontent.com/TwistedSlayerHelm/Images/refs/heads/main/maps/fsQF2NF.png', [0, 5831], 'FarmRunnerCivitas.png');
+
+  ScriptWalker^.OnWalkingEvent := @_OnWalkEvent;
 
   BoatyShore.SetupCoordinates([[9294,1075]]);
   BoatyShore.SetupUpText(['ravel']);

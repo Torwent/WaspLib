@@ -1,3 +1,12 @@
+## [20.4.9](https://github.com/Torwent/WaspLib/compare/v20.4.8...v20.4.9) (2026-03-25)
+
+
+### Bug Fixes
+
+* Update farmrunnerupdate.simba ([3185f9b](https://github.com/Torwent/WaspLib/commit/3185f9bce61932b80dca5bb1322f3e5098dbb5a7))
+
+
+
 ## [20.4.8](https://github.com/Torwent/WaspLib/compare/v20.4.7...v20.4.8) (2026-03-23)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * coal finder for rsobjects ([662c85f](https://github.com/Torwent/WaspLib/commit/662c85f6686cc7a5147484f548ddab295a04262a))
-
-
-
-## [20.4.4](https://github.com/Torwent/WaspLib/compare/v20.4.3...v20.4.4) (2026-03-16)
-
-
-### Bug Fixes
-
-* pdate farmrunnerupdate.simba ([c9c1abc](https://github.com/Torwent/WaspLib/commit/c9c1abc9fcfba5399c3b7acfec53f98e371df1a9))
 
 
 

@@ -1,3 +1,12 @@
+## [20.4.17](https://github.com/Torwent/WaspLib/compare/v20.4.16...v20.4.17) (2026-04-03)
+
+
+### Bug Fixes
+
+* Update farmrunnerupdate.simba ([fad4686](https://github.com/Torwent/WaspLib/commit/fad46864bd6e3dae5dc8a71f721c6a02b6b0715b))
+
+
+
 ## [20.4.16](https://github.com/Torwent/WaspLib/compare/v20.4.15...v20.4.16) (2026-04-03)
 
 
@@ -34,15 +43,6 @@
 * **magic:** correct Magic.CountSpells() ([c7ddd50](https://github.com/Torwent/WaspLib/commit/c7ddd50574dac4f076d12708c08226e6d141f151))
 * SettingsHandler magic filter fixes ([ac7a26e](https://github.com/Torwent/WaspLib/commit/ac7a26edd7473f4a3176953215f821bd257980af))
 * Update farmrunnerupdate.simba ([1b8d62a](https://github.com/Torwent/WaspLib/commit/1b8d62aa4d57b84bec97c65d1dd4c4dc9dc14dc4))
-
-
-
-## [20.4.12](https://github.com/Torwent/WaspLib/compare/v20.4.11...v20.4.12) (2026-03-30)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([7f89a8b](https://github.com/Torwent/WaspLib/commit/7f89a8b15ec5a0a5838fbaae10f38d26e740bd34))
 
 
 

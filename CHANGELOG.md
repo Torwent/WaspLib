@@ -1,3 +1,12 @@
+## [20.4.24](https://github.com/Torwent/WaspLib/compare/v20.4.23...v20.4.24) (2026-06-01)
+
+
+### Bug Fixes
+
+* JSON Parse on API failure ([b3f96d5](https://github.com/Torwent/WaspLib/commit/b3f96d5bb974956c8b54211085b639d13f2ada76))
+
+
+
 ## [20.4.23](https://github.com/Torwent/WaspLib/compare/v20.4.22...v20.4.23) (2026-05-24)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * Update farmrunnerupdate.simba ([c4f6ff5](https://github.com/Torwent/WaspLib/commit/c4f6ff5cfef2962719ebd2070b7a04aa43d831b8))
-
-
-
-## [20.4.19](https://github.com/Torwent/WaspLib/compare/v20.4.18...v20.4.19) (2026-04-04)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([b755ae0](https://github.com/Torwent/WaspLib/commit/b755ae0afbeb23f00e8e48d84c84dfed77e6313d))
 
 
 

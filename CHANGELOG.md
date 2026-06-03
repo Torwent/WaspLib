@@ -1,3 +1,12 @@
+## [20.4.25](https://github.com/Torwent/WaspLib/compare/v20.4.24...v20.4.25) (2026-06-03)
+
+
+### Bug Fixes
+
+* Update farmrunnerupdate.simba ([3e6d29e](https://github.com/Torwent/WaspLib/commit/3e6d29ea7fd7b7042188477e83874de74bdb8409))
+
+
+
 ## [20.4.24](https://github.com/Torwent/WaspLib/compare/v20.4.23...v20.4.24) (2026-06-01)
 
 
@@ -34,15 +43,6 @@
 ### Bug Fixes
 
 * remove unused settings handler warning ([b62cec2](https://github.com/Torwent/WaspLib/commit/b62cec2489c43b443136b92233194608a97e602f))
-
-
-
-## [20.4.20](https://github.com/Torwent/WaspLib/compare/v20.4.19...v20.4.20) (2026-04-08)
-
-
-### Bug Fixes
-
-* Update farmrunnerupdate.simba ([c4f6ff5](https://github.com/Torwent/WaspLib/commit/c4f6ff5cfef2962719ebd2070b7a04aa43d831b8))
 
 
 

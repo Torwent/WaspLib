@@ -1,0 +1,128 @@
+(*
+  Simple handler for the Quetzal Transport System interface.
+  Works on every Client mode. Does not check if the landing site is built.
+  The interface is different from other RSInterfaces. No title, different colors, etc.
+
+  Example:
+    if Inventory.ClickItem(Whistle, 'Signal') and WaitUntil(Quetzal.IsOpen(), 200, 1000) then
+      Quetzal.Travel(ELandingSite.qsALDARIN);
+*)
+
+{$IFNDEF WL_QUETZAL_INCLUDED}
+{$DEFINE WL_QUETZAL_INCLUDED}
+
+{$IFNDEF WL_OSR}
+  {$I WaspLib/osr.simba}
+{$ENDIF}
+
+type
+  ELandingSite = (
+    qsALDARIN, qsAUBURNVALE, qsCIVITAS_ILLA_FORTIS, qsHUNTER_GUILD, qsTHE_TEOMAT,
+    qsQUETZACALLI_GORGE, qsSUNSET_COAST, qsTAL_TEKLAN, qsCAM_TORUM_ENTRANCE,
+    qsOUTER_FORTIS, qsKASTORI, qsCOLOSSAL_WYRM_REMAINS, qsFORTIS_COLOSSEUM,
+    qsSALVAGER_OVERLOOK, qsNONE
+  );
+
+  TQuetzalButton = record
+    UpText: String;
+    Offset: TPoint;
+  end;
+
+  TQuetzal = record
+    DTM: Int32;
+  end;
+
+const
+  QUETZAL_BUTTONS: array[ELandingSite] of TQuetzalButton := [
+    ['ldari',   Point(-171, 188)],  // qsALDARIN
+    ['burnva',  Point(-180, 14)],   // qsAUBURNVALE
+    ['ivitas',  Point(-22, 104)],   // qsCIVITAS_ILLA_FORTIS
+    ['unter',   Point(-84, 119)],   // qsHUNTER_GUILD
+    ['eomat',   Point(-165, 77)],   // qsTHE_TEOMAT
+    ['etzac',   Point(-108, 53)],   // qsQUETZACALLI_GORGE
+    ['unset',   Point(-99, 161)],   // qsSUNSET_COAST
+    ['eklan',   Point(-261, 107)],  // qsTAL_TEKLAN
+    ['orum',    Point(-153, 107)],  // qsCAM_TORUM_ENTRANCE
+    ['uter',    Point(-39, 149)],   // qsOUTER_FORTIS
+    ['stori',   Point(-207, 137)],  // qsKASTORI
+    ['emain',   Point(-42, 194)],   // qsCOLOSSAL_WYRM_REMAINS
+    ['olosseu', Point(39, 125)],    // qsFORTIS_COLOSSEUM
+    ['alvage',  Point(-42, 50)],    // qsSALVAGER_OVERLOOK
+    ['lose',    Point(104, -29)]    // qsNONE
+  ];
+
+function TQuetzal.IsOpen(): Boolean;
+var
+  x, y: Int32;
+  {$IFDEF DEBUG_QUETZAL}
+  btn: TQuetzalButton;
+  Pt: TPoint;
+  {$ENDIF}
+begin
+  Result := FindDTM(Self.DTM, x, y, Mainscreen.Bounds);
+  {$IFDEF DEBUG_QUETZAL}
+  if Result then
+    for btn in QUETZAL_BUTTONS do
+    begin
+      Pt := Point(x + btn.Offset.x, y + btn.Offset.y);
+      RSClient.Image.DrawCross(Pt, 6, clFuchsia);
+      RSClient.Image.DrawText(btn.UpText, Pt, clFuchsia);
+    end;
+  {$ENDIF}
+end;
+
+function TQuetzal.Travel(Destination: ELandingSite): Boolean;
+var
+  Bounds: TBox;
+  x, y: Int32;
+  Pt: TPoint;
+begin
+  if not FindDTM(Self.DTM, x, y, Mainscreen.Bounds) then
+    Exit(False);
+
+  Pt := Point(x + QUETZAL_BUTTONS[Destination].Offset.x, y + QUETZAL_BUTTONS[Destination].Offset.y);
+  Bounds := Box(Pt, 16, 16);
+  Mouse.HumanMove(SRL.ROWP(Pt, Bounds));
+
+  if not Mainscreen.IsUpText(QUETZAL_BUTTONS[Destination].UpText, 250) then
+    Exit(False);
+
+  MOUSE.Click(MOUSE_LEFT);
+  Wait(200, 400);
+  Result := WaitUntil(not FindDTM(Self.DTM, x, y, Mainscreen.Bounds), 50, 1500);
+end;
+
+function TQuetzal.Close(PressEscape: Boolean = True): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  if PressEscape then
+    Keyboard.PressKey(VK_ESCAPE)
+  else
+    Self.Travel(ELandingSite.qsNONE);
+
+  Result := WaitUntil(not Self.IsOpen(), 50, 1500);
+end;
+
+var
+  Quetzal: TQuetzal;
+
+procedure TQuetzal.Free();
+begin
+  FreeDTM(Self.DTM);
+end;
+
+procedure TQuetzal.Setup();
+begin
+  Self.DTM := DTMFromString('mwQAAAHic42RgYOhgZGBoAOJOIO4H4olA3AfE7UDcCMTNQOzOAMHWQGwPxG5AHADEgUDsDxXrmjCZITbMES8mBjASgeEAAE55ELA=');
+  AddOnTerminate(@Quetzal.Free);
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+  Quetzal.Setup();
+end;
+
+{$ENDIF}

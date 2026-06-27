@@ -1,6 +1,5 @@
 (*
-  Simple handler for the Quetzal Transport System interface.
-  Works on every Client mode. Does not check if the landing site is built.
+  Simple handler for the Quetzal Transport System interface. Works on every Client mode.
   The interface is different from other RSInterfaces. No title, different colors, etc.
 
   Example:
@@ -29,6 +28,8 @@ type
   end;
 
   TQuetzal = record
+    AUTOBUILT: set of ELandingSite;
+    LOCK_COLOR: TCTS2Color;
     DTM: Int32;
   end;
 
@@ -67,8 +68,20 @@ begin
       Pt := Point(x + btn.Offset.x, y + btn.Offset.y);
       RSClient.Image.DrawCross(Pt, 6, clFuchsia);
       RSClient.Image.DrawText(btn.UpText, Pt, clFuchsia);
+
     end;
   {$ENDIF}
+end;
+
+function TQuetzal.IsUnlocked(Site: ELandingSite; X, Y: Int32): Boolean;
+var
+  Pt: TPoint;
+begin
+  if Site in Self.AUTOBUILT then
+    Exit(True);
+
+  Pt := Point(X + QUETZAL_BUTTONS[Site].Offset.x, Y + QUETZAL_BUTTONS[Site].Offset.y);
+  Result := SRL.CountColor(Self.LOCK_COLOR, Box(Pt, 16, 16)) = 0;
 end;
 
 function TQuetzal.Travel(Destination: ELandingSite): Boolean;
@@ -78,6 +91,9 @@ var
   Pt: TPoint;
 begin
   if not FindDTM(Self.DTM, x, y, Mainscreen.Bounds) then
+    Exit(False);
+
+  if not Self.IsUnlocked(Destination, x, y) then
     Exit(False);
 
   Pt := Point(x + QUETZAL_BUTTONS[Destination].Offset.x, y + QUETZAL_BUTTONS[Destination].Offset.y);
@@ -116,6 +132,11 @@ end;
 procedure TQuetzal.Setup();
 begin
   Self.DTM := DTMFromString('mwQAAAHic42RgYOhgZGBoAOJOIO4H4olA3AfE7UDcCMTNQOzOAMHWQGwPxG5AHADEgUDsDxXrmjCZITbMES8mBjASgeEAAE55ELA=');
+  Self.AUTOBUILT := [
+    qsALDARIN, qsAUBURNVALE, qsCIVITAS_ILLA_FORTIS, qsHUNTER_GUILD,
+    qsTHE_TEOMAT, qsQUETZACALLI_GORGE, qsSUNSET_COAST, qsTAL_TEKLAN
+  ];
+  Self.LOCK_COLOR := CTS2(1813935, 1, 0.01, 0.01);
   AddOnTerminate(@Quetzal.Free);
 end;
 
@@ -126,3 +147,4 @@ begin
 end;
 
 {$ENDIF}
+

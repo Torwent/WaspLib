@@ -1,0 +1,216 @@
+(*
+# ProgressReport
+This is what's responsible for the in game screen report, often called as
+"paint" or HUDProgressReport in WaspLib.
+
+You can easily toggle the usage this on or off by switching the variables:
+- `WLSettings.RemoteInput.HUDReport`
+- `WLSettings.RemoteInput.Enabled`
+
+```{note}
+Keep in mind that ProgressReport requires remote input.
+```
+*)
+{$DEFINE WL_PROGRESS_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+(*
+(TProgressReport)=
+## type ProgressReport
+Type responsible for handling the HUDProgressReport, also commonly called as "Paint" or InGame/OnScreen Progress Report.
+*)
+type
+  TProgressReport = record
+    ImagePath: String;
+
+    BGImg: TMufasaBitmap;
+    ClientImg: TMufasaBitmap;
+
+    TextColor, AdColor, PadLength: Int32;
+
+    Timer: TTimer;
+    UsernameBox: TBox;
+
+    Terminated, IsSetup: Boolean;
+
+    PTimeRunning: ^TStopwatch;
+    ProgressArray: TStringArray;
+    TopLeft: TPoint;
+end;
+
+{$IFNDEF SRL_DISABLE_REMOTEINPUT}
+(*
+## ProgressReport.Terminate
+```pascal
+procedure ProgressReport.Terminate();
+```
+Internal method called automatically on termination. This will do things such as free used assetsa and clear the progress report from the game screen.
+*)
+procedure TProgressReport.Terminate();
+begin
+  if Self.Terminated then //avoids multiple terminations in case the script is chained.
+    Exit;
+
+  Self.BGImg.Clear();
+  Self.BGImg.Free();
+end;
+
+(*
+## ProgressReport.Setup()
+```pascal
+procedure Self.Setup();
+```
+Internal method called when we need to setup TProgressReport.
+*)
+procedure TProgressReport.Setup();
+begin
+  Self.BGImg.Init();
+  Self.BGImg.SetName('proggy');
+  if Self.ImagePath = '' then
+    Self.ImagePath := {$MACRO CURRENT_DIRECTORY} + 'WaspProgress.png';
+
+  Self.TopLeft := [Chat.Bounds.X1, Chat.Bounds.Y1 - 12];
+  if WLSettings.GetObject('remote_input').getBoolean('hud_transparent') then
+  begin
+    Self.TopLeft.Y -= Chat.Height - 12;
+    Self.BGImg.SetSize(Chat.Width, Chat.Height + 12);
+  end
+  else
+    Self.BGImg.LoadFromFile(Self.ImagePath);
+
+
+  Self.BGImg.setFontAntialiasing(True);
+
+  Self.ClientImg := GameClient.Image();
+
+  Self.ClientImg.Clear();
+  Self.ClientImg.SetName('ClientImg');
+  Self.ClientImg.setFontAntialiasing(True);
+  Self.ClientImg.setFontSize(13);
+
+  if Self.BGImg.GetFonts().Contains('Consolas') then
+  begin
+    Self.BGImg.setFontName('Consolas');
+    Self.ClientImg.setFontName('Consolas');
+  end;
+
+  if Self.TextColor = 0 then
+    Self.TextColor := $006CFF - $C8D100;
+  if Self.AdColor = 0 then
+    Self.AdColor := $006CFF - $90A301;
+  Self.UsernameBox := Chat.GetDisplayNameBox();
+
+  AddOnTerminate(@Self.Terminate);
+end;
+
+(*
+## ProgressReport.DrawBackground()
+```pascal
+procedure TProgressReport.DrawBackground(fontColor: Int32);
+```
+Method that handles drawing the background of our Self.
+Usually called internally by Self.Update().
+*)
+procedure TProgressReport.DrawBackground();
+var
+  hi: String;
+begin
+  if not Self.IsSetup then
+  begin
+    Self.BGImg.setFontSize(18);
+    Self.BGImg.DrawTextShadow(ScriptName.Before('.simba').Replace('_', ' ').Capitalize(), [Round(Self.BGImg.GetWidth()/2) + 25, 7], Self.TextColor, WLSettings.GetObject('remote_input').getBoolean('hud_transparent'));
+
+    Self.BGImg.setFontSize(14);
+
+    hi := Self.ProgressArray[High(Self.ProgressArray)];
+    if WLSettings.GetObject('remote_input').getBoolean('hud_transparent') then
+      Self.BGImg.DrawTextShadow(hi, [10, 135], Self.AdColor, True)
+    else
+      Self.BGImg.DrawText(hi, [10, 135], Self.AdColor);
+    Self.IsSetup := True;
+  end;
+
+  Self.ClientImg.DrawBitmap(Self.BGImg, Self.TopLeft);
+end;
+
+(*
+## ProgressReport.DrawProgress()
+```pascal
+procedure TProgressReport.DrawProgress(fontColor: Int32);
+```
+Method that handles drawing the text of our Self.
+Usually called internally by TProgressReport.Update().
+*)
+procedure TProgressReport.DrawProgress();
+var
+  p, q: TPoint;
+  i: Int32;
+begin
+  p := [Self.TopLeft.X + 10, Self.TopLeft.Y + 40];
+  if WLSettings.GetObject('remote_input').getBoolean('hud_transparent') then
+    p.Y -= 12;
+  q := [Chat.Center.X + 20, p.Y];
+
+  for i := 0 to High(ProgressArray) - 1 do
+  begin
+    if Frac(i/2) = 0 then
+    begin
+      ClientImg.DrawTextShadow(ProgressArray[i], p, Self.TextColor, WLSettings.GetObject('remote_input').getBoolean('hud_transparent'));
+      p.Y += 20;
+    end
+    else
+    begin
+      ClientImg.DrawTextShadow(ProgressArray[i], q, Self.TextColor, WLSettings.GetObject('remote_input').getBoolean('hud_transparent'));
+      q.Y += 20;
+    end;
+  end;
+
+  if WLSettings.GetObject('remote_input').getBoolean('hud_transparent') then
+    Self.ClientImg.DrawBoxFilled(Self.UsernameBox, False, $819DAC);
+end;
+
+(*
+## ProgressReport.HideProgress()
+```pascal
+procedure TProgressReport.HideProgress();
+```
+Used to hide Self.
+Usually called internally by TProgressReport.Update().
+*)
+procedure TProgressReport.HideProgress();
+begin
+  Self.IsSetup := False;
+
+  Self.ClientImg.DrawBoxFilled(Self.UsernameBox, False, $819DAC); //Hide username by painting a box with similar color to the chatbox background.
+end;
+
+(*
+## ProgressReport.Update
+```pascal
+procedure TProgressReport.Update();
+```
+Main method that should be called to used to start and update ProgressReport.
+
+To see Self.GetNextCycleColor() in action, which was just a fun experiment,
+uncomment:
+```pascal
+//Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);
+```
+*)
+procedure TProgressReport.Update();
+begin
+  Self.ClientImg.Clear();
+  //Self.TextColor := Self.GetNextCycleColor(Self.TextColor, 10);
+  //Self.DrawBackground();
+  //Self.DrawProgress();
+end;
+
+{$ENDIF}
+var
+(*
+## var ProgressReport
+Global ProgressReport variable.
+*)
+  ProgressReport: TProgressReport;

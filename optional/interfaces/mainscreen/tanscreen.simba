@@ -1,0 +1,131 @@
+{$DEFINE WL_TANSCREEN_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  EHide = (
+    SOFT,
+    HARD,
+    SWAMP_SNAKE,
+    SNAKE,
+    GREEN_DRAGON,
+    BLUE_DRAGON,
+    RED_DRAGON,
+    BLACK_DRAGON
+  );
+
+  TTanScreen = record(TTitledInterface)
+    HideSlots: TBoxArray;
+  end;
+
+procedure TTanScreen.Setup(); override;
+begin
+  inherited;
+  Self.Name := 'TanScreen';
+end;
+
+procedure TTanScreen.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+begin
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1 + 5;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 487;
+  alignment.MaxHeight := 301;
+
+  Self.SetupAlignment(alignment);
+
+  Self.HideSlots := Grid(4, 2, 95, 111, [17, 17], [Self.Bounds.X1 + 28, Self.Bounds.Y1 + 37]);
+end;
+
+function TTanScreen.GetHideBox(hide: EHide): TBox;
+begin
+  Result := Self.HideSlots[Ord(hide)];
+end;
+
+
+function TTanScreen.IsOpen(waitTime: Int32 = -1; interval: Int32 = -1): Boolean;
+  function IsOpen(): Boolean;
+  begin
+    Result := GameInterface.IsOpen(EInterfaceType.CLASSIC) and
+             (SRL.CountColor(CTS0(2070783), Self.Bounds) = 755);
+  end;
+begin
+  if waitTime = -1 then
+    Exit(IsOpen());
+
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(IsOpen(), interval, waitTime);
+end;
+
+
+function TTanScreen.Close(pressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+
+function TTanScreen.CanTan(hide: EHide): Boolean;
+begin
+  Result := SRL.CountColor($F8C800, Self.GetHideBox(hide)) > 0;
+end;
+
+function TTanScreen.HoverHide(hide: EHide): Boolean;
+begin
+  if Result := Self.IsOpen() then
+    Mouse.Move(Self.GetHideBox(hide));
+end;
+
+function TTanScreen.ClickHide(hide: EHide; option: String = 'Tan All'; waitTime: Int32 = -1): Boolean;
+begin
+  Result := Self.HoverHide(hide);
+  if not Result then Exit;
+
+  if (option = '') or MainScreen.IsUpText('Tan All') then
+    Mouse.Click(MOUSE_LEFT)
+  else
+    Result := ChooseOption.Select(option); //if we chooseoption we might want to reset result.
+
+  if waitTime > 0 then
+    Result := WaitUntil(not Self.IsOpen(), 100, waitTime);
+end;
+
+
+procedure TTanScreen.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawBoxes(Self.HideSlots, $00FFFF);
+end;
+
+var
+  TanScreen: TTanScreen;
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+  TanScreen.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  TanScreen.Setup();
+end;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+  TanScreen.Draw(bitmap);
+end;

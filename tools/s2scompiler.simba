@@ -1,0 +1,198 @@
+(*
+# S2SCompiler
+A "Simba to Simba compiler" that compiles multiple scripts into a single one.
+This is a very basic script and won't understand things like
+"IF" compiler directives.
+
+- `input` is the base file name you want to compile.
+- `path` is the path to `input`
+- `ERASE_DIRECTIVE_REGEX` is a regex for the lines you want this to ignore when "compiling" your script.
+  This is because if you have multiple files including the same file, you will get stuck in a recursive loop.
+  Should be easy to modify this to use simple strings instead of regex.
+
+The final result will be placed along thing script with `input` or if
+`input` is in the same directory, it will be named:
+```pascal
+input.Replace('.simba', '-compiled.simba')
+```
+*)
+
+var
+  input: String = 'launcher.simba';
+  path: String = ScriptPath + 'wasp-launcher' + DirectorySeparator + 'launcher' + DirectorySeparator;
+  output: String = ScriptPath + 'wasp-launcher' + DirectorySeparator;
+
+const
+  IGNORE_INCLUDES_FOLDER: Boolean = False;
+  ERASE_DIRECTIVE: TStringArray = ['WS_LAUNCHER', 'SRL_MAIN', 'SRL_UTILS', 'WL_MAIN', 'WL_UTILS'];
+  INCLUDE_DIRECTIVES: TStringArray = ['{$INCLUDE_ONCE ', '{$INCLUDE ', '{$I ', '{$include_once ', '{$include ', '{$i '];
+
+  REPLACES: array of TStringArray = [
+    ["Scripts/launcher/'", '{$MACRO CURRENT_DIRECTORY}'],
+    ["Apppath + 'Scripts' + DirectorySeparator + 'wasp-launcher' + DirectorySeparator + 'launcher' + DirectorySeparator", '{$MACRO CURRENT_DIRECTORY}']
+  ];
+
+
+function String.Pos(SubStr: String): Int32; constref;
+begin
+  Result := System.Pos(SubStr, self);
+end;
+
+function String.Contains(subString: String): Boolean; constref;
+begin
+  Result := Self.Pos(subString) > 0;
+end;
+
+function String.Replace(SubStr, ReplaceStr: String; Flags: TReplaceFlags=[rfReplaceAll]): String; constref;
+begin
+  Result := StringReplace(Self, SubStr, ReplaceStr, Flags);
+end;
+
+function String.After(SubStr: String): String; constref;
+var
+  p: UInt32;
+begin
+  p := System.Pos(SubStr, Self);
+  if (p = 0) then Exit(Self);
+  Inc(p, Length(SubStr));
+  Result := Copy(Self, p, Length(Self) - p + 1);
+end;
+
+function String.Before(SubStr: String): String; constref;
+var
+  p: UInt32;
+begin
+  p := System.Pos(SubStr, Self);
+  if (p = 0) then Exit(Self);
+  Result := Copy(Self, 1, p - 1);
+end;
+
+function String.Trim(chars:String = #9#10#11#12#13#32): String; constref;
+var Lo,Hi: UInt32 = 1;
+begin
+  Hi:=Length(Self);
+  while (Lo <= Hi) and (System.Pos(Self[Lo],Chars) <> 0) do Inc(Lo);
+  while (Hi >= 1)  and (System.Pos(Self[Hi],Chars) <> 0) do Dec(Hi);
+  Result := Copy(Self, Lo, Hi-Lo+1);
+end;
+
+function String.StartsWith(Prefix: String): Boolean; constref;
+begin
+  Result := Self.Pos(Prefix) = 1;
+end;
+
+
+function GetDirectiveIndex(content: String): Int32;
+begin
+  for Result := 0 to High(INCLUDE_DIRECTIVES) do
+    if content.Contains(INCLUDE_DIRECTIVES[Result]) then
+      Exit;
+  Result := -1;
+end;
+
+function GetIncludeContent(content: String; directiveIndex: Int32): String;
+const
+  RGXS: String = '\{\$IFNDEF ';
+  RGXE: String = '\}([\s\S]*?\{\$ENDIF\})';
+var
+  filepath, directives, currentPath: String;
+  i: Int32;
+begin
+  filepath := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}').Trim();
+
+  if filepath.StartsWith('WaspLib') or filepath.StartsWith('SRL-T') or filepath.StartsWith('SRL') then
+  begin
+    if IGNORE_INCLUDES_FOLDER then
+      Exit(INCLUDE_DIRECTIVES[directiveIndex].Replace(' ', '_') + filepath + '}');
+
+    WriteLn('Compiling file: ' , Includepath + filepath);
+    Result := ReadFileContents(Includepath + filepath);
+  end
+  else if filepath.StartsWith('Scripts/') or filepath.StartsWith('Scripts\') then
+  begin
+    WriteLn('Compiling file: ' , AppPath + filepath);
+    Result := ReadFileContents(AppPath + filepath);
+
+    for i := 0 to High(INCLUDE_DIRECTIVES) do
+    begin
+      Result := Result.Replace(INCLUDE_DIRECTIVES[i] + ' SRL', '{$TEMP_SRL');
+      Result := Result.Replace(INCLUDE_DIRECTIVES[i] + ' WaspLib', '{$TEMP_Wasplib');
+    end;
+
+    for i := 0 to High(INCLUDE_DIRECTIVES) do
+      Result := Result.Replace(INCLUDE_DIRECTIVES[i], INCLUDE_DIRECTIVES[i] + ExtractFileDir(filepath) + DirectorySeparator);
+
+    Result := Result.Replace('{$TEMP_SRL', '{$I SRL').Replace('{$TEMP_Wasplib', '{$I WaspLib');
+  end
+  else
+  begin
+    WriteLn('Compiling file: ' , AppPath + filepath);
+    Result := ReadFileContents(path + filepath);
+  end;
+
+  for directives in ERASE_DIRECTIVE do
+    Result := ReplaceRegExpr(RGXS + directives + RGXE, Result, '', True);
+
+  filepath := ExtractFilepath(path + filepath).Replace(Apppath, "Apppath + '") + "'";
+  filepath := filepath.Replace(DirectorySeparator, "' + DirectorySeparator + '").Replace(" + ''", '');
+
+  Result := Result.Replace('{$macro CURRENT_DIRECTORY}', filepath).Replace('{$MACRO CURRENT_DIRECTORY}', filepath);
+
+  Result := LineEnding + Result + LineEnding;
+end;
+
+function ReplaceIncludeDirective(content, sub: String; directiveIndex: Int32): String;
+var
+  directive: String;
+begin
+  directive := content.After(INCLUDE_DIRECTIVES[directiveIndex]).Before('}');
+  directive := INCLUDE_DIRECTIVES[directiveIndex] + directive + '}';
+  Result := content.Replace(directive, sub);
+end;
+
+var
+  content, sub: String;
+  index: Int32;
+begin
+  if GetProcessParameter('input') <> '' then
+    input := GetProcessParameter('input');
+
+  if GetProcessParameter('path') <> '' then
+    path := GetProcessParameter('path');
+
+  if GetProcessParameter('output') <> '' then
+    output := GetProcessParameter('output');
+
+  if not FileExists(path + input) then
+  begin
+    WriteLn('Run parameters: ', GetProcessParameters());
+    WriteLn('input: ', input);
+    WriteLn('path: ', path);
+    WriteLn('output: ', output);
+    raise 'File ' + path+input + ' does not exist.';
+  end;
+
+  content := ReadFileContents(path + input);
+
+  index := GetDirectiveIndex(content);
+  while index > -1 do
+  begin
+    sub := GetIncludeContent(content, index);
+    content := ReplaceIncludeDirective(content, sub, index);
+    index := GetDirectiveIndex(content);
+  end;
+
+  for index := 0 to High(REPLACES) do
+    content := content.Replace(REPLACES[index,0], REPLACES[index,1]);
+
+  for index := 0 to High(INCLUDE_DIRECTIVES) do
+    content := content.Replace(INCLUDE_DIRECTIVES[index].Replace(' ', '_'), INCLUDE_DIRECTIVES[index]);
+
+
+  if path = output then
+    WriteFileContents(path + input.Replace('.simba', '-compiled.simba'), content, False)
+  else
+    WriteFileContents(output + input, content, False);
+
+  WriteLn 'File written to ' + output;
+end;

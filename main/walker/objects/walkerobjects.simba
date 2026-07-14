@@ -1,0 +1,2369 @@
+(*
+# Walker Objects
+Methods to handle TWalkerObjects.
+TWalkerObject can be anything that you want to interact with on the mainscreen.
+They are divided in 2 main categories and one of them in 3 sub-categories but the usage is only limited by your imagination:
+  - GameObjects (TWalkerObjects that don't have a dot on the minimap)
+  - MMDots:   (TWalkerObjects that have a dot on the minimap)
+    -RSNPCs
+    -RSGroundItems
+    -RSPlayers
+
+## How do they work?
+TWalkerObjects are very customizable and can be used to interact with almost everything.
+For some niche use cases it might be worth do something custom or override some methods to get the behavior you want.
+
+The default way they work is:
+- WaspLib checks if you are in the TWalkerObject.Coordinates range.
+  If not and you used one of the **Walk** methods, it will walk to that location.
+- Being in the TWalkerObject location, then we check if our TWalkerObject is a TGameObject or a TMMDot.
+  for a TGameObject we stick with the TWalkerObject.Coordinates, for TMMDots, the coordinates are changed to the minimap dots that within the radius specified when the TWalkerObject was setup.
+- WaspLib then convert the coordinate along with the TWalkerObject.ShapeArray information to a TCuboidArray on the mainscreen (https://en.wikipedia.org/wiki/Cuboid).
+- This TCuboidArray is the "bounds" of our targets. Each one should accurately surround each of our possible targets.
+- Then WaspLib runs MainScreen.FindObject() inside of each TCuboid. For more info on how this works read the TObjectFinder documentation (https://torwent.github.io/SRL-T/mainscreen.html#type-TObjectFinder).
+- An ATPA of the found colors inside each cuboid is then returned.
+- If the method used is related to hovering or clicking, we hover the closest target and then check if TWalkerObject.UpText matches the uptext.
+- If it does and we are using a clicking method, we click it.
+- If we use a **select** method, if the option is not in the uptext we right click the target and select that option.
+
+
+This is the default behavior but TWalkerObjects are very customizable and functionality can be toggled on with TWalkerObject.Filter:
+- Filter.Walker: Disables walker for the TWalkerObject. Coordinates are ignored and still use the minimap dots that are visible on the
+  minimap if we are talking about a TMMDot, otherwise only MainScreen.FindObject() is used.
+- Filter.MinimapDot: Disables the usage of minimap dots for TMMDots. TGameObjects have this off by default. Disabling this for TMMDots is only useful if the the Player, NPC or Item is in a fixed position.
+- Filter.Finder: Disables color checking. The returned cuboids by Walker and MM2MS are our targets. This is useful for things that are "invisible" like agility shortcuts and/or things that have colors that are just unreliable.
+- UpText: Ignore all uptext when hovering the targets
+- Filter.Skip: This is an internal filter that you probably don't want to use directaly. Decides which TWalkerObjects setup is skipped during wasplib's setup process.
+
+```{note}
+You cannot disable Filter.Walker, Filter.MinimapDot, Filter.Finder all at the same time. You need one of them enabled and keep in mind that TGameObjects already have Filter.MinimapDot disabled.
+```
+*)
+{$DEFINE WL_WALKEROBJECT_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+const
+  TRACK_TARGET: Boolean = True;
+
+type
+(*
+(TWalkerObject)=
+## type TWalkerObject
+```pascal
+TWalkerObject = record
+  Filter: record
+    Walker:     Boolean;
+    MinimapDot: Boolean;
+    Finder:     Boolean;
+    UpText:     Boolean;
+    Skip:       Boolean;
+  end;
+
+  ShapeArray: TMainScreenShapeArray;
+  Coordinates: TPointArray;
+
+  Finder: TObjectFinder;
+  UpText: TStringArray;
+  ActionUpText: TStringArray;
+class var
+  CurrentUpText: TStringArray;
+  CurrentActionUpText: TStringArray;
+  RedClicked: Boolean;
+end;
+
+PWalkerObjectArray = array of Pointer;
+PWalkerObject = ^TWalkerObject;
+```
+Parent record of all TWalkerObjects.
+*)
+  TWalkerObject = record
+    Filter: record
+      Walker:     Boolean;
+      MinimapDot: Boolean;
+      Finder:     Boolean;
+      UpText:     Boolean;
+      Skip:       Boolean;
+    end;
+
+    ShapeArray: TMainScreenShapeArray;
+    Coordinates: TPointArray;
+
+    Finder: TObjectFinder;
+    UpText: TStringArray;
+    ActionUpText: TStringArray;
+  class var
+    CurrentUpText: TStringArray;
+    CurrentActionUpText: TStringArray;
+    RedClicked: Boolean;
+  end;
+
+  PWalkerObjectArray = array of Pointer;
+  PWalkerObject = ^TWalkerObject;
+
+(*
+## Walker.Click
+```pascal
+function TWalker.Click(minimapPoint: TPoint; Randomness: Int32): Boolean; override;
+```
+You shouldn't modify this unless you know what you are doing, otherwise you might break TWalkerObjects.
+This is overriden so if we redclick our current TWalkerObject target while mainscreen walking we disable walker.
+When we start the walking process towards a TWalkerObject, TWalkerObject.CurrentUpText is temporarily set so we
+know what we are looking for while walking. Once we click the target TWalkerObject.CurrentUpText is cleared.
+*)
+function TWalker.Click(minimapPoint: TPoint; randomness: Int32): Boolean; override;
+var
+  p: TPoint;
+  hoveringTarget: Boolean;
+  upText: String;
+begin
+  if MainScreen.IsUpText('>') and not TWalkerObject.CurrentUpText.ContainsAny(['Use', '>']) then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
+  Result := True;
+  Self.CheckRunEnergy();
+
+  if Self.ScreenWalk then
+  begin
+    p := Minimap.RandomPointOnZoomRectangle(minimapPoint, randomness);
+    Mouse.Move(Minimap.PointToMSRect(p).Mean());
+    upText := MainScreen.GetUpText();
+
+    hoveringTarget := upText.ContainsAny(TWalkerObject.CurrentUpText);
+    if hoveringTarget and (TWalkerObject.CurrentActionUpText <> []) then
+    begin
+      hoveringTarget := upText.ContainsAny(TWalkerObject.CurrentActionUpText);
+      if not hoveringTarget then
+      begin
+        TWalkerObject.RedClicked := ChooseOption.Select(TWalkerObject.CurrentActionUpText);
+        if TWalkerObject.RedClicked then
+          Self.Enabled := False;
+        Exit(TWalkerObject.RedClicked);
+      end;
+    end
+    else if not upText.ContainsAny(Self.WalkUpText) then
+      Exit(ChooseOption.Select('Walk here'));
+  end
+  else
+    Mouse.Move(Minimap.RandomPointOn(minimapPoint, randomness));
+
+  if randomness > 0 then
+    Antiban.BioClick(MOUSE_LEFT)
+  else
+    Mouse.Click(MOUSE_LEFT);
+
+  TWalkerObject.RedClicked := Self.ScreenWalk and hoveringTarget and MainScreen.DidRedClick();
+
+  if TWalkerObject.RedClicked then
+    Self.Enabled := False;
+end;
+
+(*
+## TWalkerObject._Setup
+```pascal
+procedure TWalkerObject._Setup();
+```
+Base internal TWalkerObject setup method. You probably won't need to call this directly, it's called by the next setup methods automatically.
+*)
+procedure TWalkerObject._Setup();
+begin
+  Self.Filter.Finder     := True;
+  Self.Filter.UpText     := True;
+end;
+
+(*
+## TWalkerObject.Setup
+```pascal
+procedure TWalkerObject.Setup(coordinates: TPointArray);
+procedure TWalkerObject.Setup(upText: TStringArray); overload;
+```
+TWalkerObject setup methods. You usually need to call of this.
+
+The method that takes in coordinates should be called first.
+That is because `TWalkerObject.Setup(coordinates: TPointArray)` is where
+we decide if TWalkerObject.Filter.Skip is going to be true or not.
+
+Keep in mind if you don't use a TWalker in your script and want to use TWalkerObjects, you will need to manually setup them in your script
+because they will all be skipped.
+So you need to set `TWalkerObject.Filter.Skip := False` and then call `TWalkerObject.Setup(upText: TStringArray)`
+
+Normal usage in the following example.
+
+Example:
+```pascal
+//Example with walker:
+var
+  rsw: TWalker;
+  obj: TGameObject; //This is a type of TWalkerObject.
+begin
+  rsw.Setup();
+  obj.Setup([[200, 200]]);
+  obj.Setup(['My', 'uptext']);
+end;
+
+//Example without walker:
+var
+  obj: TGameObject; //This is a type of TWalkerObject.
+begin
+  obj.Setup(['My', 'uptext']);
+end;
+```
+*)
+procedure TWalkerObject.SetupCoordinates(coordinates: TPointArray);
+begin
+  Self.Filter.Skip := ScriptWalker = nil;
+
+  if Self.Filter.Skip then
+    Exit;
+
+  coordinates := ScriptWalker^.Regions.Filter(coordinates);
+
+  Self.Filter.Skip := coordinates = [];
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Filter.Walker := True;
+  Self.Coordinates := coordinates;
+  SetLength(Self.ShapeArray, Length(coordinates));
+end;
+
+procedure TWalkerObject.SetupUpText(upText: TStringArray);
+begin
+  if Self.Filter.Skip then
+    Exit;
+
+  Self._Setup();
+
+  Self.UpText := upText;
+
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+end;
+
+procedure TWalkerObject.Setup(coordinates: TPointArray); deprecated 'Use TWalkerObject.SetupCoordinates() instead.';
+begin
+  Self.SetupCoordinates(coordinates);
+end;
+
+procedure TWalkerObject.Setup(upText: TStringArray); overload; deprecated 'Use TWalkerObject.SetupUpText() instead.';
+begin
+  Self.SetupUpText(upText);
+end;
+
+
+(*
+## TWalkerObject.GetCuboidArray
+```pascal
+function TWalkerObject.GetCuboidArray(): TCuboidArray;
+```
+Internal TWalkerObject method responsible for returning a TCuboidArray of our target on the 3D world (on mainscreen and outside of it).
+You will probably never need to use this directly.
+You can visually see this in action by using the `Debug()` methods, this is responsible for the white lines surounding the targets.
+*)
+function TWalkerObject.GetCuboidArray(me: TPoint = []): TCuboidExArray;
+var
+  coordinates: TPointArray;
+begin
+  if me = [] then
+    me := ScriptWalker^.GetMyPos();
+
+  coordinates := Self.Coordinates.PointsInRangeOf([me],0, 120);
+  coordinates := coordinates.Sorted(me);
+
+  //This is extremely wrong but will stay for now. shapearray should also be sorted and cropped.
+  Result := ScriptWalker^.GetCuboidArrayMS(me, coordinates, Self.ShapeArray, [0, 0]);
+end;
+
+(*
+## TWalkerObject.FindOnMainScreen
+```pascal
+function TWalkerObject.FindOnMainScreen(cuboidArray: TCuboidArray): T2DPointArray;
+```
+Internal TWalkerObject method responsible for filtering a TCuboidArray by what's visible in the mainscren.
+This is meant to filter TWalkerObject.GetCuboidArray() so targets that are outside of the mainscreen are filtered out.
+You will probably never need to use this directly.
+*)
+function TWalkerObject.FindOnMainScreen(cuboidArray: TCuboidExArray): T2DPointArray;
+var
+  i: Int32;
+  tpa: TPointArray;
+  tmpFinder: TObjectFinder;
+begin
+  if Self.Filter.Finder then
+    tmpFinder := Self.Finder.Unlimited();
+
+  cuboidArray := MainScreen.Filter(cuboidArray);
+
+  for i := 0 to High(cuboidArray) do
+  begin
+    if Self.Filter.Finder then
+    begin
+      tpa := MainScreen.FindObject(tmpFinder, cuboidArray[i].Bounds()).Merge();
+      if tpa = [] then
+        Continue;
+
+      tpa := cuboidArray[i].Filter(tpa);
+      if tpa <> [] then
+        Result += tpa;
+
+      Continue;
+    end;
+
+    tpa := cuboidArray[i].ShapeFill();
+    if tpa <> [] then
+      Result += tpa;
+  end;
+end;
+
+(*
+## TWalkerObject.OnMainScreen
+```pascal
+function TWalkerObject.OnMainScreen(cuboidArray: TCuboidArray): Boolean;
+```
+Internal TWalkerObject method that returns true or false if we have TCuboids visible on the mainscreen.
+You probably don't need to use this directly.
+*)
+function TWalkerObject.OnMainScreen(cuboidArray: TCuboidExArray): Boolean;
+var
+  i: Int32;
+  tempFinder: TObjectFinder;
+begin
+  if Self.Filter.Finder then
+    tempFinder := Self.Finder.Unlimited();
+
+  cuboidArray := MainScreen.Filter(cuboidArray);
+
+  if not Self.Filter.Finder then
+    Exit(cuboidArray <> []);
+
+  for i := 0 to High(cuboidArray) do
+    if MainScreen.FindObject(tempFinder, cuboidArray[i].Bounds()) <> [] then
+      Exit(True);
+end;
+
+
+(*
+## TWalkerObject._UpTextCheck
+```pascal
+function TWalkerObject._UpTextCheck(out shouldExit: Boolean): Boolean;
+```
+Internal TWalkerObject helper method that is used by all hovering methods.
+You probably don't need to use this directly.
+*)
+function TWalkerObject._UpTextCheck(out shouldExit: Boolean): Boolean;
+var
+  strArray: TStringArray;
+  upText: String;
+begin
+  shouldExit := True;
+
+  if (GameClient.Mode = EClientMode.FIXED) and GameInterface.IsOpen() then
+    Exit;
+
+  if Self.Filter.UpText then
+  begin
+    strArray := Self.UpText;
+    if Self.ActionUpText <> [] then
+      strArray := Self.ActionUpText;
+
+    if TWalkerObject.CurrentUpText <> strArray then
+      TWalkerObject.CurrentUpText := strArray;
+  end;
+
+  upText := MainScreen.GetUpText();
+
+  if ('>' in upText) and not TWalkerObject.CurrentUpText.Contains('Use') then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
+  if Self.Filter.UpText and (Self.UpText in upText) then
+    Exit(True);
+
+  shouldExit := False;
+end;
+
+(*
+## TWalkerObject._WalkUpTextCheck
+```pascal
+function TWalkerObject._WalkUpTextCheck(out shouldExit: Boolean): Boolean;
+```
+Internal TWalkerObject helper method that is used by all walking hover methods.
+You probably don't need to use this directly.
+*)
+function TWalkerObject._WalkUpTextCheck(out shouldExit: Boolean): Boolean;
+var
+  upText: String;
+  strArray: TStringArray;
+begin
+  shouldExit := True;
+
+  if (GameClient.Mode = EClientMode.FIXED) and GameInterface.IsOpen() then
+    Exit;
+
+  if Self.Filter.UpText then
+  begin
+    strArray := Self.UpText;
+    if Self.ActionUpText <> [] then
+      strArray := Self.ActionUpText;
+
+    if TWalkerObject.CurrentUpText <> strArray then
+      TWalkerObject.CurrentUpText := strArray;
+  end;
+
+  upText := MainScreen.GetUpText();
+
+  if ('>' in upText) and not TWalkerObject.CurrentUpText.Contains('Use') then
+  begin
+    ChooseOption.Select('Cancel');
+    Exit;
+  end;
+
+  if TWalkerObject.RedClicked or (Self.Filter.UpText and (Self.UpText in upText)) then
+    Exit(True);
+
+  shouldExit := False;
+end;
+
+
+(*
+## TWalkerObject._ClickHelper
+```pascal
+function TWalkerObject._ClickHelper(leftClick: Boolean): Boolean;
+```
+Internal TWalkerObject helper method that is used by other clicking methods.
+You probably don't need to use this directly.
+
+This is what's responsible for deciding if we click a target we are hovering or not.
+*)
+function TWalkerObject._ClickHelper(leftClick: Boolean): Boolean;
+begin
+  TWalkerObject.CurrentUpText := [];
+  TWalkerObject.CurrentActionUpText := [];
+
+  if TWalkerObject.RedClicked then
+  begin
+    TWalkerObject.RedClicked := False;
+    Exit(True);
+  end;
+
+  if ChooseOption.IsOpen() then
+  begin
+    if Self.Filter.UpText and ChooseOption.Select(Self.UpText) then
+      Exit(True);
+    ChooseOption.Close();
+    Exit;
+  end;
+
+  if leftClick then
+    Mouse.Click(MOUSE_LEFT);
+
+  Result := MainScreen.DidRedClick() or
+            (not leftClick and Self.Filter.UpText and ChooseOption.Select(Self.UpText));
+
+  if Result and SRL.Dice(0.5 - (0.5 * BioHash)) then
+  begin
+    case Random of
+      0.000..0.899: Antiban.SmallRandomMouse();
+      else Antiban.RandomMouse();
+    end;
+  end;
+end;
+
+(*
+## TWalkerObject._SelectHelper
+```pascal
+function TWalkerObject._SelectHelper(action: TStringArray): Boolean;
+```
+Internal TWalkerObject helper method that is used by other select methods.
+You probably don't need to use this directly.
+
+This is what is responsible for deciding if we just left click a target we are hovering or right click it and choose an option.
+*)
+function TWalkerObject._SelectHelper(action: TStringArray): Boolean;
+begin
+  TWalkerObject.CurrentUpText := [];
+  TWalkerObject.CurrentActionUpText := [];
+
+  if TWalkerObject.RedClicked then
+  begin
+    TWalkerObject.RedClicked := False;
+    Exit(True);
+  end;
+
+  if ChooseOption.IsOpen() and ChooseOption.Select(action) then
+    Exit(True);
+
+  if MainScreen.IsUpText(action) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Exit(MainScreen.DidRedClick());
+  end;
+
+  Result := ChooseOption.Select(action);
+end;
+
+
+function PWalkerObjectArray.GetClosestEx(value: TPoint): PWalkerObject;
+var
+  i: Int32;
+  tmp: PWalkerObject;
+  closest: Double = $FFFFFF;
+  current: Double;
+begin
+  for i := High(Self) downto 0 do
+  begin
+    tmp := PWalkerObject(Self[i]);
+    if tmp^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      Continue;
+    end;
+
+    current := tmp^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := tmp;
+    end;
+  end;
+end;
+
+function PWalkerObjectArray.GetClosest(): PWalkerObject;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
+
+type
+(*
+(TGameObject)=
+## type TGameObject
+```pascal
+TGameObject = type TWalkerObject;
+TGameObjectArray = array of TGameObject;
+PGameObject = ^TGameObject;
+PGameObjectArray = array of PGameObject;
+```
+TGameObjects are a type of {ref}`TWalkerObject`.
+This are meant to be TWalkerObjects that do not have a minimap dot so TGameObject.Filter.MinimapDot is False by default and shouldn't be changed.
+*)
+  TGameObject = type TWalkerObject;
+  TGameObjectArray = array of TGameObject;
+  PGameObject = ^TGameObject;
+  PGameObjectArray = array of PGameObject;
+
+(*
+## TGameObject.Setup
+```pascal
+procedure TGameObject.SetupEx(shape: Vector3; coordinates: TPointArray); overload;
+procedure TGameObject.Setup(size, height: Double; coordinates: TPointArray); overload;
+procedure TGameObject.Setup(height: Double; coordinates: TPointArray); overload;
+```
+All this extend the basic `TWalkerObject.Setup(coordinates: TPointArray)`.
+For TGameObjects this are the methods that should be used for setting them up initially.
+
+In TGameObject.Setup(shape: Vector3; coordinates: TPointArray), **shape** should be a vector3 of the object shape in number of tiles:
+- shape.X: number of tiles of the object from west to east.
+- shape.Y: number of tiles of the object from north to south.
+- shape.Z: object height, this value has to be guessed, I recommend you try several values and debug it until it looks good to you.
+           As some examples, player and npcs height is around 7, bank chests 4, yew/magic trees 14/16.
+
+In TGameObject.Setup(size, height: Double; coordinates: TPointArray), **size** and **height** are used
+to create a Vector3 "shape" and call TGameObject.Setup(shape: Vector3; coordinates: TPointArray).
+In this case, **shape.X** and **shape.Y** would be both equal to **size**.
+
+Lastly, TGameObject.Setup(height: Double; coordinates: TPointArray) also calls TGameObject.Setup(shape: Vector3; coordinates: TPointArray)
+and sets the **shape.X** and **shape.Y** to 1.
+*)
+procedure TGameObject.SetupEx(shape: Vector3; coordinates: TPointArray); overload;
+begin
+  Self.SetupCoordinates(coordinates);
+
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.ShapeArray.SetShape(shape);
+end;
+
+procedure TGameObject.Setup(size, height: Double; coordinates: TPointArray); overload;
+begin
+  Self.SetupEx([size, size, height], coordinates);
+end;
+
+procedure TGameObject.Setup(height: Double; coordinates: TPointArray); overload;
+begin
+  Self.Setup(1, height, coordinates);
+end;
+
+
+function TGameObject.GetMapObjectFunction(info: Boolean = True): String;
+begin
+  Result += 'procedure CreateMyObj();' + LineEnding;
+  Result += 'var' + LineEnding;
+  Result += '  obj: TGameObjectV2;' + LineEnding;
+  Result += 'begin' + LineEnding;
+  Result += '  obj.ID := 0;';
+  if info then Result += ' //whatever you want, unique if you want to find it with this.';
+  Result += LineEnding;
+
+  Result += '  obj.Name := ''' + Self.UpText[0] + ''';' + LineEnding;
+  Result += '  obj.Category := -1;' + LineEnding;
+
+  Result += '  obj.Actions := [''Option1'', ''Option2'', ''Option3''];';
+  if info then Result += ' //Change options the the options on your object.';
+  Result += LineEnding;
+
+  Result += '  obj.Size := [' + ToStr(Self.ShapeArray[0].Tile.X) + ', ' + ToStr(Self.ShapeArray[0].Tile.Y) + ', '+ ToStr(Self.ShapeArray[0].Tile.Z) + '];' + LineEnding;
+  Result += '  obj.Coordinates := ' + Self.Coordinates.ToString(False) + ';' + LineEnding;
+
+  Result += '  obj.Offset := [0,0];' + LineEnding;
+
+  Result += '  obj.Filter := [' + ToStr(Self.Filter.Walker) + ', ' +ToStr(Self.Filter.MinimapDot) + ', ' +ToStr(Self.Filter.Finder) + ', ' + ToStr(Self.Filter.UpText) + '];' + LineEnding;
+  Result += '  obj.Walker := @MyWalker;' + LineEnding;
+  Result += '  obj.MapObjectType := EGameMapObjectType.OBJ;' + LineEnding;
+  Result += '  obj.TrackTarget := False;' + LineEnding;
+  Result += '  Objects.Add(obj);' + LineEnding;
+  Result += 'end;' + LineEnding + LineEnding;
+  Result += 'var' + LineEnding;
+  Result += '  obj: TGameObjectV2;' + LineEnding;
+  Result += 'begin' + LineEnding;
+  Result += '  CreateMyObj();' + LineEnding;
+  Result += '  obj := Objects.Get(''' + Self.UpText[0] + ''');' + LineEnding;
+  Result += '  obj.Click();' + LineEnding;
+  Result += 'end;' + LineEnding;
+end;
+
+
+(*
+## TGameObject.Find
+```pascal
+function TGameObject.FindEx(out cuboids: TCuboidArray; out atpa: T2DPointArray): Boolean;
+function TGameObject.Find(out atpa: T2DPointArray): Boolean;
+```
+TGameObject method used to find a {ref}`TGameObject`. If found returns true, if not returns false.
+The "extended" method in particular is mostly meant for debugging and is the one used when you call `Debug(TGameObject)`.
+
+Example:
+```pascal
+WriteLn GameObjects.GEBank.Find(atpa); //Be in ge and with a walker setup there.
+Debug(atpa);
+```
+*)
+function TGameObject.FindEx(out cuboids: TCuboidExArray; out atpa: T2DPointArray): Boolean;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboids := Self.GetCuboidArray();
+    if cuboids = [] then
+      Exit;
+
+    atpa := Self.FindOnMainScreen(cuboids);
+  end
+  else if Self.Filter.Finder then
+    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
+
+  Result := atpa <> [];
+end;
+
+function TGameObject.Find(out atpa: T2DPointArray): Boolean;
+var
+  cuboids: TCuboidExArray;
+begin
+  Result := Self.FindEx(cuboids, atpa);
+end;
+
+(*
+## TGameObject.IsVisible
+```pascal
+function TGameObject.IsVisible(): Boolean;
+```
+TGameObject method used to find a {ref}`TGameObject`. If found returns true, if not returns false.
+
+Example:
+```pascal
+WriteLn GameObjects.GEBank.IsVisible(); //Be in ge and with a walker setup there.
+```
+*)
+function TGameObject.IsVisible(): Boolean;
+var
+  cuboids: TCuboidExArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboids := Self.GetCuboidArray();
+
+    if cuboids = [] then
+      Exit;
+
+    Exit(Self.OnMainScreen(cuboids));
+  end;
+
+  if Self.Filter.Finder then
+    Result := MainScreen.FindObject(Self.Finder) <> [];
+end;
+
+(*
+## TGameObject.FindFromPosition
+```pascal
+function TGameObject.FindFromPosition(me: TPoint; out atpa: T2DPointArray): Boolean;
+```
+Look for a {ref}`TGameObject` as if you were on a different position. Great for things like pre-hovering.
+*)
+function TGameObject.FindFromPosition(me: TPoint; out atpa: T2DPointArray): Boolean;
+var
+  cuboidArray: TCuboidExArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker then
+  begin
+    cuboidArray := Self.GetCuboidArray(me);
+
+    if cuboidArray = [] then
+      Exit;
+
+    atpa := Self.FindOnMainScreen(cuboidArray);
+  end;
+
+  Result := atpa <> [];
+end;
+
+
+(*
+## TGameObject.Draw
+```pascal
+procedure TGameObject.Draw(out bitmap: TMufasaBitmap);
+```
+
+Internal method used to draw found TGameObjects in a TMufasaBitmap.
+
+Example:
+```pascal
+Bitmap.FromClient()
+GameObjects.GEBank.Draw(Bitmap); //Be in ge and with a walker setup there.
+Bitmap.Debug();
+Bitmap.Free();
+```
+*)
+procedure TGameObject.Draw(out bitmap: TMufasaBitmap);
+var
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+begin
+  Self.FindEx(cuboids, atpa);
+
+  bitmap.DrawATPA(atpa);
+  if atpa <> [] then
+    bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
+
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
+end;
+
+(*
+## TGameObject.SaveDebug
+```pascal
+procedure TGameObject.SaveDebug();
+```
+
+Saves a debug image of the TGameObject to Simba\Screenshots\GameObjects
+
+Example:
+```pascal
+GameObjects.GEBank.SaveDebug(); //Be in ge and with a walker setup there.
+```
+*)
+procedure TGameObject.SaveDebug();
+var
+  Bitmap: TMufasaBitmap;
+  filePath: String;
+begin
+  Bitmap.FromClient();
+
+  Self.Draw(Bitmap);
+  Bitmap.DrawBoxFilled(Chat.GetDisplayNameBox(), False, $00FFFF);
+
+  filePath := GetScreenshotPath('TGameObject');
+
+  Bitmap.SaveToFile(filePath);
+  WriteLn('Send ', filePath, ' to Torwent on discord!');
+  Bitmap.Debug();
+
+  WriteLn('Position: ', ScriptWalker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
+  WriteLn('GameObject: ', Self);
+  Bitmap.Free();
+end;
+
+
+(*
+## TGameObject._UpdateTarget
+```pascal
+procedure TGameObject._UpdateTarget(sender: PMouse; var x, y: Double; var done: Boolean);
+```
+Internal helper method of TMouseMovingEventEx type used to update the target position while the mouse is moving.
+You should probably not touch this if you don't understand it.
+*)
+procedure TGameObject._UpdateTarget(sender: PMouse; var x, y: Double; var done: Boolean);
+var
+  i: Int32;
+  atpa: T2DPointArray;
+  p, destination: TPoint;
+begin
+  destination := [Round(x), Round(y)];
+  p := sender^.Position();
+  if p.DistanceTo(destination) > 5 then
+    Exit;
+  sender^.OnMovingEx := nil;
+
+  if Self._UpTextCheck(done) then
+    Exit;
+
+  done := not Self.Find(atpa);
+  if done then
+    Exit;
+
+  for i := 0 to High(atpa) do
+  begin
+    if atpa[i].Contains(destination) then
+      Exit;
+  end;
+
+  p := atpa[0].RandomValue();
+  x := p.X;
+  y := p.Y;
+end;
+
+(*
+## TGameObject._HoverHelper
+```pascal
+function TGameObject._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+```
+Internal helper method used to hover a TGameObject target.
+You should not use this directly.
+*)
+function TGameObject._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+var
+  shouldExit: Boolean;
+  attempt: Int32;
+  atpa: T2DPointArray;
+  tpa: TPointArray;
+  angle: Double;
+begin
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
+
+  for attempt := 0 to attempts do
+  begin
+    if Self.Find(atpa) then
+    begin
+      if attempt < 2 then
+        tpa := atpa[0] // 0 for the closest one.
+      else if Length(atpa) > (attempt - 2) then
+        tpa := atpa[attempt - 2]
+      else
+        tpa := atpa[Random(0, High(atpa))];
+
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+      Mouse.Move(tpa[Random(0, High(tpa))]);
+
+      if not Self.Filter.UpText then
+        Exit(True);
+    end;
+
+    if MainScreen.IsUpText(Self.UpText) then
+      Exit(True);
+
+    //will rotate the screen for the last attempt if hasn't hovered properly yet
+    if attempt = (attempts - 1) then
+    begin
+      angle := Minimap.GetCompassAngle() + Random(-50, 50);
+      Minimap.SetCompassAngle(angle, 10);
+    end;
+  end;
+end;
+
+(*
+## TGameObject._WalkHoverHelper
+```pascal
+function TGameObject._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+```
+Internal helper method used to walk and hover a TGameObject target.
+You should not use this directly.
+
+This is responsible for deciding wether we should walk to a TGameObject target or not before attempting to hover it.
+*)
+function TGameObject._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+var
+  shouldExit: Boolean;
+  attempt: Int32;
+  atpa: T2DPointArray;
+  tpa: TPointArray;
+  angle: Double;
+  closestWO: TPoint;
+begin
+  if not Self.Filter.Walker then
+    Exit(Self._HoverHelper(attempts, trackTarget));
+
+  Result := Self._WalkUpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
+
+  for attempt := 0 to attempts do
+  begin
+    if Self.Find(atpa) then
+    begin
+      if attempt < 2 then
+        tpa := atpa[0]
+      else if Length(atpa) > (attempt - 2) then
+        tpa := atpa[attempt - 2]
+      else
+        tpa := atpa.RandomValue();
+
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+      Mouse.Move(tpa.RandomValue());
+
+      if not Self.Filter.UpText then
+        Exit(True);
+    end;
+
+    if MainScreen.IsUpText(Self.UpText) then
+      Exit(True);
+
+    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+    if not ScriptWalker^.AtTile(closestWO, 50) then
+    begin
+      ScriptWalker^.WebWalk(closestWO, 30, 0.15);
+      Continue;
+    end;
+
+    if attempt = (attempts - 1) then
+    begin
+      if not ScriptWalker^.AtTile(closestWO, 25) then
+      begin
+        ScriptWalker^.WebWalk(closestWO, 25, 0.15);
+        Continue;
+      end;
+
+      angle := Minimap.GetCompassAngle() + Random(-50, 50);
+      Minimap.SetCompassAngle(angle, 10);
+    end;
+  end;
+end;
+
+(*
+## TGameObject.PreHoverHelper
+```pascal
+function TGameObject.PreHoverHelper(attempts: Int32): Boolean;
+```
+
+Internal helper method used to pre-hover a TGameObject target.
+You should not use this directly.
+*)
+function TGameObject.PreHoverHelper(me: TPoint; attempts: Int32 = 2): Boolean;
+var
+  attempt: Int32;
+  atpa: T2DPointArray;
+  tpa: TPointArray;
+begin
+  for attempt := 0 to attempts do
+  begin
+    if Self.FindFromPosition(me, atpa) then
+    begin
+      tpa := atpa[Random(0, High(atpa))];
+      ASyncMouse.Move(tpa[Random(0, High(tpa))]);
+      Exit(True);
+    end;
+  end;
+end;
+
+(*
+## TGameObject.Hover
+```pascal
+function TGameObject.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+```
+
+Method used to hover a TGameObject target if it's found on the mainscreen.
+It can update the target position while the mouse moves with **trackTarget**.
+
+Example:
+```pascal
+RSW.WebWalk(WaspWeb.LOCATION_VARROCK);
+GameObjects.GEBank.Hover(); //Be in GE with a walker setup there.
+```
+*)
+function TGameObject.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+begin
+  if ChooseOption.IsOpen() then
+  begin
+    if Self.Filter.UpText and ChooseOption.HasOption(Self.UpText) then
+      Exit(True);
+    ChooseOption.Close();
+  end;
+
+  if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
+    Exit;
+
+  Result := Self._HoverHelper(attempts, trackTarget);
+end;
+
+(*
+## TGameObject.WalkHover
+```pascal
+function TGameObject.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+```
+
+Method used to walk and hover a TGameObject target if it's found on the mainscreen after walking.
+It can update the target position while the mouse moves with **trackTarget**.
+
+Example:
+```pascal
+//Be in varrock with a varrock map loaded.
+RSW.WebWalk(WaspWeb.LOCATION_VARROCK);
+GameObjects.GEBank.WalkHover();
+```
+*)
+function TGameObject.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+var
+  p: TPoint;
+begin
+  if ChooseOption.IsOpen() then
+  begin
+    if Self.Filter.UpText and ChooseOption.HasOption(Self.UpText) then
+      Exit(True);
+    ChooseOption.Close();
+  end;
+
+  if not Self.Filter.Walker then
+    Exit;
+
+  if Self.Filter.UpText then
+    TWalkerObject.CurrentUpText := Self.UpText;
+
+  p := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+  if not ScriptWalker^.MakePointVisible(p) and
+     not ScriptWalker^.WebWalk(p, 30, 0.15) then
+      Exit;
+
+  Result := Self._WalkHoverHelper(attempts, trackTarget);
+end;
+
+
+(*
+## TGameObject.Click
+```pascal
+function TGameObject.Click(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+```
+Method used to click a TGameObject target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in ge with a ge map loaded.
+WriteLn GameObjects.GEBank.Click();
+```
+*)
+function TGameObject.Click(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(attempts) and Self._ClickHelper(leftClick);
+end;
+
+
+(*
+## TGameObject.SelectOption
+```pascal
+function TGameObject.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+```
+
+Method used to select an option on a TGameObject target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in ge with a ge map loaded.
+WriteLn GameObjects.GEBank.SelectOption(['Collect']);
+```
+*)
+function TGameObject.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+begin
+  Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
+  Result := Self.Hover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
+end;
+
+
+(*
+## TGameObject.WalkClick
+```pascal
+function TGameObject.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+```
+
+Method used to walk and click a TGameObject target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in ge with a ge map loaded, preferably far away so it has to walk.
+WriteLn GameObjects.GEBank.WalkClick();
+```
+*)
+function TGameObject.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(attempts) and Self._ClickHelper(leftClick);
+end;
+
+(*
+## TGameObject.WalkSelectOption
+```pascal
+function TGameObject.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+```
+
+Method used to walk and select an option on a TGameObject target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in ge with a ge map loaded, preferably far away so it has to walk.
+WriteLn GameObjects.GEBank.WalkSelectOption(['Collect']);
+```
+*)
+function TGameObject.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+begin
+  Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
+  Result := Self.WalkHover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
+end;
+
+function PGameObjectArray.GetClosestEx(value: TPoint): PGameObject;
+var
+  i: Int32;
+  closest: Double = $FFFFFF;
+  current: Double;
+begin
+  for i := High(Self) downto 0 do
+  begin
+    if Self[i]^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      Continue;
+    end;
+
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
+  end;
+end;
+
+function PGameObjectArray.GetClosest(): PGameObject;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
+
+type
+(*
+## type TMMDot
+
+TMMDot are a type of TWalkerObject.
+This are meant to be TWalkerObjects that have a minimap dot so TMMDot.Filter.MinimapDot is True by default and shouldn't be changed.
+This also have a **DotType** variable for the type of EMinimapDot they have (PLAYER, NPC, ITEM) and a **DotFilter** which is used to
+filter mmdots in/out of circles and/or polygons so we only focus on the TMMDots we want.
+*)
+  TMMDot = record(TWalkerObject)
+    ClosestDot: TPoint;
+    DotType: EMinimapDot;
+    DotFilter: TDotFilterArray;
+  end;
+
+(*
+## TMMDot.Setup
+```pascal
+procedure TMMDot.SetupEx(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
+procedure TMMDot.Setup(radius: Int32; size, height: Double; coordinates: TPointArray); overload;
+procedure TMMDot.Setup(radius: Int32; height: Double; coordinates: TPointArray); overload;
+```
+All this extend the basic `TWalkerObject.Setup(coordinates: TPointArray)` specifically for TMMDots.
+For TMMDots this are the methods that should be used for setting them up initially.
+
+In TMMDot.Setup(radius: Int32; shape: Vector3; coordinates: TPointArray),
+**radius** is used to create a simple TDotFilterArray of that radius with **cordinates** and their center point.
+**shape** should be a vector3 of the target shape in number of tiles:
+
+- shape.X: Number of tiles of the target from west to east.
+- shape.Y: Number of tiles of the target from north to south.
+- shape.Z: Target height, this value has to be guessed, I recommend you try several values and debug it until it looks good to you. As some examples, player and npcs height is around 7, bank chests 4, yew/magic trees 14/16.
+
+For NPCs that can move and are 1x2 tiles or any uneven number of tiles,
+I recommend you just set **shape.X** and **shape.Y** to the largest one. So a cow I would recommend making the shape 2x2.
+
+The other methods all call this first one with certain default values:
+
+- Size makes shape.X and shape.Y equal to size.
+- If size is omited, shape.X and shape.Y are set to 1.
+*)
+procedure TMMDot.SetupCoordinates(radii: TIntegerArray; coordinates: TPointArray); overload;
+var
+  i, j, hi: Int32;
+begin
+  Self.Filter.Skip := (ScriptWalker = nil) or (radii = []) or (coordinates = []);
+
+  if Self.Filter.Skip then
+    Exit;
+
+  hi := radii[High(radii)];
+  for i := High(radii) to High(coordinates) do
+    radii += hi;
+
+  for i := 0 to High(coordinates) do
+  begin
+    for j := 0 to High(ScriptWalker^.Regions) do
+    begin
+      if ScriptWalker^.Regions[j].Contains(coordinates[i]) then
+      begin
+        Self.Coordinates += coordinates[i];
+        Self.DotFilter.SetupCircle([coordinates[i].X, coordinates[i].Y, radii[i]], True);
+      end;
+    end;
+  end;
+
+  Self.Filter.Skip := Self.Coordinates = [];
+  if Self.Filter.Skip then
+    Exit;
+
+  Self.Filter.Walker := True;
+  SetLength(Self.ShapeArray, Length(Self.Coordinates));
+end;
+
+procedure TMMDot.SetupEx(radius: Int32; shape: Vector3; coordinates: TPointArray); overload;
+var
+  p: TPoint;
+begin
+  Self.SetupCoordinates(coordinates);
+
+  if Self.Filter.Skip then
+    Exit;
+
+  //Self.Coordinates is better than coordinates here because they are already filtered.
+  for p in Self.Coordinates do
+    Self.DotFilter.SetupCircle([p.X, p.Y, radius], True);
+
+  Self.ShapeArray.SetShape(shape);
+end;
+
+procedure TMMDot.Setup(radius: Int32; size, height: Double; coordinates: TPointArray); overload;
+begin
+  Self.SetupEx(radius, [size, size, height], coordinates);
+end;
+
+procedure TMMDot.Setup(radius: Int32; height: Double; coordinates: TPointArray); overload;
+begin
+  Self.Setup(radius, 1, height, coordinates);
+end;
+
+procedure TMMDot.SetupEx(radii: TIntegerArray; shape: Vector3; coordinates: TPointArray); overload;
+begin
+  Self.SetupCoordinates(radii, coordinates);
+
+  if not Self.Filter.Skip then
+    Self.ShapeArray.SetShape(shape);
+end;
+
+procedure TMMDot.Setup(radii: TIntegerArray; size, height: Double; coordinates: TPointArray); overload;
+begin
+  Self.SetupEx(radii, [size, size, height], coordinates);
+end;
+
+procedure TMMDot.Setup(radii: TIntegerArray; height: Double; coordinates: TPointArray); overload;
+begin
+  Self.Setup(radii, 1, height, coordinates);
+end;
+
+(*
+## TMMDot._GetCuboids
+```pascal
+function TMMDot._GetWMMCuboids(out mmTPA, dots: TPointArray; out dotFilters: TDotFilterArray): TCuboidExArray;
+function TMMDot._GetMMCuboids(out dots: TPointArray): TCuboidExArray;
+```
+Internal helper {ref}`TMMDot` method used for debugging.
+You probably dont need to use this directly.
+You can see what this does in action by calling `Debug(TMMDot)`.
+*)
+function TMMDot._GetWMMCuboids(out mmTPA, dots: TPointArray; out dotFilters: TDotFilterArray): TCuboidExArray;
+var
+  me: TPoint;
+  angle: Double;
+begin
+  me := ScriptWalker^.GetMyPos();
+  angle := Minimap.GetCompassAngle(False);
+
+  mmTPA := ScriptWalker^.WorldToMM(me, Self.Coordinates, angle);
+
+  dotFilters := ScriptWalker^.WorldToMM(me, Self.DotFilter, angle);
+  dots := Minimap.GetFilteredDotArray(Self.DotType, dotFilters);
+
+  Result := Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2], angle);
+end;
+
+function TMMDot._GetMMCuboids(out dots: TPointArray): TCuboidExArray;
+var
+  angle: Double;
+  offset: TPoint;
+begin
+  angle := Minimap.GetCompassAngle(False);
+
+  dots := Minimap.Getdots(Self.DotType);
+  offset := [2,2];
+
+  Result := Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2], angle);
+end;
+
+
+(*
+## TMMDot.GetCuboidArray
+```pascal
+function TMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray): TCuboidArray; overload;
+function TMMDot.GetCuboidArray(): TCuboidArray; override;
+```
+
+Internal TMMDot method responsible for returning a TCuboidArray of our target on the 3D world (on mainscreen and outside of it).
+This uses the previous 2 helper methods to do this.
+You will probably never need to use this directly.
+You can visually see this in action by using the `Debug()` methods, this is responsible for the white lines surounding the targets.
+*)
+function TMMDot.GetCuboidArrayEx(out mmTPA, dots: TPointArray; out dotFilters: TDotFilterArray): TCuboidExArray; overload;
+begin
+  if Self.Filter.Walker and Self.Filter.MinimapDot then
+    Exit(Self._GetWMMCuboids(mmTPA, dots, dotFilters));
+
+  if Self.Filter.Walker then
+    Exit(Self.GetCuboidArray());
+
+  if Self.Filter.MinimapDot then
+    Exit(Self._GetMMCuboids(dots));
+end;
+
+function TMMDot.GetCuboidArray(me: TPoint = []): TCuboidExArray; override;
+var
+  angle: Double;
+  dots: TPointArray;
+begin
+  if Self.Filter.Walker and Self.Filter.MinimapDot then
+  begin
+    angle := Minimap.GetCompassAngle(False);
+    dots := Minimap.GetFilteredDotArray(Self.DotType, ScriptWalker^.WorldToMM(Self.DotFilter, angle));
+    if dots = [] then
+      Exit;
+
+    dots := dots.SortFrom(Minimap.Center);
+
+    Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2], angle));
+  end;
+
+  if Self.Filter.Walker then
+  begin
+    Result := inherited;
+    Exit;
+  end;
+
+  if Self.Filter.MinimapDot then
+  begin
+    dots := Minimap.GetDots(Self.DotType);
+    if dots = [] then Exit;
+
+    dots := dots.SortFrom(Minimap.Center);
+
+    if Self.ShapeArray = [] then
+      Self.ShapeArray.SetShape([1, 1, 1]);
+
+    Exit(Minimap.GetCuboidArrayMS(dots, Self.ShapeArray, [2, 2]));
+  end;
+end;
+
+(*
+## TMMDot.FindEx
+```pascal
+function TMMDot.FindEx(out mmPoints, dots: TPointArray; out DotFilters: TDotFilterArray; out floorTiles: TRectArray; out roofTiles: TRectArray; out cuboidArray: TCuboidArray; out atpa: T2DPointArray): Boolean;
+```
+
+TMMDot methods used to find a TMMDot. If found returns true, if not returns false.
+This "extended" method in particular is only meant for debugging and should be avoided outside of development/debugging.
+This is what is used when you call `Debug(TMMDot)`.
+*)
+function TMMDot.FindEx(out mmPoints, dots: TPointArray; out dotFilters: TDotFilterArray; out cuboids: TCuboidExArray; out atpa: T2DPointArray): Boolean;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker or Self.Filter.MinimapDot then
+  begin
+    cuboids := Self.GetCuboidArrayEx(mmPoints, dots, dotFilters);
+    if cuboids = [] then
+      Exit;
+
+    atpa := Self.FindOnMainScreen(cuboids);
+  end
+  else if Self.Filter.Finder then
+    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
+
+  if Result := (atpa <> []) then
+    if ScriptWalker <> nil then
+      Self.ClosestDot := ScriptWalker^.MSToWorld(atpa.First().Mean()); //not the best way since we are reversing operations but will do for now.
+end;
+
+(*
+## TMMDot.Find
+```pascal
+function TMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
+function TMMDot.Find(): Boolean; overload;
+```
+
+TMMDot methods used to find a TMMDot. If found returns true, if not returns false.
+
+Example:
+```pascal
+WriteLn RSNPCs.LumbridgeCook.Find(atpa); //Be in lumbridge castle and with a walker setup there.
+Debug(atpa);
+```
+*)
+function TMMDot.Find(out atpa: T2DPointArray): Boolean; overload;
+var
+  cuboidArray: TCuboidExArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker or Self.Filter.MinimapDot then
+  begin
+    cuboidArray := Self.GetCuboidArray();
+
+    if cuboidArray = [] then
+      Exit;
+
+    atpa := Self.FindOnMainScreen(cuboidArray);
+  end
+
+  else if Self.Filter.Finder then
+    atpa := MainScreen.FindObject(Self.Finder).SortFrom(MainScreen.GetPlayerBox().Center());
+
+  Result := atpa <> [];
+  if Result and (ScriptWalker <> nil) then
+      Self.ClosestDot := ScriptWalker^.MSToWorld(ATPA[0].Mean());
+end;
+
+function TMMDot.IsVisible(): Boolean; overload;
+var
+  cuboidArray: TCuboidExArray;
+begin
+  MM2MS.SetupZoom();
+
+  if Self.Filter.Walker or Self.Filter.MinimapDot then
+  begin
+    cuboidArray := Self.GetCuboidArray();
+
+    if cuboidArray = [] then
+      Exit;
+
+    Exit(Self.OnMainScreen(cuboidArray));
+  end;
+
+  if Self.Filter.Finder then
+    Result := MainScreen.FindObject(Self.Finder) <> [];
+end;
+
+(*
+## TMMDot._GetBaseRecord
+```pascal
+function TMMDot._GetBaseRecord(): TMMDot;
+```
+
+Internal method used for casting custom TMMDots back to the base record.
+*)
+function TMMDot._GetBaseRecord(): TMMDot;
+begin
+  Result := Self;
+end;
+
+(*
+## TMMDot.Draw
+```pascal
+procedure TMMDot.Draw(out bitmap: TMufasaBitmap);
+```
+Internal method used to draw found TMMDot in a TMufasaBitmap.
+
+Example:
+```pascal
+Bitmap.FromClient()
+RSNPCs.LumbridgeCook.Draw(Bitmap); //Be in Lumbridge castle and with a walker setup there.
+Bitmap.Debug();
+Bitmap.Free();
+```
+*)
+procedure TMMDot.Draw(out Bitmap: TMufasaBitmap);
+var
+  mmPoints, dots: TPointArray;
+  dotFilters: TDotFilterArray;
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+  i: Int32;
+begin
+  Self.FindEx(mmPoints, dots, dotFilters, cuboids, atpa);
+
+  //Minimap drawing
+  for i := 0 to High(mmPoints) do
+    bitmap.DrawCrosshairs(mmPoints[i], 4, SRLColors.BLUE);
+
+  dotFilters.Draw(bitmap);
+
+  bitmap.DrawATPA(atpa);
+  if atpa <> [] then
+    bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
+end;
+
+
+(*
+## TMMDot.SaveDebug
+```pascal
+procedure TMMDot.SaveDebug();
+```
+
+Saves a debug image of the TMMDot to Simba\Screenshots\RSMMDots
+
+Example:
+```pascal
+RSNPCs.LumbridgeCook.SaveDebug(); //Be in Lumbridge castle and with a walker setup there.
+```
+*)
+procedure TMMDot.SaveDebug();
+var
+  Bitmap: TMufasaBitmap;
+  filePath: String;
+begin
+  Bitmap.FromClient();
+
+  Self.Draw(Bitmap);
+  Bitmap.DrawBoxFilled(Chat.GetDisplayNameBox(), False, $00FFFF);
+
+  filePath := GetScreenshotPath('TMMDot');
+  Bitmap.SaveToFile(filePath);
+  WriteLn('Send ', filePath, ' to Torwent on discord!');
+  Bitmap.Debug();
+
+  WriteLn('Position: ', ScriptWalker^.GetMyPos(), ' ZoomLevel: ', MM2MS.ZoomLevel);
+  WriteLn('GameObject: ', Self);
+  Bitmap.Free();
+end;
+
+
+(*
+## TMMDot._UpdateTarget
+```pascal
+procedure TMMDot._UpdateTarget(sender: PMouse; var x, y: Double; var done: Boolean);
+```
+
+Internal helper method of TMouseMovingEventEx type used to update the target position while the mouse is moving.
+You should probably not touch this if you don't understand it.
+*)
+procedure TMMDot._UpdateTarget(sender: PMouse; var x, y: Double; var done: Boolean);
+var
+  i: Int32;
+  atpa: T2DPointArray;
+  p, destination: TPoint;
+begin
+  destination := [Round(x), Round(y)];
+  p := sender^.Position();
+  if p.DistanceTo(destination) > 5 then
+    Exit;
+  sender^.OnMovingEx := nil;
+
+  if Self._UpTextCheck(done) then
+    Exit;
+
+  done := not Self.Find(atpa);
+  if done then
+    Exit;
+
+  for i := 0 to High(atpa) do
+  begin
+    if atpa[i].Contains(destination) then
+      Exit;
+  end;
+
+  p := atpa[0].RandomValue();
+  x := p.X;
+  y := p.Y;
+end;
+
+(*
+## TMMDot._HoverHelper
+```pascal
+function TMMDot._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+```
+
+Internal helper method used to hover a TMMDot target.
+You should not use this directly.
+*)
+function TMMDot._HoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+var
+  shouldExit: Boolean;
+  attempt: Int32;
+  atpa: T2DPointArray;
+  tpa: TPointArray;
+  angle: Double;
+begin
+  if Self.Filter.MinimapDot and (Minimap.GetDots(Self.DotType) = []) then
+    Exit;
+
+  Result := Self._UpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
+
+  for attempt := 0 to attempts do
+  begin
+    if Self.Find(atpa) then
+    begin
+      if attempt < 2 then
+        tpa := atpa[0]
+      else if Length(atpa) > (attempt - 2) then
+        tpa := atpa[attempt - 2]
+      else
+        tpa := atpa.RandomValue();
+
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+
+      if Self.DotType = EMinimapDot.ITEM then
+        Mouse.Move(tpa.Mean())
+      else
+        Mouse.Move(tpa.RandomValue());
+
+      if not Self.Filter.UpText then
+        Exit(True);
+    end;
+
+    if MainScreen.IsUpText(Self.UpText) then
+      Exit(True);
+
+    //will rotate the screen for the last attempt if hasn't hovered properly yet
+    if attempt = (attempts - 1) then
+    begin
+      angle := Minimap.GetCompassAngle() + Random(-50, 50);
+      Minimap.SetCompassAngle(angle, 10);
+    end;
+  end;
+end;
+
+(*
+## TMMDot._WalkHoverHelper
+```pascal
+function TMMDot._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+```
+
+Internal helper method used to walk and hover a TMMDot target.
+You should not use this directly.
+
+This is responsible for deciding wether we should walk to a TMMDot target or not before attempting to hover it.
+*)
+function TMMDot._WalkHoverHelper(attempts: Int32; trackTarget: Boolean): Boolean;
+var
+  shouldExit: Boolean;
+  attempt: Int32;
+  atpa: T2DPointArray;
+  tpa: TPointArray;
+  angle: Double;
+  closestWO: TPoint;
+begin
+  if not Self.Filter.Walker then
+    Exit(Self._HoverHelper(attempts, trackTarget));
+
+  Result := Self._WalkUpTextCheck(shouldExit);
+  if shouldExit then
+    Exit;
+
+  for attempt := 0 to attempts do
+  begin
+    if Self.Find(atpa) then
+    begin
+      if attempt < 2 then
+        tpa := atpa[0]
+      else if Length(atpa) > (attempt - 2) then
+        tpa := atpa[attempt - 2]
+      else
+        tpa := atpa.RandomValue();
+
+      if trackTarget then
+        Mouse.OnMovingEx := @Self._UpdateTarget;
+
+      if Self.DotType = EMinimapDot.ITEM then
+        Mouse.Move(tpa.Mean())
+      else
+        Mouse.Move(tpa.RandomValue());
+
+      if not Self.Filter.UpText then
+        Exit(True);
+    end;
+
+    if MainScreen.IsUpText(Self.UpText) then
+      Exit(True);
+
+    if not Self.DotFilter.IsValid(ScriptWalker^.GetMyPos()) then
+    begin
+      closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+      if not ScriptWalker^.AtTile(closestWO, 50) then
+      begin
+        ScriptWalker^.WebWalk(closestWO, 30, 0.15);
+        Continue;
+      end;
+    end;
+
+    if attempt = (attempts - 1) then
+    begin
+      angle := Minimap.GetCompassAngle() + Random(-50, 50);
+      Minimap.SetCompassAngle(angle, 10);
+    end;
+  end;
+end;
+
+
+(*
+## TMMDot.Hover
+```pascal
+function TMMDot.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+```
+
+Method used to hover a TMMDot target if it's found on the mainscreen.
+It can update the target position as the mouse moves with **trackTarget**.
+For NPCs that move, this is highly recommended.
+
+Example:
+```pascal
+//Be in Lumbridge castle
+RSW.WebWalk(WaspWeb.LOCATION_LUMBRIDGE);
+RSNPCs.LumbridgeCook.Hover();
+```
+*)
+function TMMDot.Hover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean; overload;
+begin
+  if ChooseOption.IsOpen() then
+  begin
+    if Self.Filter.UpText and ChooseOption.HasOption(Self.UpText) then
+      Exit(True);
+    ChooseOption.Close();
+  end;
+
+  if Self.Filter.UpText then
+    TWalkerObject.CurrentUpText := Self.UpText;
+
+  if Self.Filter.Walker and not ScriptWalker^.MakePointVisible(Self.Coordinates) then
+    Exit;
+
+  Result := Self._HoverHelper(attempts, trackTarget);
+end;
+
+(*
+## TMMDot.WalkHover
+```pascal
+function TMMDot.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+```
+
+Method used to walk and hover a TMMDot target if it's found on the mainscreen after walking.
+It can update the target position as the mouse moves with **trackTarget**.
+For NPCs that move, this is highly recommended.
+
+Example:
+```pascal
+//Be in Lumbridge castle
+RSW.WebWalk(WaspWeb.LOCATION_LUMBRIDGE);
+RSNPCs.LumbridgeCook.WalkHover();
+```
+*)
+function TMMDot.WalkHover(attempts: Int32 = 2; trackTarget: Boolean = TRACK_TARGET): Boolean;
+var
+  closestWO: TPoint;
+begin
+  if ChooseOption.IsOpen() then
+  begin
+    if Self.Filter.UpText and ChooseOption.HasOption(Self.UpText) then
+      Exit(True);
+    ChooseOption.Close();
+  end;
+
+  if not Self.Filter.Walker then
+    Exit;
+
+  if Self.Filter.UpText then
+    TWalkerObject.CurrentUpText := Self.UpText;
+
+  if not Self.DotFilter.IsValid(ScriptWalker^.GetMyPos()) then
+  begin
+    closestWO := ScriptWalker^.GetClosestPoint(Self.Coordinates);
+
+    if not ScriptWalker^.MakePointVisible(closestWO) and
+       not ScriptWalker^.WebWalk(closestWO, 30, 0.15) then
+        Exit;
+  end;
+
+  Result := Self._WalkHoverHelper(attempts, trackTarget);
+end;
+
+
+(*
+## TMMDot.Click
+```pascal
+function TMMDot.Click(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+```
+Method used to click a TMMDot target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in Lumbridge castle with a walker map of it loaded.
+WriteLn RSNPCs.LumbridgeCook.Click();
+```
+*)
+function TMMDot.Click(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.Hover(attempts) and Self._ClickHelper(leftClick);
+end;
+
+(*
+## TMMDot.SelectOption
+```pascal
+function TMMDot.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+```
+
+Method used to select an option on a TMMDot target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in Lumbridge castle with a walker map of it loaded.
+WriteLn RSNPCs.LumbridgeCook.SelectOption(['Examine']);
+```
+*)
+function TMMDot.SelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+begin
+  Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
+  Result := Self.Hover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
+end;
+
+
+(*
+## TMMDot.WalkClick
+```pascal
+function TMMDot.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+```
+
+Method used to walk and click a TMMDot target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in Lumbridge castle with a walker map of it loaded.
+WriteLn RSNPCs.LumbridgeCook.WalkClick();
+```
+*)
+function TMMDot.WalkClick(leftClick: Boolean = True; attempts: Int32 = 2): Boolean;
+begin
+  Result := Self.WalkHover(attempts) and Self._ClickHelper(leftClick);
+end;
+
+(*
+## TMMDot.WalkSelectOption
+```pascal
+function TMMDot.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+```
+
+Method used to walk and select an option on a TMMDot target if it's found on the mainscreen.
+
+Example:
+```pascal
+//Be in Lumbridge castle with a walker map of it loaded.
+WriteLn RSNPCs.LumbridgeCook.WalkSelectOption(['Examine']);
+```
+*)
+function TMMDot.WalkSelectOption(action: TStringArray; attempts: Int32 = 2): Boolean;
+begin
+  Self.ActionUpText := action;
+  Self.CurrentActionUpText := action;
+  Result := Self.WalkHover(attempts) and Self._SelectHelper(action);
+  Self.ActionUpText := [];
+  Self.CurrentActionUpText := [];
+end;
+
+type
+(*
+## type TNPC
+TNPC are a type of TMMDot and TWalkerObject.
+This are meant to be TMMDot that have a yellow minimap dot so TNPC.Filter.MinimapDot is True by default and shouldn't be changed.
+*)
+  TNPC = type TMMDot;
+  TNPCArray = array of TNPC;
+  PGameNPC = ^TNPC;
+  PGameNPCArray = array of PGameNPC;
+
+(*
+## type TGroundItem
+TGroundItem are a type of TMMDot and TWalkerObject.
+This are meant to be TMMDot that have a red minimap dot so TGroundItem.Filter.MinimapDot is True by default and shouldn't be changed.
+*)
+  TGroundItem = type TMMDot;
+  TGroundItemArray = array of TGroundItem;
+  PRSGroundItem = ^TGroundItem;
+  PRSGroundItemArray = array of PRSGroundItem;
+
+(*
+## type TPlayer
+
+TPlayer are a type of TMMDot and TWalkerObject.
+This are meant to be TMMDot that have a white minimap dot so TPlayer.Filter.MinimapDot is True by default and shouldn't be changed.
+*)
+  TPlayer = type TMMDot;
+  TPlayerArray = array of TPlayer;
+
+(*
+## TMMDot.SetupUpText
+```pascal
+procedure TNPC.SetupUpText(upText: TStringArray); override;
+procedure TGroundItem.SetupUpText(upText: TStringArray); override;
+procedure TPlayer.SetupUpText(upText: TStringArray); override;
+```
+Setup method that extends TWalkerObject.SetupUpText(upText: TStringArray);
+These are the methods that should be used to setup TNPCs, TGroundItems and TPlayers as it ensures that the
+TNPC.DotType is correctly set.
+*)
+procedure TNPC.Setup(upText: TStringArray); override; //deprecated 'Use TNPC.SetupUpText() instead.';
+begin
+  WriteLn('TNPC.Setup() is deprecated use TNPC.SetupUpText() instead.');
+  if Self.Filter.Skip then
+    Exit;
+
+  Self._Setup();
+  Self.Filter.MinimapDot := True;
+
+  Self.UpText := upText;
+
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+  Self.DotType := EMinimapDot.NPC;
+end;
+
+procedure TNPC.SetupUpText(upText: TStringArray); override;
+begin
+  if Self.Filter.Skip then
+    Exit;
+
+  Self._Setup();
+  Self.Filter.MinimapDot := True;
+
+  Self.UpText := upText;
+
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+  Self.DotType := EMinimapDot.NPC;
+end;
+
+procedure TGroundItem.SetupUpText(upText: TStringArray); override;
+begin
+  if Self.Filter.Skip then
+    Exit;
+
+  Self._Setup();
+  Self.Filter.MinimapDot := True;
+
+  Self.UpText := upText;
+
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+  Self.DotType := EMinimapDot.ITEM;
+end;
+
+procedure TPlayer.SetupUpText(upText: TStringArray); override;
+begin
+  if Self.Filter.Skip then
+    Exit;
+
+  Self._Setup();
+  Self.Filter.MinimapDot := True;
+
+  Self.UpText := upText;
+
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+  Self.DotType := EMinimapDot.PLAYER;
+end;
+
+
+function PGameNPCArray.GetClosestEx(value: TPoint): PGameNPC;
+var
+  i: Int32;
+  closest, current: Double;
+begin
+  if Self = [] then
+    Exit;
+
+  closest := $FFFFFF;
+
+  for i := High(Self) downto 0 do
+  begin
+    if Self[i]^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      Continue;
+    end;
+
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
+  end;
+end;
+
+function PGameNPCArray.GetClosest(): PGameNPC;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
+
+function PRSGroundItemArray.GetClosestEx(value: TPoint): PRSGroundItem;
+var
+  i: Int32;
+  closest, current: Double;
+begin
+  if Self = [] then
+    Exit;
+
+  closest := $FFFFFF;
+
+  for i := High(Self) downto 0 do
+  begin
+    if Self[i]^.Coordinates = [] then
+    begin
+      Delete(Self, i, 1);
+      Continue;
+    end;
+
+    current := Self[i]^.Coordinates.NearestPoint(value).DistanceTo(value);
+    if current < closest then
+    begin
+      closest := current;
+      Result := Self[i];
+    end;
+  end;
+end;
+
+function PRSGroundItemArray.GetClosest(): PRSGroundItem;
+begin
+  if (Self = []) or (ScriptWalker = nil) then
+    Exit;
+
+  Result := Self.GetClosestEx(ScriptWalker^.GetMyPos());
+end;
+
+
+(*
+## Debug
+```pascal
+procedure Debug(GameObject: TGameObject); overload;
+procedure Debug(mmdot: TMMDot); overload;
+```
+Methods used to debug TGameObjects and TMMDots.
+
+Example:
+```pascal
+Debug(GameObjects.GEBank); //Run in ge with a walker map setup there.
+
+Debug(RSNPCs.LumbridgeCook); //Run in Lumbridge castle with a walker map setup there.
+```
+*)
+procedure Debug(GameObject: TGameObject); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  GameObject.Draw(bitmap);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+procedure Debug(mmdot: TMMDot); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  mmDot.Draw(bitmap);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+type
+  TWalkerObjects = record
+    Banks, DepositBoxes: PWalkerObjectArray;
+  end;
+
+var
+  WalkerObjects: TWalkerObjects;
+  DebugObjectArray: TGameObjectArray;
+  DebugMMDotArray: array of TMMDot;
+
+function TBank.Hover(GameObject: TGameObject): Boolean; overload;
+begin
+  if GameInterface.IsOpen() then Exit;
+  Result := GameObject.Hover();
+end;
+
+function TBank.Open(GameObject: TGameObject): Boolean; overload;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  Result := GameObject.Click() or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+function TBank.WalkHover(GameObject: TGameObject): Boolean;
+begin
+  if GameInterface.IsOpen() then Exit;
+
+  Result := GameObject.WalkHover();
+end;
+
+function TBank.WalkOpen(GameObject: TGameObject): Boolean;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  Result := GameObject.WalkClick() or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+
+function TBank.Hover(rsNPC: TNPC): Boolean; overload;
+begin
+  if GameInterface.IsOpen() then Exit;
+  Result := rsNPC.Hover();
+end;
+
+function TBank.Open(rsNPC: TNPC): Boolean; overload;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  Result := rsNPC.SelectOption(['Bank B', 'Bank E']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+function TBank.WalkHover(rsNPC: TNPC): Boolean; overload;
+begin
+  if GameInterface.IsOpen() then
+    Exit;
+
+  Result := rsNPC.WalkHover();
+end;
+
+function TBank.WalkOpen(rsNPC: TNPC): Boolean; overload;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  Result := rsNPC.WalkSelectOption(['Bank B', 'Bank E']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Bank B', 'Bank E']));
+
+  if not Result then Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+
+function TBank.Hover(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Self.Hover(PGameNPC(walkerObject)^));
+
+  Result := Bank.Hover(PGameObject(walkerObject)^);
+end;
+
+function TBank.Open(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Bank.Open(PGameNPC(walkerObject)^));
+
+  Result := Bank.Open(PGameObject(walkerObject)^);
+end;
+
+function TBank.WalkHover(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Bank.WalkHover(PGameNPC(walkerObject)^));
+
+  Result := Bank.WalkHover(PGameObject(walkerObject)^);
+end;
+
+function TBank.WalkOpen(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Exit(Bank.WalkOpen(PGameNPC(walkerObject)^));
+
+  Result := Bank.WalkOpen(PGameObject(walkerObject)^);
+end;
+
+
+function TDepositBox.Hover(GameObject: TGameObject): Boolean;
+begin
+  if GameInterface.IsOpen() then Exit;
+  Result := GameObject.Hover();
+end;
+
+function TDepositBox.Open(GameObject: TGameObject): Boolean;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  if GameObject.Click() or ChooseOption.Select(['Deposit B', 'Bank D']) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+  end;
+end;
+
+function TDepositBox.WalkHover(GameObject: TGameObject): Boolean;
+begin
+  if GameInterface.IsOpen() then Exit;
+  Result := GameObject.WalkHover();
+end;
+
+function TDepositBox.WalkOpen(GameObject: TGameObject): Boolean;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  if GameObject.WalkClick() or ChooseOption.Select(['Deposit B', 'Bank D']) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+  end;
+end;
+
+
+function TDepositBox.Hover(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.DepositBoxes.GetClosest();
+
+  Result := Self.Hover(PGameObject(walkerObject)^);
+end;
+
+function TDepositBox.Open(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.DepositBoxes.GetClosest();
+
+  Result := Self.Open(PGameObject(walkerObject)^);
+end;
+
+function TDepositBox.WalkHover(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.DepositBoxes.GetClosest();
+
+  Result := Self.WalkHover(PGameObject(walkerObject)^);
+end;
+
+function TDepositBox.WalkOpen(walkerObject: PWalkerObject = nil): Boolean; overload;
+begin
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  Result := Self.WalkOpen(PGameObject(walkerObject)^);
+end;
+
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugObject: TGameObject;
+  DebugDot: TMMDot;
+begin
+  inherited;
+
+  for DebugObject in DebugObjectArray do
+    DebugObject.Draw(Bitmap);
+
+  for DebugDot in DebugMMDotArray do
+    DebugDot.Draw(Bitmap);
+end;

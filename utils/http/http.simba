@@ -1,0 +1,497 @@
+(*
+# HTTPClient
+Wrapper type with methods to interace with built in Simba http features.
+*)
+
+{$DEFINE WL_HTTP_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+# WaspClient
+Responsible for connecting to waspscripts.com database.
+Because of the way Simba HTTPClients work, it's easier to have different clients
+for different servers when they use different headers.
+*)
+type
+  TWaspClient = record(THTTPClient)
+    Schema: String;
+    APIKey: String;
+
+    User: record
+      ID: String;
+      Username: String;
+      AccessToken: String;
+      RefreshToken: String;
+    end;
+
+    Config: TConfigJSON;
+  end;
+
+type
+  TSubscriptionData = record
+    Product: String;
+    DateStart: String;
+    DateEnd: String;
+  end;
+  TSubscriptionDataArray = array of TSubscriptionData;
+
+  TScriptData = record
+    ID: String;
+    Name: String;
+    Description: String;
+    Content: String;
+    URL: String;
+    Categories: TStringArray;
+    Revision: Int32;
+  end;
+
+  TScriptDataArray = array of TScriptData;
+
+(*
+There's some bug that makes it required to "refresh" the client after logging in.
+Oh Simba... you never stop surprising me.
+*)
+procedure TWaspClient.RefreshClient(isSetup: Boolean = True);
+begin
+  if isSetup then
+    FreeHTTPClient(Self.Client);
+  Self.Client := InitializeHTTPClient(True);
+
+  SetHTTPContentType(Self.Client, 'application/json');
+  SetHTTPHeader(Self.Client, 'apikey', Self.APIKey);
+  if Self.User.AccessToken <> '' then
+    SetHTTPHeader(Self.Client, 'Authorization', 'Bearer ' + Self.User.AccessToken);
+end;
+
+procedure TWaspClient.SaveRefreshToken();
+begin
+  if Self.User.RefreshToken <> '' then
+    Self.Config.Put('refresh_token', Self.User.RefreshToken);
+end;
+
+
+function TWaspClient.Login(grantType: String; payload: TJSONObject): Boolean;
+const
+  ROUTE: String = 'auth/v1/token';
+  QUERY: String = '?grant_type=';
+var
+  response: TJSONObject;
+begin
+  try
+    response.Init(Self.POST(ROUTE + QUERY + grantType, payload, False));
+
+    Result := Self.GetHTTPCode() = 200;
+    if Result then
+    begin
+      Self.User.AccessToken := response.getString('access_token');
+      Self.User.RefreshToken := response.getString('refresh_token');
+      Self.User.ID := response.getJSONObject('user').getString('id');
+      Self.User.Username := response.getJSONObject('user').getJSONObject('user_metadata').getJSONObject('custom_claims').getString('global_name');
+
+      Self.RefreshClient();
+      Self.SaveRefreshToken();
+    end
+    else
+    begin
+      Self.User := [];
+      //Self.Config.Remove('refresh_token');
+    end;
+  except
+    if (response = nil) then
+      TerminateScript(GetExceptionMessage())
+    else
+      TerminateScript(response.ToString() + LineEnding + GetExceptionMessage());
+  finally
+    payload.Free();
+    response.Free();
+  end;
+end;
+
+function TWaspClient.Login(user, password: String): Boolean; overload;
+var
+  payload: TJSONObject;
+begin
+  payload.Init();
+  payload.Put('email', user);
+  payload.Put('password', password);
+  Result := Self.Login('password', payload);
+end;
+
+function TWaspClient.Login(refreshToken: String): Boolean; overload;
+var
+  payload: TJSONObject;
+begin
+  payload.Init();
+  payload.Put('refresh_token', refreshToken);
+  Result := Self.Login('refresh_token', payload);
+end;
+
+
+function TWaspClient.Logout(): Boolean;
+const
+  ROUTE: String = 'auth/v1/logout';
+begin
+  try
+    Self.POST(ROUTE, False);
+    Result := Self.GetHTTPCode() = 204;
+    if Result then
+    begin
+      Self.User := [];
+      Self.Config.Remove('refresh_token');
+    end;
+  except
+    TerminateScript(GetExceptionMessage());
+  end;
+end;
+
+function TWaspClient.IsLoggedIn(): Boolean;
+begin
+  Result := Self.User.AccessToken <> '';
+end;
+
+procedure TWaspClient.LoadRefreshToken();
+var
+  token: String;
+begin
+  token := Self.Config.GetString('refresh_token');
+  if (token <> '') then
+  begin
+    if Self.Login(token) then
+      Self.DebugLn('Previous session refreshed!')
+    else
+      Self.DebugLn('Previous session has expired!');
+  end;
+end;
+
+procedure TWaspClient.Setup();
+var
+  response: TJSONObject;
+begin
+  Self.Name := 'WaspClient';
+  Self.Server := 'https://api.waspscripts.com/';
+  Self.Client := InitializeHTTPClient(True);
+  try
+    response.Init(Self.GET('', False));
+    Self.Server := response.getString('url');
+    Self.APIKey := response.getString('anon_key');
+  except
+    WriteLn 'Failed to connect to https://api.waspscripts.com/ to get the database connection info.';
+    WriteLn 'Falling back to previously known good values';
+    Self.Server := 'https://db.waspscripts.com/';
+    Self.APIKey := 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJzdXBhYmFzZSIsImlhdCI6MTcxOTQ5MDgwMCwiZXhwIjo0ODc1MTY0NDAwLCJyb2xlIjoiYW5vbiJ9.pKuuhYK-xxOWBHg3mqaxNptyvCpE5n-cjhxN3GQKr2I';
+  finally
+    FreeHTTPClient(Self.Client);
+    response.Free();
+  end;
+
+  if Self.APIKey = '' then Exit;
+  if not Self.Server.EndsWith('/') then Self.Server += '/';
+
+  Self.Config.Setup(AppPath + 'Configs' + DirectorySeparator + 'launcher.json');
+
+  Self.RefreshClient(False);
+  AddOnTerminate(@Self.Free);
+  Self.LoadRefreshToken();
+  Self.IsSetup := True;
+end;
+
+
+procedure TWaspClient.SetSchema(schema: String);
+begin
+  if schema = 'public' then
+    schema := ''; //public schema is just not having the header.
+
+  if Self.Schema <> schema then
+    SetHTTPHeader(Self.Client, 'Accept-Profile', schema);
+end;
+
+function TWaspClient.Select(schema, table, query: String; filters: TStringArray = []; orders: TStringArray = []): TJSONArray;
+const
+  ROUTE: String = 'rest/v1/';
+var
+  response: String;
+begin
+  Self.SetSchema(schema);
+
+  if filters <> [] then
+    query += '&' + Implode('&', filters);
+
+  if orders <> [] then
+    query += '&order=' + Implode('&order=', orders);
+
+  try
+    response := Self.GET(ROUTE + table + '?select=' + query, False);
+
+    if Self.GetHTTPCode() = 200 then
+      Result.Init(response);
+  except
+    TerminateScript(GetExceptionMessage());
+  end;
+end;
+
+
+function TWaspClient.Storage(route: String): String;
+var
+  response: String;
+begin
+  try
+    response := Self.GET(route, False);
+    if Self.GetHTTPCode() = 200 then
+      Result := response;
+  except
+    TerminateScript(GetExceptionMessage());
+  end;
+end;
+
+function TWaspClient.Storage(bucket, path: String): String; overload;
+const
+  ROUTE: String = 'storage/v1/object/authenticated/';
+begin
+  Result := Self.Storage(ROUTE + bucket + '/' + path);
+end;
+
+function TWaspClient.StorageGetSignedURL(bucket, path: String; expiresIn: UInt32 = 10): String;
+const
+  ROUTE: String = 'storage/v1/object/sign/';
+var
+  response: String;
+  payload, json: TJSONObject;
+begin
+  payload.Init();
+  payload.Put('expiresIn', expiresIn);
+
+  try
+    response := Self.POST(ROUTE + bucket + '/' + path, payload, False);
+    if Self.GetHTTPCode() = 200 then
+    begin
+     json.Init(response);
+     Result := 'storage/v1' + json.getString('signedURL');
+     json.Free();
+    end;
+  except
+    TerminateScript(GetExceptionMessage());
+  finally
+    payload.Free();
+  end;
+end;
+
+(*
+## TWaspClient.CheckRoleAccess
+```pascal
+function TWaspClient.CheckRoleAccess(): Boolean;
+```
+This queries the `/roles` endpoint on WaspScripts database to determine if the user
+has any roles which grant automatic script access. Returns True/False based on the
+user's role. Modified based on WaspLauncher source.
+*)
+function TWaspClient.CheckRoleAccess(): Boolean;
+const
+  ROUTE: String = 'rest/v1/roles';
+var
+  query: String = '?select=tester,moderator,administrator';
+  response: String;
+  tmp: TJSONArray;
+begin
+  Self.SetSchema('profiles');
+  query += '&id=eq.' + Self.User.ID + '&limit=1';
+  try
+    response := Self.GET(ROUTE + query, False);
+    if Self.GetHTTPCode() = 200 then
+    begin
+      tmp.Init(response);
+      if tmp.length > 0 then
+      begin
+        // These are the only three roles with auto-access to scripts
+        if tmp.getJSONObject(0).getString('tester') = 'true' then Exit(True);
+        if tmp.getJSONObject(0).getString('moderator') = 'true' then Exit(True);
+        if tmp.getJSONObject(0).getString('administrator') = 'true' then Exit(True);
+      end;
+      tmp.Free();
+    end;
+  except
+    TerminateScript(GetExceptionMessage());
+  end;
+end;
+
+(*
+## TWaspClient.GetSubscriptions
+```pascal
+function TWaspClient.GetSubscriptions(): TSubscriptionDataArray;
+```
+This queries the `/subscriptions` endpoint on WaspScripts database to create an
+array of all active subscriptions the user has. Modified based on WaspLauncher source.
+*)
+function TWaspClient.GetSubscriptions(): TSubscriptionDataArray;
+var
+  jsonArray: TJSONArray;
+  i: Int32;
+  sub: TSubscriptionData;
+begin
+  jsonArray := Self.Select('profiles', 'subscription', '*', ['id=eq.' + Self.User.ID]);
+
+  if jsonArray.length = 0 then exit();
+
+  for i := 0 to jsonArray.High() do
+  begin
+    with jsonArray.getJSONObject(i) do
+    begin
+      if not Has('product') then continue;
+
+      sub.Product := getString('product');
+      sub.DateStart := getString('date_start');
+      sub.DateEnd := getString('date_end');
+    end;
+
+    Result += sub;
+  end;
+end;
+
+(*
+## TWaspClient.GetFreeAccess
+```pascal
+function TWaspClient.GetFreeAccess(): TSubscriptionDataArray;
+```
+This queries the `/free_access` table on WaspScripts database to create an
+array of all granted access the user has. Modified based on WaspLauncher source.
+*)
+function TWaspClient.GetFreeAccess(): TSubscriptionDataArray;
+var
+  jsonArray: TJSONArray;
+  i: Int32;
+  sub: TSubscriptionData;
+begin
+  jsonArray := Self.Select('profiles', 'free_access', '*', ['id=eq.' + Self.User.ID]);
+
+  if jsonArray.length = 0 then exit();
+
+  for i := 0 to jsonArray.High() do
+  begin
+    with jsonArray.getJSONObject(i) do
+    begin
+      if not Has('product') then continue;
+
+      sub.Product := getString('product');
+      sub.DateStart := getString('date_start');
+      sub.DateEnd := getString('date_end');
+    end;
+
+    Result += sub;
+  end;
+end;
+
+(*
+## tSubscriptionDataArray._MatchProduct
+```pascal
+function tSubscriptionDataArray._MatchProduct(product : String; out MatchedProduct : tSubscriptionData): Boolean;
+```
+A helper function that searches the `tSubscriptionDataArray` for the matching product.
+Returns True/False to identify if a product was matched. `out MatchedProduct` is
+the `tSubscriptionData` for the product ID that matched.
+*)
+function tSubscriptionDataArray._MatchProduct(product : String; out MatchedProduct : tSubscriptionData) : Boolean;
+var
+  i : Int32;
+begin
+  for i := 0 to high(self) do
+    if Self[i].Product = product then
+    begin
+      MatchedProduct := Self[i];
+      exit(True);
+    end;
+end;
+
+(*
+## TWaspClient.GetProductCode
+```pascal
+function TWaspClient.GetProductCode(scriptID : String): String;
+```
+A function which converts a script ID to product code. In some tables, only the
+script ID is given, and in other tables only the product code is given. This is
+required to ensure all functions are comparing the same identifier.
+*)
+function TWaspClient.GetProductCode(scriptID : String): String;
+var
+  jsonArray: TJSONArray;
+begin
+  try
+    jsonArray := Self.Select('scripts', 'products', 'id,user_id,bundle,script', ['script=eq.' + ScriptID]);
+
+    if jsonArray.length() > 0 then
+      // There should only be one match to the script UUID
+      with jsonArray.getJSONObject(0) do
+        exit(getString('id'));
+  finally
+    jsonArray.Free();
+  end;
+end;
+
+(*
+## TWaspClient.GetProductLink
+```pascal
+function TWaspClient.GetProductLink(ScriptID : String): String;
+```
+A function which looks up a given script ID and returns the URL to that
+script's WaspScripts page.
+*)
+function TWaspClient.GetProductLink(ScriptID : String): String;
+var
+  jsonArray: TJSONArray;
+begin
+  try
+    jsonArray := Self.Select('scripts','scripts','url', ['id=eq.'+ScriptID]);
+
+    if jsonArray.length() > 0 then
+    // There should only be one match to the script UUID
+      with jsonArray.getJSONObject(0) do
+        exit(getString('url'));
+  finally
+    jsonArray.Free();
+  end;
+end;
+
+(*
+## TWaspClient.ExplodeBundles
+```pascal
+function TWaspClient.ExplodeBundles(subs : tSubscriptionDataArray): tSubscriptionDataArray;
+```
+This function looks up all bundles in the WaspScripts database, and compares them
+against the subscriptions `subs` argument. Any bundles in the `subs` array will be
+decomposed to the constituent scripts. The `Result` is only the exploded bundle
+and does not include the originally input `subs`
+*)
+function TWaspClient.ExplodeBundles(subs : tSubscriptionDataArray): tSubscriptionDataArray;
+var
+  allBundles, scriptsJSON: TJSONArray;
+  bundleProduct, subProduct : tSubscriptionData;
+  i, j: Int32;
+begin
+  allBundles := Self.Select('scripts', 'bundles', 'product,id,name,scripts,user_id');
+
+  for i := 0 to allBundles.High() do
+    with allBundles.getJSONObject(i) do
+    begin
+      // If this bundle is a product in "sub" - aka the user is subscribed to it
+      if subs._MatchProduct(getString('product'), subProduct) then
+      begin
+        scriptsJSON := getJSONArray('scripts');
+
+        for j := 0 to scriptsJSON.High() do
+        begin
+          bundleProduct.Product := Self.GetProductCode(scriptsJSON.getString(j));
+          bundleProduct.DateStart := subProduct.DateStart;
+          bundleProduct.DateEnd := subProduct.DateEnd;
+
+          Result += bundleProduct;
+        end;
+      end;
+    end;
+
+  allBundles.Free();
+end;
+
+{$H-}
+var
+  WaspClient: TWaspClient;
+{$H+}

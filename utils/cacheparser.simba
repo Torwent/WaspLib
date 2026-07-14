@@ -1,0 +1,587 @@
+(*
+# CacheParser
+CacheParser as the name implies is a record made to parse information from certain files that are part of the game cache.
+- preferences.dat is where most client settings are stored.
+- preferences2.dat I have no idea? some values in address 00000020 seem to change after some times has passed randomly. (related to 6h log maybe!?!?)
+- random.dat in the user home directory seems to be a random identifier generated the first time you open a client if it doesn't exist.
+    while it exists, it seems to never change unless the user deletes it.
+```{note}
+For more information check this file: https://github.com/open-osrs/runelite/blob/dd4478eff7d90fcb3e85584171d5836809eb150a/runescape-client/src/main/java/ClientPreferences.java
+```
+*)
+
+{$DEFINE WL_CACHEPARSER_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+## type TCacheParser
+```pascal
+type
+  TCacheParser = record(TSRLBaseRecord)
+    Disabled: Boolean;
+    Directory: String;
+    Preferences: String;
+    Preferences2: String;
+  end;
+```
+Type responsible for handling cache parsing.
+*)
+type
+  TCacheParser = record(TSRLBaseRecord)
+    Disabled: Boolean;
+    Directory: String;
+    Preferences: String;
+    Preferences2: String;
+  end;
+
+(*
+## CacheParser.Setup
+```pascal
+procedure TCacheParser.Setup();
+```
+Internal method called automatically simply by including WaspLib.
+*)
+procedure TCacheParser.Setup();
+var
+  dir, base: String;
+  {$IFDEF WINDOWS}
+  winDirs: TStringArray;
+  {$ENDIF}
+begin
+  base := 'jagexcache' + DirectorySeparator + 'oldschool' + DirectorySeparator + 'LIVE' + DirectorySeparator;
+
+  case GameClient.GetCurrentClient() of
+    EClient.LEGACY:
+    begin
+      {$IFDEF WINDOWS}
+      winDirs := [
+        GetEnvironmentVariable('ONEDRIVE'),
+        GetEnvironmentVariable('USERPROFILE'),
+        GetEnvironmentVariable('HOMEPATH')
+      ];
+
+      for dir in winDirs do
+      begin
+        dir += DirectorySeparator + base;
+        if DirectoryExists(dir) then Break;
+      end;
+      {$ELSE}
+        dir := GetEnvironmentVariable('HOME') + DirectorySeparator + base;
+      {$ENDIF}
+
+      if DirectoryExists(dir) then
+        Self.Directory := dir
+      else
+        Self.Disabled := True;
+    end;
+
+    EClient.RUNELITE:
+    begin
+
+      dir :=
+      {$IFDEF WINDOWS}
+      GetEnvironmentVariable('USERPROFILE')
+      {$ELSE}
+      GetEnvironmentVariable('HOME')
+      {$ENDIF} + DirectorySeparator + '.runelite' + DirectorySeparator + base ;
+
+      if DirectoryExists(dir) then
+        Self.Directory := dir
+      else
+        Self.Disabled := True;
+    end;
+
+    else
+      Self.Disabled := True;
+  end;
+end;
+
+(*
+## CacheParser.GetPreference
+```pascal
+function TCacheParser.GetPreference(prefNumber: Int32 = 1): String;
+```
+Read the preference file specified.
+*)
+function TCacheParser.GetPreference(prefNumber: Int32 = 1): String;
+begin
+  case prefNumber of
+    1: Result := ReadFileContents(Self.Directory + 'preferences.dat');
+    2: Result := ReadFileContents(Self.Directory + 'preferences2.dat');
+  end;
+
+  if Result = '' then
+    Self.Disabled := True;
+end;
+
+(*
+## CacheParser.Update
+```pascal
+function TCacheParser.Update(): Boolean;
+```
+Method to check if the cache files were updated.
+*)
+function TCacheParser.Update(prefNumber: Int32 = 0): Boolean;
+var
+  tmp1, tmp2: String;
+begin
+  case prefNumber of
+    1:
+    begin
+      tmp1 := Self.GetPreference(1);
+      Result := Self.Preferences <> tmp1;
+    end;
+    2:
+    begin
+      tmp2 := Self.GetPreference(2);
+      Result := Self.Preferences2 <> tmp2;
+    end;
+    0:
+    begin
+      tmp1 := Self.GetPreference(1);
+      tmp2 := Self.GetPreference(2);
+      Result := (Self.Preferences <> tmp1) or (Self.Preferences2 <> tmp2);
+    end;
+  end;
+
+  if Result then
+  begin
+    case prefNumber of
+      1: Self.Preferences := tmp1;
+      2: Self.Preferences2 := tmp2;
+      0:
+      begin
+        Self.Preferences := tmp1;
+        Self.Preferences2 := tmp2;
+      end;
+    end;
+  end;
+end;
+
+(*
+## CacheParser.GetHexString
+```pascal
+function TCacheParser.GetHexString(prefNumber: Int32 = 1): String;
+```
+Print the cache files as a hex string.
+
+Example:
+```pascal
+WriteLn CacheParser.GetHexString(1);
+```
+*)
+function TCacheParser.GetHexString(prefNumber: Int32 = 1): String;
+var
+  pref, final, tmp: String;
+  i: Int32;
+begin
+  Self.Update();
+
+  case prefNumber of
+    1: pref := Self.Preferences;
+    2: pref := Self.Preferences2;
+    else Exit;
+  end;
+
+  for i := 1 to High(pref) do
+  begin
+    tmp := IntToHex(Byte(pref[i]));
+
+    if Length(tmp) = 1 then
+      tmp := '0' + tmp;
+
+    final += tmp + ' ';
+  end;
+
+  Result := final;
+end;
+
+(*
+## CacheParser.Print
+```pascal
+procedure TCacheParser.Print(prefNumber: Int32 = 0);
+```
+Print the cache files as strings. This is only useful for debugging purposes.
+
+Example:
+```pascal
+CacheParser.Print();
+```
+*)
+procedure TCacheParser.Print(prefNumber: Int32 = 0);
+begin
+  Self.Update();
+
+  if prefNumber = 0 then
+  begin
+    Self.DebugLn(Self.GetHexString(1));
+    Self.DebugLn(Self.GetHexString(2));
+  end
+  else
+    Self.DebugLn(Self.GetHexString(prefNumber));
+end;
+
+(*
+## CacheParser.GetOptionsAmount
+```pascal
+function TCacheParser.GetOptionsAmount(): Int32;
+```
+Returns the number of options saved in the cache. This is not very useful, AFAIK there's only 2 possible values for this: 0 and 10.
+0 is only if you haven't accepted the EULA in the client.
+
+Example:
+```pascal
+WriteLn CacheParser.GetOptionsAmount();
+```
+*)
+function TCacheParser.GetOptionsAmount(): Int32;
+begin
+  Self.Update();
+
+  if Length(Self.Preferences) >= 1 then
+    Result := Int32(Self.Preferences[1]);
+end;
+
+(*
+## CacheParser.RoofsHidden
+```pascal
+function TCacheParser.RoofsHidden(): Boolean;
+```
+Checks if the roofs are hidden.
+
+Example:
+```pascal
+WriteLn CacheParser.RoofsHidden();
+```
+*)
+function TCacheParser.RoofsHidden(): Boolean;
+begin
+  Self.Update();
+  if Length(Self.Preferences) >= 2 then
+    Result := Boolean(Self.Preferences[2]);
+end;
+
+(*
+## CacheParser.TitleMusicDisabled
+```pascal
+function TCacheParser.TitleMusicDisabled(): Boolean;
+```
+Checks if the music is enabled in the login screen.
+
+Example:
+```pascal
+WriteLn CacheParser.TitleMusicDisabled();
+```
+*)
+function TCacheParser.TitleMusicDisabled(): Boolean;
+begin
+  Self.Update();
+  if Length(Self.Preferences) >= 3 then
+    Result := Boolean(Self.Preferences[3]);
+end;
+
+(*
+## CacheParser.WindowMode
+```pascal
+function TCacheParser.WindowMode(): Int32;
+```
+Returns 1 for fixed mode and 2 for resizable mode. Resizable modern and resizable classic make no difference here.
+
+Example:
+```pascal
+WriteLn CacheParser.WindowMode();
+```
+*)
+function TCacheParser.WindowMode(): Int32;
+begin
+  Self.Update();
+  if Length(Self.Preferences) >= 4 then
+    Result := Int32(Self.Preferences[4]);
+end;
+
+(*
+## CacheParser.GetAuthenticatorAmount
+```pascal
+function TCacheParser.GetAuthenticatorAmount(): Int32;
+```
+Returns the number of authenticators saved for the next 30 days. If this is more than 0, you will have 8 bytes for each of the saved authenticators.
+This is important to know so we know where the saved username starts if we have saved authenticators.
+
+Example:
+```pascal
+WriteLn CacheParser.GetAuthenticatorAmount();
+```
+*)
+function TCacheParser.GetAuthenticatorAmount(): Int32;
+begin
+  Self.Update();
+  if Length(Self.Preferences) >= 5 then
+    Result := Int32(Self.Preferences[5]);
+end;
+
+(*
+## CacheParser.GetAuthenticators
+```pascal
+function TCacheParser.GetAuthenticators(): TStringArray;
+```
+Returns each authenticator saved in a TStringArray. Each string is 8 bytes like mentioned in CacheParser.GetAuthenticatorAmount() documentation.
+
+Example:
+```pascal
+WriteLn CacheParser.GetAuthenticators();
+```
+*)
+function TCacheParser.GetAuthenticators(): TStringArray;
+var
+  i, j, savedAuths: Int32;
+  str: String;
+begin
+  Self.Update();
+  savedAuths := Self.GetAuthenticatorAmount();
+  if savedAuths = 0 then
+    Exit;
+
+  for i := 0 to savedAuths - 1 do
+  begin
+    if Length(Self.Preferences) >= (13 + i * 8) then
+    begin
+      for j := (6 + i * 8) to (13 + i * 8) do
+        str += Self.Preferences[j];
+      Result += str;
+      str := '';
+    end;
+  end;
+end;
+
+(*
+## CacheParser.GetUsernameIndex
+```pascal
+function TCacheParser.GetUsernameIndex(): Int32;
+```
+Internal function that returns byte index where the username starts.
+This is required because depending on wether we have authenticators saved or not, the bytes shift.
+*)
+function TCacheParser.GetUsernameIndex(): Int32;
+begin
+  Result := 6 + Self.GetAuthenticatorAmount() * 8;
+end;
+
+(*
+## CacheParser.GetUsername
+```pascal
+function TCacheParser.GetUsername(): String;
+```
+Returns the saved username in the game cache. This is the username you clicked to save on the client when logging in.
+
+Example:
+```pascal
+WriteLn CacheParser.GetUsername();
+```
+*)
+function TCacheParser.GetUsername(): String;
+var
+  i: Int32;
+begin
+  for i := Self.GetUsernameIndex() to Length(Self.Preferences) do
+  begin
+    if Byte(Self.Preferences[i]) = 0 then
+      Break;
+    Result += Self.Preferences[i];
+  end;
+end;
+
+(*
+## CacheParser.UsernameEndIndex
+```pascal
+function TCacheParser.UsernameEndIndex(): Int32;
+```
+Internal function used to get the index of the byte of where the username ends.
+*)
+function TCacheParser.UsernameEndIndex(): Int32;
+var
+  i: Int32;
+begin
+  for i := Self.GetUsernameIndex() to Length(Self.Preferences) do
+  begin
+    if Byte(Self.Preferences[i]) = 0 then
+      Break;
+  end;
+  Result := i + 1;
+end;
+
+(*
+## CacheParser.HideUsername
+```pascal
+function TCacheParser.HideUsername(): Boolean;
+```
+Returns true or false if we have the username hidden.
+
+Example:
+```pascal
+WriteLn CacheParser.HideUsername();
+```
+*)
+function TCacheParser.HideUsername(): Boolean;
+begin
+  Result := Boolean(Self.Preferences[Self.UsernameEndIndex()]);
+end;
+
+(*
+## CacheParser.Brightness
+```pascal
+function TCacheParser.Brightness(): Int32;
+```
+Returns the brightness value converted to a 0-100 value.
+
+Example:
+```pascal
+WriteLn CacheParser.Brightness();
+```
+*)
+function TCacheParser.Brightness(): Int32;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 1;
+  if Length(Self.Preferences) >= i then
+    Result := (Int32(Self.Preferences[i]) - 100) * -2;
+end;
+
+(*
+## CacheParser.MusicVolume
+```pascal
+function TCacheParser.MusicVolume(): Int32;
+```
+Returns the music volume value converted to a 0-100 value.
+
+Example:
+```pascal
+WriteLn CacheParser.MusicVolume();
+```
+*)
+function TCacheParser.MusicVolume(): Int32;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 2;
+  if Length(Self.Preferences) >= i then
+    Result := Round(Int32(Self.Preferences[i]) / 2.55);
+end;
+
+(*
+## CacheParser.SoundEffectsVolume
+```pascal
+function TCacheParser.SoundEffectsVolume(): Int32;
+```
+Returns the sound effects volume value converted to a 0-100 value.
+
+Example:
+```pascal
+WriteLn CacheParser.SoundEffectsVolume();
+```
+*)
+function TCacheParser.SoundEffectsVolume(): Int32;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 3;
+  if Length(Self.Preferences) >= i then
+    Result := Round(Int32(Self.Preferences[i]) / 1.27);
+end;
+
+(*
+## CacheParser.AreaSoundVolume
+```pascal
+function TCacheParser.AreaSoundVolume(): Int32;
+```
+Returns the area sound volume value converted to a 0-100 value.
+
+Example:
+```pascal
+WriteLn CacheParser.AreaSoundVolume();
+```
+*)
+function TCacheParser.AreaSoundVolume(): Int32;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 4;
+  if Length(Self.Preferences) >= i then
+    Result := Round(Int32(Self.Preferences[i]) / 1.27);
+end;
+
+(*
+## CacheParser.Field1247
+```pascal
+function TCacheParser.Field1247(): Int32;
+```
+I have absolutely no idea what this is. It's supposedly something, but AFAIK it's always 0.
+
+Example:
+```pascal
+WriteLn CacheParser.Field1247();
+```
+*)
+function TCacheParser.Field1247(): Int32;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 5;
+  if Length(Self.Preferences) >= i then
+    Result := Int32(Self.Preferences[i]);
+end;
+
+(*
+## CacheParser.DisplayFPS
+```pascal
+function TCacheParser.DisplayFPS(): Boolean;
+```
+Returns true/false if we have Display FPS enabled.
+Display FPS can be enabled by typing ::displayfps in game.
+
+Example:
+```pascal
+WriteLn CacheParser.DisplayFPS();
+```
+*)
+function TCacheParser.DisplayFPS(): Boolean;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 6;
+  if Length(Self.Preferences) >= i then
+    Result := Boolean(Self.Preferences[i]);
+end;
+
+(*
+## CacheParser.Field1238
+```pascal
+function TCacheParser.Field1238(): Int32;
+```
+I have absolutely no idea what this is. It's supposedly something, but AFAIK it's always 0.
+
+Example:
+```pascal
+WriteLn CacheParser.Field1238();
+```
+*)
+function TCacheParser.Field1238(): Int32;
+var
+  i: Int32;
+begin
+  i := Self.UsernameEndIndex() + 7;
+  if Length(Self.Preferences) >= i then
+    Result := Int32(Self.Preferences[i]);
+end;
+
+var
+  CacheParser: TCacheParser;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  CacheParser.Setup();
+end;

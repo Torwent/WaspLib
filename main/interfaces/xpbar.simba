@@ -1,0 +1,77 @@
+(*
+# XPBar
+Extensions to SRL's {ref}`XPBar`
+*)
+
+{$DEFINE WL_XPBAR_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+function TXPBar.Read(): Int64; override;
+var
+  i: Int32;
+  xpStr: String;
+begin
+  if not Self.IsSetup then
+    Self._Setup();
+
+  if not Self.IsSetup or not Self.Enable() then
+    Exit;
+
+  xpStr := OCR.Recognize(Self.Bounds, TOCRColorFilter.Create([$FFFFFF]), Self.Font);
+  Result := xpStr.ExtractInteger(0);
+
+  Self.Tracker.IsSetup := (Result > 0) and (Result >= Self.Tracker.Current);
+
+  if not Self.Tracker.IsSetup and (Self.Tracker.Current = 0) and GameInterface.IsOpen() then
+    if GameInterface.Close() then
+    begin
+      Self.IsSetup := False;
+      Exit(Self.Read());
+    end;
+
+  if Self.Tracker.IsSetup then
+  begin
+    if Self.Tracker.Start = 0 then
+      Self.Tracker.Start := Result;
+
+    if (Self.Tracker.Current = 0) or (Result > Self.Tracker.Current) then
+      Self.Tracker.Current := Result;
+
+    Exit;
+  end;
+
+  if not WL.GameSettings.XPBarIsSetup and not GameInterface.IsOpen() then
+  begin
+    Mouse.Click(Minimap.Orbs[EMinimapOrb.EXPERIENCE], MOUSE_LEFT);
+
+    repeat
+      Wait(50, 250, wdLeft);
+      case i of
+        0..7: ;
+        8..10: WriteLn 'Stuck in TXPBar.Read()';
+        else TerminateScript('Couldn''t toggle the XPBar.');
+      end;
+      Inc(i);
+    until Self.Enable();
+
+    Result := OCR.RecognizeNumber(Self.Bounds, TOCRColorFilter.Create([$FFFFFF]), Self.Font);
+    Self.Tracker.IsSetup := (Result > 0) and (Result >= Self.Tracker.Current);
+
+    if not Self.Tracker.IsSetup then
+      XPBarSetup.Fix();
+  end;
+end;
+
+function TXPBar.EarnedXP(): Boolean; override;
+begin
+  Result := Self.Read() > Self.Tracker.Previous;
+
+  if Result and Self.Tracker.IsSetup then
+  begin
+    APIClient.UpdatePayload(Self.Tracker.Current-Self.Tracker.Previous, 0, 0);
+    WL.Activity.Restart();
+    Self.Tracker.Previous := Self.Tracker.Current;
+  end;
+end;

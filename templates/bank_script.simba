@@ -1,0 +1,173 @@
+{$DEFINE SCRIPT_ID := ''}
+{$DEFINE SCRIPT_REVISION := '1'}
+{$DEFINE SCRIPT_GUI}
+{$I SRL-T/osr.simba}
+{$I WaspLib/main.simba}
+
+type
+  ETask = (
+    TASK_TO_DO
+  );
+
+var
+  CurrentTask: ETask := ETask.TASK_TO_DO;
+
+type
+  EState = (
+    WAIT_STATE,
+
+    OPEN_BANK,
+    WITHDRAW_ITEMS,
+    DEPOSIT_ITEMS,
+    DEPOSIT_RANDOM_ITEMS,
+    OPEN_COLLECT,
+    HANDLE_COLLECT,
+    CLOSE_INTERFACE,
+
+    OUT_OF_SUPPLIES,
+    END_SCRIPT
+  );
+
+  TScript = record(TBaseBankScript)
+    State: EState;
+  end;
+
+procedure TAntiban.Setup(); override;
+begin
+  Self.Skills := [ESkill.TOTAL];
+  Self.MinZoom := 15;
+  Self.MaxZoom := 40;
+
+  inherited;
+end;
+
+procedure TScript.Init(maxActions: UInt32; maxTime: UInt64); override;
+begin
+  inherited;
+
+  Self.RSW.SetupNamedRegion();
+end;
+
+function TScript.GetState(): EState;
+begin
+  if WL.Activity.IsFinished() then
+    Exit(END_SCRIPT);
+
+  if RSInterface.IsOpen() then
+  begin
+    if not Self.BankEmpty and Bank.IsOpen() then
+    begin
+      if True then  //add your deposit items condition
+        Exit(DEPOSIT_ITEMS);
+
+      if False then //add your withdraw items condition
+        Exit(WITHDRAW_ITEMS);
+    end;
+
+    if not Self.CollectEmpty and CollectBox.IsOpen() then
+      Exit(HANDLE_COLLECT);
+
+    Exit(CLOSE_INTERFACE);
+  end;
+
+  if True then //add your task is done condition
+  begin
+    if Self.BankEmpty then
+    begin
+      if Self.CollectEmpty then
+        Exit(OUT_OF_SUPPLIES);
+
+      Exit(OPEN_COLLECT);
+    end;
+
+    Exit(OPEN_BANK);
+  end;
+
+  Exit(WAIT_STATE);
+end;
+
+procedure TScript.Run(maxActions: UInt32; maxTime: UInt64);
+begin
+  Self.Init(maxActions, maxTime);
+
+  repeat
+    Self.State := Self.GetState();
+    Self.SetAction(ToStr(Self.State));
+
+    case Self.State of
+      WAIT_STATE: Wait(500, 800);
+
+      OPEN_BANK: Bank.WalkOpen();
+
+      WITHDRAW_ITEMS: Self.Withdraw([]);
+      DEPOSIT_ITEMS: Bank.DepositAll();
+      DEPOSIT_RANDOM_ITEMS: Bank.DepositRandomItems([]);
+      OPEN_COLLECT: CollectBox.WalkOpen();
+      HANDLE_COLLECT: Self.HandleCollectBox([]);
+      CLOSE_INTERFACE: RSInterface.Close();
+
+      OUT_OF_SUPPLIES, END_SCRIPT: Break;
+    end;
+
+    Self.DoAntiban();
+  until Self.ShouldStop();
+end;
+
+var
+  Script: TScript;
+
+{$IFDEF SCRIPT_GUI}
+type
+  TConfig = record(TScriptForm)
+    Selector: TLabeledCombobox;
+  end;
+
+procedure TConfig.StartScript(sender: TObject); override;
+begin
+  CurrentTask := ETask(Self.Selector.getItemIndex());
+  inherited;
+end;
+
+procedure TConfig.Run(); override;
+var
+  tab: TTabSheet;
+begin
+  Self.Setup('Bank script');
+  Self.Start.setOnClick(@Self.StartScript);
+
+  Self.AddTab('Script Settings');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  Self.CreateAccountManager(tab);
+
+  with Self.Selector do
+  begin
+    Create(tab);
+    SetCaption('Item type:');
+    SetLeft(TControl.AdjustToDPI(40));
+    SetTop(TControl.AdjustToDPI(170));
+    SetStyle(csDropDownList);
+    AddItemArray(['Item1', 'Item2', 'Item3', 'Item4']);
+    SetItemIndex(2);
+  end;
+
+  Self.CreateVersionPanel(tab);
+
+  Self.CreateAntibanManager();
+  Self.CreateBankSettings();
+  Self.CreateWaspLibSettings();
+  Self.CreateAPISettings();
+
+  inherited;
+end;
+
+var
+  Config: TConfig;
+{$ENDIF}
+
+begin
+  {$IFDEF SCRIPT_GUI}
+  Config.Run();
+  {$ENDIF}
+  Script.Run(WLSettings.MaxActions, WLSettings.MaxTime);
+end.

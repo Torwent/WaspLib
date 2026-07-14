@@ -1,0 +1,468 @@
+(*
+# CollectBox
+Methods to interact with the CollectBox.
+*)
+
+{$DEFINE WL_COLLECTBOX_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  // In order FindButtons returns
+  ECollectButton = (CLOSE, COLLECT_INVENTORY, COLLECT_BANK);
+  ECollectSlotBoxes = (TRADE_STATUS, OPERATION, ITEM, CHANGE);
+
+  TCollectBox = record(TTitledInterface)
+    Items: TItemInterface;
+    SlotBoxes: TBoxArray;
+  end;
+
+function TCollectBox.GetButtons(): TGameButtonArray;
+begin
+  Result := Self.FindButtons([[83, 19], [21,21]]);
+end;
+
+function TCollectBox.GetButton(button: ECollectButton): TGameButton;
+var
+  buttons: TGameButtonArray;
+begin
+  buttons := Self.GetButtons();
+  if Length(buttons) = Length(ECollectButton) then
+    Result := buttons[button];
+end;
+
+
+function TCollectBox.GetSlots(): TBoxArray;
+begin
+  Result := Grid(4, 2, 100, 74, [10, 10], [Self.Bounds.X1 + 15, Self.Bounds.Y1 + 44]);
+end;
+
+function TCollectBox.GetSlot(Index: Int32): TBox;
+begin
+  if (Index < 0) and (Index > 7) then
+    Exit;
+
+  Result := Self.GetSlots[Index];
+end;
+
+function TCollectBox.GetItemSlots(): TBoxArray;
+begin
+  Result := Self.SlotBoxes;
+end;
+
+function TCollectBox.GetItemSlot(index: Int32): TBox;
+begin
+  if InRange(index, 0, 7) then
+    Result := Self.SlotBoxes[index];
+end;
+
+
+function TCollectBox.GetSlotBoxes(index: Int32): TBoxArray;
+var
+  SlotBox, Box: TBox;
+begin
+  SlotBox := Self.GetSlot(Index);
+  if SlotBox = [] then
+    Exit;
+
+  Box := [(SlotBox.X1 + 8), (SlotBox.Y1 + 8), (SlotBox.X1 + 48), (SlotBox.Y1 + 26)];
+  Result += Box;
+
+  Box := [(SlotBox.X1 + 50), (SlotBox.Y1 + 8), (SlotBox.X1 + 70), (SlotBox.Y1 + 26)];
+  Result += Box;
+
+  Box := [(SlotBox.X1 + 9), (SlotBox.Y1 + 31), (SlotBox.X1 + 47), (SlotBox.Y1 + 65)];
+  Result += Box;
+
+  Box := [(SlotBox.X1 + 53), (SlotBox.Y1 + 31), (SlotBox.X1 + 91), (SlotBox.Y1 + 65)];
+  Result += Box;
+end;
+
+function TCollectBox.GetSlotBox(slot: Int32; box: ECollectSlotBoxes): TBox;
+var
+  boxes: TBoxArray;
+begin
+  boxes := Self.GetSlotBoxes(slot);
+  if Length(boxes) = Length(ECollectSlotBoxes) then
+    Result := boxes[box];
+end;
+
+
+function TCollectBox.IsOpen(): Boolean;
+begin
+  Result := Self.IsTitle('Collection Box');
+end;
+
+function TCollectBox.IsOpen(WaitTime: Int32; Interval: Int32 = -1): Boolean; overload;
+begin
+  if (Interval = -1) then
+    Interval := SRL.TruncatedGauss(50, 1500);
+
+  Result := WaitUntil(Self.IsOpen, Interval, WaitTime);
+end;
+
+procedure TCollectBox.Draw(Bitmap: TMufasaBitmap); override;
+var
+  i: Int32;
+  buttons: TGameButtonArray;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  buttons := Self.GetButtons();
+  buttons.Draw(bitmap);
+
+  Bitmap.DrawBoxes(Self.GetSlots(), $00FFFF);
+  for i := 0 to High(Self.GetSlots()) do
+    Bitmap.DrawBoxes(Self.GetSlotBoxes(i), $00FFFF);
+end;
+
+(*
+## CollectBox.Setup
+```pascal
+procedure CollectBox.Setup();
+```
+Initializes CollectBox variables.
+
+```{note}
+This is automatically called on the **CollectBox** variable.
+```
+*)
+procedure TCollectBox.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'CollectBox';
+
+  Self.ButtonColors += CTS1(2304814, 0);
+
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.GetItemSlots;
+end;
+
+procedure TCollectBox.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+begin
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1 + 2;
+  alignment.MaxWidth := 460;
+  alignment.MaxHeight := 247;
+
+  case GameClient.Mode of
+    EClientMode.FIXED:
+      alignment.Bottom := InterfaceArea.Bounds.Y2 -1;
+    EClientMode.RESIZABLE_CLASSIC, EClientMode.RESIZABLE_MODERN:
+      alignment.Bottom := InterfaceArea.Bounds.Y2 - 2;
+  end;
+
+  Self.SetupAlignment(alignment);
+
+  Self.SlotBoxes := Grid(4, 2, 35 + 4, 30, [70, 55], [Self.Bounds.X1 + 25, Self.Bounds.Y1 + 75]);
+end;
+
+
+(*
+## CollectBox.Close
+```pascal
+function TCollectBox.Close(UseKeyboard: Boolean = False): Boolean;
+```
+Closes the CollectBox, Depending on `UseKeyboard` the function will either click the button
+or press backspace.
+
+Example:
+```pascal
+ WriteLn CollectBox.Close;
+```
+*)
+function TCollectBox.Close(pressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then Exit(True);
+
+  Result := GameInterface.Close(pressEscape);
+end;
+
+function TCollectBox.GetUsedSlots(): TIntegerArray;
+begin
+  Result := Self.Items.GetUsedSlots();
+end;
+
+function TCollectBox.HasChange(Slot: Int32): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  // black with tolerance for when item is transparent
+  Result := SRL.CountColor(CTS1(1118740, 35), Self.GetSlotBox(Slot, ECollectSlotBoxes.CHANGE)) > 0;
+end;
+
+function TCollectBox.GetSlotsWithChange(): TIntegerArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self.GetSlots) do
+    if Self.HasChange(i) then
+      Result += i;
+end;
+
+function TCollectBox.GetFullSlots(): TIntegerArray;
+begin
+  Result := Self.GetUsedSlots().Combine(Self.GetSlotsWithChange());
+  Result.ClearDuplicates();
+  Result.Sort();
+end;
+
+
+function TCollectBox.FindItems(items: TItemArray; out slots: TIntegerArray): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  slots := Self.Items.IndicesOf(items);
+  Result := slots <> [];
+end;
+
+function TCollectBox.ContainsAny(Items: TItemArray): Boolean;
+var
+  Slots: TIntegerArray;
+begin
+  Result := Self.FindItems(Items, Slots);
+end;
+
+
+function TCollectBox.FindItem(Item: TItem; out Slots: TIntegerArray): Boolean;
+begin
+  Result := Self.FindItems([Item], Slots);
+end;
+
+function TCollectBox.FindItem(item: TItem; out slot: Int32): Boolean; overload;
+begin
+  slot := Self.Items.IndexOf([item]);
+  Result := slot > -1;
+end;
+
+function TCollectBox.ContainsItem(Item: TItem): Boolean;
+var
+  Slots: TIntegerArray;
+begin
+  Result := Self.FindItem(Item, Slots);
+end;
+
+
+function TCollectBox.CountItemStack(item: TItem): Int32;
+begin
+  Result := Self.Items.CountStack(item);
+end;
+
+
+function TCollectBox.CollectSlot(slot: Int32): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Self.Items.ClickSlot(slot);
+
+  if Self.HasChange(slot) then
+    Mouse.Click(Self.GetSlotBox(slot, ECollectSlotBoxes.CHANGE), MOUSE_LEFT);
+
+  Result := WaitUntil(Self.Items.SlotEmpty(slot) and not Self.HasChange(slot), SRL.TruncatedGauss(50, 1500), 1000);
+end;
+
+function TCollectBox.CollectSlotToBank(slot: Int32): Boolean;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Self.Items.InteractSlot(slot, 'Bank');
+
+  if Self.HasChange(slot) then
+  begin
+    Mouse.Move(Self.GetSlotBox(Slot, ECollectSlotBoxes.CHANGE));
+    if ChooseOption.Open then
+      ChooseOption.Select('Bank', MOUSE_LEFT);
+  end;
+
+  Result := WaitUntil(Self.Items.SlotEmpty(Slot) and not Self.HasChange(Slot), SRL.TruncatedGauss(50, 1500), 1000);
+end;
+
+function TCollectBox.MouseItem(Item: TItem): Boolean;
+var
+  Slot: Int32;
+begin
+  Result := Self.FindItem(Item, Slot);
+  if Result then
+    Mouse.Move(Self.GetSlotBox(Slot, ECollectSlotBoxes.ITEM));
+end;
+
+function TCollectBox.ClickItem(Item: TItem; Option: String = ''): Boolean;
+begin
+  if Self.MouseItem(Item) then
+  begin
+    if Option <> '' then
+      Result := ChooseOption.Select(Option)
+    else
+    begin
+      Mouse.Click(MOUSE_LEFT);
+
+      Result := True;
+    end;
+  end;
+end;
+
+
+function TCollectBox.CollectToInventory(): Boolean;
+begin
+  if Self.GetFullSlots = [] then
+    Exit;
+
+  Result := Self.GetButton(ECollectButton.COLLECT_INVENTORY).Click();
+end;
+
+function TCollectBox.CollectToBank(): Boolean;
+begin
+  if Self.GetFullSlots = [] then
+    Exit;
+
+  Result := Self.GetButton(ECollectButton.COLLECT_BANK).Click();
+end;
+
+
+function TCollectBox.Hover(walkerObject: PWalkerObject = nil): Boolean;
+begin
+  Result := Bank.Hover(walkerObject);
+end;
+
+function TCollectBox.Open(walkerObject: PWalkerObject = nil): Boolean;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Result := PGameNPC(walkerObject)^.SelectOption(['Collect']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Collect']))
+  else
+    Result := PGameObject(walkerObject)^.SelectOption(['Collect']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Collect']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen() or BankPin.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+function TCollectBox.WalkHover(walkerObject: PWalkerObject = nil): Boolean;
+begin
+  Result := Bank.WalkHover(walkerObject);
+end;
+
+function TCollectBox.WalkOpen(walkerObject: PWalkerObject = nil): Boolean;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if Self.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  if walkerObject = nil then
+    walkerObject := WalkerObjects.Banks.GetClosest();
+
+  if walkerObject^.Filter.MinimapDot then
+    Result := PGameNPC(walkerObject)^.WalkSelectOption(['Collect']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Collect']))
+  else
+    Result := PGameObject(walkerObject)^.WalkSelectOption(['Collect']) or (MainScreen.IsUpText('Banker') and ChooseOption.Select(['Collect']));
+
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), 3000);
+end;
+
+var
+(*
+(CollectBox)=
+## var CollectBox
+Global CollectBox variable.
+*)
+  CollectBox: TCollectBox;
+
+type
+  TCollectBoxes = type TBanks;
+
+function TCollectBoxes.Open(mapObj: PRSMapObject = nil): Boolean; override;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if CollectBox.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close(True);
+  end;
+
+  if mapObj = nil then
+    mapObj := Banks.GetClosest();
+
+  Result := mapObj^.SelectOption(['Collect']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Collect']));
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(GameInterface.IsOpen(), 300, 3000) and (CollectBox.IsOpen() or BankPin.IsOpen());
+end;
+
+function TCollectBoxes.WalkOpen(mapObj: PRSMapObject = nil): Boolean; override;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if CollectBox.IsOpen() or BankPin.IsOpen() then
+      Exit(True);
+    GameInterface.Close(True);
+  end;
+
+  if mapObj = nil then
+    mapObj := Banks.GetClosest();
+
+  Result := mapObj^.WalkSelectOption(['Collect']) or (MainScreen.IsUpText('Bank') and ChooseOption.Select(['Collect']));
+  if not Result then
+    Exit;
+
+  Minimap.WaitMoving();
+  Result := WaitUntil(GameInterface.IsOpen(), 300, 3000) and (CollectBox.IsOpen() or BankPin.IsOpen());
+end;
+
+
+{$H-}
+var
+  CollectBoxes: TCollectBoxes;
+{$H+}
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  CollectBox.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  CollectBox.Setup;
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  CollectBox.Draw(Bitmap);
+end;

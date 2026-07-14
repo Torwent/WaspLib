@@ -1,0 +1,218 @@
+(*
+# ItemFinder
+Methods to extend SRL's ItemFinder functionality.
+
+Some handy item wrappers were added for all cakes, pies and pizzas
+(e.g.: Cake(3) for "Cake", Cake(2) for "2/3 cake" and Cake(1) for "Slice of cake").
+*)
+
+{$DEFINE WL_ITEMFINDER_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+
+function TItem.Interact(option: String = ''; attempts: Int32 = 2): Boolean;
+var
+  slot, i: Int32;
+  tabI, otherI: PRSItemGameTab;
+  tabE, otherE: EGameTab;
+begin
+  tabE := GameTabs.GetCurrentTab();
+
+  case tabE of
+    EGameTab.INVENTORY:
+      begin
+        tabI := PRSItemGameTab(@Inventory);
+        otherI := PRSItemGameTab(@Equipment);
+        otherE := EGameTab.EQUIPMENT;
+      end;
+    EGameTab.EQUIPMENT:
+      begin
+        tabI := PRSItemGameTab(@Equipment);
+        otherI := PRSItemGameTab(@Inventory);
+        otherE := EGameTab.INVENTORY;
+      end;
+    else
+      begin
+        if Inventory.Open() then Exit(Self.Interact(option))
+        else Exit;
+      end;
+  end;
+
+  for i := 0 to 1 do
+  begin
+    slot := tabI^.Items.IndexOf([Self]);
+    if slot > -1 then
+      Exit(tabI^.Items.InteractSlot(slot, option));
+
+    Swap(tabI, otherI);
+    Swap(tabE, otherE);
+    if not GameTabs.Open(tabE) then Exit;
+  end;
+
+  Result := Self.Interact(option, Dec(attempts));
+end;
+
+function TItemArray.Interact(out item: TItem; option: String = ''; attempts: Int32 = 2): Boolean;
+var
+  slot, i: Int32;
+  tabI, otherI: PRSItemGameTab;
+  tabE, otherE: EGameTab;
+begin
+  tabE := GameTabs.GetCurrentTab();
+  case tabE of
+    EGameTab.INVENTORY:
+      begin
+        tabI := PRSItemGameTab(@Inventory);
+        otherI := PRSItemGameTab(@Equipment);
+        otherE := EGameTab.EQUIPMENT;
+      end;
+    EGameTab.EQUIPMENT:
+      begin
+        tabI := PRSItemGameTab(@Equipment);
+        otherI := PRSItemGameTab(@Inventory);
+        otherE := EGameTab.INVENTORY;
+      end;
+    else
+      begin
+        if Inventory.Open() then Exit(Self.Interact(item, option))
+        else Exit;
+      end;
+  end;
+
+  if not item.IsNull() then
+    for i := 0 to 1 do
+    begin
+      slot := tabI^.Items.IndexOf([item]);
+      if slot > -1 then
+        Exit(tabI^.Items.InteractSlot(slot, option));
+
+      Swap(tabI, otherI);
+      Swap(tabE, otherE);
+      if not GameTabs.Open(tabE) then Exit;
+    end;
+
+  for item in Self do
+    if tabI^.Items.Contains(item) then
+      Exit(Self.Interact(item, option));
+
+  Swap(tabI, otherI);
+  Swap(tabE, otherE);
+  if not GameTabs.Open(tabE) then Exit;
+
+  for item in Self do
+    if tabI^.Items.Contains(item) then
+      Exit(Self.Interact(item, option));
+
+  if attempts = 0 then Exit;
+  Result := Self.Interact(item, option, Dec(attempts));
+end;
+
+
+(*
+## ItemFinder Wrappers
+The following wrappers are set by WaspLib for more consistent usage of itemfinder.
+
+Example:
+```pascal
+Name: cake(3) => ItemID: 1891
+Name: cake(2) => ItemID: 1893
+Name: cake(1) => ItemID: 1895
+Name: meat pie(2) => ItemID: 2327
+Name: meat pie(1) => ItemID: 2331
+Name: plain pizza(2) => ItemID: 2289
+Name: plain pizza(1) => ItemID: 2291
+Name: apple pie(2) => ItemID: 2323
+Name: apple pie(1) => ItemID: 2335
+Name: chocolate cake(3) => ItemID: 1897
+Name: chocolate cake(2) => ItemID: 1899
+Name: chocolate cake(1) => ItemID: 1901
+Name: meat pizza(2) => ItemID: 2293
+Name: meat pizza(1) => ItemID: 2295
+Name: anchovy pizza(2) => ItemID: 2297
+Name: anchovy pizza(1) => ItemID: 2299
+Name: pineapple pizza(2) => ItemID: 2301
+Name: pineapple pizza(1) => ItemID: 2303
+Name: redberry pie(2) => ItemID: 2325
+Name: redberry pie(1) => ItemID: 2333
+Name: garden pie(2) => ItemID: 7178
+Name: garden pie(1) => ItemID: 7180
+Name: fish pie(2) => ItemID: 7188
+Name: fish pie(1) => ItemID: 7190
+Name: botanical pie(2) => ItemID: 19662
+Name: botanical pie(1) => ItemID: 19659
+Name: mushroom pie(2) => ItemID: 21687
+Name: mushroom pie(1) => ItemID: 21690
+Name: admiral pie(2) => ItemID: 7198
+Name: admiral pie(1) => ItemID: 7200
+Name: dragonfruit pie(2) => ItemID: 22795
+Name: dragonfruit pie(1) => ItemID: 22792
+Name: wild pie(2) => ItemID: 7208
+Name: wild pie(1) => ItemID: 7210
+Name: summer pie(2) => ItemID: 7218
+Name: summer pie(1) => ItemID: 7220
+```
+*)
+begin
+  ItemFinder.AddItemName('cake(3)', '1891');
+  ItemFinder.AddItemName('cake(2)', '1893');
+  ItemFinder.AddItemName('cake(1)', '1895');
+
+  ItemFinder.AddItemName('meat pie(2)', '2327');
+  ItemFinder.AddItemName('meat pie(1)', '2331');
+
+  ItemFinder.AddItemName('plain pizza(2)', '2289');
+  ItemFinder.AddItemName('plain pizza(1)', '2291');
+
+  ItemFinder.AddItemName('apple pie(2)', '2323');
+  ItemFinder.AddItemName('apple pie(1)', '2335');
+
+  ItemFinder.AddItemName('chocolate cake(3)', '1897');
+  ItemFinder.AddItemName('chocolate cake(2)', '1899');
+  ItemFinder.AddItemName('chocolate cake(1)', '1901');
+
+  ItemFinder.AddItemName('meat pizza(2)', '2293');
+  ItemFinder.AddItemName('meat pizza(1)', '2295');
+
+  ItemFinder.AddItemName('anchovy pizza(2)', '2297');
+  ItemFinder.AddItemName('anchovy pizza(1)', '2299');
+
+  ItemFinder.AddItemName('pineapple pizza(2)', '2301');
+  ItemFinder.AddItemName('pineapple pizza(1)', '2303');
+
+  ItemFinder.AddItemName('redberry pie(2)', '2325');
+  ItemFinder.AddItemName('redberry pie(1)', '2333');
+
+  ItemFinder.AddItemName('garden pie(2)', '7178');
+  ItemFinder.AddItemName('garden pie(1)', '7180');
+
+  ItemFinder.AddItemName('fish pie(2)', '7188');
+  ItemFinder.AddItemName('fish pie(1)', '7190');
+
+  ItemFinder.AddItemName('botanical pie(2)', '19662');
+  ItemFinder.AddItemName('botanical pie(1)', '19659');
+
+  ItemFinder.AddItemName('mushroom pie(2)', '21687');
+  ItemFinder.AddItemName('mushroom pie(1)', '21690');
+
+  ItemFinder.AddItemName('admiral pie(2)', '7198');
+  ItemFinder.AddItemName('admiral pie(1)', '7200');
+
+  ItemFinder.AddItemName('dragonfruit pie(2)', '22795');
+  ItemFinder.AddItemName('dragonfruit pie(1)', '22792');
+
+  ItemFinder.AddItemName('wild pie(2)', '7208');
+  ItemFinder.AddItemName('wild pie(1)', '7210');
+
+  ItemFinder.AddItemName('summer pie(2)', '7218');
+  ItemFinder.AddItemName('summer pie(1)', '7220');
+
+  ItemFinder.AddItemNames([
+      'Ardougne max cape', 'Mythical max cape',
+      'Accumulator max cape', 'Assembler max cape', 'Masori assembler max cape',
+      'Fire max cape', 'Infernal max cape',
+      'Imbued guthix max cape', 'Imbued saradomin max cape', 'Imbued zamorak max cape',
+      'Guthix max cape', 'Saradomin max cape', 'Zamorak max cape'
+    ], '13280');
+end;

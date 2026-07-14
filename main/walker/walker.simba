@@ -1,0 +1,1135 @@
+(*
+# Walker
+Extensions to SRL's TWalker.
+*)
+
+{$DEFINE WL_WALKER_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+var
+  ScriptWalker: PWalker;
+
+(*
+## type THeightMap
+```pascal
+type
+THeightMap = record
+  Disabled: Boolean;
+  Map: TMufasaBitmap;
+  MaxHeight: Double;
+  MathCache: Double;
+end;
+```
+THeightMap is the type responsible for handling heights with walker when using WaspLib.
+This type does not need to be initiated as a variable and it's meant to be used directly with it's static methods.
+
+**Enabled** is used to toggle the THeightMap on/off. By default it will always be on unless there's not a heightmap available for the map you load into walker.
+the heightmap MUST be named the same as the map you load with an "h" prepended. E.G.: hWorld.png
+
+**Map** there's not much to talk about this one, it's simply the TMufasaBitmap loaded in the record.
+
+**MaxHeight** This is what will be considered the max height possible in the calculations made by THeightMap.
+There's no way to accurately know what this should be, you should debug heights and set a value that looks good to you.
+Values might also vary between regions but I find **30** to be a fine value that works well in a lot of places if not all.
+
+**MathCache**, not very important, simply a cache variable so we don't repeat calculations when it's not required.
+*)
+type
+  THeightMap = record
+    Disabled: Boolean;
+    Map: TMufasaBitmap;
+    MaxHeight: Double;
+    MathCache: Double;
+  end;
+
+(*
+## THeightMap.GetColor
+```pascal
+function THeightMap.GetColor(p: TPoint): Int64;
+```
+Returns the color of the heightmap at the specified point.
+
+Example:
+```pascal
+WriteLn THeightMap.GetColor([100, 100]);
+```
+*)
+function THeightMap.GetColor(p: TPoint): Int64;
+begin
+  if Self.Disabled then
+    Exit;
+
+  if not InRange(p.X, 0, Self.Map.getWidth() - 1) then
+    Exit;
+
+  if not InRange(p.Y, 0, Self.Map.getHeight() - 1) then
+    Exit;
+
+  Result := Self.Map.GetPixel(p.X, p.Y);
+end;
+
+procedure THeightMap.Free();
+begin
+  if Assigned(Self.Map) then
+  begin
+    Self.Map.Free();
+    Self.Map := nil;
+  end;
+end;
+
+(*
+## THeightMap.DebugPosition
+```pascal
+procedure THeightMap.DebugPosition(p: TPoint);
+```
+
+Debug a point in the loaded heightmap.
+
+Example:
+```pascal
+THeightMap.DebugPosition(RSW.GetMyPos());
+```
+*)
+procedure THeightMap.DebugPosition(p: TPoint);
+var
+  hMap: TMufasaBitmap;
+begin
+  hMap := Self.Map.Copy();
+
+  WriteLn('Height value: ', Self.GetColor(p) * Self.MathCache);
+
+  hMap.DrawCross(p, 4, $00FFFF);
+  hMap.Debug();
+  hMap.Free();
+end;
+
+var
+  RSHeightMap: THeightMap;
+
+(*
+## TWalkerMap.Load
+```pascal
+procedure TWalkerMap.Load(fileName: String; Scaling: Integer); override;
+procedure TWalkerMap.Load(fileName: String; aRegions: TBoxArray; Scaling: Integer; Padding: Integer = 50); override;
+procedure TWalkerMap.Load(fileName: String; aRegion: TBox; scaling: Integer; padding: Integer = 50); override;
+procedure TWalkerMap.Load(fileName: String; start: TPoint; scaling: Int32; out aRegion: TBox; padding: Int32 = 50); override;
+```
+Overrides SRL's TWalkerMap.Load() so it loads the respective heightmap if it exists.
+This is an internal Walker method, you probably don't need to call it.
+*)
+procedure TWalkerMap.Load(fileName: String; scaling: Integer); override;
+var
+  hFileName: String;
+begin
+  hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
+
+  Self.Map := Self.InternalLoadMap(fileName);
+  if not RSHeightMap.Disabled then
+  begin
+    RSHeightMap.Map := Self.InternalLoadMap(hFileName);
+    RSHeightMap.Disabled := (Self.Map.getWidth() <> RSHeightMap.Map.getWidth())
+                       or (Self.Map.getHeight() <> RSHeightMap.Map.getHeight());
+
+
+    if RSHeightMap.Disabled then
+      RSHeightMap.Free()
+    else
+      AddOnTerminate(@RSHeightMap.Free);
+  end;
+
+  Self.ScaledMap.Init();
+  AddOnTerminate(@Self.Free);
+  Self.Map.Downsample(scaling, Self.ScaledMap);
+
+  Self.Regions := [[0, 0, Self.Map.getWidth()-1, Self.Map.getHeight()-1]];
+  Self.RegionOffsets := [[0, 0]];
+end;
+
+procedure TWalkerMap.Load(fileName: String; aRegions: TBoxArray; scaling: Integer; padding: Integer = 50); override;
+var
+  bitmaps, hBitmaps: TMufasaBitmapArray;
+  I: Integer;
+  hFileName: String;
+begin
+  hFileName := ExtractFilePath(FileName) + 'h' + ExtractFileName(fileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or
+                         (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
+
+  SetLength(Self.Regions, Length(aRegions));
+  SetLength(Self.RegionOffsets, Length(aRegions));
+
+  SetLength(bitmaps, Length(Self.Regions));
+  SetLength(hBitmaps, Length(Self.Regions));
+  for I := 0 to High(bitmaps) do
+  begin
+    Self.RegionOffsets[I] := Point(aRegions[I].X1, aRegions[I].Y1);
+
+    bitmaps[I] := Self.InternalLoadMap(FileName, aRegions[I]);
+    if not RSHeightMap.Disabled then
+      hBitmaps[I] := Self.InternalLoadMap(hFileName, aRegions[I]);
+
+    if (aRegions[I] <> RSWalkerRegions.WORLD) then
+    begin
+      Self.RegionOffsets[I].X -= padding;
+      Self.RegionOffsets[I].Y -= padding;
+
+      Bitmaps[I].Pad(padding);
+      if not RSHeightMap.Disabled then
+        hBitmaps[I].Pad(padding);
+    end;
+
+    Self.Regions[I] := Box(0, 0, bitmaps[I].GetWidth(), bitmaps[I].GetHeight());
+  end;
+
+  Self.Regions := Self.Regions.Pack();
+  Self.Map.Init();
+  Self.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+  Self.Map.SetName('Walker.Map');
+  AddOnTerminate(@Self.Map.Free);
+
+  if not RSHeightMap.Disabled then
+  begin
+    RSHeightMap.Map.Init();
+    RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+    RSHeightMap.Map.SetName('Heightmap');
+    AddOnTerminate(@RSHeightMap.Free);
+  end;
+
+  for I := 0 to High(Self.Regions) do
+  begin
+    Self.Map.DrawBitmap(bitmaps[I], Point(Self.Regions[I].X1, Self.Regions[I].Y1));
+    if not RSHeightMap.Disabled then
+      RSHeightMap.Map.DrawBitmap(hBitmaps[I], Point(Self.Regions[I].X1, Self.Regions[I].Y1));
+  end;
+
+  Self.ScaledMap.Init();
+  AddOnTerminate(@Self.ScaledMap.Free);
+  Self.ScaledMap.SetName('Walker.ScaledMap');
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+
+  for I := 0 to High(bitmaps) do
+    bitmaps[I].Free();
+
+  if not RSHeightMap.Disabled then
+    for I := 0 to High(hBitmaps) do
+      hBitmaps[I].Free();
+end;
+
+procedure TWalkerMap.Load(fileName: String; aRegion: TBox; scaling: Integer; padding: Integer = 50); override;
+var
+  bitmaps, hBitmaps: TMufasaBitmapArray;
+  bitmap, hBitmap: TMufasaBitmap;
+  i, hi: Int32;
+  hFileName: String;
+begin
+  for i := 0 to High(Self.Regions) do
+  begin
+    bitmaps += Self.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+    if not RSHeightMap.Disabled then
+      hBitmaps += RSHeightMap.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+  end;
+
+  Self.Map.Clear();
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.Clear();
+
+  hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
+  RSHeightMap.Disabled := RSHeightMap.Disabled or
+                         (RSHeightMap.MaxHeight = 0) or not FileExists(hFileName);
+
+  SetLength(Self.Regions, Length(Self.Regions) + 1);
+  SetLength(Self.RegionOffsets, Length(Self.Regions));
+
+  hi := High(Self.Regions);
+
+  Self.RegionOffsets[hi] := Point(aRegion.X1, aRegion.Y1);
+
+  bitmap := Self.InternalLoadMap(fileName, aRegion);
+  if not RSHeightMap.Disabled then
+    hBitmap := Self.InternalLoadMap(hFileName, aRegion);
+
+  if (aRegion <> RSWalkerRegions.WORLD) then
+  begin
+    Self.RegionOffsets[hi].X -= padding;
+    Self.RegionOffsets[hi].Y -= padding;
+
+    bitmap.Pad(padding);
+    if not RSHeightMap.Disabled then
+      hBitmap.Pad(padding);
+  end;
+
+  Self.Regions[hi] := Box(0, 0, bitmap.GetWidth(), bitmap.GetHeight());
+  bitmaps += bitmap;
+  if not RSHeightMap.Disabled then
+    hBitmaps += hBitmap;
+
+  Self.Regions := Self.Regions.Pack();
+  Self.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  for I := 0 to High(Self.Regions) do
+  begin
+    Self.Map.DrawBitmap(bitmaps[I], Point(Self.Regions[I].X1, Self.Regions[I].Y1));
+    if not RSHeightMap.Disabled then
+      RSHeightMap.Map.DrawBitmap(hBitmaps[I], Point(Self.Regions[I].X1, Self.Regions[I].Y1));
+  end;
+
+  Self.ScaledMap.Clear();
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+
+  for I := 0 to High(bitmaps) do
+    bitmaps[I].Free();
+
+  if not RSHeightMap.Disabled then
+    for I := 0 to High(hBitmaps) do
+      hBitmaps[I].Free();
+end;
+
+procedure TWalkerMap.Load(fileName: String; start: TPoint; scaling: Int32; out aRegion: TBox; padding: Int32 = 50); override;
+var
+  bitmaps, hBitmaps: TMufasaBitmapArray;
+  bitmap, hBitmap: TMufasaBitmap;
+  i, hi: Int32;
+  hFileName: String;
+begin
+  for i := 0 to High(Self.Regions) do
+  begin
+    bitmaps += Self.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+    if not RSHeightMap.Disabled then
+      hBitmaps += RSHeightMap.Map.Copy(Self.Regions[i].X1, Self.Regions[i].Y1, Self.Regions[i].X2, Self.Regions[i].Y2);
+  end;
+
+  Self.Map.Clear();
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.Clear();
+
+  hFileName := ExtractFilePath(fileName) + 'h' + ExtractFileName(fileName);
+
+
+  SetLength(Self.Regions, Length(Self.Regions) + 1);
+  SetLength(Self.RegionOffsets, Length(Self.Regions));
+
+  hi := High(Self.Regions);
+
+  Self.RegionOffsets[hi] := start;
+
+  bitmap := Self.InternalLoadMap(fileName);
+  if not RSHeightMap.Disabled and FileExists(hFileName) then
+    hBitmap := Self.InternalLoadMap(hFileName);
+
+  aRegion := [start.X, start.Y, bitmap.getWidth()-1, bitmap.getHeight()-1];
+
+  Self.RegionOffsets[hi].X -= padding;
+  Self.RegionOffsets[hi].Y -= padding;
+
+  bitmap.Pad(padding);
+  if not RSHeightMap.Disabled then
+    hBitmap.Pad(padding);
+
+  Self.Regions[hi] := Box(0, 0, bitmap.GetWidth(), bitmap.GetHeight());
+  bitmaps += bitmap;
+  if not RSHeightMap.Disabled then
+    hBitmaps += hBitmap;
+
+  Self.Regions := Self.Regions.Pack();
+  Self.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  if not RSHeightMap.Disabled then
+    RSHeightMap.Map.SetSize(Self.Regions.Merge.Width(), Self.Regions.Merge.Height());
+
+  for I := 0 to High(Self.Regions) do
+  begin
+    Self.Map.DrawBitmap(bitmaps[I], Point(Self.Regions[I].X1, Self.Regions[I].Y1));
+    if not RSHeightMap.Disabled then
+      RSHeightMap.Map.DrawBitmap(hBitmaps[I], Point(Self.Regions[I].X1, Self.Regions[I].Y1));
+  end;
+
+  Self.ScaledMap.Clear();
+  Self.Map.Downsample(Scaling, Self.ScaledMap);
+
+  for I := 0 to High(bitmaps) do
+    bitmaps[I].Free();
+
+  if not RSHeightMap.Disabled then
+    for I := 0 to High(hBitmaps) do
+      hBitmaps[I].Free();
+end;
+
+
+(*
+## Walker.InternalSetup
+```pascal
+procedure TWalker.InternalSetup(); override;
+```
+Overrides SRL's Walker.InternalSetup() so it uses WaspWeb as the walker webgraph and so it uses ScreenWalk by default.
+This is an internal Walker method, you probably don't need to call it.
+It also sets up the ScriptWalker pointer which is used for several things in WaspLib like TWalkerObjects and Skunk's transport system.
+*)
+procedure TWalker.InternalSetup(); override;
+begin
+  inherited;
+  Self.ClickRandomness := 6;
+  Self.WebGraph := WaspWeb;
+  Self.ScreenWalk := True;
+  ScriptWalker := @Self;
+end;
+
+(*
+## Walker.SetupNamedRegion
+```pascal
+procedure TWalker.SetupNamedRegion(region: TBankRegion = []); overload;
+```
+Use this if you want to setup a walker with whatever the user has setup in WLSettings.BankLocation.
+You can optionally pass in your own **region** but it's really meant to use the default.
+
+Example:
+```pascal
+WLSettings.BankLocation := EWLBankLocation.CASTLE_WARS_BANK;
+Walker.SetupNamedRegion();
+Walker.Map.Map.Debug();
+```
+*)
+procedure TWalker.SetupNamedRegion(region: TNamedRegion = []); overload;
+begin
+  if Self.Map.Map <> nil then Exit;
+
+  if region = [] then
+    region := RSBankRegions[WLSettings.GetInt('bank_map')];
+
+  Self.SetupRegion(region.Bounds);
+end;
+
+
+(*
+## Walker.GetHeight
+```pascal
+function TWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
+```
+Returns the height of the player at the specified coordinate with the help of THeightMap.
+If p is [], which is the default then we will use our current position.
+global decides wether the coordinate is converted to global coordinates or internal walker coordinates (read about walker regions for more info).
+
+Example:
+```pascal
+WriteLn rsw.GetHeight();
+```
+*)
+function TWalker.GetHeight(p: TPoint = []; global: Boolean = True): Double;
+begin
+  if RSHeightMap.Disabled then
+    Exit;
+
+  if p = [] then
+  begin
+    global := True;
+    p := Self.GetMyPos();
+  end;
+
+  if global then
+    p := Self.Map.GlobalToRegion(Self.RegionIndex, p);
+
+  if RSHeightMap.MathCache = 0 then
+    RSHeightMap.MathCache := RSHeightMap.MaxHeight / $FFFFFF;
+  Result := RSHeightMap.GetColor(p) * RSHeightMap.MathCache;
+end;
+
+
+(*
+## Walker.DebugHeightTiles
+```pascal
+procedure TWalker.DebugHeightTiles(angle: Double = -1);
+```
+Displays a debug image of the tiles visible on the mainscreen with their height adjusted according to the THeightMap.
+This is very useful if you need to adjust THeightMap.MaxHeight.
+
+Example:
+```pascal
+rsw.DebugHeightTiles();
+```
+*)
+procedure TWalker.DebugHeightTiles(angle: Double = -1);
+var
+  position: TPoint;
+  tempTile: TPoint;
+  currentHeight, tileHeight, heightDiff: Double;
+
+  bitmap: TMufasaBitmap;
+  x, y: Int32;
+  tile: Vector3;
+  tpa: TPointArray;
+begin
+  if RSHeightMap.Disabled then
+    Exit;
+
+  if angle = -1 then
+    angle := Minimap.GetCompassAngle(False);
+
+  position := Self.GetMyPos();
+  currentHeight := Self.GetHeight(position);
+
+  bitmap.FromClient();
+
+  for x := Minimap.Center.X - 25 * 4 to Minimap.Center.X + 25 * 4 with 4 do
+    for y := Minimap.Center.Y - 25 * 4 to Minimap.Center.Y + 25 * 4 with 4 do
+    begin
+
+      tempTile := position + ([x, y] - Minimap.Center);
+      tempTile := tempTile.Rotate(-angle, position);
+      tileHeight := Self.GetHeight(tempTile);
+      heightDiff := currentHeight-tileHeight;
+
+      tile := Vec3(x, y, heightDiff).RotateXY(angle, Minimap.Center.X, Minimap.Center.Y);
+      tpa := Minimap.VectorToMSRect(tile, 1, 1, angle).ToTPA().Connect();
+
+      if MainScreen.IsVisible(tpa) then
+      begin
+        tpa := MainScreen.Filter(tpa);
+        bitmap.DrawTPA(tpa, Round(tileHeight * ($00ff00 + $00ff00)/ RSHeightMap.MaxHeight));
+      end;
+    end;
+
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+(*
+## Walker.GetMyPos
+```pascal
+function TWalker.GetMyPos(out height: Double): TPoint; overload;
+```
+Overload that also returns the player height.
+
+Example:
+```pascal
+WriteLn RSW.GetMyPos(height);
+WriteLn height;
+```
+*)
+function TWalker.GetMyPos(out height: Double): TPoint; overload;
+const
+  SAMPLES = 3;
+var
+  bitmap: TMufasaBitmap;
+  tpa: TPointArray;
+  i: Int32;
+  hit: TPoint;
+  match: Single;
+begin
+  Self.RegionIndex := -1;
+  Self.Region := [];
+  Self.Similarity := 0;
+
+  bitmap := Minimap.GetCleanMinimap();
+
+  tpa := Self.ScaledSearch(bitmap, SAMPLES);
+  for i := 0 to High(tpa) do
+  begin
+    hit := Self.FullSearch(bitmap, Self.Map.Map, tpa[i], match);
+
+    if match > Self.Similarity then
+    begin
+      Self.Similarity := match;
+
+      Result := hit;
+    end;
+  end;
+
+  Self.RegionIndex := Self.Map.RegionIndexFromPoint(Result);
+  if Self.RegionIndex > -1 then
+  begin
+    Self.Region := Self.Map.Regions[Self.RegionIndex];
+    height := Self.GetHeight(Result, False);
+    Result := Self.Map.RegionToGlobal(Result);
+  end;
+
+  bitmap.Free();
+end;
+
+(*
+## Walker.GetHeightDiff
+```pascal
+function TWalker.GetHeightDiff(p: TPoint): Double;
+function TWalker.GetHeightDiff(p, q: TPoint): Double; overload;
+```
+
+Returns the height difference between 2 points. If only one point is passed, the player position is used as one of them.
+
+Example:
+```pascal
+WriteLn RSW.GetMyPos(RSW.GetMyPos(), [100, 100]);
+```
+*)
+function TWalker.GetHeightDiff(p: TPoint): Double;
+var
+  h: Double;
+begin
+  if RSHeightMap.Disabled then
+    Exit;
+
+  Self.GetMyPos(h);
+  Result := h - Self.GetHeight(p);
+end;
+
+function TWalker.GetHeightDiff(p, q: TPoint): Double; overload;
+begin
+  if RSHeightMap.Disabled then
+    Exit;
+
+  Result := Self.GetHeight(p) - Self.GetHeight(q);
+end;
+
+
+procedure TWalker.Draw(Bitmap: TMufasaBitmap);
+var
+  X1, Y1, X2, Y2, X, Y, w, h: Int32;
+  P: TPoint;
+  WorldBitmap, MinimapBitmap: TMufasaBitmap;
+  Position: TPoint;
+begin
+  Position := Self.GetMyPos();
+  if Self.RegionIndex > -1 then
+    Position := Self.Map.GlobalToRegion(Self.RegionIndex, Position);
+
+  w := Minimap.Width div 2;
+  h := Minimap.Height div 2;
+  X1 := Position.X - w;
+  Y1 := Position.Y - h;
+  X2 := Position.X + w;
+  Y2 := Position.Y + h;
+
+  X := Position.X - X1;
+  Y := Position.Y - Y1;
+
+  WorldBitmap := Self.Map.Map.Copy(X1, Y1, X2, Y2);
+  WorldBitmap.LineTo(Point(0, Y), Point(X2 - X1, Y), $00FF00);
+  WorldBitmap.LineTo(Point(X, 0), Point(X, Y2 - Y1), $00FF00);
+  WorldBitmap.DrawBox([X - 2, Y - 2, X + 2, Y + 2], $FFFFFF);
+
+  MinimapBitmap := Minimap.ScaleMinimap(Minimap.GetCleanMinimap(), 1);
+
+  P := MinimapBitmap.GetCenter();
+  if GameClient.Mode = EClientMode.FIXED then
+    P := P.Offset(0, 8).Rotate(-Minimap.GetCompassAngle(False), P);
+
+  MinimapBitmap.DrawBoxFilled([P.X - 1, P.Y - 1, P.X + 1, P.Y + 1], False, $FFFFFF);
+
+  WorldBitmap.DrawTransparent(Minimap.Bounds.X1 - (w * 2), Minimap.Bounds.Y1, Bitmap);
+  WorldBitmap.Free();
+
+  MinimapBitmap.DrawTransparent(Minimap.Bounds.X1 - (w * 4), Minimap.Bounds.Y1, Bitmap);
+  MinimapBitmap.Free();
+  Bitmap.setFontSize(15);
+  Bitmap.DrawText('Position: x' + ToStr(Position.X) + 'y' + ToStr(Position.Y), [0,5], $FFFFFF);
+  Bitmap.DrawText('Region: ' + ToStr(Self.RegionIndex), [0,30], $00FFFF);
+end;
+
+(*
+## TWalker.AtTile
+```pascal
+function TWalker.AtTile(worldPoint: TPoint; Distance: Int32 = 4): Boolean;
+function TWalker.AtTile(worldPointArray: TPointArray; Distance: Int32 = 4): Boolean; overload;
+```
+method used to quickly check if we are within distance of a certain **worldPoint**. This distance is measure in pixels and in a radial way.
+You can optionally pass in a TPA to check if the closest point is within distance.
+
+This is a TWalker method so it will exist both on TWalker and TWalker.
+*)
+function TWalker.AtTile(worldPoint: TPoint; distance: Int32 = 4): Boolean;
+var
+  p: TPoint;
+begin
+  p := Self.GetMyPos();
+  Result := p.InRange(worldPoint, distance);
+end;
+
+function TWalker.AtTile(worldPointArray: TPointArray; distance: Int32 = 4): Boolean; overload;
+var
+  p: TPoint;
+begin
+  p := Self.GetMyPos();
+  Result := p.AnyInRange(worldPointArray, distance);
+end;
+
+
+
+(*
+## TWalker.GetClosestPoint
+```pascal
+function TWalker.GetClosestPoint(worldPointArray: TPointArray): TPoint;
+```
+
+method used to get the closest Point to the Player out of a TPA.
+
+This is a TWalker method so it will exist both on TWalker and TWalker.
+*)
+function TWalker.GetClosestPoint(destinations: TPointArray): TPoint;
+var
+  shortPaths: T2DPointArray;
+  path: TPointArray;
+  shortest, dist: Int32;
+  me, destination: TPoint;
+begin
+  me := Self.GetMyPos();
+  shortest := $FFFFFF;
+
+  for destination in destinations do
+  begin
+    try
+      path := Self.WebGraph.PathBetween(me, destination, 0);
+    except
+      Continue;
+    end;
+
+    if path = [] then
+      Continue;
+
+    dist := Floor(path.TotalDistance());
+    if dist < shortest then
+    begin
+      shortPaths := [path];
+      shortest := dist;
+    end
+    else if dist = shortest then
+      shortPaths += path;
+
+    path := [];
+  end;
+
+  if shortPaths = [] then
+    Exit(destinations.NearestPoint(me));
+
+  Result := shortPaths.RandomValue().Last();
+end;
+
+(*
+## TWalker.WebWalk
+```pascal
+function TWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Double = 0): Boolean; overload;
+```
+method used to webwalk to the closest Point to the player.
+An example use case is for example, if you have sevel bank booths you can use, those would be your **Destination** TPA.
+You will likely want to use the closest bank booth to you, so you use this.
+
+This is a TWalker method so it will exist both on TWalker and TWalker.
+*)
+function TWalker.WebWalk(destinations: TPointArray; waitUntilDistance: Int32 = 0; pathRandomness: Double = 0): Boolean; overload;
+var
+  destination: TPoint;
+begin
+  destination := Self.GetClosestPoint(destinations);
+  Result := Self.WebWalk(destination, waitUntilDistance, pathRandomness);
+end;
+
+
+(*
+## TWalker.WorldToMM
+```pascal
+function TWalker.WorldToMM(me: TPoint; tpa: TPointArray; radians: Double): TPointArray; overload;
+function TWalker.WorldToMM(tpa: TPointArray): TPointArray; overload;
+function TWalker.WorldToMM(me: TPoint; atpa: T2DPointArray; radians: Double): T2DPointArray; overload;
+function TWalker.WorldToMM(atpa: T2DPointArray): TPointArray; overload;
+function TWalker.WorldToMM(me: TPoint; dotFilter: TDotFilter; roll: Double = $FFFF): TDotFilter; overload;
+function TWalker.WorldToMM(dotFilterArray: TDotFilterArray; roll: Double = $FFFF): TDotFilterArray; overload;
+```
+Overloaded methods required for ATPAs and TDotFilters. For more information on TDotFilter check their documentation.
+
+This is a TWalker method so it will exist both on TWalker and TWalker.
+*)
+function TWalker.WorldToMM(me: TPoint; tpa: TPointArray; radians: Double): TPointArray; overload;
+var
+  p: TPoint;
+begin
+  for p in tpa do
+    Result += Self.WorldToMM(me, p, radians);
+end;
+
+function TWalker.WorldToMM(tpa: TPointArray): TPointArray; overload;
+begin
+  Result := Self.WorldToMM(Self.GetMyPos(), tpa, Minimap.GetCompassAngle(False));
+end;
+
+
+function TWalker.WorldToMM(me: TPoint; atpa: T2DPointArray; radians: Double): T2DPointArray; overload;
+var
+  tpa: TPointArray;
+begin
+  for tpa in atpa do
+    Result += Self.WorldToMM(me, tpa, radians);
+end;
+
+function TWalker.WorldToMM(atpa: T2DPointArray): T2DPointArray; overload;
+begin
+  Result := Self.WorldToMM(Self.GetMyPos(), atpa, Minimap.GetCompassAngle(False));
+end;
+
+
+function TWalker.WorldToMM(me: TPoint; dotFilter: TDotFilter; roll: Double = $FFFF): TDotFilter; overload;
+var
+  p: TPoint;
+begin
+  if (roll = $FFFF) then
+    roll := Minimap.GetCompassAngle(False);
+
+  if dotFilter.Circle <> [] then
+  begin
+    P := Self.WorldToMM(dotFilter.Circle.mean());
+    Result.Circle := [P.X, P.Y, dotFilter.Circle.Radius];
+  end;
+
+  Result.Bounds  := Self.WorldToMM(me, dotFilter.Bounds, roll);
+  Result.Inside  := dotFilter.Inside;
+  Result.Timeout := dotFilter.Timeout;
+  Result.Timer   := dotFilter.Timer;
+end;
+
+function TWalker.WorldToMM(dotFilter: TDotFilter; roll: Double = $FFFF): TDotFilter; overload;
+begin
+  Result := Self.WorldToMM(Self.GetMyPos(), dotFilter, roll);
+end;
+
+function TWalker.WorldToMM(me: TPoint; DotFilterArray: TDotFilterArray; roll: Double = $FFFF): TDotFilterArray; overload;
+var
+  i: Int32;
+begin
+  if (roll = $FFFF) then
+    roll := Minimap.GetCompassAngle(False);
+
+  for i := 0 to High(dotFilterArray) do
+  begin
+    if dotFilterArray[i].IsExpired() then
+    begin
+      Delete(dotFilterArray, i, 1);
+      i -= 1;
+      Continue;
+    end;
+
+    Result += Self.WorldToMM(me, dotFilterArray[i], roll);
+  end;
+end;
+
+function TWalker.WorldToMM(dotFilterArray: TDotFilterArray; roll: Double = $FFFF): TDotFilterArray; overload;
+var
+  i: Int32;
+begin
+  for i := 0 to High(dotFilterArray) do
+  begin
+     if dotFilterArray[i].IsExpired() then
+    begin
+      Delete(dotFilterArray, i, 1);
+      i -= 1;
+      Continue;
+    end;
+
+    Result += Self.WorldToMM(Self.GetMyPos(), dotFilterArray[i], roll);
+  end;
+end;
+
+
+(*
+## TWalker.MakePointVisible
+```pascal
+function TWalker.MakePointVisible(p: TPoint): Boolean;
+function TWalker.MakePointVisible(tpa: TPointArray): Boolean; overload;
+```
+Wrapper function used to attempt to make a Point visible on the MainScreen.
+
+This are TWalker methods so they will exist both on TWalker and TWalker.
+*)
+function TWalker.MakePointVisible(p: TPoint): Boolean;
+begin
+  Result := Minimap.MakePointVisible(Self.WorldToMM(p));
+end;
+
+function TWalker.MakePointVisible(tpa: TPointArray): Boolean; overload;
+begin
+  Result := Minimap.MakePointVisible(Self.WorldToMM(Self.GetClosestPoint(tpa)));
+end;
+
+(*
+## TWalker.GetCuboidMS
+```pascal
+function TWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray;
+function TWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TPointArray; overload;
+```
+This are TWalker methods so they will exist both on TWalker and TWalker.
+
+To understand what this does, you should read about **TMinimap.GetTileMS()** and **TPointArray.ConvexHull()** and understand what they do.
+This calls **TMinimap.GetCuboidMS()** internally which in turn will use both methods above.
+
+To put it simply, this will will first calculate a floor rectangle with **tile.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **tile.Z** you specified.
+
+After this 2 rectangles are calculated a polygon is then made out of the two, resulting in a ConvexHull which is returned.
+
+This is perfect to to get an accurate bounding polygon of objects and NPCs which you can use to accurately color search after.
+
+The example below will show you how it could be used to retrieve an accurate player bounding polygon:
+
+Example:
+```pascal
+Debug(RSW.GetCuboidMS([100, 100], [1, 1, 4], Offset));     //This will draw a polygon around the coordinate [100, 100].
+```
+*)
+function TWalker.GetCuboidMS(me, loc: TPoint; shape: TMainScreenShape; offset: Vector2 = [0, 0]): TCuboidEx;
+var
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  loc   := Self.WorldToMM(me, loc, Angle);
+  if not RSHeightMap.Disabled then
+    shape.Tile.Z -= Self.GetHeightDiff(me, loc);
+  Result := Minimap.GetCuboidMS(loc, shape, offset.ToVec3(), angle);
+end;
+
+function TWalker.GetCuboidMS(loc: TPoint; shape: TMainScreenShape; offset: Vector2 = [0, 0]): TCuboidEx; overload;
+begin
+  Result := Self.GetCuboidMS(Self.GetMyPos(), loc, shape, offset);
+end;
+
+function TWalker.GetCuboidMS(me, loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]): TCuboidEx; overload;
+var
+  Angle: Double;
+begin
+  Angle := Minimap.GetCompassAngle(False);
+  loc   := Self.WorldToMM(me, loc, Angle);
+
+  Result := Minimap.GetCuboidMS(loc, tile, offset.ToVec3(), Angle);
+end;
+
+function TWalker.GetCuboidMS(loc: TPoint; tile: Vector3 = [1, 1, 4]; offset: Vector2 = [0, 0]): TCuboidEx; overload;
+begin
+  Result := Self.GetCuboidMS(Self.GetMyPos(), loc, tile, Offset);
+end;
+
+
+(*
+## TWalker.GetTileArrayMS
+```pascal
+function TWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray;
+function TWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; Offset: Vector2 = [0, 0]): TRectArray; overload;
+```
+
+This are wrapper functions to retrieve multiple tiles. Refer to SRL's TWalker.GetTileMSEx() and TWalker.GetTileMS() for more information.
+
+This are TWalker methods so they will exist both on TWalker and TWalker.
+*)
+function TWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; shapeArray: TMainScreenShapeArray; offset: Vector2 = [0, 0]): TRectArray;
+var
+  angle, meHeight: Double;
+  i: Int32;
+  tmpShapes: TMainScreenShapeArray;
+begin
+  locArray := locArray.SortFrom(me);
+  angle := Minimap.GetCompassAngle(False);
+  SetLength(tmpShapes, Length(shapeArray));
+
+  if not RSHeightMap.Disabled then
+    meHeight := Self.GetHeight(me);
+
+  tmpShapes := Copy(shapeArray);
+
+  for i := 0 to High(locArray) do
+  begin
+    if not RSHeightMap.Disabled then
+      tmpShapes[i].Tile.Z -= meHeight - Self.GetHeight(locArray[i]);
+
+    locArray[i] := Self.WorldToMM(me, locArray[i], angle);
+
+    Result += Minimap.GetTileMS(locArray[i], tmpShapes[i].Tile, offset.ToVec3(), angle + tmpShapes[i].Angle);
+  end;
+end;
+
+function TWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; shape: TMainScreenShape; offset: Vector2 = [0, 0]): TRectArray; overload;
+var
+  angle, meHeight: Double;
+  i: Int32;
+begin
+  locArray := locArray.SortFrom(me);
+  angle := Minimap.GetCompassAngle(False);
+  if not RSHeightMap.Disabled then
+    meHeight := Self.GetHeight(me);
+
+  for i := 0 to High(locArray) do
+  begin
+    if not RSHeightMap.Disabled then
+     shape.Tile.Z -= Self.GetHeightDiff(locArray[i]);
+    locArray[i] := Self.WorldToMM(me, locArray[i], angle);
+
+    Result += Minimap.GetTileMS(locArray[i], shape.Tile, offset.ToVec3(), angle + shape.Angle);
+  end;
+end;
+
+function TWalker.GetTileArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3; offset: Vector2 = [0, 0]): TRectArray; overload;
+var
+  angle, meHeight: Double;
+  i: Int32;
+begin
+  locArray := locArray.SortFrom(me);
+  angle := Minimap.GetCompassAngle(False);
+  if not RSHeightMap.Disabled then
+    meHeight := Self.GetHeight(me);
+
+  for i := 0 to High(locArray) do
+  begin
+    if not RSHeightMap.Disabled then
+      tile.Z -= Self.GetHeightDiff(locArray[i]);
+    locArray[i] := Self.WorldToMM(me, locArray[i], angle);
+
+    Result += Minimap.GetTileMS(locArray[i], tile, offset.ToVec3(), angle);
+  end;
+end;
+
+function TWalker.GetTileArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 0]; offset: Vector2 = [0, 0]): TRectArray; overload;
+begin
+  Result := Self.GetTileArrayMS(Self.GetMyPos(), locArray, tile, offset);
+end;
+
+
+(*
+## TWalker.GetCuboidArrayMS
+```pascal
+function TWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+function TWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): T2DPointArray;
+```
+
+Gives you an array of mainscreen polygons. Read **Minimap.GetCuboidMS** for more information.
+
+This are TWalker methods so they will exist both on TWalker and TWalker.
+
+Example:
+```pascal
+TPA := Minimap.GetDots(EMinimapDot.Player);   //find all player dots and returns their coodinates.
+Debug(Minimap.GetCuboidArrayMS(TPA, [2, 3, 5], [2, 2])); //This will draw a polygon that is 2 by 3 tiles and height 5 in the mainscreen where each NPC is.
+```
+*)
+function TWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shapeArray: TMainScreenShapeArray; offset: Vector2 = [0, 0]): TCuboidExArray;
+var
+  angle, meHeight: Double;
+  i: Int32;
+  p: TPoint;
+  vOffset: Vector3;
+begin
+  angle := Minimap.GetCompassAngle(False);
+
+  if not RSHeightMap.Disabled then
+    meHeight := Self.GetHeight(me);
+
+  vOffset := offset.ToVec3();
+  for i := 0 to High(locArray) do
+  begin
+    vOffset.Z := 0;
+    if not RSHeightMap.Disabled then
+      vOffset.Z -= meHeight - Self.GetHeight(locArray[i]);
+
+    p := Self.WorldToMM(me, locArray[i], angle);
+    if not Minimap.Bounds.Expand(10).Contains(p) then
+      Continue;
+
+    if Length(locArray) = Length(shapeArray) then
+      Result += Minimap.GetCuboidMS(p, shapeArray[i], vOffset, angle)
+    else
+      Result += Minimap.GetCuboidMS(p, shapeArray[0], vOffset, angle);
+  end;
+end;
+
+function TWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; shape: TMainScreenShape; offset: Vector2 = [0, 0]): TCuboidExArray; overload;
+var
+  angle, meHeight: Double;
+  i: Int32;
+  p: TPoint;
+  vOffset: Vector3;
+begin
+  angle := Minimap.GetCompassAngle(False);
+
+  if not RSHeightMap.Disabled then
+    meHeight := Self.GetHeight(me);
+
+  vOffset := offset.ToVec3();
+  for i := 0 to High(locArray) do
+  begin
+    vOffset.Z := 0;
+    if not RSHeightMap.Disabled then
+      vOffset.Z -= meHeight - Self.GetHeight(locArray[i]);
+
+    p := Self.WorldToMM(me, locArray[i], angle);
+    if Minimap.Bounds.Expand(10).Contains(p) then
+      Result += Minimap.GetCuboidMS(p, shape, vOffset, angle);
+  end;
+end;
+
+function TWalker.GetCuboidArrayMS(me: TPoint; locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TCuboidExArray; overload;
+var
+  shape: TMainScreenShape;
+begin
+  shape := [tile, 0];
+  Result := Self.GetCuboidArrayMS(me, locArray, shape, offset);
+end;
+
+function TWalker.GetCuboidArrayMS(locArray: TPointArray; tile: Vector3 = [1, 1, 4]; Offset: Vector2 = [0, 0]): TCuboidExArray; overload;
+begin
+  Result := Self.GetCuboidArrayMS(Self.GetMyPos(), locArray, tile, Offset);
+end;
+
+
+(*
+## TWalker.GetMSPolygon
+```pascal
+function TWalker.GetMSPolygon(tpa: TPointArray): TPointArray;
+function TWalker.GetMSPolygonArray(atpa: T2DPointArray): T2DPointArray;
+```
+This function converts a list of points to their respective points in the minimap.
+This is extremely useful if you want to be sure you are within an area.
+To make a polygon or a polygon array easily you can use Simba/Includes/WaspLib/tools/walkerpolygon.simba.
+
+This are TWalker methods so they will exist both on TWalker and TWalker.
+
+Example:
+```pascal
+Debug(RSW.GetMMPoly(TPA).Connect());    //This will draw your TPA on the minimap.
+```
+*)
+function TWalker.GetMSPolygon(tpa: TPointArray): TPointArray;
+begin
+  Result := Minimap.PointsToMS(Self.WorldToMM(tpa));
+end;
+
+function TWalker.GetMSPolygonArray(atpa: T2DPointArray): T2DPointArray;
+var
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  atpa := Self.WorldToMM(Self.GetMyPos(), atpa, angle);
+  Result := Minimap.ATPAToMS(atpa, angle);
+end;
+
+(*
+## TWalker.InPoly
+```pascal
+function TWalker.InPoly(locArray: TPointArray): Boolean;
+```
+
+Checks if you are inside a polygon. If you need to debug the polygon check the example in TWalker.GetMMPoly.
+
+This are TWalker methods so they will exist both on TWalker and TWalker.
+
+*)
+function TWalker.InPoly(locArray: TPointArray): Boolean;
+begin
+  Result := SRL.PointInPoly(Self.GetMyPos(), locArray);
+end;
+
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  case Self.Mode of
+    EClientMode.FIXED: RSHeightMap.MaxHeight := 70;
+    else RSHeightMap.MaxHeight := 60;
+  end;
+end;

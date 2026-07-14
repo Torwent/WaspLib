@@ -1,0 +1,278 @@
+(*
+# RoomObjects
+File responsible for handling house objects. Similar to {ref}`TObject` but exclusive to the POH.
+*)
+
+{$DEFINE WL_HOUSEOBJECTS_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+{$IFNDEF RELD_PORTALNEXUS_INCLUDED}
+  {$I WaspLib/optional/interfaces/mainscreen/portalnexus.simba}
+{$ENDIF}
+
+type
+(*
+## ERSRoomObject
+```pascal
+ERSRoomObject = (POOL, FAIRY_TREE, JEWELLERY_BOX, PRAYER_ALTAR, MAGIC_ALTAR, LARDER, LECTERN, MYTH_CAPE, NEXUS, PORTAL);
+```
+*)
+  ERSRoomObject = (
+    POOL, FAIRY_TREE, JEWELLERY_BOX, PRAYER_ALTAR, MAGIC_ALTAR,
+    LARDER, LECTERN, MYTH_CAPE, NEXUS, PORTAL, EXIT_PORTAL
+  );
+
+(*
+## TRoomObject
+```pascal
+TRoomObject = record
+  Coordinates: TPointArray;
+  Shape: Vector3;
+  UpText: TStringArray;
+  Finder: TObjectFinder;
+  RoomOffset: TPoint;
+end;
+```
+Record used to store and interact information about POH room objects.
+*)
+  TRoomObject = record
+    Coordinates: TPointArray;
+    Shape: Vector3;
+    UpText: TStringArray;
+    Finder: TObjectFinder;
+    RoomOffset: TPoint;
+  end;
+
+(*
+## TRoomObject.Init()
+```pascal
+procedure TRoomObject.Init(upText: TStringArray; shape: Vector3; roomOffset: TPoint);
+```
+This method sets up some basic info about a {ref}`TRoomObject`.
+*)
+procedure TRoomObject.Init(upText: TStringArray; shape: Vector3; roomOffset: TPoint);
+begin
+  Self := [];
+  Self.Shape := shape;
+  Self.UpText := upText;
+  Self.RoomOffset := roomOffset;
+  Self.Finder.ClusterDistance := 3;
+  Self.Finder.Erode := 2;
+  Self.Finder.Grow := 4;
+end;
+
+(*
+## TRoomObject.Setup()
+```pascal
+procedure TRoomObject.Setup(obj: ERSRoomObject); overload;
+```
+Basically the same as {ref}`TRoomObject.Init()` with some already known information.
+
+Example:
+```pascal
+var
+  obj: TRoomObject;
+begin
+  obj.Setup(ERSRoomObject.POOL);
+end;
+```
+*)
+procedure TRoomObject.Setup(obj: ERSRoomObject); overload;
+begin
+  case obj of
+    ERSRoomObject.POOL:
+    begin
+      Self.Init(['pool'], [1.5, 1.5, 6], [4,4]);
+      Self.Finder.Colors := [CTS2(11514040, 19, 0.10, 0.13)];
+    end;
+
+    ERSRoomObject.FAIRY_TREE:
+    begin
+      Self.Init(['Fairy', 'Tree'], [1.5, 1.5, 6], [16,16]);
+      Self.Finder.Colors := [CTS2(7307158, 15, 0.48, 0.69)];
+    end;
+
+    ERSRoomObject.JEWELLERY_BOX:
+    begin
+      Self.Init(['Jewellery', 'Box'], [2, 2, 6], [4,4]);
+      Self.Finder.Colors := [CTS2(1287353, 17, 0.02, 0.72), CTS2(530791, 8, 0.24, 2.28)];
+    end;
+
+    ERSRoomObject.NEXUS:
+    begin
+      Self.Init(['Nexus'], [2, 2, 6], [16,16]);
+      Self.Finder.Colors := [CTS2(8761902, 27, 0.27, 1.43)];
+    end;
+
+    ERSRoomObject.EXIT_PORTAL:
+    begin
+      Self.Init(['nter Portal'], [2, 2, 6], [16,16]);
+      Self.Finder.Colors := [CTS2(11552664, 13, 0.20, 2.43)];
+    end;
+
+    ERSRoomObject.MAGIC_ALTAR:
+    begin
+      Self.Init(['Venerate', 'ltar'], [2, 2, 6], [4,12]);
+      Self.Finder.Colors := [CTS2(9325426, 11, 0.72, 2.12), CTS2(9805728, 7, 0.25, 0.32)];
+    end;
+
+    ERSRoomObject.MYTH_CAPE:
+    begin
+      Self.Init(['Myth'], [1, 1, 6], [24,2]);
+      Self.Finder.Colors := [CTS2(14211548, 14, 0.31, 0.42)];
+    end;
+
+    ERSRoomObject.LARDER:
+    begin
+      Self.Init(['Larder'], [2, 2, 6], [4,4]);
+      Self.Finder.Colors := [CTS2(5929362, 6, 0.06, 0.19), CTS2(7838639, 11, 0.04, 0.90)];
+    end;
+
+    ERSRoomObject.LECTERN:
+    begin
+      Self.Init(['Lectern'], [1, 1, 6], [20,8]);
+      Self.Finder.Colors := [CTS2(7838639, 11, 0.04, 0.90)];
+    end;
+
+  end;
+end;
+
+(*
+## TRoomObject.AddCoordinates()
+```pascal
+procedure TRoomObject.AddCoordinates(coordinates: TPointArray);
+```
+Adds `coordinates` to a {ref}`TRoomObject`.
+Can be called multiple times to add more `coordinates`.
+
+Example:
+```pascal
+var
+  obj: TRoomObject;
+begin
+  obj.Setup(ERSRoomObject.POOL);
+  obj.AddCoordinates([[50, 50]]);
+end;
+```
+*)
+procedure TRoomObject.AddCoordinates(coordinates: TPointArray);
+begin
+  Self.Coordinates += coordinates;
+end;
+
+
+(*
+## TRoomObject.Find
+```pascal
+function TRoomObject.FindEx(mmPoints: TPointArray; radians: Double; out cuboids: TCuboidExArray; out atpa: T2DPointArray; stopAfter: Int32 = 0): Boolean;
+function TRoomObject.FindAny(mmPoints: TPointArray; radians: Double; out atpa: T2DPointArray): Boolean;
+function TRoomObject.FindAll(mmPoints: TPointArray; radians: Double; out atpa: T2DPointArray): Boolean;
+```
+Find a {ref}`TRoomObject`. You may choose to find any occurence of the object or all available.
+The extended version of the method is mostly for debugging.
+*)
+function TRoomObject.FindEx(mmPoints: TPointArray; radians: Double; out cuboids: TCuboidExArray; out atpa: T2DPointArray; stopAfter: Int32 = 0): Boolean;
+var
+  i: Int32;
+  tmp: T2DPointArray;
+begin
+  cuboids := Minimap.GetCuboidArrayMS(mmPoints, Self.Shape, [0,0], radians);
+
+  for i := 0 to High(cuboids) do
+  begin
+    tmp := MainScreen.FindObject(Self.Finder, cuboids[i].Bounds());
+    if tmp <> [] then
+    begin
+      atpa += tmp.Merge();
+      if (stopAfter > 0) and (Length(atpa) >= stopAfter) then
+        Exit(True);
+    end;
+  end;
+
+  Result := atpa <> [];
+end;
+
+function TRoomObject.FindAny(mmPoints: TPointArray; radians: Double; out tpa: TPointArray): Boolean;
+var
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+begin
+  Result := Self.FindEx(mmPoints, radians, cuboids, atpa, 1);
+  if Result then
+    tpa := atpa[0];
+end;
+
+function TRoomObject.FindAll(mmPoints: TPointArray; radians: Double; out atpa: T2DPointArray): Boolean;
+var
+  cuboids: TCuboidExArray;
+begin
+  Result := Self.FindEx(mmPoints, radians, cuboids, atpa);
+end;
+
+(*
+## TRoomObject.Draw
+```pascal
+procedure TRoomObject.Draw(out bitmap: TMufasaBitmap; mmPoints: TPointArray; radians: Double);
+```
+Internal method used to draw found {ref}`TRoomObject` in a TMufasaBitmap.
+*)
+procedure TRoomObject.Draw(out bitmap: TMufasaBitmap; mmPoints: TPointArray; radians: Double);
+var
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+begin
+  Self.FindEx(mmPoints, radians, cuboids, atpa);
+  bitmap.DrawATPA(atpa);
+  if atpa <> [] then
+    bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
+end;
+
+
+
+(*
+## TRoomObject.Interact
+```pascal
+function TRoomObject.Hover(mmPoints: TPointArray; radians: Double): Boolean;
+function TRoomObject.Click(mmPoints: TPointArray; radians: Double): Boolean;
+function TRoomObject.Select(options: TStringArray; mmPoints: TPointArray; radians: Double): Boolean;
+```
+Interacts with a {ref}`TRoomObject`. The interaction type is self explanatory.
+*)
+function TRoomObject.Hover(mmPoints: TPointArray; radians: Double): Boolean;
+var
+  i: Int32;
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  cuboids: TCuboidExArray;
+begin
+  cuboids := Minimap.GetCuboidArrayMS(mmPoints, Self.Shape, [0,0], radians);
+
+  for i := 0 to High(cuboids) do
+  begin
+    atpa := MainScreen.FindObject(Self.Finder, cuboids[i].Bounds());
+
+    if atpa <> [] then
+    begin
+      tpa := atpa.Merge();
+      Mouse.Move(tpa);
+      if MainScreen.IsUpText(Self.UpText) then
+        Exit(True);
+    end;
+  end;
+end;
+
+function TRoomObject.Click(mmPoints: TPointArray; radians: Double): Boolean;
+begin
+  if not Self.Hover(mmPoints, radians) then
+    Exit;
+  Mouse.Click(MOUSE_LEFT);
+  Result := MainScreen.DidRedClick();
+end;
+
+function TRoomObject.Select(options: TStringArray; mmPoints: TPointArray; radians: Double): Boolean;
+begin
+  Result := Self.Hover(mmPoints, radians) and ChooseOption.Select(options);
+end;

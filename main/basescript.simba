@@ -1,0 +1,879 @@
+(*
+# BaseScript
+BaseScript and it's derivants are template records to be used in scripts.
+They also contain template functions and procedures that can be used as is or overriden with
+"inherited" to add functionality.
+*)
+
+{$DEFINE WL_BASESCRIPT_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+(*
+## type TBaseScript
+Record that holds common variables for most basic scripts.
+The variables that are part of **TBaseScript** are the following:
+ - **Name**: String that holds the script name to be displayed in the log and on screen progress report.
+ - **Version**: String that holds the script version to be displayed in the log and on screen progress report.
+ - **Self.IsSetup**: Boolean that let us know if the our **TBaseScript** already set it's variables up.
+ - **TimeRunning**: TStopwatch variable that holds how long our **TBaseScript** has been running.
+ - **Action**: String variable used to print in Simba output or on screen progress report the current action the script is performing.
+ - **PreviousAction**: String variable used to register the previous action. This is used to avoid spamming the logs.
+ - **ExtraInfo**: String variable we can use to print extra information in Simba output or in on screen progress report. E.G. current state of variables.
+ - **ActionProfit**: Integer that holds information on how much profit (positive or negative) our script makes per action performed.
+ - **TotalActions**: Integer used to count how many actions our script has done.
+ - **TotalProfit**:  Integer that holds the total profit our script has done.
+ - **TimeLimit**: Integer variable to set a time limit for our script in milliseconds before ending the current script.
+ - **ActionLimit**: Integer variable to set total action limit before ending the script.
+
+TBaseScript can be used as is or inherited from to extend it's functionality.
+
+Example:
+```pascal
+TBaseWalkerScript = record(TBaseScript)
+  RSW: TWalker;
+end;
+```
+*)
+type
+  TBaseScript = record(TSRLBaseRecord)
+    ID, Revision, Welcome, Action, PreviousAction, ExtraInfo: String;
+
+    PrintTimer: TCountDown;
+    TimeRunning: TStopwatch;
+
+    ActionProfit, TotalProfit: Int32;
+    TotalActions, ActionLimit: UInt32;
+    TimeLimit: UInt64;
+
+    OnAntiban, IsSetup: Boolean;
+  end;
+
+(*
+## BaseScript.ShouldHandlePaint
+```pascal
+function TBaseScript.ShouldHandlePaint(): Boolean;
+```
+Wrapper function used internally to decide if we should handle TWaspProgressReport.
+*)
+function TBaseScript.ShouldHandlePaint(): Boolean;
+begin
+  if not WLSettings.GetObject('remote_input').getBoolean('enabled') then
+    Exit;
+  if not WLSettings.GetObject('remote_input').getBoolean('hud_report') then
+    Exit;
+  if WLSettings.GetObject('remote_input').getBoolean('hud_debug') then
+    Exit;
+  Result := True;
+end;
+
+(*
+## BaseScript.ShouldDrawPaint
+```pascal
+function TBaseScript.ShouldDrawPaint(): Boolean;
+```
+Wrapper function used internally to decide if we should call TWaspProgressReport.Update().
+To avoid unnecessary redraw, when Self.Action and Self.PreviousAction are the same, we do not redraw.
+*)
+function TBaseScript.ShouldDrawPaint(): Boolean;
+begin
+  if Self.ShouldHandlePaint() then
+    Result := not ProgressReport.IsSetup or (Self.Action <> Self.PreviousAction);
+end;
+
+(*
+## BaseScript.BuildTextReport
+```pascal
+function TBaseScript.BuildTextReport(): TStringArray;
+```
+Internal method used to build our text progress report.
+To set custom messages simply override this method and pass in each line of you report into the Result array.
+Keep in mind that editing this will probably mess up the HUD report so if you customize this you should also customize **TBaseScript.BuildHUDReport()**.
+
+Example:
+```pascal
+function TBaseScript.BuildTextReport(): TStringArray; override;
+var
+  ElapsedTime: UInt64;
+  XPEarned: Int32;
+begin
+  ElapsedTime := Self.TimeRunning.ElapsedTime();
+  XPEarned := WL.PreviousXP - WL.InitialXP;
+
+  //Keep in mind this is just a quick example without spacing adjustments. This won't look good unless you add some variable padding.
+
+  Result += '[===============================]';
+  Result += '[ ' + Self.Name + ' ]';                    //Self.Name is the script name, usually set in TBaseScript.Init();
+  Result += '[===============================]';
+  Result += '[ Runtime    :  ' + SRL.MsToTime(ElapsedTime, Time_Short) +' ];
+  Result += '[ Xp gained  : ' + XPEarned + '(' + ToStr(NumberPerHour(XPEarned, ElapsedTime)) + ' / hr)     ]';
+  Result += '[ Nuggets    : ' + NuggetsCount + '(' + ToStr(NumberPerHour(NuggetsCount, ElapsedTime)) + ' / hr)     ]';
+  Result += '[ Coal       : ' + CoalCount + '(' + ToStr(NumberPerHour(CoalCount, ElapsedTime)) + ' / hr)     ]';
+  Result += '[ Gold       : ' + GoldCount + '(' + ToStr(NumberPerHour(GoldCount, ElapsedTime)) + ' / hr)     ]';
+  Result += '[ Mithril    : ' + MithrilCount + '(' + ToStr(NumberPerHour(MithrilCount, ElapsedTime)) + ' / hr)     ]';
+  Result += '[ Adamantite : ' + AdamantiteCount + '(' + ToStr(NumberPerHour(AdamantiteCount, ElapsedTime)) + ' / hr)     ]';
+  Result += '[ Runite     : ' + RuniteCount + '(' + ToStr(NumberPerHour(RuniteCount, ElapsedTime)) + ' / hr)     ]';
+  Result += '[===============================]';
+  Result += '[ ' + Self.Name + SRL.MsToTime(ShutdownTimer.TimeRemaining, Time_Short) + ' ]';
+  Result += '[===============================]';
+end;
+```
+*)
+function TBaseScript.BuildTextReport(): TStringArray;
+var
+  elapsedTime: UInt64;
+begin
+  if Self.Action = Self.PreviousAction then
+    Exit(ProgressReport.ProgressArray);
+
+  elapsedTime := Self.TimeRunning.ElapsedTime();
+
+  Result += ' Action        : ' + Self.Action;
+  Result += ' Runtime       : ' + SRL.MsToTime(elapsedTime, Time_Short).Strip();
+
+  Result += ' Total Actions : ' + ToStr(Self.TotalActions);
+  if Self.ActionLimit > 0 then
+    Result[High(Result)] += '/' + ToStr(Self.ActionLimit);
+
+  Result += ' Actions/Hour  : ' + ToStr(NumberPerHour(Self.TotalActions, elapsedTime));
+
+  Result += ' Total Exp     : ' + SRL.FormatNumber(XPBar.TotalEarnedXP(), 2);
+  Result += ' Exp/Hour      : ' + SRL.FormatNumber(NumberPerHour(XPBar.TotalEarnedXP(), elapsedTime), 2);
+
+  Result += ' Total Profit  : ' + SRL.FormatNumber(Self.TotalProfit, 2);
+  Result += ' Profit/Hour   : ' + SRL.FormatNumber(NumberPerHour(Self.TotalProfit, elapsedTime), 2);
+
+  Result += ' ' + Self.Welcome + ' waspscripts.com';
+end;
+
+(*
+## BaseScript.PrintReport
+```pascal
+procedure TBaseScript.PrintReport(Sender: TObject);
+```
+Internal method to print our progress report ("proggie").
+This is run on a timer setup by TBaseScript and also handles drawing the HUD progress report if it is enabled.
+It also is responsible for debugging the script with SRL.Debug() if we enable it.
+*)
+procedure TBaseScript.PrintReport();
+var
+  i: Int32;
+  str: String;
+begin
+  if APIClient.Timer.IsFinished() then
+    APIClient.SubmitStats(APIClient.GetUUID());
+
+  ProgressReport.ProgressArray := Self.BuildTextReport();
+
+  if Self.OnAntiban then
+  begin
+    Self.PreviousAction := Self.Action;
+    Exit;
+  end;
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if Self.ShouldDrawPaint() then
+    ProgressReport.Update();
+  {$ENDIF}
+
+  if not WLSettings.GetBoolean('reports') then
+  begin
+    Self.PreviousAction := Self.Action;
+    Exit;
+  end;
+
+  if not Self.PrintTimer.IsFinished() then
+  begin
+    if Self.PreviousAction <> Self.Action then
+      Self.DebugLn(Self.Action, Self.ExtraInfo);
+
+    Self.PreviousAction := Self.Action;
+    Exit;
+  end;
+
+  WriteLn();
+  for i := 0 to High(ProgressReport.ProgressArray) do
+  begin
+    str := ProgressReport.ProgressArray[i];
+
+    if i < High(ProgressReport.ProgressArray) -1 then
+      str := PadR(str, 40, ' ') + ProgressReport.ProgressArray[i+1];
+
+    WriteLn str;
+    i += 1;
+  end;
+  WriteLn();
+
+  Self.PreviousAction := Self.Action;
+  Self.PrintTimer.Restart();
+end;
+
+(*
+## CheckUpdates
+```pascal
+procedure CheckUpdates(caption: String = 'Updates Available');
+```
+Checks for updates for SRL-T, WaspLib and the current script.
+*)
+procedure CheckUpdates(caption: String = 'Updates Available');
+var
+  latestSRLT, latestWL, latestRev, currentSRLT, currentWL, currentRev: String;
+  isLatestSRLT, isLatestWL, isLatestRev: Boolean;
+  msg: String;
+begin
+  APIClient.GetAllVersions({$macro SCRIPT_ID}, latestRev, latestSRLT, latestWL);
+
+  if latestSRLT = '' then
+    latestSRLT := 'Failed to check...';
+
+  if latestWL = '' then
+    latestWL := 'Failed to check...';
+
+  if latestRev = '' then
+    latestRev := 'Failed to check...';
+
+  currentSRLT := GetPackageVersion('srl-t');
+  currentWL := GetPackageVersion('wasplib');
+  currentRev := {$macro SCRIPT_REVISION};
+
+  isLatestSRLT := currentSRLT = latestSRLT;
+  isLatestWL   := currentWL   = latestWL;
+  isLatestRev  := currentRev  = latestRev;
+
+  if isLatestSRLT and isLatestWL and isLatestRev then
+    Exit;
+
+  msg := LINEENDING + 'The following seems to be outdated:' + LINEENDING + LINEENDING;
+
+  if not isLatestSRLT then
+    msg += '- SRL-T (Current version: ' + currentSRLT + ' Latest version: ' + latestSRLT + ').' + LINEENDING;
+
+  if not isLatestWL then
+    msg += '- WaspLib (Current version: ' + currentWL + ' Latest version: ' + latestWL + ').' + LINEENDING;
+
+  if not isLatestRev then
+    msg += '- Script (Current revision: ' + currentRev + ' Latest revision: ' + latestRev + ').' + LINEENDING;
+
+  msg += LINEENDING;
+
+  MessageDlg(caption, msg, mtWarning,[mbClose]);
+end;
+
+(*
+## BaseScript.Init
+```pascal
+procedure TBaseScript.Init(maxActions: UInt32; maxTime: UInt64);
+```
+Method used to setup the variables of TBaseScript.
+If **maxActions** and/or **maxTime** are not 0 that will make
+`TBaseScript.ShouldStop() = True` when `TBaseScript.TotalActions = maxAtions` or
+`TBaseScript.TimeRunning.ElapsedTime = maxTime`.
+
+Can be used as is or overriden to do additional tasks.
+
+Example:
+```pascal
+var
+  Script: TBaseScript;
+
+begin
+  Script.Init(0, 2 * ONE_DAY);
+end;
+```
+*)
+procedure TBaseScript.Init(maxActions: UInt32; maxTime: UInt64);
+const
+  WELCOME_SENTENCES: TStringArray = [
+      'Join WaspScripts today!',
+      'Road to max cape with',
+      'No time to play legit?',
+      'What are you waiting for?',
+      'The best public color bots',
+      'Learn how to script at',
+      'Get that 99 with',
+      'Daily bans are not normal,',
+      'Everything is open source',
+      'Imagine AHK on steroids',
+      'Unleash the power of Simba'
+    ];
+begin
+  {$IFNDEF SCRIPT_CHAINER}
+  ClearDebug();
+  {$ENDIF}
+  AddOnTerminate(@ForceSaveScreenshot);
+
+  if Self.Name = '' then
+    Self.Name := 'Bot';
+
+  if Login.Players = [] then
+    Login.AddPlayer(ToStr(Random()),''); //make a random username for a random biohash if no users were added.
+
+  Self.ID := {$macro SCRIPT_ID};
+  Self.Revision := {$macro SCRIPT_REVISION};
+
+  GenerateLog(Self.Name);
+  WriteFileContents(WL.LogFile, Self.Name + ' revision ' + Self.Revision + LineEnding, True);
+
+  WriteLn(SRL.TimeStamp(), ':[', Self.Name, ']: Welcome to ',
+          Self.Name, ' Revision ', Self.Revision
+  );
+
+  Self.Welcome := WELCOME_SENTENCES.RandomValue();
+
+  if maxActions > 0 then
+    Self.ActionLimit := Self.TotalActions + maxActions;
+
+  Self.TimeRunning.Start();
+  ProgressReport.PTimeRunning := @Self.TimeRunning;
+
+  if maxTime > 0 then
+    Self.TimeLimit := Self.TimeRunning.ElapsedTime() + (maxTime * ONE_MINUTE)
+  else
+    Self.TimeLimit := 0;
+
+  WL.Activity.Init(260000);
+  Self.PrintTimer.Init(3 * ONE_MINUTE);
+
+  if Self.IsSetup then Exit;
+
+  Self.IsSetup := True;
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if WLSettings.GetObject('remote_input').getBoolean('enabled') then
+  begin
+    if WLSettings.GetObject('remote_input').getBoolean('hud_report') then
+      ProgressReport.Setup();
+  end;
+  {$ENDIF}
+
+  if not GameClient.IsLoggedIn() then
+    Login.LoginPlayer();
+
+  Antiban.Setup();
+
+  //wasp-stats
+  if not APIClient.Disabled then
+    APIClient.Disabled := not WLSettings.GetBoolean('stats');
+  APIClient.TimeStamp := GetTickCount();
+  //override me to add more stuff.
+end;
+
+
+
+procedure TBaseScript.SetAction(var action);
+begin
+  Self.Action := ToStr(action);
+  Self.PrintReport();
+end;
+
+procedure TBaseScript.SetAction(action: String); overload;
+begin
+  Self.Action := action;
+  Self.PrintReport();
+end;
+
+(*
+## BaseScript.DoAntiban
+```pascal
+function TBaseScript.DoAntiban(checkBreaks: Boolean = True; checkSleeps: Boolean = True): Boolean;
+```
+Method used to call Antiban.DoAntiban(checkBreaks, checkSleeps).
+
+Example:
+```pascal
+Script.DoAntiban();
+```
+*)
+function TBaseScript.DoAntiban(checkBreaks: Boolean = True; checkSleeps: Boolean = True): Boolean;
+begin
+  Antiban.DismissRandom();
+  Self.TimeRunning.Pause();
+  Self.OnAntiban := True;
+
+  checkBreaks := checkBreaks and WLSettings.GetObject('antiban').getBoolean('breaks');
+  checkSleeps := checkSleeps and WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('enabled');
+
+  if WLSettings.GetObject('antiban').getJSONObject('tasks').getBoolean('enabled') or checkBreaks or checkSleeps then
+    Result := Antiban.DoAntiban(checkBreaks, checkSleeps);
+
+  Self.TimeRunning.Resume();
+  Self.OnAntiban := False;
+
+  if not GameClient.IsLoggedIn() then
+    Login.LoginPlayer();
+end;
+
+(*
+## BaseScript.ShouldStop
+```pascal
+function TBaseScript.ShouldStop(): Boolean;
+```
+Method used to check if we reached the TBaseScript goals and it's time to stop it.
+
+```{note}
+This doesn't stop the script. This simply returns true/false when called and it's up to you to stop the script.
+```
+
+Example:
+```pascal
+if Script.ShouldStop() then
+  TerminateScript();
+```
+*)
+function TBaseScript.ShouldStop(): Boolean;
+begin;
+  if InRange(Self.ActionLimit, 1, Self.TotalActions) then
+  begin
+    SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
+    Self.DebugLn('Maximum actions reached: ' +
+                 ToStr(Self.TotalActions) + '/' + ToStr(Self.ActionLimit) + '.');
+    Exit(True);
+  end;
+
+  if InRange(Self.TimeLimit, 1, Self.TimeRunning.ElapsedTime()) then
+  begin
+    SaveScreenshot('ScriptEnding/shouldstop' + Self.Name, True);
+    Self.DebugLn('Maximum time reached: ' +
+                 ToStr(Round(Self.TimeRunning.ElapsedTime()/ONE_MINUTE)) + '/' + ToStr(Round(Self.TimeLimit/ONE_MINUTE)) + ' mins.');
+    Exit(True);
+  end;
+end;
+
+
+(*
+## type TBaseWalkerScript
+Record that holds common variables for most scripts that use walker.
+This record extends **TBaseScript** and has all of it's variables too.
+The extra variables that are part of **TBaseWalkerScript** are:
+ - **RSW**: TWalker variable that holds our walker, for more information check the following page: https://ollydev.github.io/SRL-Development/walker.html?highlight=walker
+*)
+type
+  TBaseWalkerScript = record(TBaseScript)
+    RSW: TWalker;
+  end;
+
+(*
+## BaseWalkECript.Init
+```pascal
+procedure TBaseWalkerScript.Init(MaxActions: Int32; MaxTime: Int64); override;
+```
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
+
+Can be used as is or overriden to do additional tasks.
+*)
+procedure TBaseWalkerScript.Init(maxActions: UInt32; maxTime: UInt64); override;
+begin
+  inherited;
+
+  Self.RSW.OnWalkingEvent := @Antiban.WalkingTasks;
+end;
+
+(*
+## type TBaseBankScript
+Record that holds common variables for most scripts that use a bank.
+This record inherits from **TBaseWalkerScript** and which inherits from **TBaseScript's**.
+The extra variables that are part of **TBaseBankScript** are:
+ - **Self.ScriptBank**: PRSObject pointer that points to our current bank TObject, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-Tobject
+ - **Self.ScriptBanker**: PRSNPC pointer that points to our current banker TNPC, for more info check: https://torwent.github.io/WaspLib/waspobject.html#type-Tmmdot
+ - **BankTab**: Integer variable used to cache the current bank tab that contains items for our script.
+ - **ItemLeftAmount**: Integer variable used to cache items left to make/build/whatever to pre-hover the bank.
+ - **HoveringBank**: Boolean variable that holds information if we are currently already hovering the bank. This is so we don't try to rehover the bank and don't need to check the uptext if we already are doing it.
+ - **BankEmpty**: Boolean variable that that is set to true when we ran out of an item our script needs. This is used so next time we need to fetch the item we check the deposit box instead.
+ - **CollectEmpty**: Boolean variable that that is set to true when the collect box is empty. Normally, if this and **BankEmpty** are true the script ends.
+ - **CollectTimer**: TCountDown variable used to reset **CollectEmpty** after a couple of minutes.
+*)
+type
+  TBaseBankScript = record(TBaseWalkerScript)
+    BankTab: Int32;
+
+    ItemLeftAmount: Int32;
+    HoveringBank: Boolean;
+    BankEmpty: Boolean;       //Used to cache if Bank doesn't have more of a certain item.
+    CollectEmpty: Boolean;    //Used to cache if CollectBox doesn't have more of a certain item.
+    CollectTimer: TCountDown; //Used to reset CollectEmpty after a while.
+  end;
+
+(*
+## BaseBankScript.Init
+```pascal
+procedure TBaseBankScript.Init(MaxActions: UInt32; MaxTime: UInt64); override;
+```
+Method used to setup the variables of TBaseScript.
+If **MaxActions** and **MaxTime** serve the same purpose of TBaseScript.Init().
+
+Can be used as is or overriden to do additional tasks.
+*)
+procedure TBaseBankScript.Init(maxActions: UInt32; maxTime: UInt64); override;
+begin
+  inherited;
+
+  Self.BankTab := -1;
+  Self.CollectTimer.Init(10 * ONE_MINUTE);
+
+  //override me to add more stuff.
+end;
+
+(*
+## BaseBankScript.Terminate
+```pascal
+function TBaseBankScript.Terminate(): Boolean;
+```
+Helper method to be called at the end of the life cycle of a TBaseBankScript.
+By default it simply attempts to open the TBaseBankScript.CurrentBank but it's meant to
+be overriden and inherited or completely be remade for proper termination of the TBaseBankScript.
+
+This is likely required if you want to chain several scripts together.
+
+```{note}
+Consider taking a look at script_chainer.simba: https://github.com/Torwent/wasp-mini/blob/master/script_chainer.simba
+```
+
+Example:
+```pascal
+Script1.Init();
+repeat
+  //do stuff...
+until Script1.ShouldStop();
+
+Script1.Terminate();
+
+Script2.Init();
+repeat
+  //do stuff...
+until Script2.ShouldStop();
+```
+*)
+function TBaseBankScript.Terminate(): Boolean;
+var
+  i: Int32;
+begin
+  for i := 0 to 5 do
+  begin
+    if ScriptWalker = nil then
+      Result := Banks.WalkOpen()
+    else
+      Result := Bank.WalkOpen();
+
+    if Result then Break;
+  end;
+  //override me to add more stuff.
+end;
+
+(*
+## BaseBankScript.CountItemsLeft
+```pascal
+procedure TBaseBankScript.CountItemsLeft(Item: TItem);
+```
+Set's TBaseBankScript.ItemLeftAmount to be used by TBaseBankScript.ShouldHover().
+
+```{note}
+For some scripts this might need to be overriten and rewritten.
+```
+*)
+procedure TBaseBankScript.CountItemsLeft(item: TItem);
+begin
+  Self.ItemLeftAmount := Inventory.CountItem(item);
+end;
+
+(*
+## BaseBankScript.ShouldHoverBank
+```pascal
+function TBaseBankScript.ShouldHoverBank(): Boolean;
+```
+Method used to decide if we should pre-hover the bank or not.
+It uses the amount of items left in the inventory stored by TBaseBankScript.CountItemsLeft()
+in TBaseBankScript.ItemLeftAmount() along with the player BioHash to decide if we want to
+pre-hover the bank.
+
+```{note}
+This function simply returns true/false and doesn't actualy hover the bank.
+```
+
+Example:
+```pascal
+if Script.ShouldHoverBank() then
+  Script.HoverBank();
+```
+*)
+function TBaseBankScript.ShouldHoverBank(): Boolean;
+begin
+  Result := ((Self.ItemLeftAmount = 1) and SRL.Dice(10 + (90 * BioHash))) or
+            ((Self.ItemLeftAmount = 2) and SRL.Dice(5 + (75 * BioHash))) or
+            ((Self.ItemLeftAmount = 3) and SRL.Dice(5 + (60 * BioHash))) or
+            ((Self.ItemLeftAmount = 4) and SRL.Dice(45 * BioHash)) or
+            ((Self.ItemLeftAmount = 5) and SRL.Dice(30 * BioHash)) or
+            ((Self.ItemLeftAmount = 6) and SRL.Dice(10 * BioHash)) or
+            SRL.Dice(5 * BioHash);
+end;
+
+(*
+## BaseBankScript.HoverBank
+```pascal
+function TBaseBankScript.HoverBank(): Boolean;
+```
+Moves the mouse to the closest RSObjects.Banks
+
+Example:
+```pascal
+BankScript.HoverBank();
+```
+*)
+function TBaseBankScript.HoverBank(): Boolean;
+begin
+  if ScriptWalker = nil then
+  begin
+    Self.HoveringBank := Banks.Hover();
+    Exit(Self.HoveringBank);
+  end;
+
+  Result := Self.HoveringBank := Bank.Hover();
+end;
+
+
+function TBaseBankScript.RanOut(item: TBankItem; attempts: Int32 = 3): Boolean;
+var
+  attempt: Int32;
+  b: TBox;
+  position: TBankPosition;
+begin
+  for attempt := 1 to attempts do
+  begin
+    if Bank.FindItem(item, b) then
+    begin
+      if Max(1, Bank.CountItemStack(item.Item)) < Min(item.Quantity, 28) then
+      begin
+        Self.BankEmpty := Bank.IsOpen();
+        if Self.BankEmpty then
+          SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds);
+        if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+          Self.CollectEmpty := False;
+        Exit(True);
+      end;
+
+      Continue;
+    end;
+
+    position := Bank._GetCachedPosition(item.Item);
+    if position.Tab = -1 then Continue;
+    if Bank.GetCurrentTab() <> position.Tab then Continue;
+
+    if position.Scroll = -1 then Continue;
+    if not InRange(Bank.GetScrollPosition(), position.Scroll-3, position.Scroll+3) then Continue;
+
+    Break;
+  end;
+
+  Result := Self.BankEmpty := Bank.IsOpen();
+
+  if Self.BankEmpty then
+    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds);
+
+  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+    Self.CollectEmpty := False;
+end;
+
+
+(*
+## BaseBankScript.Withdraw
+```pascal
+function TBaseBankScript.Withdraw(item: TBankWithdrawItem): Boolean;
+```
+Withdraws **item** from the bank.
+
+Example:
+```pascal
+item := TBankItem.Setup('Shark', 1, True);
+if Bank.IsOpen() then
+  BankScript.Withdraw(item);
+```
+*)
+function TBaseBankScript.Withdraw(item: TBankItem; attempts: Int32 = 3): Boolean;
+var
+  count, stack, attempt: Int32;
+  invItem: TItem;
+  b: TBox;
+begin
+  if item.Noted then
+    invItem := 'Noted ' + item.Item
+  else
+    invItem := item.Item;
+
+  for attempt := 1 to attempts do
+  begin
+    stack := Inventory.CountItemStack(invItem);
+    if Inventory.IsFull() and (stack < 1) then Exit; //item not stackable.
+
+    count := Inventory.CountItem(invItem);
+
+    if Bank.FindItem(item, b) then
+    begin
+      if Max(1, Bank.CountItemStack(item.Item)) < Min(item.Quantity, 28) then
+      begin
+        Self.BankEmpty := Bank.IsOpen();
+        if Self.BankEmpty then
+          SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds);
+        if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+          Self.CollectEmpty := False;
+        Exit;
+      end;
+
+      Result := Bank.WithdrawHelper(b, item.Quantity, item.Noted, item.Quantity <> 1);
+    end;
+
+    Result := Result and
+              WaitUntil((Inventory.CountItemStack(invItem) > stack) or
+                        (Inventory.CountItem(invItem) > count), 300, 3000);
+    if Result then Exit;
+
+    Bank.UnHoverIncinerator();
+    if Bank.IsSearchOpen() then  Bank.CloseSearch();
+
+    if attempt > 1 then
+      Mouse.Move(Bank.SlotsArea, True);
+  end;
+
+  Self.BankEmpty := Bank.IsOpen();
+
+  if Self.BankEmpty then
+    SaveScreenshot('bankempty' + DIRECTORYSEPARATOR + 'bankempty', MainScreen.Bounds);
+
+  if Self.CollectEmpty and Self.CollectTimer.IsFinished() then
+    Self.CollectEmpty := False;
+end;
+
+
+(*
+## BaseBankScript.DepositItem
+```pascal
+function TBaseBankScript.DepositItem(out item: TBankItem; isBank, isDepositBox: Boolean = False): Boolean;
+function TBaseBankScript.DepositItem(item: TItem; isBank, isDepositBox: Boolean = False): Boolean; overload;
+```
+Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
+*)
+function TBaseBankScript.DepositItem(item: TBankItem; isBank, isDepositBox: Boolean = False): Boolean; static;
+var
+  count: Int32;
+begin
+  if isBank and isDepositBox then
+  begin
+    isBank := False;
+    isDepositBox := False;
+  end;
+
+  if not isBank and not isDepositBox and not GameInterface.IsOpen() then
+    Exit;
+
+  if not isDepositBox and (isBank or Bank.IsOpen()) then
+  begin
+    count := Inventory.CountItem(item.Item);
+    if count = 0 then
+      Exit(True);
+    Exit(Bank.DepositItem(item, True) and WaitUntil(count > Inventory.CountItem(item.Item), 300, 3000));
+  end;
+
+  if isDepositBox or DepositBox.IsOpen() then
+  begin
+    count := DepositBox.CountInventoryItem(item.Item);
+    if count = 0 then
+      Exit(True);
+
+    if DepositBox.DepositItem(item, True) then
+      Result := WaitUntil(count > DepositBox.CountInventoryItem(item.Item), 300, 3000);
+  end;
+end;
+
+function TBaseBankScript.DepositItem(item: TItem; isBank, isDepositBox: Boolean = False): Boolean; static; overload;
+var
+  tmp: TBankItem;
+begin
+  tmp := TBankItem.Setup(item);
+  Result := TBaseBankScript.DepositItem(tmp, isBank, isDepositBox);
+end;
+
+(*
+## BaseBankScript.DepositItems
+```pascal
+function TBaseBankScript.DepositItem(out items: TBankItemArray; isBank, isDepositBox: Boolean = False): Boolean;
+function TBaseBankScript.DepositItems(item: TItem; isBank, isDepositBox: Boolean = False): Boolean; overload;
+```
+Deposits **item** in the bank through either the bank or deposit box depending on which one is open.
+*)
+function TBaseBankScript.DepositItems(out items: TBankItemArray): Boolean; static;
+var
+  item: TBankItem;
+  isBank, isDepositBox: Boolean;
+begin
+  if not GameInterface.IsOpen() then
+    Exit;
+
+  isBank := Bank.IsOpen();
+  if isBank then
+    isDepositBox := DepositBox.IsOpen();
+
+  if not isBank and not isDepositBox then
+    Exit;
+
+  for item in items do
+    if not TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Exit(False);
+
+  Result := True;
+end;
+
+function TBaseBankScript.DepositItems(items: TItemArray): Boolean; static; overload;
+var
+  item: TItem;
+  isBank, isDepositBox: Boolean;
+begin
+  if not GameInterface.IsOpen() then
+    Exit;
+
+  isBank := Bank.IsOpen();
+  if isBank then
+    isDepositBox := DepositBox.IsOpen();
+
+  if not isBank and not isDepositBox then
+    Exit;
+
+  for item in items do
+    if TBaseBankScript.DepositItem(item, isBank, isDepositBox) then
+      Exit(False);
+
+  Result := True;
+end;
+
+
+(*
+## BaseBankScript.HandleCollectBox
+```pascal
+function TBaseBankScript.HandleCollectBox(items: TItemArray): Boolean;
+```
+Collects **items** from the collectbox.
+
+Example:
+```pascal
+if CollectBox.IsOpen() then
+  BankScript.HandleCollectBox();
+```
+*)
+function TBaseBankScript.HandleCollectBox(items: TItemArray): Boolean;
+begin
+  Self.CollectEmpty := True;
+
+  if Result := CollectBox.ContainsAny(items) then
+  begin
+    Self.CollectEmpty := CollectBox.CollectToBank();
+    Self.BankEmpty := not Self.CollectEmpty;
+  end;
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  MM2MS.SetupZoom();
+  if (Bitmap = GameClient.Image) then
+    Bitmap.Clear();
+
+  inherited(Bitmap);
+end;

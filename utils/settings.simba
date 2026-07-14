@@ -1,0 +1,328 @@
+(*
+# Utility types, contants and variables
+
+This file contains types, contants and variables that need to be pre-loaded for wasplib to compile.
+*)
+
+{$DEFINE WL_SETTINGS_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type
+(*
+## type EWLBankLocation
+
+EWLBankLocation is a enumerator that contains all bank locations supported by WaspLib.
+*)
+  EWLBankLocation = (
+    AL_KHARID_BANK,
+    ARDOUGNE,
+    CASTLE_WARS_BANK,
+    CATHERBY_BANK,
+    CRAFTING_GUILD_BANK,
+    DRAYNOR_VILLAGE_BANK,
+    EDGEVILLE_BANK,
+    FALADOR_BANK,
+    GRAND_EXCHANGE_BANK,
+    LUNAR_ISLE_BANK,
+    MINING_GUILD_BANK,
+    PRIFDDINAS_BANK,
+    SEERS_VILLAGE_BANK,
+    MOR_UL_REK_BANK,
+    VARROCK,
+    WINTERTODT_BANK,
+    SHILO_VILLAGE_BANK,
+    FOSSIL_ISLAND_BANK
+  );
+
+function EWLBankLocation.GetString(i: Int32): String; static;
+begin
+  Result := ToString(EWLBankLocation(i)).Lower().Replace('_bank', '').Replace('_', ' ');
+end;
+
+function EWLBankLocation.GetStrings(): TStringArray; static;
+var
+  i: Int32;
+begin
+  for i := 0 to Ord(High(EWLBankLocation)) do
+    Result += EWLBankLocation.GetString(i);
+end;
+
+function EWLBankLocation.IndexOf(value: String): Int32; static;
+var
+  i: Int32;
+begin
+  value := value.Lower();
+  for i := 0 to Ord(High(EWLBankLocation)) do
+    if value = EWLBankLocation.GetString(i) then
+      Exit(i);
+
+  Result := -1;
+end;
+
+function EWLBankLocation.Find(value: String): EWLBankLocation; static;
+var
+  i: Int32;
+begin
+  value := value.Lower().Replace('''','');
+  for i := 0 to Ord(High(EWLBankLocation)) do
+    if value = EWLBankLocation.GetString(i) then
+      Exit(EWLBankLocation(i));
+end;
+
+type
+  TWLSettings = record(TConfigJSON)
+    Breaks, TextReport, Stats: Boolean;
+    SaveVideo: record Enabled: Boolean; Time: Int32; end;
+    Sleep: record Enabled: Boolean; Hour, HourOverride: String; Length, LengthOverride: Single; end;
+    Antiban: record Enabled, Camera, Mouse, Chat, GameTabs, Bank: Boolean; end;
+
+    RemoteInput: record Enabled, BlockInput, HUDReport, HUDDebug, HUDTransparent: Boolean; end;
+
+    BankLocation: EWLBankLocation;
+  end;
+
+procedure TWLSettings.Setup(jsonFile: String = ScriptName); override;
+var
+  json: TJSONObject;
+  modified: Boolean;
+begin
+  inherited(jsonFile);
+
+  if not Self.Has('max_actions') then
+  begin
+    Self.Put('max_actions', 0);
+    modified := True;
+  end;
+
+  if not Self.Has('max_time') then
+  begin
+    Self.Put('max_time', 0);
+    modified := True;
+  end;
+
+  //ANTIBAN
+  if not Self.Has('antiban') then
+  begin
+    json.Init();
+    Self.Put('antiban', json);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').Has('breaks') then
+  begin
+    Self.GetObject('antiban').Put('breaks', True);
+    modified := True;
+  end;
+
+  //ANTIBAN.TASKS
+  if not Self.GetObject('antiban').has('tasks') then
+  begin
+    json.Init();
+    Self.GetObject('antiban').Put('tasks', json);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('tasks').Has('enabled') then
+  begin
+    Self.GetObject('antiban').getJSONObject('tasks').Put('enabled', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('tasks').Has('camera') then
+  begin
+    Self.GetObject('antiban').getJSONObject('tasks').Put('camera', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('tasks').Has('mouse') then
+  begin
+    Self.GetObject('antiban').getJSONObject('tasks').Put('mouse', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('tasks').Has('chat') then
+  begin
+    Self.GetObject('antiban').getJSONObject('tasks').Put('chat', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('tasks').Has('gametabs') then
+  begin
+    Self.GetObject('antiban').getJSONObject('tasks').Put('gametabs', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('tasks').Has('bank') then
+  begin
+    Self.GetObject('antiban').getJSONObject('tasks').Put('bank', True);
+    modified := True;
+  end;
+
+   //ANTIBAN.SLEEP
+  if not Self.GetObject('antiban').has('sleep') then
+  begin
+    json.Init();
+    Self.GetObject('antiban').Put('sleep', json);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('sleep').has('enabled') then
+  begin
+    Self.GetObject('antiban').getJSONObject('sleep').Put('enabled', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('sleep').has('hour') then
+  begin
+    Self.GetObject('antiban').getJSONObject('sleep').Put('hour', '23:00:00');
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('sleep').has('length') then
+  begin
+    Self.GetObject('antiban').getJSONObject('sleep').Put('length', 8);
+    modified := True;
+  end;
+
+  if not Self.GetObject('antiban').getJSONObject('sleep').has('biohash') then
+  begin
+    Self.GetObject('antiban').getJSONObject('sleep').Put('biohash', True);
+    modified := True;
+  end;
+
+
+  if not Self.Has('reports') then
+  begin
+    Self.Put('reports', True);
+    modified := True;
+  end;
+
+  if not Self.Has('stats') then
+  begin
+    Self.Put('stats', True);
+    modified := True;
+  end;
+
+  //REMOTE_INPUT
+  if not Self.Has('remote_input') then
+  begin
+    json.Init();
+    Self.Put('remote_input', json);
+    modified := True;
+  end;
+
+  if not Self.GetObject('remote_input').has('enabled') then
+  begin
+    Self.GetObject('remote_input').Put('enabled', True);
+    modified := True;
+  end;
+
+  if not Self.GetObject('remote_input').has('hug_debug') then
+  begin
+    Self.GetObject('remote_input').Put('hud_debug', False);
+    modified := True;
+  end;
+
+  if not Self.GetObject('remote_input').has('hud_report') then
+  begin
+    Self.GetObject('remote_input').Put('hud_report', False);
+    modified := True;
+  end;
+
+  if not Self.GetObject('remote_input').has('hud_transparent') then
+  begin
+    Self.GetObject('remote_input').Put('hud_transparent', False);
+    modified := True;
+  end;
+
+  if not Self.GetObject('remote_input').has('block_real_input') then
+  begin
+    Self.GetObject('remote_input').Put('block_real_input', True);
+    modified := True;
+  end;
+
+
+  if not Self.Has('video') then
+  begin
+    json.Init();
+    Self.Put('video', json);
+    modified := True;
+  end;
+
+  if not Self.GetObject('video').has('enabled') then
+  begin
+    Self.GetObject('video').Put('enabled', False);
+    modified := True;
+  end;
+
+  if not Self.GetObject('video').has('time') then
+  begin
+    Self.GetObject('video').Put('time', 30);
+    modified := True;
+  end;
+
+  if not Self.Has('bank_map') then
+  begin
+    Self.Put('bank_map', Ord(EWLBankLocation.GRAND_EXCHANGE_BANK));
+    modified := True;
+  end;
+
+
+  if modified then Self.SaveConfig();
+end;
+
+
+procedure TWLSettings.SetAntiban(state: Boolean);
+begin
+  Self.GetObject('antiban').getJSONObject('tasks').Put('enabled', state);
+end;
+
+procedure TWLSettings.SetAntibanCamera(state: Boolean);
+begin
+  Self.GetObject('antiban').getJSONObject('tasks').Put('camera', state);
+end;
+
+procedure TWLSettings.SetAntibanMouse(state: Boolean);
+begin
+  Self.GetObject('antiban').getJSONObject('tasks').Put('mouse', state);
+end;
+
+procedure TWLSettings.SetAntibanChat(state: Boolean);
+begin
+  Self.GetObject('antiban').getJSONObject('tasks').Put('chat', state);
+end;
+
+procedure TWLSettings.SetAntibanGametabs(state: Boolean);
+begin
+  Self.GetObject('antiban').getJSONObject('tasks').Put('gametabs', state);
+end;
+
+procedure TWLSettings.SetAntibanBank(state: Boolean);
+begin
+  Self.GetObject('antiban').getJSONObject('tasks').Put('bank', state);
+end;
+
+
+
+function TWLSettings.MaxActions(): Integer;
+begin
+  Result := Self.GetInt('max_actions');
+end;
+
+function TWLSettings.MaxTime(): Integer;
+begin
+  Result := Self.GetInt('max_time');
+end;
+
+
+var
+  WLSettings: TWLSettings;
+
+procedure TSRL.Setup(); override;
+begin
+  WLSettings.Setup('wasplib');
+
+  inherited;
+end;

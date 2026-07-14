@@ -1,0 +1,39 @@
+(*
+# File To String
+Small tool to create a function that is able to rewrite the contents of a file
+no matter how complicated it is.
+
+The only caveat is that the file can't have double quotes.
+*)
+
+{$I SRL-T/osr.simba}
+
+const
+  PATH = SIMBA_DATA_DIR + 'wasp-launcher' +
+         DirectorySeparator + 'async' +
+         DirectorySeparator + 'server.simba';
+var
+  content, line: String;
+  lines, result: TStringArray;
+  i: Int32;
+begin
+  ClearDebug();
+  content := ReadFileContents(PATH);
+  lines := content.Split(LineEnding);
+
+  result += 'function GetSimbaFileStr(): String;';
+  result += 'begin';
+
+  for i := 0 to High(lines) do
+  begin
+    if (i>0) and (lines[i] = '') then
+      result[High(result)] := result[High(result)].Replace('+ LineEnding;', '+ LineEnding + LineEnding;')
+    else
+      result += '  Result += "' + lines[i] + '" + LineEnding;';
+  end;
+
+  result += 'end;';
+
+  for line in result do
+    WriteLn line;
+end.

@@ -1,0 +1,235 @@
+{$DEFINE WL_TARGET_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+function WriteFileContents(const fileName: String; const text: String): Boolean; overload;
+begin
+  Result := WriteFileContents(fileName, text, False);
+end;
+
+function CreatePath(const Path: String): Boolean;
+var
+  CurrentPath: String;
+  StrArray: TStringArray;
+  i: Int32;
+begin
+  if DirectoryExists(Path) then
+    Exit(True);
+
+  StrArray := Path.Split('/');
+
+  for i := 0 to High(StrArray) do
+  begin
+    CurrentPath += StrArray[i] + '/';
+    if not DirectoryExists(CurrentPath) then
+      if not CreateDirectory(CurrentPath) then
+        Exit;
+  end;
+
+  Result := DirectoryExists(Path);
+end;
+
+function GetFileCount(Path, Ext: String): Int32;
+begin
+  Result := Length(GetFiles(Path, Ext));
+end;
+
+function GetAgeSortedFiles(Path, Ext: String): TStringArray;
+  function SortFilesByAge(Files: TStringArray; LowToHigh: Boolean = True): TStringArray;
+  var
+    Weights: TIntegerArray;
+    I: Integer;
+  begin
+    SetLength(Weights, Length(Files));
+    for I := 0 to High(Weights) do
+      Weights[I] := FileAge(Files[I]);
+
+    Result := Sorted(Files, Weights, LowToHigh);
+  end;
+begin
+  Result := SortFilesByAge(GetFiles(Path, Ext));
+end;
+
+
+procedure DeleteOldFiles(path, ext: String; keepAmount: Int32);
+var
+  total: Int32;
+  fileArray: TStringArray;
+  i: Int32;
+begin
+  ext := ext.After('.');
+
+  total := Length(GetFiles(path, ext));
+  if total < keepAmount then
+    Exit;
+
+  fileArray := GetAgeSortedFiles(path, ext);
+
+  for i := 0 to (total - keepAmount - 1) do
+    DeleteFile(path + fileArray[i]);
+end;
+
+
+function GetConfigPath(fileName: String): String;
+var
+  path, fileExt: String;
+begin
+  path := WL_DATAPATH + 'configs' + DIRECTORYSEPARATOR;
+  if not fileName.Contains(path) then
+    fileName := path + fileName;
+
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
+    Exit;
+
+  fileName := ExtractFileName(fileName);
+  fileExt := ExtractFileExt(fileName);
+
+  if fileExt = '' then
+    fileExt := '.simba'
+  else
+    fileName := fileName.Before(fileExt);
+
+  Result += fileName + fileExt;
+end;
+
+function GetLogPath(fileName: String): String;
+var
+  path, fileExt, fileTime: String;
+begin
+  path := WL_DATAPATH + 'logs' + DIRECTORYSEPARATOR;
+  if not fileName.Contains(path) then
+    fileName := path + fileName;
+
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
+    Exit;
+
+  fileName := ExtractFileName(fileName);
+  fileExt := ExtractFileExt(fileName);
+
+  if fileExt = '' then
+    fileExt := '.txt'
+  else
+    fileName := fileName.Before(fileExt);
+
+  fileTime := '_' + FormatDateTime('yyyy-mm-dd_hh-mm-ss', Now());
+
+  DeleteOldFiles(Result, fileExt, 100);
+
+  Result += fileName + fileTime + fileExt;
+end;
+
+function GetScreenshotPath(fileName: String): String;
+var
+  path, fileExt, fileTime: String;
+begin
+  path := WL_DATAPATH + 'screenshots' + DIRECTORYSEPARATOR;
+  if not fileName.Contains(path) then
+    fileName := path + fileName;
+
+  Result := ExtractFilePath(fileName);
+  if not ForceDirectories(Result) then
+    Exit;
+
+  fileName := ExtractFileName(fileName).Replace('.', '_');
+  fileExt := ExtractFileExt(fileName);
+
+  if fileExt = '' then
+    fileExt := '.png'
+  else
+    fileName := fileName.Before(fileExt);
+
+  fileTime := '_' + FormatDateTime('yyyy-mm-dd_hh-mm-ss', Now());
+
+  DeleteOldFiles(Result, fileExt, 300);
+
+  Result += fileName + fileTime + fileExt;
+end;
+
+
+procedure WriteConfigFile(fileName: String; strArray: TStringArray);
+var
+  fullPath, path, text, str: String;
+begin
+  fullPath := GetConfigPath(fileName);
+  path := ExtractFilePath(fullPath);
+
+  ForceDirectories(path);
+
+  if FileExists(fullPath) then
+    DeleteFile(fullPath);
+
+  text := 'begin' + LineEnding;
+  for str in strArray do
+    text += '  ' + str + LineEnding;
+  text += 'end;';
+
+  WriteFileContents(fullPath, text);
+end;
+
+
+procedure SaveScreenshot(); overload;
+begin
+  SaveScreenshot('screenshot');
+end;
+
+function SaveScreenshot(fileName: String; bounds: TBox; messageUser: Boolean = True): String; overload;
+var
+  bmp: TMufasaBitmap;
+begin
+  Result := GetScreenshotPath(fileName);
+
+  bmp.FromClient();
+  bmp.HideAccountDetails();
+  bmp.crop(bounds.X1, bounds.Y1, bounds.X2, bounds.Y2);
+
+  bmp.SaveToFile(Result);
+  bmp.Free();
+
+  if messageUser then
+    WriteLn 'Screenshot saved: ' + Result;
+end;
+
+procedure SaveScreenshot(fileName: String; messageUser: Boolean); overload;
+var
+  path: String;
+begin
+  path := GetScreenshotPath(fileName);
+  if path = '' then
+    Exit;
+
+  SaveScreenshot(path, GetClientBounds(), messageUser);
+end;
+
+
+procedure ForceSaveScreenshot();
+var
+  bmp: TMufasaBitmap;
+  path: String;
+begin
+  bmp.FromClient();
+  bmp.HideAccountDetails();
+  path := GetScreenshotPath('terminated' + DIRECTORYSEPARATOR +'screenshot');
+
+  bmp.SaveToFile(path);
+  bmp.Free();
+end;
+
+procedure GenerateLog(fileName: String);
+var
+  f: Int32;
+begin
+  if WL.LogFile <> '' then
+    Exit;
+
+  WL.LogFile := GetLogPath(fileName);
+
+  if FileExists(WL.LogFile) then
+    Exit;
+
+  f := CreateFile(WL.LogFile);
+  CloseFile(f);
+end;
+

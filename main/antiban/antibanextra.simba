@@ -1,0 +1,121 @@
+{$DEFINE WL_ANTIBANEXTRA_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+
+//Antiban overrides:
+
+//Makes inventory patterns more common to each player based on their BioHash.
+function TInventory.RandomPattern(): TIntegerArray; override;
+const
+  PATTERNS: T2DIntegerArray = [
+    DROP_PATTERN_SNAKE, DROP_PATTERN_SPIRAL,
+    DROP_PATTERN_REGULAR, DROP_PATTERN_TOPDOWN,
+    DROP_PATTERN_SNAKE_R, DROP_PATTERN_TOPDOWN_R
+  ];
+var
+  hi, min: Int32;
+begin
+  hi := High(PATTERNS);
+  min := Antiban.GetUniqueInt(Round(hi/2), 0, hi);
+
+  Result := PATTERNS[Antiban.GetUniqueInt(Random(hi+1), min, hi)];
+  if Antiban.BioDice(30) then
+    Result := Result.Reversed();
+end;
+
+//overriden to use Bank.Close with biohash.
+function TGameTabs.Open(tab: EGameTab): Boolean; override;
+  function _InventoryIterfaceIsOpen(): Boolean;
+  begin
+    Result := Bank.IsOpen(False) or DepositBox.IsOpen() or Store.IsOpen();
+  end;
+
+begin
+  if Self.GetCurrentTab() = tab then
+    Exit(True);
+
+  if GameInterface.IsOpen() and _InventoryIterfaceIsOpen() then
+    GameInterface.Close();
+
+  Result := inherited(tab);
+end;
+
+function TCollectBox.Close(chance: Double = BioHash): Boolean; overload;
+begin
+  Result := GameInterface.Close(chance);
+end;
+
+function TGrandExchange.Close(chance: Double): Boolean; overload;
+begin
+  Result := GameInterface.Close(chance);
+end;
+
+
+function TChat.ClickOption(Text: String; chance: Double; Colors: TIntegerArray = [CHAT_COLOR_BLACK, CHAT_COLOR_WHITE]): Boolean; overload;
+var
+  useKeyboard: Boolean;
+begin
+  if chance = BioHash then
+    useKeyboard := Antiban.BioDice(EBioBehavior.KEYBOARD_CHAT_chance)
+  else
+    useKeyboard := SRL.Dice(chance);
+
+  Result := Self.ClickOption(Text, useKeyboard, Colors);
+end;
+
+
+
+function TChat.ClickContinue(chance: Double): Boolean; overload;
+var
+  useKeyboard: Boolean;
+begin
+  if chance = BioHash then
+    useKeyboard := Antiban.BioDice(EBioBehavior.KEYBOARD_CHAT_chance)
+  else
+    useKeyboard := SRL.Dice(chance);
+
+  Result := Self.ClickContinue(useKeyboard);
+end;
+
+function TChooseOption.HasOption(text: TStringArray; out option: TChooseOption_Option; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True): Boolean; override;
+var
+  choices: TChooseOption_OptionArray;
+  i, j, maxTime: Int32;
+begin
+  if not Self.Open() then
+    Exit;
+
+  maxTime := Antiban.GetUniqueInt(400, 200, 900);
+  case Antiban.GetChance(EBioBehavior.REACTION_SPEED) of
+    0.00..0.30: Wait(0, maxTime, wdRight);
+    0.30..0.70: Wait(0, maxTime, wdMean);
+    else        Wait(0, maxTime, wdLeft);
+  end;
+
+  choices := Self.GetOptions();
+
+  for i := 0 to High(text) do
+    for j := 0 to High(choices) do
+    begin
+      if not caseSensitive then
+      begin
+        text[i] := Lowercase(text[i]);
+        choices[j].Text := Lowercase(choices[j].Text);
+      end;
+
+      if text[i] in choices[j].Text then
+      begin
+        option := choices[j];
+        option.StringIndex := i;
+        Exit(True);
+      end;
+    end;
+
+  if closeIfNotFound then
+  begin
+    WaitEx(500, 250);
+    Self.Close();
+  end;
+end;

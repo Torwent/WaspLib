@@ -1,0 +1,155 @@
+{$DEFINE WL_LAMP_HANDLER_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+{$SCOPEDENUMS ON}
+type
+  ERSLampSkill = (
+    ATTACK,
+    STRENGTH,
+    RANGE,
+    MAGIC,
+    DEFENCE,
+    SAILING,
+    HITPOINTS,
+    PRAYER,
+    AGILITY,
+    HERBLORE,
+    THEIVING,
+    CRAFTING,
+    RUNECRAFTING,
+    SLAYER,
+    FARMING,
+    MINING,
+    SMITHING,
+    FISHING,
+    COOKING,
+    FIREMAKING,
+    WOODCUTTING,
+    FLETCHING,
+    CONSTRUCTION,
+    HUNTER
+  );
+
+TLampHandler = record(TSRLBaseRecord)
+  Skill: ERSLampSkill;
+end;
+
+function TLampHandler.FindLampSkills() : T2DPointArray;
+var
+  borderColor : TCTS2Color := CTS2(2304556, 2, 0.01, 0.01);
+  tpa : TPointArray;
+begin
+  if SRL.FindColors(tpa, borderColor, Mainscreen.Bounds) < 1 then
+    Exit;
+
+  Result := tpa.Cluster(5);
+  Result.FilterSize(30, __GT__);
+end;
+
+procedure TLampHandler.HoverLampSkill(skill : ERSLampSkill)
+var
+  skillsCluster: T2DPointArray := Self.FindLampSkills();
+begin
+  if skillsCluster.Len() < 1 then Exit;
+
+  Mouse.Move(skillsCluster[Ord(skill)].Bounds().Expand(-3));
+end;
+
+procedure TLampHandler.HoverLampSkill() overload;
+begin
+  Self.HoverLampSkill(Self.Skill);
+end;
+
+function TLampHandler.Confirm() : Boolean;
+var
+  ocrFilter : TOCRColorFilter;
+  foundBox : TBox;
+begin
+  if ocr.LocateText(Mainscreen.Bounds, "Confirm", FONT_PLAIN_12, ocrFilter.Create([10066329], [1]), foundBox) = 1 then
+  begin
+    Mouse.Click(foundBox, MOUSE_LEFT);
+    if WaitUntil(Chat.HasContinue(), 100, 1200) then
+      Result := Chat.ClickContinue(70);
+  end;
+end;
+
+function TLampHandler.SelectLampSkill(skill : ERSLampSkill) : Boolean;
+var
+  skillsCluster : T2DPointArray := Self.FindLampSkills();
+begin
+  if skillsCluster.Len() < 1 then
+    Exit;
+
+  Mouse.Click(skillsCluster[Ord(skill)].Bounds(), MOUSE_LEFT);
+  Result := Self.Confirm();
+end;
+
+function TLampHandler.SelectLampSkill() : Boolean; overload;
+begin
+  Result := Self.SelectLampSkill(Self.Skill);
+end;
+
+function TLampHandler.HasLamp(out lamp : TItem): Boolean;
+const
+  LAMPS : TItemArray := ['Lamp', 'Antique Lamp'];
+begin
+  for lamp in LAMPS do
+    if Inventory.ContainsItem(lamp) then
+      Exit(True);
+end;
+
+function TLampHandler.Open() : Boolean;
+const
+  BG_COLOR : TCTS2Color := CTS2(7829631, 10, 0.24, 0.10);
+var
+  item : TItem;
+  x, y : Int32;
+  lampInterface: Int32;
+begin
+  if not Self.HasLamp(item) then
+  begin
+    Writeln("Inventory has no lamp");
+    Exit(false);
+  end;
+
+  lampInterface := DTMFromString('mrAAAAHic42BgYFACYh0gjgXiGCA2AWIjIN7LyMBwDoglgGw/IK4B4pVA/ASIrYDijkCsAGSX5OYwqCsrM4QFBjJ4OjszRIaEMAT7+YFxTWkpAyHASADDAADl4g3d');
+
+  if FindDTM(lampInterface, x, y, Mainscreen.Bounds) then
+  begin
+    Writeln("Lamp interface already open");
+    FreeDTM(lampInterface);
+    Exit(true);
+  end;
+
+  if not Inventory.ClickItem(item) then
+    Exit(false);
+
+  if WaitUntil(FindDTM(lampInterface, x, y, Mainscreen.Bounds), 100, 2000) then
+  begin
+    Result := true;
+  end;
+
+  FreeDTM(lampInterface);
+end;
+
+procedure TLampHandler.Setup();
+begin
+  Self.Name := 'LampHandler';
+end;
+
+procedure TLampHandler.Setup(skill : ERSLampSkill); overload;
+begin
+  Self.Skill := skill;
+end;
+
+var
+  LampHandler : TLampHandler;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  LampHandler.Setup();
+end;

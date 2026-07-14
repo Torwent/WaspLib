@@ -1,0 +1,112 @@
+{$DEFINE RELD_BALLOON_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  EBalloonButton = (
+    GRAND_TREE_BALLOON, CASTLE_WARS_BALLOON, ENTRANA_BALLOON,
+    TAVERLEY_BALLOON, CRAFTING_GUILD_BALLOON, VARROCK_BALLOON,
+    CLOSE_BALLOON
+  );
+
+  TBalloonTransport = type TInterface;
+
+procedure TBalloonTransport.Setup(); override;
+begin
+  inherited;
+  Self.ButtonColors := [CTS1(8564948, 0)];
+end;
+
+procedure TBalloonTransport.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+begin
+  inherited;
+
+  alignment.Left := [@InterfaceArea.X1];
+  alignment.Right := [@InterfaceArea.X2];
+  alignment.Top := [@InterfaceArea.Y1];
+  alignment.Bottom := [@InterfaceArea.Y2];
+  alignment.MaxWidth := 512;
+  alignment.MaxHeight := 334;
+end;
+
+function TBalloonTransport.GetButton(button: EBalloonButton): TGameButton;
+begin
+  case button of
+    EBalloonButton.GRAND_TREE_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 52, Self.Bounds().Y1 + 130, Self.Bounds().X2 - 385, Self.Bounds().Y2 - 162);
+    EBalloonButton.CASTLE_WARS_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 62, Self.Bounds().Y1 + 235, Self.Bounds().X2 - 365, Self.Bounds().Y2 - 55);
+    EBalloonButton.ENTRANA_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 198, Self.Bounds().Y1 + 122, Self.Bounds().X2 - 240, Self.Bounds().Y2 - 185);
+    EBalloonButton.TAVERLEY_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 265, Self.Bounds().Y1 + 58, Self.Bounds().X2 - 167, Self.Bounds().Y2 - 250);
+    EBalloonButton.CRAFTING_GUILD_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 290, Self.Bounds().Y1 + 138, Self.Bounds().X2 - 140, Self.Bounds().Y2 - 155);
+    EBalloonButton.VARROCK_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 358, Self.Bounds().Y1 + 32, Self.Bounds().X2 - 80, Self.Bounds().Y2 - 280);
+    EBalloonButton.CLOSE_BALLOON:
+      Result.Bounds := Box(Self.Bounds().X1 + 481, Self.Bounds().Y1 + 10, Self.Bounds().X2 - 8, Self.Bounds().Y2 - 303);
+  end;
+
+  Result.EnabledColors := Self.ButtonEnabledColors;
+  Result.Index := Ord(button);
+  Result.Middle := Result.Bounds.Middle();
+end;
+
+function TBalloonTransport.GetButtons(): TGameButtonArray;
+var
+  i: Int32;
+begin
+  for i := 0 to Ord(High(EBalloonButton)) do
+    Result += Self.GetButton(EBalloonButton(i));
+end;
+
+function TBalloonTransport.IsOpen(): Boolean;
+begin
+  WriteLn SRL.CountColor(Self.ButtonColors[0], Self.Bounds());
+  Result := InRange(SRL.CountColor(Self.ButtonColors[0], Self.Bounds()), 2100, 2500);
+end;
+
+function TBalloonTransport.IsOpen(waitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), waitTime);
+end;
+
+function TBalloonTransport.ClickCloseButton(pressEscape: Boolean = False): Boolean;
+begin
+  if pressEscape then
+  begin
+    Keyboard.PressKey(VK_ESCAPE);
+    Result := True;
+  end
+  else
+    Result := Self.GetButton(CLOSE_BALLOON).Click();
+end;
+
+function TBalloonTransport.Close(pressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(pressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+var
+ BalloonTransport : TBalloonTransport;
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+
+  BalloonTransport.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  BalloonTransport.Setup();
+end;

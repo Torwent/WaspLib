@@ -1,0 +1,191 @@
+{$DEFINE AERO_STORE_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  TStore = record(TTitledInterface)
+    Items: TItemInterface;
+    SlotBoxes: TBoxArray;
+    ItemsArea, InfoBox: TBox;
+  end;
+
+
+function TStore.FindItemBoundaries(): TBoxArray;
+var
+  tpa, final: TPointArray;
+  atpa: T2DPointArray;
+  b: TBox;
+  c: Int32;
+begin
+  if SRL.FindColors(final, ITEM_BORDER, Self.ItemsArea) = 0 then Exit;
+
+  for c in [ITEM_YELLOW_STACK, ITEM_WHITE_STACK, ITEM_GREEN_STACK] do
+    if SRL.FindColors(tpa, c, Self.ItemsArea) > 0 then
+      final += tpa;
+
+  atpa := final.Cluster(50, 3);
+
+  for b in atpa.ToTBA() do
+  begin
+    if b.Height() <= 5 then Continue;
+    Result += Grid(8, 1, 32, b.Height(), [15], [Self.ItemsArea.X1, b.Y1 - 1]);
+  end;
+end;
+
+procedure TStore.Setup(); override;
+begin
+  inherited;
+
+  Self.Name := 'Store';
+  Self.Items.Name := Self.Name + '.Items';
+  Self.Items.SlotBoxesFunction := @Self.FindItemBoundaries;
+  Self.Items.DiscoverOffset := [0, 10, 3, 0];
+end;
+
+procedure TStore.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+begin
+  alignment.MaxWidth := 488;
+  alignment.MaxHeight := 300;
+
+  case GameClient.Mode of
+    EClientMode.FIXED:
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1;
+      alignment.Right := InterfaceArea.Bounds.X2 + 1;
+      alignment.Top := InterfaceArea.Bounds.Y1 + 3;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 + 3;
+    end;
+
+    EClientMode.RESIZABLE_CLASSIC, EClientMode.RESIZABLE_MODERN:
+    begin
+      alignment.Left := InterfaceArea.Bounds.X1 - 1;
+      alignment.Right := InterfaceArea.Bounds.X2;
+      alignment.Top := InterfaceArea.Bounds.Y1 + 1;
+      alignment.Bottom := InterfaceArea.Bounds.Y2 + 4;
+    end;
+  end;
+
+  Self.SetupAlignment(alignment);
+
+  Self.SlotBoxes := Grid(8, 5, 35, 32, [12, 16], [Self.Bounds.X1 + 61, Self.Bounds.Y1 + 40]);
+  Self.ItemsArea := Self.SlotBoxes.Merge();
+
+  Self.InfoBox.X1 := Self.Bounds.X1 + 30;
+  Self.InfoBox.Y1 := Self.Bounds.Y2 - 35;
+  Self.InfoBox.X2 := Self.Bounds.X1 + 100;
+  Self.InfoBox.Y2 := Self.Bounds.Y2 - 12;
+  Self.InfoBox.LimitTo(Self.Bounds);
+end;
+
+
+function TStore.IsOpen(): Boolean;
+begin
+  Result := ['Value','check'] in OCR.Recognize(Self.InfoBox, TOCRThresholdFilter.Create(15), FONT_PLAIN_12);
+end;
+
+function TStore.IsOpen(WaitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), WaitTime);
+end;
+
+function TStore.Close(PressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+function TStore.FindItem(item: TItem; out box: TBox): Boolean;
+begin
+  if not Self.IsOpen() then Exit;
+  Result := Self.Items.Find([item], box);
+end;
+
+
+function TStore.FindAll(items: TItemArray; out boxes: TBoxArray): Boolean;
+begin
+  Result := Self.Items.FindAll(items, boxes);
+end;
+
+
+function TStore.ContainsItem(item: TItem): Boolean;
+var
+  b: TBox;
+begin
+  Result := Self.FindItem(item, b);
+end;
+
+function TStore.ContainsAny(itemArray: TItemArray): Boolean;
+begin
+  Result := Self.Items.ContainsAny(itemArray);
+end;
+
+function TStore.ContainsAll(itemArray: TItemArray): Boolean;
+var
+  tba: TBoxArray;
+begin
+  Result := Self.FindAll(itemArray, tba);
+end;
+
+
+function TStore.CountItemStack(item: TItem): Int32;
+begin
+  Result := Self.Items.CountStack(item);
+end;
+
+function TStore.HoverItem(item: TItem): Boolean;
+begin
+  Result := Self.Items.MouseItem(item);
+end;
+
+function TStore.ClickItem(item: TItem; Option: String = ''): Boolean;
+begin
+  if not Self.IsOpen() or not Self.HoverItem(item) then Exit;
+
+  if (option = '') or MainScreen.IsUpText(option) then
+  begin
+    Mouse.Click(MOUSE_LEFT);
+    Exit(True);
+  end;
+
+  Result := ChooseOption.Select(option)
+end;
+
+procedure TStore.Draw(bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then Exit;
+  inherited;
+  bitmap.DrawBoxes(Self.SlotBoxes, $00FFFF);
+end;
+
+var
+  Store: TStore;
+
+function TGameTabs.GetCurrentTab(): EGameTab; override;
+begin
+  Result := inherited;
+  if (Result = EGameTab.UNKNOWN) and Store.IsOpen() then
+    Result := EGameTab.INVENTORY;
+end;
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+  Store.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  Store.Setup();
+end;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+  Store.Draw(bitmap);
+end;

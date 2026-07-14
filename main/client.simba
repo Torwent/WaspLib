@@ -1,0 +1,82 @@
+(*
+# GameClient
+Extensions to TGameClient.
+
+One thing to keep in mind is that WaspLib enforces the use of Remote Input by default.
+
+To disable it you have to use either of this snippets in your scripts:
+
+```pascal
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+//or
+begin
+WLSettings.RemoteInput.Enabled := False;
+end;
+*)
+{$DEFINE WL_GameClient_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+procedure TGameClient.Setup(); override;
+begin
+  Self.Name := 'GameClient';
+
+  if not Self.Revalidate() then
+    TerminateScript('Please refocus the client!');
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+    {$IFNDEF SCRIPT_GUI}
+      Self.RemoteInput.Setup();
+    {$ENDIF}
+  {$ENDIF}
+
+  Self.Mode := Self.DetectClientMode(True);
+  if Self.Mode = EClientMode.UNKNOWN then
+    Self.Mode := EClientMode.FIXED; // Fixed as default so we can login if needed
+  Self.ClientModeChanged();
+end;
+
+function TOptions.HideRoofs(): Boolean;
+begin
+  //overriden later in options file.
+  Result := True;
+end;
+
+procedure TGameClient.CheckClientSettings();
+var
+  userB: TBox;
+begin
+  if not MainScreen.HighestPitch then MainScreen.SetHighestPitch();
+
+  if not WL.GameSettings.MaxBrightness then
+  begin
+    WL.GameSettings.MaxBrightness := Options.SetMaxBrightness();
+
+    if (MM2MS.ZoomLevel = -1) and Options.IsOpen() and (Options.GetCurrentTab() = EOptionsTab.DISPLAY) then
+      MM2MS.ZoomLevel := Options.GetZoomLevel();
+  end;
+
+  if not WL.GameSettings.RoofsHidden then
+    WL.GameSettings.RoofsHidden := Options.HideRoofs();
+
+  if XPBar.Tracker.Current = 0 then
+    XPBar.Read();
+
+  if WLSettings.GetObject('video').getBoolean('enabled') and not WL.IsRecording then
+  begin
+    userB := Chat.GetDisplayNameBox();
+    if userB = Chat.LineBoxes[CHAT_INPUT_LINE] then
+      userB := [];
+
+    Recorder.Start(WLSettings.GetObject('video').GetInt('time'), WL_DATAPATH + 'videos', userB, XPBar.Bounds);
+  end;
+end;
+
+function TGameClient.IsLoggedIn(): Boolean; override;
+begin
+  Result := inherited;
+
+  if Result then
+    Self.CheckClientSettings();
+end;

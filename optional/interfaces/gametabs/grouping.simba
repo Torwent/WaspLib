@@ -1,0 +1,420 @@
+{$DEFINE WL_GROUPING_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+//Made by CJ
+type
+  EGroupingTab = (CHAT_CHANNEL, YOUR_CLAN, ANOTHER_CLAN, ACTIVITY);
+  EGroupingButton = (PVP_ARENA, JOIN, TELEPORT);
+
+  TGrouping = record(TInterface)
+    Tabs: array [EGroupingTab] of TBox;
+  end;
+
+procedure TGrouping.Setup(); override;
+begin
+  inherited;
+  Self.Name := 'Grouping';
+  Self.ButtonColors += CTS1(2700606, 1);
+  Self.ButtonColors += CTS0(5334130, 1);
+end;
+
+procedure TGrouping.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+  boxes: TBoxArray;
+  i: Int32;
+begin
+  alignment.Left := GameTab.Bounds.X1;
+  alignment.Right := GameTab.Bounds.X2;
+  alignment.Top := GameTab.Bounds.Y1;
+  alignment.Bottom := GameTab.Bounds.Y2;
+
+  Self.SetupAlignment(alignment);
+
+  Self.ScrollArea.X1 := Self.Bounds.X1 + 3;
+  Self.ScrollArea.Y1 := Self.Bounds.Y1 + 69;
+  Self.ScrollArea.X2 := Self.Bounds.X2 - 3;
+  Self.ScrollArea.Y2 := Self.Bounds.Y2 - 47;
+
+  boxes := Grid(4, 1, 41, 20, [5], [Self.Bounds.X1 + 2, Self.Bounds.Y1 + 4]);
+  for i := 0 to Ord(High(EGroupingTab)) do
+    Self.Tabs[EGroupingTab(i)] := boxes[i];
+end;
+
+function TGrouping.IsOpen(): Boolean;
+begin
+  Result := (GameTabs.GetCurrentTab = EGameTab.CLAN);
+end;
+
+function TGrouping.Open(): Boolean;
+begin
+  Result := GameTabs.Open(EGameTab.CLAN);
+end;
+
+function TGrouping.GetGroupingButtons(): TGameButtonArray;
+begin
+    Result := Self.FindButtons([[66, 18]]);//, Self.Bounds());
+end;
+
+function TGrouping.DoesActivityHaveTeleport(activity : string) : Boolean;
+const
+  VALID_TELEPORTS : TStringArray := ['barbarian assault', 'games room', 'castle wars', 'clan wars', 'fish trawler', "giants' foundry", "guardians of the rift", "last man standing", "nightmare zone", "pest control", "rat pits", "shades of mort'ton", "soul wars", "tithe farm", "trouble brewing", "tzhaar fight pit" ];
+var
+  tempStr : string;
+begin
+
+  for tempStr in VALID_TELEPORTS do
+  begin
+    if tempStr.Contains(activity) then
+      Exit(true);
+  end;
+end;
+
+function TGrouping.SelectActivity(activity : string) : Boolean;
+var
+  dropDowns : TDropDownArray;
+  activityScrollBar : TGameScrollBar;
+  textBounds : TBoxArray;
+  foundStrings : TStringArray;
+  i : Int32;
+  stringFound: Boolean;
+  selectedString, endString : string;
+  scrollDirection : Int32;
+  searchTimer : TCountdown;
+begin
+
+  if activity.Len() < 2 then
+    Exit;
+
+  if not Self.DoesActivityHaveTeleport(activity) then
+  begin
+    Writeln("Activity: ", activity, " does not have a valid teleport");
+    Exit(false);
+  end;
+
+  if Self.GetCurrentTab() <> EGroupingTab.ACTIVITY then
+  begin
+    if not WaitUntil(Self.OpenTab(EGroupingTab.ACTIVITY), 200, 1000) then
+    begin
+      Writeln("Activity Tab not open");
+      Exit;
+    end;
+  end;
+
+  while Length(dropDowns) < 1 do
+  begin
+    dropdowns := Self.FindDropDown([[178, 20]], CTS0(4148568, 1));
+    Wait(35);
+  end;
+  activity := activity.ToLower();
+  selectedString := OCR.Recognize(dropDowns[0].Bounds, TOCRColorFilter.Create([2070783], [1]), FONT_PLAIN_12);
+  selectedString := selectedString.ToLower();
+
+  if selectedString.Contains(activity) then
+    Exit(true);
+
+  activityScrollbar := Self.GetScrollBar();
+  //Check if scroll area already open
+  if InRange(activityScrollBar.Slider.Height(), activityScrollBar.SliderRegion.Height() - 3,  activityScrollBar.SliderRegion.Height() + 3) then
+  begin
+    Mouse.Click(dropDowns[0].Bounds, MOUSE_LEFT);
+    activityScrollbar := Self.GetScrollBar();
+  end;
+
+  Mouse.Move(Self.ScrollArea, false, EMouseDistribution.MOUSE_DISTRIBUTION_GAUSS);
+  Wait(Random(120, 450));
+  foundStrings := OCR.RecognizeLines(Self.ScrollArea, TOCRColorFilter.Create([2070783], [1]), FONT_PLAIN_12, textBounds);
+
+  scrollDirection := 1;
+  endString := "Volcanic Mines";
+
+  if not selectedString.Contains("select") then
+  begin
+    //The group list is sorted so if the first letter we find is higher than the activity's first letter, we scroll down.
+    if Byte(activity[1]) < Byte(selectedString[1]) then
+    begin
+      scrollDirection := -1;
+      endString := "Barbarian Assault"
+    end;
+  end;
+
+  searchTimer.Init(6500);
+
+  while (not searchTimer.IsFinished()) and not foundStrings.Contains(endString) do
+  begin
+    foundStrings := OCR.RecognizeLines(Self.ScrollArea, TOCRColorFilter.Create([2070783], [1]), FONT_PLAIN_12, textBounds);
+    for i := 0 to High(foundStrings) do
+    begin
+      selectedString := foundStrings[i].ToLower();
+
+      if selectedString.Contains(activity) then
+      begin
+        stringFound := true;
+        break;
+      end;
+    end;
+
+    if stringFound then
+      break;
+
+    Self.SetScrollPosition(Self.GetScrollPosition() + (scrollDirection * 1));
+    Wait(Random(500, 800));
+  end;
+
+  if not stringFound or searchTimer.IsFinished() then
+    Exit;
+
+  if stringFound then
+    Mouse.Click(textBounds[i], MOUSE_LEFT);
+
+  //Verify we selected the correct thing.
+  selectedString := OCR.Recognize(dropDowns[0].Bounds, TOCRColorFilter.Create([2070783], [1]), FONT_PLAIN_12);
+  selectedString := selectedString.ToLower();
+  Result := selectedString.Contains(activity);
+end;
+
+function TGrouping.GetButtons(): TGameButtonArray;
+begin
+  Result := Self.FindButtons([[38,38]]);
+end;
+
+function TGrouping.GetButton(Button: EGroupingButton): TGameButton;
+var
+  Buttons: TGameButtonArray := Self.GetButtons;
+begin
+  if Length(Buttons) = Length(EGroupingButton) then
+    Result := Buttons[Button];
+end;
+
+function TGrouping.GetCurrentTab(): EGroupingTab;
+var
+  tab: EGroupingTab;
+  count : Int32;
+begin
+  for tab := Low(EGroupingTab) to High(EGroupingTab) do
+  begin
+    count := SRL.CountColor(2700606, Self.Tabs[tab]) + SRL.CountColor(CTS1(3686730, 5), Self.Tabs[tab]);
+    if count > 50 then
+      Exit(tab);
+  end;
+end;
+
+function TGrouping.OpenTab(tab: EGroupingTab): Boolean;
+begin
+  if Self.GetCurrentTab() = tab then Exit(True);
+  Mouse.Click(Self.Tabs[tab], MOUSE_LEFT);
+  Result := WaitUntil(Self.GetCurrentTab() = tab, 200, 3000);
+end;
+
+function TInterface.FindDropDown(Dimensions: TGameButtonDimensions; borderColor : TCTS0Color): TDropDownArray; overload;
+  function FindArrow(B: TBox; Color: TCTS0Color; Dimensions: TGameButtonDimensions): Boolean;
+  var
+    TPA: TPointArray;
+    ATPA: T2DPointArray;
+    I, W, H: Int32;
+    Boxes: TBoxArray;
+  begin
+    if SRL.FindColors(TPA, Color, B) > 0 then
+      ATPA += TPA;
+
+    ATPA := ATPA.Merge.Cluster(1);
+
+    for TPA in ATPA do
+    begin
+      if Length(TPA) < 50 then
+        Continue;
+
+      B := TPA.Bounds;
+      B.GetDimensions(W, H);
+
+      for I := 0 to High(Dimensions) do
+      begin
+        if ((W = Dimensions[I].Width) or (Dimensions[I].Width = 0)) and
+           ((H = Dimensions[I].Height) or (Dimensions[I].Height = 0)) and
+            (TPA.Frameness = 100) then
+          Boxes += B;
+      end;
+    end;
+
+    Result := Length(Boxes) = 1;
+  end;
+
+var
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
+  I, W, H: Int32;
+  B: TBox;
+  Boxes: TBoxArray;
+begin
+  B := Self.Bounds;
+
+  if SRL.FindColors(TPA, borderColor, B) > 0 then
+    ATPA += TPA;
+
+  ATPA := ATPA.Merge.Cluster(1);
+  for TPA in ATPA do
+  begin
+    if Length(TPA) < 50 then
+    begin
+      Continue;
+    end;
+
+    B := TPA.Bounds;
+    B.GetDimensions(W, H);
+    for I := 0 to High(Dimensions) do
+    begin
+      if ((W = Dimensions[I].Width) or (Dimensions[I].Width = 0)) and
+         ((H = Dimensions[I].Height) or (Dimensions[I].Height = 0)) and
+         (TPA.Frameness > 91) and FindArrow(B, CTS0(65536, 1), [[16, 16]]) then
+        Boxes += B;
+    end;
+  end;
+
+  Boxes.SortByXY(10);
+
+  SetLength(Result, Length(Boxes));
+  for I := 0 to High(Boxes) do
+  begin
+    Result[I].Index := I;
+    Result[I].Bounds := Boxes[I];
+    Result[I].Middle := Boxes[I].Middle;
+    Result[I].PParent := @Self;
+  end;
+end;
+
+procedure TGrouping.Draw(bitmap: TMufasaBitmap); override;
+var
+  buttons: TGameButtonArray;
+begin
+  if not Self.IsOpen() then Exit;
+
+  inherited;
+
+  bitmap.DrawBoxes(Self.Tabs, $00FFFF);
+
+  buttons := Self.GetButtons();
+  buttons.Draw(bitmap);
+end;
+
+var
+  Grouping: TGrouping;
+
+function TGameTabs.GetCurrentTab(): EGameTab; override;
+begin
+  Result := inherited;
+  if Result = EGameTab.UNKNOWN then Result := EGameTab.CLAN;
+end;
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+  Grouping.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  Grouping.Setup();
+end;
+
+function TGrouping.TeleportToActivity(activity : string) : Boolean;
+  function GetTeleportTestCoords() : TPointArray;
+  const
+    DOT_COLORS: array of TCTS2Color = [
+      [66030, 7, 2.43, 0.13],
+      [66038, 12, 0.01, 0.14],
+      [14869218, 12, 0.01, 0.01]
+    ];
+    BOX_SCALE: Int32 = 25;
+  var
+    tpa, mmPoints, mmTemp : TPointArray;
+    mmC : TPoint;
+    searchBox : TBox;
+    i : Int32;
+  begin
+    mmC := Minimap.Center;
+    searchBox := Box(mmC, BOX_SCALE, BOX_SCALE);
+    tpa := searchBox.ToRectangle().ToTPA().Connect();
+    tpa.Fill();
+
+    for i := 0 to High(DOT_COLORS) do
+    begin
+      SRL.FindColors(mmTemp, DOT_COLORS[i], searchBox);
+      mmPoints += mmTemp;
+    end;
+
+    tpa := tpa.Difference(mmPoints);
+    tpa.SortFrom();
+
+    for i := 1 to 5 do
+      Result += tpa.RandomValue();
+  end;
+
+var
+  buttons : TGameButtonArray;
+begin
+  if not Self.Open() then
+    Exit;
+
+  if not Self.SelectActivity(activity) then
+  begin
+    Writeln("Could not select activity: ", activity);
+    Exit;
+  end;
+
+  Wait(Random(110, 421));
+
+  buttons := Self.GetGroupingButtons();
+
+  if buttons = [] then
+  begin
+    Writeln("No grouping buttons!");
+    Exit;
+  end;
+
+  Mouse.Click(buttons[EGroupingButton.TELEPORT].Bounds, MOUSE_LEFT);
+  Result := true;
+  (*
+  testPoints := GetTeleportTestCoords();
+  teleportColorMean := GetColors(testPoints).Mean();
+  teleportTimer.Init(Random(16000, 20000));
+  if WaitUntil(GetColors(testPoints).Mean() <> teleportColorMean, 150, teleportTimer.Length) then
+  begin
+    Result := true;
+  end;
+  *)
+end;
+
+function TGrouping.TeleportToActivtyWithChat(activity, chatOption : string; closeIfNotFound : Boolean = true) : Boolean;
+begin
+  if (Length(activity) < 2) or (Length(chatOption) < 2) then
+    Exit;
+
+  if not Self.TeleportToActivity(activity) then
+    Exit;
+
+  if not WaitUntil(Chat.IsOpen(), 200, 1400) then
+  begin
+    Writeln("Failed to open chat");
+    Exit;
+  end;
+
+  chatOption := chatOption.Capitalize();
+
+  if WaitUntil(Chat.HasContinue(), 120, 1200) then
+    Chat.ClickContinue(false);
+
+  Result := WaitUntil(not Chat.IsOpen() or Chat.ClickOption(chatOption, false), 200, 1500);
+
+  if not Result and closeIfNotFound then
+    Keyboard.PressKey(VK_ESCAPE);
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  Grouping.Draw(Bitmap);
+end;

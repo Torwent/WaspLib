@@ -1,0 +1,95 @@
+{$DEFINE WL_REGIONS_UTILS_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type
+  TNamedRegion = record
+    Name: String;
+    Bounds: TBox;
+  end;
+
+  TNamedRegionsArray = array of TNamedRegion; //This is different from the ones below but share the same methods!
+
+
+function TNamedRegionsArray.IndexOf(name: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Name = name then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TNamedRegionsArray.IndexOf(bounds: TBox): Int32; overload;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Bounds = bounds then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+function TNamedRegionsArray.IndexOf(point: TPoint): Int32; overload;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Bounds.Contains(point) then
+      Exit(Result);
+
+  Result := -1;
+end;
+
+
+function TNamedRegionsArray.Find(name: String): TNamedRegion;
+begin
+  Result := Self[Self.IndexOf(name)];
+end;
+
+function TNamedRegionsArray.Find(bounds: TBox): TNamedRegion; overload;
+begin
+  Result := Self[Self.IndexOf(bounds)];
+end;
+
+function TNamedRegionsArray.Find(point: TPoint): TNamedRegion; overload;
+begin
+  Result := Self[Self.IndexOf(point)];
+end;
+
+
+function TNamedRegionsArray.GetStrings(): TStringArray;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    Result += Self[i].Name;
+end;
+
+type
+  TBankRegionArray = type TNamedRegionsArray;
+  TCombatRegionArray = type TNamedRegionsArray;
+
+var
+  RSBankRegions: TBankRegionArray;
+  RSNamedRegionsArray: TNamedRegionsArray;
+
+procedure TBankRegionArray.Setup();
+var
+  i, j: Int32;
+  str: String;
+begin
+  SetLength(Self, Ord(High(EWLBankLocation)) + 1);
+
+  for i := 0 to Ord(High(EWLBankLocation)) do
+    for j := 0 to High(RSNamedRegionsArray) do
+    begin
+      str := ToString(EWLBankLocation(i)).Lower().Replace('_bank', '').Replace('_', ' ');
+      if RSNamedRegionsArray[j].Name.Lower().Replace('''','') = str then
+      begin
+        Self[i] := RSNamedRegionsArray[j];
+        Break;
+      end;
+
+      if (i = Ord(High(EWLBankLocation))) and (j = High(RSNamedRegionsArray)) then
+        WriteLn('DEBUG WARNING: EWLBankLocation: ', str, ' doesn''t match any RSRegion!');
+    end;
+end;

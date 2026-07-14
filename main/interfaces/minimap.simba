@@ -1,0 +1,278 @@
+(*
+# Minimap
+Methods to handle Minimap. Extends SRL's Minimap.
+*)
+
+{$DEFINE WL_MINIMAP_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+function TMinimap.PercentBlack(): Integer;
+var
+  tpa: TPointArray;
+begin
+  SRL.FindColors(tpa, CTS0(0,2), Self.Bounds);
+  if Length(tpa) < 1 then Exit;
+  FilterPointsPie(tpa, 0, 360, 0, 73, Self.Center.X, Self.Center.Y);
+  Result := ceil((Length(tpa) * 100) / ((Pi * (73 * 73)) * ((360 - 0) / 360.0)-((Pi * 0) * 1)));
+end;
+
+(*
+## Minimap.WaitMoving
+```pascal
+procedure TMinimap.WaitMoving(doAntiban: Boolean = True);
+```
+Gives **Minimap.WaitPlayerMoving** the ability to perform antiban tasks while moving.
+
+Example:
+```pascal
+Minimap.WaitMoving();
+```
+*)
+procedure TMinimap.WaitMoving(doAntiban: Boolean); overload;
+var
+  timeout, countdown: TCountDown;
+  moving: Boolean;
+begin
+  timeout.Init(Round(SRL.TruncatedGauss(20000, 25000)));
+
+  countdown.Init(Round(SRL.TruncatedGauss(500, 1500)));
+  countdown.timeout := GetTickCount() + Round(SRL.TruncatedGauss(2500, 3500));
+
+  repeat
+    if doAntiban then
+      Antiban.WalkingTasks();
+
+    moving := Self.IsPlayerMoving();
+
+    if moving then
+      countdown.Restart();
+
+  until timeout.IsFinished() or (not moving and countdown.IsFinished()) or not Self.HasFlag();
+end;
+
+procedure TMinimap.WaitMoving(); override;
+begin
+  Self.WaitMoving(True);
+end;
+
+
+(*
+## Minimap.OnGroundLevel
+```pascal
+function TMinimap.OnGroundLevel(threshold: Int32 = 3300): Boolean;
+```
+**Minimap.OnGroundLevel** returns true if we are likely to be on the ground level.
+This works by counting the amount of black in the minimap and might give false positives/negatives if there's more than 3500 black pixels on the minimap.
+A **threshold** can be set for this counting, the default being 3300.
+
+Example:
+```pascal
+WriteLn Minimap.OnGroundLevel();
+```
+*)
+function TMinimap.OnGroundLevel(threshold: Int32 = 3300): Boolean;
+var
+  p: TPoint;
+  tpa, finalTPA: TPointArray;
+begin
+  if SRL.FindColors(tpa, CTS0(0,2), Self.Bounds) = 0 then
+    Exit(True);
+
+  for p in tpa do
+    if SRL.PointInPoly(p, Self.Polygon) then
+      finalTPA += p;
+
+  Result := Length(finalTPA) < threshold;
+end;
+
+(*
+## Minimap.InPOH
+```pascal
+function TMinimap.InPOH();
+```
+**Minimap.InPOH** returns true if we are in a POH.
+This might give false positives if you are upstairs or in a place with few colors on the minimap.
+It might also give false negatives if the POH is crowded.
+
+Example:
+```pascal
+WriteLn Minimap.InPOH();
+```
+*)
+function TMinimap.InPOH(): Boolean;
+var
+  tpa: TPointArray;
+  colorArray: TIntegerArray;
+  blackAmount: Int32;
+  colorAmount: Int32;
+begin
+  tpa := Self.Polygon.Connect().ShapeFill().Erode(10);
+
+  colorArray := GetColors(tpa);
+  blackAmount := Length(colorArray.FindAll(0));
+
+  ClearSameIntegers(colorArray);
+
+  colorAmount := Length(colorArray);
+  Result := (colorAmount > 3) and (colorAmount < 25) and (blackAmount < 3500);
+end;
+
+
+(*
+## Minimap.FindArrow
+```pascal
+function TMinimap.FindRedArrow(out tpa: TPointArray): Boolean;
+function TMinimap.FindRedArrow(): Boolean; overload;
+function TMinimap.FindYellowArrow(out tpa: TPointArray): Boolean;
+function TMinimap.FindYellowArrow(): Boolean; overload;
+function TMinimap.FindArrow(out tpa: TPointArray): Boolean;
+function TMinimap.FindArrow(): Boolean; overload;
+```
+Returns true if there's a an arrow on minimap.
+If a TPointArray is passed as a parameter it will return with the location of the arrow.
+
+Example:
+```pascal
+Writeln Minimap.FindArrow();
+```
+*)
+function TMinimap.FindRedArrow(out tpa: TPointArray): Boolean;
+const
+  RED: TCTS0Color = [255, 0];
+var
+  atpa: T2DPointArray;
+begin
+  if SRL.FindColors(tpa, RED, Self.Bounds) = 0 then
+    Exit;
+
+  atpa := tpa.Cluster(1);
+
+  for tpa in atpa do
+    if InRange(Length(tpa), 30, 128) then
+      Exit(True);
+end;
+
+function TMinimap.FindRedArrow(): Boolean; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.FindRedArrow(tpa);
+end;
+
+function TMinimap.FindYellowArrow(out tpa: TPointArray): Boolean;
+var
+  tempTPA: TPointArray;
+begin
+  SetLength(tpa, 0);  // Initialize the output array
+
+  // Find the first color and add the points to tpa
+  if SRL.FindColors(tempTPA, CTS2(5633533, 17, 0.04, 0.15), Self.Bounds) > 0 then
+    tpa := tpa + tempTPA;
+
+  // Return true if tpa has points and its length is 16 or less
+
+  Result := (Length(tpa) > 5) ;
+end;
+
+function TMinimap.FindYellowArrow(): Boolean; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.FindYellowArrow(tpa);
+end;
+
+function TMinimap.FindArrow(out tpa: TPointArray): Boolean;
+begin
+  Result := Self.FindYellowArrow(tpa) or Self.FindRedArrow(tpa);
+end;
+
+function TMinimap.FindArrow(): Boolean; overload;
+begin
+  Result := Self.FindYellowArrow() or Self.FindRedArrow();
+end;
+
+
+(*
+## Minimap.WaitArrow
+```pascal
+function TMinimap.WaitRedArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TMinimap.WaitRedArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TMinimap.WaitYellowArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TMinimap.WaitYellowArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TMinimap.WaitArrow(tpa: TPointArray; waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+function TMinimap.WaitArrow(waitTime: Int32 = 600; interval: Int32 = -1): Boolean;
+```
+Waits **waitTime** for a an arrow to appear on Minimap.
+If a TPointArray is passed as a parameter it will return with the location of the arrow tip.
+
+Example:
+```pascal
+Writeln Minimap.WaitArrow();
+```
+*)
+function TMinimap.WaitRedArrow(out tpa: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 200);
+
+  Result := WaitUntil(Self.FindRedArrow(tpa), interval, waitTime);
+end;
+
+function TMinimap.WaitRedArrow(waitTime: Int32 = 120; interval: Int32 = -1): Boolean; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.WaitRedArrow(tpa, waitTime, interval);
+end;
+
+function TMinimap.WaitYellowArrow(out tpa: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 200);
+
+  Result := WaitUntil(Self.FindYellowArrow(tpa), interval, waitTime);
+end;
+
+function TMinimap.WaitYellowArrow(waitTime: Int32 = 120; interval: Int32 = -1): Boolean; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.WaitYellowArrow(tpa, waitTime, interval);
+end;
+
+function TMinimap.WaitArrow(out tpa: TPointArray; waitTime: Int32 = 120; interval: Int32 = -1): Boolean;
+begin
+  if (interval = -1) then
+    interval := SRL.TruncatedGauss(50, 200);
+
+  Result := WaitUntil(Self.FindArrow(tpa), interval, waitTime);
+end;
+
+function TMinimap.WaitArrow(waitTime: Int32 = 120; interval: Int32 = -1): Boolean; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.WaitArrow(tpa, waitTime, interval);
+end;
+
+(*
+## Minimap.HasDotUnder
+```pascal
+function TMinimap.HasDotUnder(): Boolean;
+```
+Checks if the player has a dot under it. This will include all types of EMinimapDot.
+
+Example:
+```pascal
+Writeln Minimap.HasDotUnder();
+```
+*)
+function TMinimap.HasDotUnder(): Boolean;
+var
+  tpa: TPointArray;
+begin
+  if SRL.FindColors(tpa, 65536, Box(Self.Center, 2, 2)) > 0 then
+    Result := tpa.Find([Self.Center.X, Self.Center.Y + 2]) > -1;
+end;

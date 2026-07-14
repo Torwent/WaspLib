@@ -1,0 +1,68 @@
+const
+  PATH = {$macro CURRENT_DIRECTORY};
+  MONSTER_NAMES_FILE  = PATH + 'monsters';
+  MONSTERS_ZIP  = PATH + 'monsters.zip';
+  JSONS_PATH = PATH + 'monstersfiles' + DIRECTORYSEPARATOR;
+  DATA_URL = 'https://raw.githubusercontent.com/0xNeffarion/osrsreboxed-db/5502be036e661a67b14f2570c336759f33ab4ba9/docs/monsters-complete.json';
+
+var
+  Data, NPC, Drop: TJSONObject;
+  Drops: TJSONArray;
+  Keys, Output: TStringList;
+  Name, ID, FileStr: String;
+  FileArray: TStringArray;
+  i, j: Int32;
+begin
+  ClearDebug();
+  DeleteFile(MONSTERS_ZIP);
+  DeleteFile(MONSTER_NAMES_FILE);
+  ForceDirectories(JSONS_PATH);
+
+  Output.Init();
+  AddOnTerminate(@Output.Free);
+
+  Data.Init(GetPage(DATA_URL));
+  AddOnTerminate(@Data.Free);
+
+  Keys := Data.Keys;
+
+  for i := 0 to Keys.GetCount() - 1 do
+  begin
+    if (i mod 100 = 0) then
+      WriteLn(i, '/', Keys.GetCount);
+
+    NPC := Data.GetJSONObject(Keys.GetStrings(i));
+
+    if NPC.getBoolean('duplicate') then
+      Continue;
+
+    ID := NPC.GetString('id');
+
+    NPC.remove('last_updated');
+    NPC.remove('incomplete');
+    NPC.remove('members');
+    NPC.remove('release_date');
+    NPC.remove('duplicate');
+    NPC.remove('examine');
+    NPC.remove('wiki_name');
+    NPC.remove('wiki_url');
+
+    Drops := NPC.getJSONArray('drops');
+
+    for j := 0 to Drops.length() - 1 do
+    begin
+      drop := Drops.getJSONObject(j);
+      drop.Remove('members');
+    end;
+
+    FileStr := JSONS_PATH + ID + '.json';
+    FileArray += FileStr;
+    WriteFileContents(FileStr, LowerCase(StringReplace(NPC.ToString(2), '\u0020', ' ', [rfReplaceAll])), False);
+
+    Name := LowerCase(NPC.GetString('name'));
+
+    Output.Add(Name + '=' + ID);
+  end;
+  ZipFiles(MONSTERS_ZIP, FileArray);
+  Output.SaveToFile(MONSTER_NAMES_FILE);
+end.

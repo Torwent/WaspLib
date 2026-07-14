@@ -1,0 +1,583 @@
+(*
+# Config
+A full featured JSON config writer and reader.
+*)
+
+{$DEFINE WL_CONFIG_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+function TJSONObject.getBoolean(key: String; acceptNull: Boolean): Boolean; constref; overload;
+begin
+  if not acceptNull then
+    Exit(Self.getBoolean(key));
+
+  Result := (Self <> nil) and Self.has(key) and not Self.isNull(key) and Self.getBoolean(key);
+end;
+
+function TJSONObject.put(key: string; Value: Boolean): TJSONObject; constref; override;
+begin
+  Self.Remove(key);
+  Result := inherited(key, value);
+end;
+
+function TJSONObject.put(key: string; Value: Double): TJSONObject; constref; override;
+begin
+  Self.Remove(key);
+  Result := inherited(key, value);
+end;
+
+function TJSONObject.put(key: string; Value: Integer): TJSONObject; constref; override;
+begin
+  Self.Remove(key);
+  Result := inherited(key, value);
+end;
+
+function TJSONObject.put(key: string; Value: String): TJSONObject; constref; override;
+begin
+  Self.Remove(key);
+  Result := inherited(key, value);
+end;
+
+function TJSONObject.put(key: string; Value: Pointer): TJSONObject; constref; override;
+begin
+  Self.Remove(key);
+  Result := inherited(key, value);
+end;
+
+
+function TJSONObject.toString(): String; constref; override;
+begin
+  Result := inherited;
+  Result := Result.ReplaceAll(
+              [
+                ['\u003A', ':'], ['\u0020', ' '],
+                ['},{', '},' + LineEnding + '  {'],
+                ['[{', '[' + LineEnding + '  {'],
+                ['}]', '}' + LineEnding + ']']
+              ]);
+end;
+
+function TJSONObject.toString(indentFactor: Integer): String; constref; override;
+begin
+  Result := inherited(indentFactor);
+  Result := Result.ReplaceAll(
+              [
+                ['\u003A', ':'], ['\u0020', ' '],
+                ['},{', '},' + LineEnding + '  {'],
+                ['[{', '[' + LineEnding + '  {'],
+                ['}]', '}' + LineEnding + ']']
+              ]);
+end;
+
+function TJSONArray.toString(): String; constref; override;
+begin
+  Result := inherited;
+  Result := Result.ReplaceAll(
+              [
+                ['\u003A', ':'], ['\u0020', ' '],
+                ['},{', '},' + LineEnding + '  {'],
+                ['[{', '[' + LineEnding + '  {'],
+                ['}]', '}' + LineEnding + ']']
+              ]);
+end;
+
+function TJSONArray.toString(indentFactor: Integer): String; constref; override;
+begin
+  Result := inherited(indentFactor);
+  Result := Result.ReplaceAll(
+              [
+                ['\u003A', ':'], ['\u0020', ' '],
+                ['},{', '},' + LineEnding + '  {'],
+                ['[{', '[' + LineEnding + '  {'],
+                ['}]', '}' + LineEnding + ']']
+              ]);
+end;
+
+
+type
+(*
+(TConfigJSON)=
+## type TConfigJSON
+```pascal
+TConfigJSON = record
+  Path: String;
+  JSON: TJSONObject;
+end;
+```
+*)
+  TConfigJSON = record
+    Path: String;
+    JSON: TJSONObject;
+    IsSetup, OnTerminate: Boolean;       //Don't touch.
+  end;
+
+(*
+## TConfigJSON.GetConfig
+```pascal
+function TConfigJSON.GetConfig(): TJSONObject;
+```
+Helper method to return the current TConfigJSON.Path file as a TJSONObject.
+You probably don't need to use this directly.
+*)
+function TConfigJSON.GetConfig(): TJSONObject;
+var
+  str: String;
+begin
+  if FileExists(Self.Path) then
+  begin
+    str := ReadFileContents(Self.Path);
+    if str <> '' then
+    begin
+      try
+        Result.Init(str);
+      except
+        Result := nil;
+        Result.Init();
+      end;
+      Exit;
+    end;
+  end;
+
+  Result.Init();
+end;
+
+(*
+## TConfigJSON.Free
+```pascal
+procedure TConfigJSON.Free();
+```
+Used to free your `TConfigJSON`.
+It's automatically called on script termination, but you may call it sooner if
+you wish to unlock the ram used by this (which should be minimal).
+*)
+procedure TConfigJSON.Free();
+begin
+  if not Self.IsSetup then Exit;
+
+  Self.JSON.Free();
+  Self.JSON := nil;
+
+  Self.IsSetup := False;
+end;
+
+(*
+## TConfigJSON.Setup
+```pascal
+procedure TConfigJSON.Setup(jsonFile: String);
+```
+Main method to setup your `TConfigJSON`
+*)
+procedure TConfigJSON.Setup(jsonFile: String = ScriptName);
+begin
+  if jsonFile.Contains(DirectorySeparator) then
+  begin
+    Self.Path := ExtractFilePath(jsonFile);
+    jsonFile := ExtractFileName(jsonFile);
+  end
+  else
+    Self.Path := AppPath + 'Configs' + DirectorySeparator;
+
+  if not ForceDirectories(Self.Path) then
+    TerminateScript('Can''t create configs directory.');
+
+  if not jsonFile.EndsWith('.json') then
+    jsonFile += '.json';
+  Self.Path += jsonFile;
+
+  Self.JSON := Self.GetConfig();
+  Self.IsSetup := True;
+
+  if not Self.OnTerminate then
+  begin
+    AddOnTerminate(@Self.Free);
+    Self.OnTerminate := True;
+  end;
+end;
+
+(*
+## TConfigJSON.DeleteConfig
+```pascal
+procedure TConfigJSON.DeleteConfig();
+```
+Delete your `TConfigJSON` from disk.
+*)
+procedure TConfigJSON.DeleteConfig();
+begin
+  if not DeleteFile(Self.Path) then
+    TerminateScript('Failed to delete: ' + Self.Path);
+end;
+
+(*
+## TConfigJSON.SaveConfig
+```pascal
+procedure TConfigJSON.SaveConfig();
+```
+Used to save your `TConfigJSON`.
+By default, this is always called automatically whenever the config is modified by the {ref}`TConfigJSON.Put()` methods.
+*)
+procedure TConfigJSON.SaveConfig();
+begin
+  if Self.JSON = nil then
+    TerminateScript('You need to use TConfigJSON.Setup() before trying to save it into a config file.');
+
+  if not WriteFileContents(Self.Path, json.ToString(1), False) then
+    TerminateScript('Failed to save config.');
+end;
+
+
+(*
+## TConfigJSON.Put
+```pascal
+procedure TConfigJSON.Put(key, value: String; save: Boolean = True);
+procedure TConfigJSON.Put(key: String; value: Int32; save: Boolean = True); overload;
+procedure TConfigJSON.Put(key: String; value: Double; save: Boolean = True); overload;
+procedure TConfigJSON.Put(key: String; value: Boolean; save: Boolean = True); overload;
+procedure TConfigJSON.Put(key: String; value: Pointer; save: Boolean = True); overload;
+```
+This should be self explanatory. Put a `key` and a `value` pair into your `TConfigJSON`.
+The `pointer` version of the method is the only one that might need a little bit more knowledge of
+Simba's lower JSON methods and/or pointers but you can use it to place a value that is another JSON object or a JSON array.
+*)
+procedure TConfigJSON.Put(key, value: String; save: Boolean = True);
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TConfigJSON.Put(key: String; value: Int32; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TConfigJSON.Put(key: String; value: Double; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TConfigJSON.Put(key: String; value: Boolean; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.Put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+procedure TConfigJSON.Put(key: String; value: Pointer; save: Boolean = True); overload;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Self.JSON.put(key, value);
+  if save then
+    Self.SaveConfig();
+end;
+
+
+(*
+## TConfigJSON.Has
+```pascal
+function TConfigJSON.Has(key: String; nullIsValid: Boolean = True): Boolean;
+```
+Checks if a key exists. `nullIsValid` is true by default when set to false
+this will return false if the key exists but is set to null.
+*)
+function TConfigJSON.Has(key: String; nullIsValid: Boolean = True): Boolean;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Result := Self.JSON.has(key);
+
+  if not nullIsValid and Result then
+    Result := not Self.JSON.isNull(key);
+end;
+
+
+(*
+## TConfigJSON.Get
+```pascal
+function TConfigJSON.GetString(key: String): String;
+function TConfigJSON.GetInt(key: String): Int32;
+function TConfigJSON.GetDouble(key: String): Double;
+function TConfigJSON.GetBoolean(key: String): Boolean;
+function TConfigJSON.GetNull(key: String): Boolean;
+function TConfigJSON.GetObject(key: String): TJSONObject;
+function TConfigJSON.GetArray(key: String): TJSONArray;
+```
+This should be self explanatory. Returns the value of a `key` in your `TConfigJSON`.
+The `Object` version of the method is the only one that might need a little bit more knowledge of
+Simba's lower JSON methods and/or pointers but you can use it to return a JSON object or a TJSONArray of TJSONObjects.
+*)
+function TConfigJSON.GetString(key: String): String;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getString(key);
+end;
+
+function TConfigJSON.GetInt(key: String): Integer;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getInt(key);
+end;
+
+function TConfigJSON.GetDouble(key: String): Double;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getDouble(key);
+end;
+
+function TConfigJSON.GetBoolean(key: String): Boolean;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getBoolean(key);
+end;
+
+function TConfigJSON.GetNull(key: String): Boolean;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Result := not Self.JSON.has(key) or Self.JSON.isNull(key);
+end;
+
+function TConfigJSON.GetObject(key: String): TJSONObject;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getJSONObject(key);
+end;
+
+function TConfigJSON.GetArray(key: String): TJSONArray;
+begin
+  if Self.JSON = nil then
+    Exit;
+  if Self.JSON.has(key) and not Self.JSON.isNull(key) then
+    Result := Self.JSON.getJSONArray(key);
+end;
+
+
+(*
+## TConfigJSON.Remove
+```pascal
+procedure TConfigJSON.Remove(key: String);
+```
+Remove a `key` and it's respective `value` from your `TConfigJSON`.
+*)
+procedure TConfigJSON.Remove(key: String);
+begin
+  if Self.JSON = nil then
+    TerminateScript('You need to use TConfigJSON.Setup() before trying to delete a key on it.');
+  Self.JSON.remove(key);
+  Self.SaveConfig();
+end;
+
+
+(*
+## TConfigJSON.ToString
+```pascal
+function TConfigJSON.ToString(indentFactor: Int32 = 2): String;
+```
+Returns a string version of your `TConfigJSON`.
+
+Example:
+```pascal
+WriteLn MyConfig.ToString();
+```
+*)
+function TConfigJSON.ToString(indentFactor: Int32 = 2): String;
+begin
+  if Self.JSON = nil then
+    Exit;
+  Result := Self.JSON.ToString(indentFactor);
+end;
+
+type
+(*
+(TConfigINI)=
+## type TConfigINI
+```pascal
+TConfigINI = record
+  Path: String;
+  FileName: String;
+end;
+```
+Example:
+```pascal
+ConfigINI.Setup('MyScriptSettings.ini'); // Set file path
+ConfigINI.Put('GUISettings', 'UsePoolPOH', 'True'); // Write setting
+WriteLn(ConfigINI.Get('GUISettings', 'UsePoolPOH')); // Read setting
+WriteLn(ConfigINI.GetKeys('GUISettings')); // List all keys in 'GUISettings'
+```
+*)
+  TConfigINI = record
+    Path: String;
+    FileName: String;
+  end;
+
+(*
+## TConfigINI.Setup
+```pascal
+procedure TConfigINI.Setup(ConfigName: String);
+```
+Initializes configuration path and filename.
+
+Example:
+```pascal
+ConfigINI.Setup('MyScriptSettings.ini');
+```
+*)
+procedure TConfigINI.Setup(ConfigName: String);
+begin
+  if ConfigName.Contains(DirectorySeparator) then
+  begin
+    Self.Path := ExtractFilePath(ConfigName);
+    ConfigName := ExtractFileName(ConfigName);
+  end
+  else
+    Self.Path := AppPath + 'Configs' + DirectorySeparator;
+
+  if not ForceDirectories(Self.Path) then
+    TerminateScript('Can''t create configs directory.');
+
+  if not ConfigName.EndsWith('.ini') then
+    ConfigName += '.ini';
+  Self.Path += ConfigName;
+end;
+
+
+(*
+## TConfigINI.Put
+```pascal
+procedure TConfigINI.Put(Section, KeyName, Value: String);
+```
+Writes a single key-value pair to a specified section.
+
+Example:
+```pascal
+ConfigINI.Put('GUISettings', 'UsePoolPOH', 'True');
+```
+*)
+procedure TConfigINI.Put(Section, KeyName, Value: String);
+begin
+  WriteINI(Section, KeyName, Value, Self.Path);
+end;
+
+
+(*
+## TConfigINI.Get
+```pascal
+function TConfigINI.Get(Section, KeyName: String): String;
+function TConfigINI.Get(Section, KeyName, DefaultValue: String): String; overload;
+```
+Retrieves a single value by key from a specified section.
+
+Example:
+```pascal
+WriteLn(ConfigINI.Get('GUISettings', 'UsePoolPOH'));
+```
+*)
+function TConfigINI.Get(Section, KeyName: String): String;
+begin
+  Result := ReadINI(Section, KeyName, Self.Path);
+end;
+
+function TConfigINI.Get(Section, KeyName, DefaultValue: String): String; overload;
+begin
+  Result := ReadINI(Section, KeyName, Self.Path);
+  if Result = '' then Result := DefaultValue;
+end;
+
+(*
+## TConfigINI.GetKeys
+```pascal
+function TConfigINI.GetKeys(Section: String): TStringArray;
+```
+Retrieves all keys from a specified section.
+
+Example:
+```pascal
+WriteLn(ConfigINI.GetKeys('GUISettings'));
+```
+*)
+function TConfigINI.GetKeys(Section: String): TStringArray;
+var
+  FileContent: TStringArray;
+var
+  i: Int32;
+  InSection: Boolean;
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+
+  FileContent := ReadFileContents(Self.Path).Split(#10);
+  while i < Length(FileContent) do begin
+    FileContent[i] := FileContent[i].Trim;
+    if FileContent[i].StartsWith('[') and FileContent[i].EndsWith(']') then begin
+      InSection := FileContent[i].Between('[', ']') = Section;
+    end else if InSection and FileContent[i].Contains('=') then begin
+      Result += FileContent[i].Before('=').Trim;
+    end;
+    Inc(i);
+  end;
+end;
+
+
+(*
+## TConfigINI.Remove
+```pascal
+procedure TConfigINI.Remove(Section, KeyName: String);
+```
+Removes a single key-value pair from a specified section.
+
+Example:
+```pascal
+ConfigINI.Remove('GUISettings', 'UsePoolPOH'));
+```
+*)
+procedure TConfigINI.Remove(Section, KeyName: String);
+begin
+  if not FileExists(Self.Path) then
+    RaiseException('File does not exist: ' + Self.Path);
+  DeleteINI(Section, KeyName, Self.Path);
+end;
+
+
+(*
+## TConfigINI.DeleteConfig
+```pascal
+procedure TConfigINI.DeleteConfig();
+```
+Deletes the entire configuration file.
+
+Example:
+```pascal
+ConfigINI.DeleteConfig();
+```
+*)
+procedure TConfigINI.DeleteConfig();
+begin
+  if FileExists(Self.Path) then
+    DeleteFile(Self.Path)
+  else
+    RaiseException('File does not exist: ' + Self.Path);
+end;

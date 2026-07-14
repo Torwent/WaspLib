@@ -1,0 +1,394 @@
+{$DEFINE WL_INTERFACE_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  TDropDown_Option = record
+    Text: String;
+    Bounds: TBox;
+  end;
+
+  TDropDown_OptionArray = array of TDropDown_Option;
+
+  TDropDown = record
+    Index: Int32;
+    Bounds: TBox;
+    Middle: TPoint;
+    PParent: ^TInterface;
+  end;
+
+  TDropDownArray = array of TDropDown;
+
+//overriden to be able to pick Scroll UI Close button
+function TInterface.FindButtons(dimensions: TGameButtonDimensions): TGameButtonArray; override;
+var
+  tpa: TPointArray;
+  atpa: T2DPointArray;
+  i, w, h: Int32;
+  b: TBox;
+  color: TCTS1Color;
+  boxes: TBoxArray;
+begin
+  for color in Self.ButtonColors do
+    if SRL.FindColors(tpa, color, Self.Bounds) > 0 then
+      atpa += tpa;
+
+  atpa := atpa.Merge().Cluster(1);
+
+
+
+  for tpa in atpa do
+  begin
+    if Length(tpa) < 50 then Continue;
+
+    b := tpa.Bounds();
+    b.GetDimensions(w, h);
+
+    for i := 0 to High(dimensions) do
+    begin
+      if (w <> dimensions[i].Width) and (dimensions[i].Width <> 0) then Continue;
+      if (h <> dimensions[i].Height) and (dimensions[i].Height <> 0) then Continue;
+      if(tpa.Frameness() <= 57) then Continue;
+      boxes += b;
+    end;
+
+    {$IFDEF SRL_DEBUG_FINDBUTTONS}
+    Writeln(w, ', ', h);
+    {$ENDIF}
+  end;
+
+  boxes.SortByXY(10);
+
+  SetLength(Result, Length(boxes));
+  for i := 0 to High(boxes) do
+  begin
+    Result[i].Index := i;
+    Result[i].Bounds := boxes[i];
+    Result[i].Middle := boxes[i].Center();
+    Result[i].EnabledColors := Self.ButtonEnabledColors;
+  end;
+end;
+
+function TInterface.FindDropDown(Dimensions: TGameButtonDimensions): TDropDownArray;
+  function FindArrow(B: TBox; Color: TCTS0Color; Dimensions: TGameButtonDimensions): Boolean;
+  var
+    TPA: TPointArray;
+    ATPA: T2DPointArray;
+    I, W, H: Int32;
+    Boxes: TBoxArray;
+  begin
+    if SRL.FindColors(TPA, Color, B) > 0 then
+      ATPA += TPA;
+
+    ATPA := ATPA.Merge.Cluster(1);
+
+    for TPA in ATPA do
+    begin
+      if Length(TPA) < 50 then
+        Continue;
+
+      B := TPA.Bounds;
+      B.GetDimensions(W, H);
+
+      for I := 0 to High(Dimensions) do
+      begin
+        if ((W = Dimensions[I].Width) or (Dimensions[I].Width = 0)) and
+           ((H = Dimensions[I].Height) or (Dimensions[I].Height = 0)) and
+            (TPA.Frameness = 100) then
+          Boxes += B;
+      end;
+    end;
+
+    Result := Length(Boxes) = 1;
+  end;
+
+var
+  TPA: TPointArray;
+  ATPA: T2DPointArray;
+  I, W, H: Int32;
+  B: TBox;
+  Boxes: TBoxArray;
+begin
+  B := Self.Bounds;
+
+  if SRL.FindColors(TPA, CTS0(4474438, 5), B) > 0 then
+    ATPA += TPA;
+
+  ATPA := ATPA.Merge.Cluster(1);
+
+  for TPA in ATPA do
+  begin
+    if Length(TPA) < 50 then
+      Continue;
+
+
+    B := TPA.Bounds;
+    B.GetDimensions(W, H);
+
+    for I := 0 to High(Dimensions) do
+    begin
+      if ((W = Dimensions[I].Width) or (Dimensions[I].Width = 0)) and
+         ((H = Dimensions[I].Height) or (Dimensions[I].Height = 0)) and
+         (TPA.Frameness > 91) and FindArrow(B, CTS0(65536, 1), [[16, 16]]) then
+        Boxes += B;
+    end;
+  end;
+
+  Boxes.SortByXY(10);
+
+  SetLength(Result, Length(Boxes));
+  for I := 0 to High(Boxes) do
+  begin
+    Result[I].Index := I;
+    Result[I].Bounds := Boxes[I];
+    Result[I].Middle := Boxes[I].Center();
+    Result[I].PParent := @Self;
+  end;
+end;
+
+
+
+function TDropDown.GetText(Font: TFontSet = FONT_PLAIN_11): String; constref;
+begin
+  Result := OCR.Recognize(Self.Bounds, TOCRColorFilter.Create([2070783, 1939197]), Font);
+end;
+
+
+function TDropDown.FindText(constref Text: String; constref Font: TFontSet = FONT_PLAIN_11): Boolean; constref;
+begin
+  Result := OCR.LocateText(Self.Bounds, Text, Font, TOCRColorFilter.Create([0]), 1);
+end;
+
+function TDropDown.FindText(Text: TStringArray; out Found: String; constref Font: TFontSet = FONT_PLAIN_11): Boolean; constref; overload;
+var
+  I: Int32;
+begin
+  for I := 0 to High(Text) do
+    if Self.FindText(Text[I], Font) then
+    begin
+      Found := Text[I];
+      Exit(True);
+    end;
+end;
+
+
+
+function TDropDown.IsOpen(out TPA: TPointArray): Boolean; constref;
+const
+  COLOR: TCTS0Color := CTS0(4540231);
+var
+  BUp, BDown: TBox;
+begin
+  if Self = [] then
+    Exit;
+
+  BDown := Self.Bounds;
+  BUp := BDown;
+
+  BUp.Y1 := Self.PParent^.Bounds.Y1;
+  BUp.Y2 := Self.Bounds.Y1 - 1;
+
+  BDown.Y1 := Self.Bounds.Y2 + 1;
+  BDown.Y2 := Self.PParent^.Bounds.Y2;
+
+  if (SRL.FindColors(TPA, COLOR, BUp) = 0) and
+     (SRL.FindColors(TPA, COLOR, BDown) = 0) then
+    Exit;
+
+  Result := (TPA <> []) and (TPA.Bounds().Height() > 18);
+end;
+
+function TDropDown.IsOpen(): Boolean; constref; overload;
+var
+  TPA: TPointArray;
+begin
+  Result := Self.IsOpen(TPA);
+end;
+
+
+function TDropDown.Open(out TPA: TPointArray): Boolean; constref;
+begin
+  if Self = [] then
+    Exit;
+
+  if Self.IsOpen(TPA) then
+    Exit(True);
+
+  Mouse.Click(Self.Bounds, MOUSE_LEFT);
+
+  Result := WaitUntil(Self.IsOpen(TPA), 100, 2000);
+end;
+
+function TDropDown.Open(): Boolean; constref; overload;
+var
+  tpa: TPointArray;
+begin
+  Result := Self.Open(tpa);
+end;
+
+function TDropDown.Close(): Boolean; constref;
+begin
+  if Self = [] then
+    Exit;
+
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Mouse.Click(Self.Bounds, MOUSE_LEFT);
+
+  Result := WaitUntil(not Self.IsOpen(), 100, 2000);
+end;
+
+
+function TDropDown.GetOptions(constref font: TFontSet = FONT_PLAIN_11): TDropDown_OptionArray; constref;
+var
+  tpa: TPointArray;
+  i: Int32;
+  bounds, b: TBox;
+begin
+  if Self.Open(tpa) then
+  begin
+    bounds := tpa.Bounds();
+
+    if (Self.Bounds.Height() < 18) then
+      Exit;
+
+    bounds.Y1 += 1;
+    bounds.X1 += 1;
+    bounds.X2 -= 17;
+
+    SetLength(Result, bounds.Height() div 15);
+    for i := 0 to High(Result) do
+    begin
+      b := [bounds.X1, bounds.Y1 + (i * 15), bounds.X2, bounds.Y1 + (i * 15) + 15];
+      if (b.Y2 > bounds.Y2) then
+        Exit;
+
+      Result[i].Text := OCR.Recognize(b, TOCRColorFilter.Create([4110334, 2070783]), font);
+      Result[i].Bounds := b;
+    end;
+  end;
+end;
+
+
+procedure TDropDown.Select(Option: TDropDown_Option; mouseAction: Int32 = MOUSE_LEFT); constref;
+var
+  From: TPoint;
+  B: TBox;
+  CustomMouse: TMouse;
+begin
+  B := Option.Bounds;
+  B := B.Expand(-1);
+
+  From.X := B.X1;
+  From.Y := B.Y1 + (B.Height div 3);
+
+  CustomMouse := Mouse;
+  CustomMouse.MissChance := 0;
+  CustomMouse.IdleInterval := 0;
+  CustomMouse.Move(SRL.RandomPointEx(From, B));
+
+  if (mouseAction <> MOUSE_MOVE) then
+    CustomMouse.Click(mouseAction);
+end;
+
+function TDropDown.Select(text: TStringArray; mouseAction: Int32 = MOUSE_LEFT; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True; constref font: TFontSet = FONT_PLAIN_11): Boolean; constref; overload;
+var
+  choices: TDropDown_OptionArray;
+  i, j: Int32;
+begin
+  choices := Self.GetOptions(Font);
+
+  for i := 0 to High(choices) do
+    for j := 0 to High(Text) do
+    begin
+      if not caseSensitive then
+      begin
+        text[j] := LowerCase(text[j]);
+        choices[i].Text := Lowercase(choices[i].Text);
+      end;
+
+      if text[j] in choices[i].Text then
+      begin
+        Self.Select(choices[i], mouseAction);
+        Exit(True);
+      end;
+    end;
+
+  if closeIfNotFound then
+  begin
+    WaitEx(500, 250);
+    Self.Close();
+  end;
+end;
+
+function TDropDown.Select(Text: String; mouseAction: Int32 = MOUSE_LEFT; caseSensitive: Boolean = True; closeIfNotFound: Boolean = True; constref font: TFontSet = FONT_PLAIN_11): Boolean; constref; overload;
+begin
+  Result := Select([text], mouseAction, caseSensitive, closeIfNotFound, font);
+end;
+
+
+
+procedure TMufasaBitmap.DrawDropDowns(DropDowns: TDropDownArray);
+var
+  i: int32;
+  Option: TDropDown_Option;
+  OptionArray: TDropDown_OptionArray;
+begin
+  for i := 0 to High(DropDowns) do
+  begin
+    Self.SetFontSize(20);
+    Self.SetFontAntialiasing(False);
+    Self.DrawBox(DropDowns[i].Bounds, $FFFFFF);
+    Self.DrawText(ToStr(DropDowns[i].index), DropDowns[i].Bounds, True, $00FF00);
+
+    if DropDowns[i].IsOpen then
+    begin
+      OptionArray := DropDowns[i].GetOptions;
+      for Option in OptionArray do
+        Self.DrawBox(Option.Bounds, $00FFFF);
+    end;
+  end;
+end;
+
+procedure Debug(DropDowns: TDropDownArray); overload;
+var
+  BMP: TMufasaBitmap;
+begin
+  BMP.FromClient;
+  BMP.DrawDropDowns(DropDowns);
+  BMP.Debug;
+  BMP.Free;
+end;
+
+
+function TInterface.RandomScroll(down: Boolean = True): Boolean;
+var
+  scrollBar: TGameScrollBar;
+  i, times: Int32;
+begin
+  scrollBar := Self.GetScrollBar();
+
+  if not scrollBar.IsVisible() or not Self.CanScroll() then
+    Exit;
+
+  Result := True;
+
+  if down and (scrollBar.Position = 100) then
+    Exit
+  else if not down and (scrollBar.Position = 0) then
+    Exit;
+
+  times := Antiban.GetUniqueInt(5, 3, 8);
+
+  if down then
+  begin
+    for i := 1 to times do
+      Mouse.Scroll(Self.GetScrollArea(scrollBar), Random(1, 3), True);
+    Exit;
+  end;
+
+  for i := 1 to times do
+    Mouse.Scroll(Self.GetScrollArea(scrollBar), Random(1, 3), False);
+end;

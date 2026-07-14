@@ -1,0 +1,578 @@
+(*
+# API
+Methods related to wasp-api.
+*)
+
+{$DEFINE WL_API_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+## type APIClient
+```pascal
+type APIClient = record(TSRLBaseRecord) class var
+  Disabled: Boolean;
+  HTTPClient: Int32;
+  StatsServer: String;
+  UUID: String;
+  Timer: TCountDown;
+  TimeStamp: UInt64;
+  IsSetup: Boolean;
+  Benchmark: TIntegerArray;
+  Fails: Int32;
+end;
+```
+Type responsible for stats submissions.
+This is basically a simba wrapper for the waspscripts API.
+
+You can find the API docs in https://api.waspscripts.com/docs if you need to read them
+but the APIClient should be able to do everything for you.
+*)
+type
+  TAPIClient = record(THTTPClient)
+    Payload: TJSONObject;
+
+    Timer: TCountDown;
+    TimeStamp: UInt64;
+    Benchmark: TIntegerArray;
+    Fails: Int32;
+    Stopped, Disabled: Boolean;
+    Config: TConfigJSON;
+  end;
+
+procedure TAPICLient.ResetPayload();
+begin
+  Self.Payload.Remove('experience');
+  Self.Payload.Remove('gold');
+  Self.Payload.Remove('runtime');
+
+  Self.Payload.Put('experience', 0);
+  Self.Payload.Put('gold', 0);
+  Self.Payload.Put('runtime', 0);
+end;
+
+procedure TAPICLient.UpdatePayload(xp, gp, time: Int32);
+begin
+  if Self.Disabled then
+    Exit;
+
+  xp   += Self.Payload.GetInt('experience');
+  gp   += Self.Payload.GetInt('gold');
+  time += Self.Payload.GetInt('runtime');
+
+  Self.Payload.Remove('experience');
+  Self.Payload.Remove('gold');
+  Self.Payload.Remove('runtime');
+
+  Self.Payload.Put('experience', xp);
+  Self.Payload.Put('gold', gp);
+  Self.Payload.Put('runtime', time);
+end;
+
+
+(*
+## APICLient.SetUsername
+```pascal
+procedure TAPICLient.SetUsername(user: String = '');
+```
+Sets APICLient username if it hasn't been set yet.
+*)
+procedure TAPICLient.SetUsername(user: String = '');
+begin
+  if user = '' then
+    Exit;
+
+  Self.Payload.Put('username', user);
+end;
+
+(*
+## APIClient.Setup
+```pascal
+procedure TAPIClient.Setup();
+```
+Internal method automatically called when attempting to use APIClient.GET() and APIClient.POST().
+*)
+procedure TAPIClient.Setup();
+begin
+  Self.Init('APIClient', 'https://api.waspscripts.com/', True);
+
+  Self.Config.Setup('stats');
+
+  if (Self.Config.Has('uuid', False) and not Self.Config.Has('password', False))
+  or (not Self.Config.Has('uuid', False) and Self.Config.Has('password', False))
+  then
+  begin
+    if MessageDlg(
+      'API Client',
+      'Your config is corrupted.' + LineEnding + LineEnding +
+      'Do you want to delete it and create a new stats account?' + LineEnding +
+      'The old one will be lost forever.', TMsgDlgType.mtWarning,
+      [mbYes, mbNo]
+    ) = 7 then
+    begin
+      Self.Disabled := True;
+      Exit;
+    end;
+
+    Self.Config.Remove('uuid');
+    Self.Config.Remove('password');
+    Self.Config.Remove('username');
+  end;
+
+  if not Self.Config.Has('uuid', False) and not Self.Config.Has('password', False) then
+  begin
+    Self.Config.Put('uuid', GenerateUUIDV4());
+    Self.Config.Put('password', GenerateUUIDV4());
+    Self.Config.Put('username', '');
+  end;
+
+  if {$macro SCRIPT_ID} = '' then
+  begin
+    Self.Disabled := True;
+    Exit;
+  end;
+
+  SetHTTPUserAgent(Self.Client, 'Simba - ' + Self.Config.GetString('uuid'));
+  SetHTTPContentType(Self.Client, 'application/json');
+
+  Self.Payload.Init();
+  Self.Payload.Put('password', Self.Config.GetString('password'));
+  Self.Payload.Put('script_id', {$macro SCRIPT_ID});
+  Self.SetUsername(Self.Config.GetString('username'));
+  Self.ResetPayload();
+
+  AddOnTerminate(@Self.Payload.Free);
+
+  Self.Timer.Setup(5 * ONE_MINUTE);
+  Self.TimeStamp := GetTickCount();
+end;
+
+
+(*
+## APIClient.GetUUID
+```pascal
+function TAPIClient.GetUUID(): String;
+```
+Returns your UUID.
+
+Example:
+```pascal
+WriteLn APIClient.GetUUID();
+```
+*)
+function TAPIClient.GetUUID(): String;
+begin
+  Result := Self.Config.GetString('uuid');
+  if not Self.IsSetup then
+    Self.DebugLn('UUID: ' + Result);
+end;
+
+(*
+## APIClient.GetPassword
+```pascal
+function TAPIClient.GetPassword(): String;
+```
+Returns your Password.
+
+Example:
+```pascal
+WriteLn APIClient.GetPassword();
+```
+*)
+function TAPIClient.GetPassword(): String;
+begin
+  Result := Self.Config.GetString('password');
+  if not Self.IsSetup then
+    Self.DebugLn('Password: ' + Result);
+end;
+
+(*
+## APIClient.GetUsername
+```pascal
+function TAPIClient.GetUsername(): String;
+```
+Returns your Username.
+
+Example:
+```pascal
+WriteLn APIClient.GetUsername();
+```
+*)
+function TAPIClient.GetUsername(): String;
+begin
+  Result := Self.Config.GetString('username');
+  if not Self.IsSetup then
+    Self.DebugLn('Username: ' + Result);
+end;
+
+
+(*
+## APIClient.SetLocal
+```pascal
+procedure TAPIClient.SetLocal(port: Int32 = 8080);
+```
+Method only meant to be used if you are hosting a local stats server for debugging purposes.
+*)
+procedure TAPIClient.SetLocal(port: Int32 = 8080);
+begin
+  Self.Server := 'http://localhost:' + ToStr(port) +'/';
+end;
+
+
+(*
+## APIClient.HashPassword
+```pascal
+function TAPIClient.HashPassword(password: String): String;
+```
+Returns a salted and hashed password.
+This serves no purpose other than giving you a glimpse of what is stored in waspscripts database when you submit your password.
+
+Try the example below, notice how everytime you run it you will have slightly different results.
+That's the magic of "salting" passwords. You can read more about it on the wikipedia https://en.wikipedia.org/wiki/Salt_(cryptography).
+
+Example:
+```pascal
+WriteLn APIClient.HashPassword('helloworld');
+WriteLn APIClient.HashPassword(StatsPayload.Password);
+```
+*)
+function TAPIClient.HashPassword(password: String): String;
+const
+  ROUTE: String = 'stats/auth/hash/';
+var
+  json: TJSONObject;
+begin
+  try
+    json.Init();
+    json.Put('password', password);
+    Result := Self.POST(route, json);
+  finally
+    json.Free();
+  end;
+end;
+
+(*
+## APIClient.CheckPassword
+```pascal
+function TAPIClient.CheckPassword(password: String): Boolean;
+```
+Simply returns true/false if the **password** you submit matches what is stored in waspscripts stats database for the specified **uuid**.
+
+Example:
+```pascal
+WriteLn APIClient.CheckPassword('0.999999999999999', 'helloworld');
+WriteLn APIClient.CheckPassword(APIClient.Generateuuid(), APIClient.GeneratePassword());
+```
+*)
+function TAPIClient.CheckPassword(uuid, password: String): Boolean;
+const
+  ROUTE: String := 'stats/auth/check/' + uuid + '/';
+var
+  json: TJSONObject;
+begin
+  try
+    json.Init();
+    json.Put('password', password);
+    Self.POST(ROUTE, json, False);
+  finally
+    json.Free();
+  end;
+
+  Result := Self.GetHTTPCode() = 200;
+end;
+
+(*
+## APIClient.UpdatePassword
+```pascal
+function TAPIClient.UpdatePassword(old, new: String): Boolean;
+```
+Because users passwords can be changed and that's what are used by default for
+stats password a way to update the stats password is required.
+That's what this method is for.
+
+This will probably be complicated for regular users but an easier way can be
+figured out in the future.
+
+Example:
+```pascal
+const
+  PASSWORD:     String = 'old_password';
+  NEW_PASSWORD: String = 'new_password';
+begin
+  APIClient.UpdatePassword(PASSWORD, NEW_PASSWORD);
+end.
+```
+ *)
+function TAPIClient.UpdatePassword(uuid, old, new: String): Boolean;
+const
+  ROUTE: String := 'stats/auth/update/' + uuid + '/';
+var
+  json: TJSONObject;
+begin
+  try
+    json.Init();
+    json.Put('password', old);
+    json.Put('new_password', new);
+    Self.POST(ROUTE, json, False);
+  finally
+    json.Free();
+  end;
+
+  Result := Self.GetHTTPCode() = 200;
+
+  if Result then
+  begin
+    Self.Config.Put('password', new);
+    Self.Payload.Remove('password');
+    Self.Payload.Put('password', new);
+  end;
+end;
+
+
+(*
+## APIClient.CheckStats
+```pascal
+function TAPIClient.CheckStats(): String;
+```
+Returns your stats.
+
+Example:
+```pascal
+WriteLn APIClient.CheckStats();
+```
+*)
+function TAPIClient.CheckStats(uuid: String): String;
+const
+  ROUTE: String := 'stats/' + uuid + '/';
+begin
+  Result := Self.GET(ROUTE, True, True);
+end;
+
+(*
+## APIClient.SubmitStats
+```pascal
+function TAPIClient.SubmitStats(): Boolean;
+```
+Method to submit stats to wasp-stats with the help of **StatsPayload**.
+
+Example:
+```pascal
+StatsPayload.Setup('SCRIPT_ID_HERE', APIClient.GeneratePassword());
+StatsPayload.Update(100, 100, 5000);
+WriteLn APIClient.SubmitStats(APIClient.Generateuuid());
+```
+*)
+function TAPIClient.SubmitStats(uuid: String): Boolean;
+const
+  ROUTE: String := 'stats/' + uuid + '/';
+var
+  time: UInt64;
+begin
+  if Self.Disabled then
+    Exit;
+
+  if Self.IsSetup and not Self.Timer.IsFinished() then //No point removing this, the server will reject you.
+    Exit;
+
+  time := GetTickCount();
+  Self.UpdatePayload(0, 0, time - Self.TimeStamp);
+
+  Self.POST(ROUTE, Self.Payload);
+  Self.TimeStamp := time;
+  Self.Benchmark += GetTickCount() - time;
+
+  Result := InRange(Self.GetHTTPCode(), 200, 299);
+
+  Self.ResetPayload();
+  Self.Timer.Restart();
+
+  if Length(Self.Benchmark) > 5 then
+  begin
+    if Length(Self.Benchmark) > 20 then
+      Delete(Self.Benchmark, 1, 1);
+
+    if (Self.Benchmark.Mean() > 3000) then
+    begin
+      Self.DebugLn('API connection is slower than it should be: ' + ToStr(Self.Benchmark.Mean()) + ' ms.');
+      Self.DebugLn('APIClient will be disabled.');
+      Self.Disabled := True;
+    end;
+  end;
+
+  if Result then
+  begin
+    Self.Fails := 0;
+    Exit;
+  end;
+
+  if Inc(Self.Fails) > 3 then
+  begin
+    Self.DebugLn('Failed 3 times in a row, APIClient will be disabled.');
+    Self.Disabled := True;
+  end;
+end;
+
+
+(*
+## APIClient.Pause
+```pascal
+procedure TAPIClient.Pause();
+```
+Method used to pause the APIClient timers.
+*)
+procedure TAPIClient.Pause();
+var
+  time: UInt64;
+begin
+  if Self.Disabled or Self.Stopped then
+    Exit;
+
+  time := GetTickCount();
+  Self.UpdatePayload(0, 0, time - Self.TimeStamp);
+  Self.TimeStamp := time;
+  Self.Timer.Pause();
+  Self.Stopped := True;
+end;
+
+(*
+## APIClient.Resume
+```pascal
+procedure TAPIClient.Resume();
+```
+Method used to resume the APIClient timers.
+*)
+procedure TAPIClient.Resume();
+begin
+  if Self.Disabled or not Self.Stopped then
+    Exit;
+  Self.TimeStamp := GetTickCount();
+  Self.Timer.Resume();
+  Self.Stopped := False;
+end;
+
+
+(*
+## APIClient.GetScript
+```pascal
+APIClient.GetScript(script_id: String; verbose: Boolean = False): String;
+```
+Retrieves info of the script with the specified **script_id** from https://api.waspscripts.com
+
+Example:
+```pascal
+APIClient.GetScript('cf0a01e4-8d20-41c2-a78e-3d83081b388d');
+```
+*)
+function TAPIClient.GetScript(script_id: String; verbose: Boolean = False): String;
+var
+  route, msg: String;
+begin
+  route := 'simba/' + script_id;
+  msg := Self.GET(route, verbose);
+
+  if not msg.Contains('Response code: 200') then
+    Exit;
+
+  msg := msg.After('Response code: 200 - ');
+  msg := msg.Before(' - Response took');
+
+  Result := msg;
+end;
+
+(*
+## APIClient.GetScriptRevision
+```pascal
+function TAPIClient.GetScriptRevision(script_id: String; verbose: Boolean = False): Int32;
+```
+Retrieves the latest revision number of the script with the specified **script_id** from https://api.waspscripts.com
+
+Example:
+```pascal
+WriteLn APIClient.GetScriptRevision('cf0a01e4-8d20-41c2-a78e-3d83081b388d');
+```
+*)
+function TAPIClient.GetScriptRevision(script_id: String; verbose: Boolean = False): Int32;
+var
+  route, msg: String;
+begin
+  route := 'simba/revision/' + script_id;
+  msg := Self.GET(route, verbose);
+
+  if not msg.contains('Response code: 200') then
+    Exit(-1);
+
+  msg := msg.After('"revision":').Before('}');
+
+  Result := StrToInt(msg);
+end;
+
+(*
+## APIClient.GetVersion
+```pascal
+function TAPIClient.GetVersion(pkg: String; verbose: Boolean = False): String;
+```
+Retrieves the latest version of the package specified from https://api.waspscripts.com.
+
+Example:
+```pascal
+WriteLn APIClient.GetVersion('srl-t');
+WriteLn APIClient.GetVersion('wasplib');
+```
+*)
+function TAPIClient.GetVersion(pkg: String; verbose: Boolean = False): String;
+var
+  route, msg: String;
+begin
+  route := 'simba/package/' + pkg;
+  msg := Self.GET(route, verbose);
+
+  if not msg.contains('Response code: 200') then
+    Exit;
+
+  msg := msg.After('"version":"v').Before('"}');
+
+  Result := msg;
+end;
+
+(*
+## APIClient.GetAllVersions
+```pascal
+function TAPIClient.GetAllVersions(script_id: String; out revision, srltVersion, wlVersion: String; verbose: Boolean = False): String;
+```
+Retrieves the latest script revison of **script_id** and the latest SRL-T and WaspLib versions https://api.waspscripts.com.
+*)
+function TAPIClient.GetAllVersions(script_id: String; out revision, srltVersion, wlVersion: String; verbose: Boolean = False): String;
+var
+  msg: String;
+  strings: TStringArray;
+begin
+  Result := Self.GetScript(script_id, verbose);
+
+  if Result = '' then
+    Exit;
+
+  msg := Result.After('{').Before('}').Replace('"', '');
+
+  strings := msg.Split(',');
+  Delete(strings, 0, 3);
+
+  if Length(strings) >= 1 then
+    revision := strings[0].After(':');
+
+  if Length(strings) >= 2 then
+    srltVersion := strings[1].After(':v');
+
+  if Length(strings) >= 3 then
+    wlVersion := strings[2].After(':v');
+end;
+
+var
+  APIClient: TAPICLient;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  APIClient.Setup();
+end;

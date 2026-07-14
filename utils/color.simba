@@ -1,0 +1,221 @@
+(*
+# Color
+Color tools.
+*)
+
+{$DEFINE WL_COLOR_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type
+(*
+## type SRLColors
+Type that holds a large amount of color wrappers so you don't have to memorize then.
+
+Some colors are duplicated. They are kept for easy name access.
+
+Example:
+```pascal
+WriteLn SRLColors.BLACK;
+WriteLn SRLColors.ORANGE;
+WriteLn SRLColors.BLUE;
+```
+*)
+  TSRLColors = record
+    BLACK, WHITE, ORANGE, ORANGE_LIGHT, RED, YELLOW, BLUE, GREEN_SPRING,
+    BLUE_OCEAN, CYAN, DROPDOWN_BLACK, LIME,
+    TEXT_BLACK, TEXT_WHITE, TEXT_ORANGE, TEXT_ORANGE_LIGHT,
+    TEXT_BROWN, TEXT_RED, TEXT_YELLOW, TEXT_GREEN,
+
+    BUTTON_RED, BUTTON_GREY,
+
+    ITEM_SHADOW, ITEM_BORDER, ITEM_BORDER_SELECTED, ITEM_TEXT_YELLOW,
+    ITEM_TEXT_WHITE, ITEM_TEXT_GREEN, HINT_BACKGROUND: Int32;
+  end;
+
+var
+  SRLColors: TSRLColors;
+
+begin
+  with SRLColors do
+  begin
+    BLACK         := $000000;
+    WHITE         := $FFFFFF;
+    ORANGE        := $1F98FF;
+    ORANGE_LIGHT  := $3EB7FE;
+    RED           := $0000FF;
+    YELLOW        := $00FFFF;
+    BLUE          := $FF0000;
+
+    GREEN_SPRING  := $80FF00;
+    BLUE_OCEAN    := $BE9625;
+    CYAN          := $FFFF00;
+    DROPDOWN_BLACK:= $0C0E0E;
+    LIME          := $BE9625;
+
+    TEXT_BLACK  := $000000;
+    TEXT_WHITE  := $FFFFFF;
+    TEXT_ORANGE := $1F98FF; // Interface titles
+    TEXT_ORANGE_LIGHT := $3EB7FE; // Interface titles
+    TEXT_BROWN  := $203040; // Make interface
+    TEXT_RED    := $0000FF;
+    TEXT_YELLOW := $00FFFF;
+    TEXT_GREEN  := $00FF00;
+
+    BUTTON_RED  := $2326A0; // Button enabled background. Use ~5 tolerance
+    BUTTON_GREY := $516370; // Button disabled background. Use ~5 tolerance
+
+    ITEM_SHADOW := $202030;
+    ITEM_BORDER := $010000;
+    ITEM_BORDER_SELECTED := $FFFFFF;
+
+    ITEM_TEXT_YELLOW := $00FFFF;
+    ITEM_TEXT_WHITE  := $FFFFFF;
+    ITEM_TEXT_GREEN  := $80FF00;
+
+    HINT_BACKGROUND := $A0FFFF;
+  end;
+end;
+
+type
+  TCTS0ColorArray = array of TCTS0Color;
+  TCTS2ColorArray = array of TCTS2Color;
+
+(*
+## GetNextCycleColor
+```pascal
+function GetNextCycleColor(color, step: Int32): Int32;
+```
+
+Not currently used for anything, just a fun experiment. Can be used to give an RGB cycle effect.
+*)
+function GetNextCycleColor(color, step: Int32): Int32;
+var
+  r, g, b: Int32;
+begin
+  ColorToRGB(color, r, g, b);
+
+  if (r = 255) and (g = 0) and (b < 255) then
+    b += step
+  else if (r > 0)   and (g = 0)   and (b = 255) then
+    r -= step
+  else if (r = 0)   and (g < 255) and (b = 255) then
+    g += step
+  else if (r = 0)   and (g = 255) and (b > 0) then
+    b -= step
+  else if (r < 255) and (g = 255) and (b = 0) then
+    r += step
+  else if (r = 255) and (g > 0)   and (b = 0) then
+    g -= step;
+
+  if r < 0    then r := 0;
+  if r > 255 then r := 255;
+
+  if g < 0    then g := 0;
+  if g > 255 then g := 255;
+
+  if b < 0    then b := 0;
+  if b > 255 then b := 255;
+
+  Result := RGBtoColor(r, g, b);
+end;
+
+(*
+## RGB2BGR
+```pascal
+function RGB2BGR(rgb: Int32): Int32;
+function RGB2BGR(rgb: String): Int32; overload;
+```
+
+Converts an RGB color to BGR.
+```{note}
+credits go to slacky.
+```
+
+Example:
+```pascal
+WriteLn RGB2BGR($00FFAA);
+```
+*)
+function RGB2BGR(rgb: Int32): Int32;
+begin
+  Result := (rgb and $FF0000) shr 16 or (rgb and $FF) shl 16 or (rgb and $FF00);
+end;
+
+function RGB2BGR(rgb: String): Int32; overload;
+begin
+  rgb := rgb.Replace('0x', '');
+  if not rgb.Contains('$') then
+    rgb += '$' + rgb;
+
+  Result := RGB2BGR(StrToInt(rgb));
+end;
+
+
+function TSRL.FindAnyColors(out tpa: TPointArray; colors: TIntegerArray; area: TBox): Int32; constref;
+var
+  color: Int32;
+begin
+  for color in colors do
+    if FindColorsTolerance(tpa, color, area, 0) then
+      Exit(Length(tpa));
+end;
+
+function TSRL.FindAnyColors(out tpa: TPointArray; colors: TCTS0ColorArray; area: TBox): Int32; constref; overload;
+type
+  TCTSContainer = record
+    CTS: Int32;
+    Hue, Sat: Extended;
+  end;
+var
+  old: TCTSContainer;
+  color: TCTS0Color;
+begin
+  old.CTS := GetToleranceSpeed();
+  if (old.CTS = 2) then
+    GetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+
+  SetColorToleranceSpeed(0);
+  SetToleranceSpeed2Modifiers(0.2, 0.2);
+
+  for color in colors do
+    if FindColorsTolerance(tpa, color.Color, area.X1, area.Y1, area.X2, area.Y2, color.Tolerance) then
+      Break;
+  Result := Length(tpa);
+
+  SetColorToleranceSpeed(old.CTS);
+  if (old.CTS = 2) then
+    SetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+end;
+
+function TSRL.FindAnyColors(out tpa: TPointArray; colors: TCTS2ColorArray; area: TBox): Int32; constref; overload;
+type
+  TCTSContainer = record
+    CTS: Int32;
+    Hue, Sat: Extended;
+  end;
+var
+  old: TCTSContainer;
+  color: TCTS2Color;
+begin
+  old.CTS := GetToleranceSpeed();
+  if (old.CTS = 2) then
+    GetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+
+  SetColorToleranceSpeed(2);
+
+  for color in colors do
+  begin
+    SetToleranceSpeed2Modifiers(color.HueMod, color.SatMod);
+    if FindColorsTolerance(tpa, color.Color, area.X1, area.Y1, area.X2, area.Y2, color.Tolerance) then
+      Break;
+  end;
+
+  Result := Length(tpa);
+
+  SetColorToleranceSpeed(old.CTS);
+  if (old.CTS = 2) then
+    SetToleranceSpeed2Modifiers(old.Hue, old.Sat);
+end;
+

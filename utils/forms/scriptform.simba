@@ -1,0 +1,2215 @@
+(*
+# ScriptForm
+This file is responsible for creating and managing WaspLib's forms.
+
+This might be complicated to understand if you are not familiar with pointers and type casting because it heavily relies on both.
+*)
+{$DEFINE WL_SCRIPTFORM_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+(*
+## Compiler Directives
+```pascal
+{$IFHASFILE credentials.simba}{$I credentials.simba}{$ENDIF}
+{$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+{$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := ''}{$ENDIF}
+```
+The first line looks for a credentials.simba file and include it if it exists.
+This is what gives WaspLib scripts access to their accounts through several scripts.
+It's important to know that player information is stored in Simba code to compile when the file is included, what this means is that the information is in plain text.
+
+The next 2 lines are unrelated to credentials but related to each other.
+The way **TScriptForm** was made, it assumes a valid SCRIPT_ID and SCRIPT_REVISION have been assigned.
+Because WaspLib is not meant to enforce the usage of https://waspscripts..com, this was added as a way of users being able to use WaspLib regardless of having a script id/revision or not.
+*)
+{$IFHASFILE credentials.simba}{$I credentials.simba}{$ENDIF}
+{$IFNDEF SCRIPT_ID}{$DEFINE SCRIPT_ID := ''}{$ENDIF}
+{$IFNDEF SCRIPT_REVISION}{$DEFINE SCRIPT_REVISION := ''}{$ENDIF}
+
+type
+(*
+## TScriptForm
+```pascal
+TScriptForm = record
+Size: TPoint;
+PageControl: TPageControl;
+Tabs: array of TTabSheet;
+Start: TButton;
+Form: TForm;
+end;
+```
+
+TScriptForm is the record responsible for handling the WaspLib form.
+*)
+  TScriptForm = record
+    Size: TPoint;
+    PageControl: TPageControl;
+    Tabs: array of TTabSheet;
+    Start: TButton;
+    LightMode, Running: Boolean;
+  class var
+    Form: TForm;
+  end;
+
+const
+(*
+## CREDENTIALS_FILE
+..pascal:: const CREDENTIALS_FILE = AppPath + 'credentials.simba';
+
+Global constant that points to the location of credentials.simba which is Simba's root directory.
+*)
+  CREDENTIALS_FILE = AppPath + 'credentials.simba';
+
+(*
+## RewriteCredentials
+```pascal
+procedure RewriteCredentials();
+```
+
+Internal method used to rewrite the credentials.simba file.
+This will use whatever is stored at the moment in **Login.Players** array and replace Simba/credentials.simba with it written
+in the appropiate format.
+
+Example:
+```pascal
+begin
+  Login.AddPlayer('USERNAME1', 'PASSWORD1', 'PIN1', []); //[] is an array of world numbers.
+  Login.AddPlayer('USERNAME2', 'PASSWORD2', 'PIN2', []);
+  Login.AddPlayer('USERNAME3', 'PASSWORD3', 'PIN3', []);
+end;
+```
+*)
+procedure RewriteCredentials();
+  function _FilterDuplicatePlayers(players: array of TLoginPlayer): array of TLoginPlayer;
+  var
+    i, j: Int32;
+    match: Boolean;
+  begin
+    for i := 0 to High(players) do
+    begin
+      for j := 0 to High(Result) do
+      begin
+        match := LowerCase(players[i].User) = LowerCase(Result[j].User);
+        if match then
+          Break;
+      end;
+
+      if not match then
+        Result += players[i];
+    end;
+
+    if match then
+      Login.PlayerIndex := j;
+  end;
+
+  function _BuildCredentials(): String;
+  var
+    player: TLoginPlayer;
+    world: Int32;
+  begin
+    Result := 'begin'#13#10'';
+    for player in Login.Players do
+    begin
+      Result += '  Login.AddPlayer(''' +
+                  player.User + ''', ''' + player.Password + ''', ''' + player.Pin + ''', [';
+
+      for world in player.Worlds do
+      begin
+        Result += ToStr(world);
+        if world <> player.Worlds[High(player.Worlds)] then
+          Result += ', ';
+      end;
+
+      Result += ']);'#13#10'';
+    end;
+    Result += 'end;';
+  end;
+
+begin
+  Login.Players := _FilterDuplicatePlayers(Login.Players);
+
+  try
+    WriteFileContents(CREDENTIALS_FILE, _BuildCredentials());
+  except
+    WriteLn GetExceptionMessage();
+    WriteLn 'It''s possible you lost your saved accounts!';
+    WriteLn 'If you have issues with the Account Manager delete the following file:';
+  end;
+end;
+
+(*
+## TScriptForm.AddTab
+```pascal
+procedure TScriptForm.AddTab(caption: String);
+procedure TScriptForm.AddTab(tab: TTabSheet); overload;
+procedure TScriptForm.AddTabArray(captions: TStringArray);
+```
+Methods to add tabs to `TScriptForm`.
+
+When you a tab by **caption** be it a single one or an array of them, the caption you use can be used
+to reference the tab later.
+
+It's **caption** get sanitized with:
+```pascal
+LowerCase(StringReplace(caption, ' ', '_', [rfReplaceAll]))
+```
+
+Which means that if you "HelLo WOrLD" as your **caption**, it's name internally will become "hello_world_settings".
+This is only important if you need to retrieve the tab with the use of **Self.Form.GetChild()**.
+If you use the other tab methods you simply have to write the **caption** name the same way you did the first time.
+Your tab will also be added to **TScriptForm.Tabs** as the last element of the array and you can get it right after adding it with **MyForm.Tabs[High(MyForm.Tabs)]**.
+
+This example as a very simple setup of a TScriptForm with one tab:
+
+Example:
+```pascal
+procedure TMyScriptForm.Run(); override;
+var
+  tab: TTabSheet;
+begin
+  Self.Setup('HELLO WORLD SCRIPT');
+  Self.Start.setOnClick(@Self.StartScript);
+
+  Self.AddTab('Script Settings');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  inherited;
+end;
+```
+*)
+procedure TScriptForm.AddTab(caption: String);
+var
+  tab: TTabSheet;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.Create(Self.PageControl);
+
+  tab.setCaption(caption);
+  tab.SetTooltip(caption + ' settings.');
+
+  caption := LowerCase(StringReplace(caption, ' ', '_', [rfReplaceAll]));
+
+  tab.setName(caption);
+
+  Self.Tabs += tab;
+end;
+
+procedure TScriptForm.AddTab(tab: TTabSheet); overload;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.setParent(Self.PageControl);
+  Self.PageControl.InsertComponent(tab);
+
+  Self.Tabs += tab;
+end;
+
+procedure TScriptForm.AddTabArray(captions: TStringArray);
+var
+  caption: String;
+begin
+  for caption in captions do
+    Self.AddTab(caption);
+end;
+
+
+(*
+## TScriptForm.InsertTab
+```pascal
+procedure TScriptForm.InsertTab(caption: String; index: Int32 = 0);
+procedure TScriptForm.InsertTab(tab: TTabSheet; index: Int32 = 0); overload;
+```
+Adds a tab to TScriptForm and places it in TScriptForm.Tabs at the specified index.
+This is rarely ever useful at all to be honest.
+*)
+procedure TScriptForm.InsertTab(caption: String; index: Int32 = 0);
+var
+  tab: TTabSheet;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.Create(Self.PageControl);
+  tab.setName(caption);
+  tab.setCaption(caption);
+
+  tab.SetTooltip(caption + ' settings.');
+
+  Insert(tab, Self.Tabs, index);
+end;
+
+procedure TScriptForm.InsertTab(tab: TTabSheet; index: Int32 = 0); overload;
+begin
+  if Self.PageControl = nil then
+    Exit;
+
+  tab.setParent(Self.PageControl);
+  Self.PageControl.InsertComponent(tab);
+
+  Insert(tab, Self.Tabs, index);
+end;
+
+(*
+## TScriptForm.GetTab
+```pascal
+function TScriptForm.GetTab(index: Int32): TTabSheet;
+function TScriptForm.GetTab(caption: String; ignoreCase: Boolean = False): TTabSheet; overload;
+```
+Returns a tab based on index or caption.
+
+Example:
+```pascal
+MyForm.AddTab('Hello wolrd');
+tab := MyForm.GetTab('Hello world');
+```
+*)
+function TScriptForm.GetTab(index: Int32): TTabSheet;
+begin
+  Result := Self.Tabs[index];
+end;
+
+function TScriptForm.GetTab(caption: String; ignoreCase: Boolean = False): TTabSheet; overload;
+var
+  i: Int32;
+begin
+  if ignoreCase then
+  begin
+    caption := LowerCase(caption);
+
+    for i := 0 to High(Self.Tabs) do
+      if LowerCase(Self.Tabs[i].getCaption()) = caption then
+        Exit(Self.Tabs[i]);
+
+    Exit;
+  end;
+
+  for i := 0 to High(Self.Tabs) do
+    if Self.Tabs[i].getCaption() = caption then
+      Exit(Self.Tabs[i]);
+end;
+
+(*
+## TScriptForm.SetTabOrder
+```pascal
+procedure TScriptForm.SetTabOrder(captions: TStringArray; ignoreCase: Boolean = False); overload;
+```
+Changes the tab order to that of the specified **captions** in the TScriptForm.Tabs array.
+Keep in mind this doesnt actually move the tabs in the Form.
+*)
+procedure TScriptForm.SetTabOrder(captions: TStringArray; ignoreCase: Boolean = False); overload;
+var
+  tmp: array of TTabSheet;
+  i: Int32;
+begin
+  for i := 0 to High(captions) do
+    tmp += Self.GetTab(captions[i], ignoreCase);
+
+  Self.Tabs := tmp;
+end;
+
+
+procedure TScriptForm.OnClose({$H-}sender: TObject; var closeAction: TCloseAction);{$H+}
+begin
+  TerminateScript();
+end;
+
+procedure TScriptForm.OnShow(sender: TObject);
+begin
+  Self.Running := True;
+  if not Self.LightMode then
+    SetWindowDarkTitleBar(TForm(sender).getHandle());
+  TForm(sender).EnsureVisible(False);
+end;
+
+
+(*
+## TScriptForm.CreateTabs
+```pascal
+function TScriptForm.CreateAPISettings(): TTabSheet;
+function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
+function TScriptForm.CreateAccountManager(): TTabSheet; overload;
+function TScriptForm.CreateAntibanManager(): TTabSheet;
+function TScriptForm.CreateConsumableSettings(owner: TControl; consumableType: EConsumable; addInfo: Boolean = True): TPanel;
+function TScriptForm.CreateConsumableSettings(consumableType: EConsumable): TTabSheet; overload;
+function TScriptForm.CreateBankSettings(): TTabSheet;
+function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
+function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
+function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
+function TScriptForm.CreateVideoPanel(owner: TControl): TPanel;
+function TScriptForm.CreateWaspLibSettings(limits: Boolean = True): TTabSheet;
+function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray = [$27BA70, $00D8FF, $0000FF]; align: TAlign = alBottom): TPanel;
+```
+Set of methods used to create pre-configured panels and/or tabs to interact with SRL/WaspLib.
+The methods that return panels require you to specify a **owner** which will be the parent of that TPanel.
+Some panels might also require you to position the panel correctly as you wish. You can either align it or set coordinates.
+
+All of this are quite complex but have all their own methods self contained and it's not worth going over them since if you understand them, you might as well just refer to their source code anyway.
+
+Very basic example of a full TScriptForm setup:
+
+Example:
+```pascal
+{$I SRL-T/osr.simba}
+{$I WaspLib/main.simba}
+
+type
+  TMyScriptForm = record(TScriptForm)
+    Selector: TLabeledCombobox;
+    Info: TLabel;
+  end;
+
+procedure TMyScriptForm.StartScript(sender: TObject); override;
+begin
+  //Read your form options to setup the script here.
+  inherited; //This is important if you use TScript.Setup().
+end;
+
+procedure TMyScriptForm.Run(); override;
+var
+  tab: TTabSheet;
+begin
+  Self.Setup('HELLO WORLD SCRIPT');
+  Self.Start.setOnClick(@Self.StartScript); //this is important, don't forget it.
+
+  Self.AddTab('Script Settings');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  Self.CreateAccountManager(tab);
+
+  with Self.Selector do
+  begin
+    Create(tab);
+    SetCaption('Item type:');
+    SetLeft(TControl.AdjustToDPI(40));
+    SetTop(TControl.AdjustToDPI(170));
+    SetStyle(csDropDownList);
+    AddItemArray(['Item1', 'Item2', 'Item3', 'Item4']);
+    SetItemIndex(2);
+  end;
+
+  with Self.Info do
+  begin
+    Create(tab);
+    SetCaption('Get 99 Hello world today!');
+    SetLeft(Self.Selector.GetRight() + TControl.AdjustToDPI(40));
+    SetTop(TControl.AdjustToDPI(190));
+  end;
+
+  Self.CreateVersionPanel(tab);
+  Self.CreateAntibanManager();
+  Self.CreateBankSettings();
+  Self.CreateWaspLibSettings();
+  Self.CreateAPISettings();
+
+  inherited;
+end;
+
+var
+  MyScriptForm: TMyScriptForm;
+
+begin
+  MyScriptForm.Run();
+  //RUN SCRIPT HERE!
+end.
+```
+*)
+function TScriptForm.CreateAPISettings(): TTabSheet;
+  type TScriptForm = TScriptForm;
+  procedure TScriptForm._NewUUIDOnChange(sender: TObject);
+  var
+    newEdit, oldEdit: TEdit;
+    font: TFont;
+    new, old: String;
+  begin
+    newEdit := sender;
+    oldEdit := Self.Form.GetChild('api_uuid_edit');
+    font := newEdit.getFont();
+    new := Trim(newEdit.getText());
+    old := Trim(oldEdit.getText());
+
+    if new = old then
+      font.setColor($0088AA)
+    else if new.IsUUIDV4() then
+      font.setColor($007F3F)
+    else
+      font.setColor($0000BF);
+
+    newEdit.SetFont(font);
+  end;
+
+  procedure TScriptForm._CopyToClipboard(sender: TObject);
+  var
+    parent: TPanel;
+    edit: TEdit;
+    text: String;
+  begin
+    edit := sender;
+    text := Trim(edit.getText());
+    SetClipBoard(text);
+    parent := edit.getParent();
+    parent.SetFocus();
+  end;
+
+  procedure TScriptForm._UpdateUUID({$H-}sender: TObject);{$H+}
+  var
+    oldUUIDEdit, newUUIDEdit, oldPassEdit, newPassEdit: TEdit;
+    new: String;
+    password: String;
+    success: Boolean;
+  begin
+    newUUIDEdit := Self.Form.GetChild('api_new_uuid_edit');
+    oldUUIDEdit := Self.Form.GetChild('api_uuid_edit');
+    new := Trim(newUUIDEdit.getText());
+
+    if new = Trim(oldUUIDEdit.getText()) then
+      Exit;
+
+    if not new.IsUUIDV4() then
+      Exit;
+
+    if not InputQuery('Update UUID', 'Please enter the password of this UUID:', password) then
+      Exit;
+
+    success := APIClient.CheckPassword(new, password);
+    if not success then
+      Exit;
+
+    if MessageDlg('Update UUID', 'Are you sure?' + LINEENDING +
+                  'This can''t be reversed!'     + LINEENDING +
+                  'Backup your current UUID and PASSWORD if you are not sure!',
+                  mtConfirmation, [mbYes, mbCancel]) = mrCancel then
+      Exit;
+
+
+    newPassEdit := Self.Form.GetChild('api_new_pass_edit');
+    oldPassEdit := Self.Form.GetChild('api_pass_edit');
+
+    APIClient.Config.Put('uuid', new);
+    APIClient.Config.Put('password', password);
+    APIClient.Payload.Remove('password');
+    APIClient.Payload.Put('password', password);
+
+    oldUUIDEdit.SetText(new);
+    oldPassEdit.SetText(password);
+    newUUIDEdit.Clear();
+    newPassEdit.Clear();
+  end;
+
+  procedure TScriptForm._UpdatePassword({$H-}sender: TObject);{$H+}
+  var
+    oldEdit, newEdit: TEdit;
+    new: String;
+    success: Boolean;
+  begin
+    oldEdit := Self.Form.GetChild('api_pass_edit');
+    newEdit := Self.Form.GetChild('api_new_pass_edit');
+    new := Trim(newEdit.getText());
+
+    if new = '' then Exit;
+    success := APIClient.UpdatePassword(APIClient.GetUUID(), APIClient.GetPassword(), new);
+
+    if not success then
+    begin
+      newEdit.setCaption('Failed!');
+      Exit;
+    end;
+
+    oldEdit.setCaption(new);
+    newEdit.Clear();
+  end;
+
+  procedure TScriptForm._UserOnDone(sender: TObject);
+  var
+    user: TEdit;
+  begin
+    user := sender;
+    APIClient.SetUsername(Trim(user.getText()));
+  end;
+
+var
+  info, website: TLabel;
+  uuid, newUUID, user, pass, newPass: TLabeledEdit;
+  updateUUID, updatePass: TButton;
+  fullWidth, w, space, y: Int32;
+begin
+  Self.AddTab('API Settings');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  fullWidth := Floor(Self.Size.X/10);
+  space := Floor(fullWidth * 0.1);
+  w := Floor(fullWidth * 3.7);
+  y := Floor(Self.Size.Y/10);
+
+  with info do
+  begin
+    Create(Result);
+    SetCaption('Check live stats at: ');
+    SetName('api_info_label');
+    SetLeft(space);
+    SetTop(y);
+    SetWidth(GetTrueWidth());
+  end;
+
+  with website do
+  begin
+    Create(Result);
+    SetCaption('https://waspscripts.com/stats');
+    SetName('api_website_label');
+    SetLeft(info.GetRight());
+    SetTop(info.GetTop());
+    SetWidth(GetTrueWidth());
+    setOnClick(@OpenLink);
+    setCursor(crHandPoint);
+  end;
+
+  with uuid do
+  begin
+    Create(Result);
+    SetCaption('WaspStats UUID:');
+    SetName('api_uuid');
+    SetLeft(space);
+    SetTop(y + Caption.AdjustToDPI(50));
+    SetWidth(w);
+    SetText(APIClient.GetUUID());
+    Edit.SetOnClick(@Self._CopyToClipboard);
+    Edit.SetCursor(crHandPoint);
+    Edit.setReadOnly(True);
+    SetTooltip('You WaspStats UUID. This is your identifier.' + LINEENDING + 'If you change it and lose it, you will lose access to this WaspStats account.' + LINEENDING + LINEENDING + 'Click to copy to clipboard!');
+  end;
+
+  with newUUID do
+  begin
+    Create(Result);
+    SetCaption('WaspStats new UUID (restore old UUID):');
+    SetName('api_new_uuid');
+
+    SetTooltip('You should not change this if you don''t know what it is.'
+    + LINEENDING + 'Use it to restore an old Stats account.' + LINEENDING
+    + LINEENDING + 'Only valid UUID v4 are accepted.');
+
+    SetLeft(w + space * 2);
+    SetTop(uuid.GetTop());
+    SetWidth(w);
+    SetMaxLength(36);
+    Edit.setOnChange(@Self._NewUUIDOnChange);
+  end;
+
+  with updateUUID do
+  begin
+    Create(Result);
+    SetCaption('Update UUID');
+    SetName('update_uuid_button');
+    SetLeft(w * 2 + space * 3);
+    SetTop(uuid.GetBottom() - GetHeight());
+    setWidth(fullWidth * 2);
+    setOnClick(@Self._UpdateUUID);
+  end;
+
+  with pass do
+  begin
+    Create(Result);
+    SetCaption('WaspStats Password:');
+    SetName('api_pass');
+    SetLeft(uuid.getLeft());
+    SetTop(uuid.GetBottom() + TControl.AdjustToDPI(25));
+    SetWidth(w);
+    SetText(APIClient.GetPassword());
+    Edit.SetOnClick(@Self._CopyToClipboard);
+    Edit.SetCursor(crHandPoint);
+    Edit.setReadOnly(True);
+    SetTooltip('You WaspStats UUID. This is your identifier.' + LINEENDING + 'If you change it and lose it, you will lose access to this WaspStats account.' + LINEENDING + LINEENDING + 'Click to copy to clipboard!');
+  end;
+
+  with newPass do
+  begin
+    Create(Result);
+    SetCaption('WaspStats New Password:');
+    SetName('api_new_pass');
+    SetLeft(newUUID.getLeft());
+    SetTop(pass.GetTop());
+    SetWidth(w);
+  end;
+
+  with updatePass do
+  begin
+    Create(Result);
+    SetCaption('Update Password');
+    SetName('update_pass_button');
+    SetLeft(w * 2 + space * 3);
+    SetTop(pass.GetBottom() - GetHeight());
+    setWidth(fullWidth * 2);
+    setOnClick(@Self._UpdatePassword);
+  end;
+
+  with user do
+  begin
+    Create(Result);
+    SetCaption('WaspStats Username (this will be visible!):');
+    SetName('api_user');
+    SetLeft(uuid.getLeft());
+    SetTop(pass.GetBottom() + TControl.AdjustToDPI(25));
+    SetWidth(w);
+    SetText(APIClient.GetUsername());
+    SetTooltip('Your WaspStats username.');
+    Edit.setOnEditingDone(@Self._UserOnDone);
+  end;
+end;
+
+function TScriptForm.CreateAccountManager(owner: TControl): TPanel;
+  type TScriptForm = TScriptForm;
+   //This doesn't have to clutter things outside.
+
+  procedure TScriptForm._ClearInputs({$H-}sender: TObject);{$H+}
+  var
+    edit: TCustomEdit;
+    btn: TButton;
+  begin
+    edit := Self.Form.GetChild('am_user_edit');
+    edit.Clear();
+
+    edit := Self.Form.GetChild('am_pass_edit');
+    edit.Clear();
+
+    edit := Self.Form.GetChild('am_pin_edit');
+    edit.Clear();
+
+    edit := Self.Form.GetChild('am_worlds_memo');
+    edit.Clear();
+
+    btn := Self.Form.GetChild('am_save_button');
+    btn.setEnabled(False);
+    btn := Self.Form.GetChild('am_delete_button');
+    btn.setEnabled(False);
+  end;
+
+  procedure TScriptForm._FillInputs({$H-}sender: TObject);{$H+}
+  var
+    idx, i: Int32;
+    worldsStr: String;
+    user, pass, pin: TEdit;
+    worlds: TMemo;
+    btn: TButton;
+  begin
+    idx := Login.PlayerIndex;
+
+    user := Self.Form.GetChild('am_user_edit');
+    pass := Self.Form.GetChild('am_pass_edit');
+    pin := Self.Form.GetChild('am_pin_edit');
+    worlds := Self.Form.GetChild('am_worlds_memo');
+
+    user.SetText(Login.Players[idx].User);
+    pass.setText(Login.Players[idx].Password);
+    pin.setText(Login.Players[idx].Pin);
+
+    for i := 0 to High(Login.Players[idx].Worlds) do
+    begin
+      worldsStr += ToStr(Login.Players[idx].Worlds[i]);
+      if i < High(Login.Players[idx].Worlds) then
+        worldsStr += ', ';
+    end;
+
+    worlds.SetText(worldsStr);
+
+    btn := Self.Form.GetChild('am_save_button');
+    btn.setEnabled(True);
+    btn := Self.Form.GetChild('am_delete_button');
+    btn.setEnabled(True);
+  end;
+
+  procedure TScriptForm._ReloadSelector({$H-}sender: TObject);{$H+}
+  var
+    selector: TComboBox;
+    hasPlayers: Boolean;
+    save, delete: TButton;
+    player: TLoginPlayer;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    selector.Clear();
+
+    hasPlayers := Login.Players <> [];
+    selector.SetEnabled(hasPlayers);
+    save := Self.Form.GetChild('am_save_button');
+    delete := Self.Form.GetChild('am_delete_button');
+
+    save.SetEnabled(hasPlayers);
+    delete.SetEnabled(hasPlayers);
+
+    for player in Login.Players do
+      selector.getItems().Add(player.User);
+
+    if hasPlayers then
+      selector.SetItemIndex(Login.PlayerIndex);
+  end;
+
+  procedure TScriptForm._SelectorOnChange(sender: TObject);
+  var
+    i: Int32;
+    selector: TComboBox;
+  begin
+    selector := sender;
+
+    i := selector.GetItemIndex();
+    case i of
+      -1:
+      begin
+        Login.PlayerIndex := 0;
+        Self._ClearInputs(selector);
+      end;
+      0..High(Login.Players):
+      begin
+        Login.PlayerIndex := i;
+        Self._FillInputs(selector);
+      end;
+      else
+      begin
+        Login.PlayerIndex := i;
+        Self._ClearInputs(selector);
+      end;
+    end;
+
+    Antiban.SetupBiometrics();
+  end;
+
+  procedure TScriptForm._OnAddClick(sender: TObject);
+  var
+    selector: TComboBox;
+    user, pass, pin: TEdit;
+    worlds: TMemo;
+    worldsArray: TIntegerArray;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    user := Self.Form.GetChild('am_user_edit');
+    pass := Self.Form.GetChild('am_pass_edit');
+    pin  := Self.Form.GetChild('am_pin_edit');
+    worlds := Self.Form.GetChild('am_worlds_memo');
+
+    if user.IsEmpty() then
+    begin
+      Self._ClearInputs(sender);
+      Exit;
+    end;
+
+    worldsArray := worlds.GetIntegerArray(301, 700);
+
+    Login.Players += [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
+    Login.PlayerIndex := High(Login.Players);
+
+    RewriteCredentials();
+    Self._ReloadSelector(selector);
+    Self._SelectorOnChange(selector);
+  end;
+
+  procedure TScriptForm._OnSaveClick(sender: TObject);
+  var
+    selector: TComboBox;
+    user, pass, pin: TEdit;
+    worlds: TMemo;
+    worldsArray: TIntegerArray;
+    i: Int32;
+    player: TLoginPlayer;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    user := Self.Form.GetChild('am_user_edit');
+    pass := Self.Form.GetChild('am_pass_edit');
+    pin  := Self.Form.GetChild('am_pin_edit');
+    worlds := Self.Form.GetChild('am_worlds_memo');
+
+    if user.IsEmpty() then
+    begin
+      Self._ClearInputs(sender);
+      Exit;
+    end;
+
+    i := selector.getItemIndex();
+    if i > High(Login.Players) then
+    begin
+      Self._OnAddClick(sender);
+      Exit;
+    end;
+
+    worldsArray := worlds.GetIntegerArray(301, 700);
+
+    player := [user.GetText(), pass.GetText(), pin.GetText(), worldsArray];
+
+    if i = -1 then
+      Login.Players += player
+    else
+      Login.Players[i] := player;
+
+    RewriteCredentials();
+    Self._ReloadSelector(sender);
+  end;
+
+  procedure TScriptForm._OnDeleteClick(sender: TObject);
+  var
+    selector: TComboBox;
+    i: Int32;
+  begin
+    selector := Self.Form.GetChild('am_selector_combobox');
+    i := selector.getItemIndex();
+
+    if i > High(Login.Players) then
+      Exit;
+
+    Delete(Login.Players, i, 1);
+    Login.PlayerIndex -= 1;
+
+    Self._ClearInputs(sender);
+
+    RewriteCredentials();
+    Self._ReloadSelector(selector);
+    Self._SelectorOnChange(selector);
+  end;
+
+var
+  selector: TLabeledCombobox;
+  addButton, saveButton, deleteButton:  TButton;
+  user, pass, pin: TLabeledEdit;
+  worlds: TLabeledMemo;
+  fullWidth, w, space, passW, pinW, y: Int32;
+begin
+  with Result do
+  begin
+    Create(owner);
+    setName('am_panel');
+    setCaption('');
+    setBevelWidth(0);
+    setHeight(Round(Self.Size.Y / 3.2));
+    setWidth(Self.Size.X);
+    SetTooltip('WaspLib Account Manager.');
+  end;
+
+  fullWidth := Floor(Self.Size.X/2);
+  space := Floor(fullWidth * 0.08);
+  w := fullWidth - (space * 2);
+
+  passW := Floor(w * 0.6);
+  pinW := Floor(w * 0.3);
+
+  y := TControl.AdjustToDPI(5);
+
+  with selector do
+  begin
+    Create(Result);
+    SetCaption('Current account:');
+    SetName('am_selector');
+    SetTooltip('Currently selected account. Scripts will use this account to log in.');
+    SetLeft(space);
+    SetTop(y);
+    SetStyle(csDropDownList);
+    SetWidth(w);
+    ComboBox.setOnChange(@Self._SelectorOnChange);
+  end;
+
+  with user do
+  begin
+    Create(Result);
+    SetCaption('Username:');
+    SetName('am_user');
+    SetTooltip('Username or email of the current account.');
+    SetLeft(space);
+    SetTop(selector.GetBottom() + TControl.AdjustToDPI(2));
+    SetWidth(w);
+  end;
+
+  with pass do
+  begin
+    Create(Result);
+    SetCaption('Password:');
+    SetName('am_pass');
+    SetTooltip('Password of the current account.');
+    SetLeft(space);
+    SetTop(user.GetBottom() + TControl.AdjustToDPI(2));
+    SetWidth(passW);
+    SetPasswordChar('*');
+  end;
+
+  with pin do
+  begin
+    Create(Result);
+    SetCaption('Bank pin:');
+    SetName('am_pin');
+    SetTooltip('Bank pin of the current account.');
+    SetLeft(selector.GetRight() - pinW);
+    SetTop(pass.GetTop());
+    SetWidth(pinW);
+    SetPasswordChar('*');
+    SetMaxLength(4);
+    Edit.SetOnKeyPress(@Edit.NumberField);
+  end;
+
+  with worlds do
+  begin
+    Create(Result);
+    SetCaption('Worlds (separated by commas):');
+    SetName('am_worlds');
+    SetTooltip('World list of the current account. Ex. 302, 305, 309, 444, 573');
+    SetLeft(TControl.AdjustToDPI(375));
+    SetTop(selector.GetTop());
+    SetHeight(user.GetBottom());
+    SetWidth(TControl.AdjustToDPI(336));
+    Memo.setOnKeyPress(@Memo.NumberArrayField);
+  end;
+
+  fullWidth := Floor(worlds.GetWidth()/3);
+  space := Floor(fullWidth * 0.02);
+  w := fullWidth - (space);
+
+  with addButton do
+  begin
+    Create(Result);
+    SetCaption('Add Account');
+    SetName('am_add_button');
+    SetTooltip('Adds the currently input information into the credentials file if not already existing.');
+    SetLeft(worlds.GetLeft() - 1);   // Why is GetLeft() off by 1 pixel??
+    SetWidth(w);
+    SetHeight(TControl.AdjustToDPI(27));
+    SetTop(pass.GetBottom() - GetHeight() + 1); // Off by 1 pixel again?
+    setOnClick(@Self._OnAddClick);
+  end;
+
+  with saveButton do
+  begin
+    Create(Result);
+    SetCaption('Update Account'); //Only changing the display text of the button, not the underlying code.
+    SetName('am_save_button');
+    SetTooltip('Updates account information of the selected account.');
+    SetLeft(addButton.GetRight() + space * 2);
+    SetTop(addButton.GetTop());
+    SetWidth(w );
+    SetHeight(addButton.getHeight());
+    setOnClick(@Self._OnSaveClick);
+  end;
+
+  with deleteButton do
+  begin
+    Create(Result);
+    SetCaption('Delete Account');
+    SetName('am_delete_button');
+    SetTooltip('Deletes the selected account from the credientials file.');
+    SetLeft(saveButton.GetRight() + space * 2);
+    SetTop(addButton.GetTop());
+    SetWidth(w);
+    SetHeight(addButton.getHeight());
+    setOnClick(@Self._OnDeleteClick);
+  end;
+
+  Self._ReloadSelector(selector.ComboBox);
+  Self._SelectorOnChange(selector.ComboBox);
+end;
+
+function TScriptForm.CreateAccountManager(): TTabSheet; overload;
+begin
+  Self.AddTab('Account Manager');
+  Result := Self.Tabs[High(Self.Tabs)];
+  Self.CreateAccountManager(Result);
+end;
+
+function TScriptForm.CreateAntibanManager(): TTabSheet;
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._BioHashOnChange(sender: TObject);
+  var
+    bar: TTrackBar;
+    edit: TEdit;
+    value: Double;
+    str: String;
+  begin
+    edit := sender;
+    bar := Self.Form.GetChild('ab_biohash_trackbar');
+
+    str := edit.getText();
+    if not str.IsFloat() then
+    begin
+      BioHash := 0.000000000000001;
+      edit.setText('0.000000000000001');
+      bar.setPosition(0);
+      Exit;
+    end;
+
+    value := StrToFloat(str);
+    bar.setPosition(Trunc(value * 10));
+    edit.SetText(str);
+  end;
+
+  procedure TScriptForm._BarOnChange(sender: TObject);
+  var
+    bar: TTrackBar;
+    edit: TEdit;
+    value: Double;
+    str: String;
+  begin
+    bar := sender;
+    edit := Self.Form.GetChild('ab_biohash_edit');
+
+    value := bar.getPosition() * 0.111111111111111;
+    if value = 0 then
+      value += 0.000000000000001;
+
+    if value = 1 then
+      value -= 0.000000000000001;
+
+    BioHash := value;
+    str := FormatFloat('0.000000000000000', value);
+    edit.SetText(str);
+  end;
+
+  procedure TScriptForm._ABOnChange(sender: TObject);
+  var
+    arr: TStringArray;
+    i: Int32;
+    child: TCheckBox;
+    panel: TPanel;
+    checked: Boolean;
+  begin
+    checked := TCheckBox(sender).IsChecked();
+
+    arr := ['camera', 'mouse', 'chat', 'gametabs', 'bank'];
+
+    for i := 0 to High(arr) do
+    begin
+      child := Self.Form.GetChild(arr[i] + '_group_checkbox');
+      child.setEnabled(checked);
+      panel := Self.Form.GetChild(arr[i] + '_group_panel');
+      panel.setEnabled(checked);
+    end;
+
+    WLSettings.GetObject('antiban').getJSONObject('tasks').Put('enabled', checked);
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._ABGroupOnChange(sender: TObject);
+  var
+    checkbox: TCheckBox;
+  begin
+    checkbox := sender;
+    WLSettings.GetObject('antiban').getJSONObject('tasks').Put(checkbox.getName().Before('_'), checkbox.IsChecked());
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._BreaksOnChange(sender: TObject);
+  var
+    breaks: TCheckBox;
+    checked: Boolean;
+  begin
+    breaks := sender;
+    checked := breaks.IsChecked();
+
+    WLSettings.GetObject('antiban').Put('breaks', checked);
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._SleepsOnChange(sender: TObject);
+  var
+    sleepHour, sleepLength: TEdit;
+    bio: TCheckbox;
+    checked: Boolean;
+  begin
+    checked := TCheckBox(sender).IsChecked();
+
+    sleepHour   := Self.Form.GetChild('ab_sleep_hour_edit');
+    sleepLength := Self.Form.GetChild('ab_sleep_length_edit');
+    bio := Self.Form.GetChild('ab_sleep_bio_checkbox');
+
+    sleepHour.setEnabled(checked);
+    sleepLength.setEnabled(checked);
+    bio.getParent().setEnabled(checked);
+
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('enabled', checked);
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._SleepOnUseBioChange(sender: TObject);
+  var
+    checkbox: TCheckBox;
+    edit: TEdit;
+    checked: Boolean;
+    h: String;
+    l: Single;
+  begin
+    checkbox := sender;
+    checked := checkbox.IsChecked();
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', checked);
+
+    if checked then
+    begin
+      Antiban.SetupBiometrics();
+
+      h := Antiban.GetSleepHour();
+      WLSettings.GetObject('antiban').getJSONObject('sleep').Put('hour', h);
+      l := Antiban.GetSleepLength();
+      WLSettings.GetObject('antiban').getJSONObject('sleep').Put('length', l);
+      WLSettings.SaveConfig();
+
+      edit := Self.Form.GetChild('ab_sleep_hour_edit');
+      if edit <> nil then edit.SetText(h);
+
+      edit := Self.Form.GetChild('ab_sleep_length_edit');
+      if edit <> nil then edit.SetText(ToStr(l));
+    end;
+
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', checked);
+    WLSettings.SaveConfig();
+    checkbox.SetChecked(checked);
+  end;
+
+  procedure TScriptForm._SleepHourOnChange(sender: TObject);
+  var
+    edit: TEdit;
+    text: String;
+    bio: TCheckbox;
+  begin
+    edit := sender;
+    text := edit.GetText();
+
+    if not text.IsTime() then
+    begin
+      text := Antiban.GetSleepHour();
+      edit.setText(text);
+    end;
+
+    bio := Self.Form.GetChild('ab_sleep_bio_checkbox');
+    if bio <> nil then bio.SetChecked(False);
+
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', False);
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('hour', text);
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._SleepLengthOnChange(sender: TObject);
+  var
+    edit: TEdit;
+    len: Single;
+    bio: TCheckBox;
+  begin
+    edit := sender;
+    len := Round(StrToFloat(edit.GetText()), 2);
+
+    bio := Self.Form.GetChild('ab_sleep_bio_checkbox');
+    if bio <> nil then bio.SetChecked(False);
+
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('biohash', False);
+    WLSettings.GetObject('antiban').getJSONObject('sleep').Put('length', len);
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._SelectorOnChange(sender: TObject); override;
+  var
+    edit: TEdit;
+  begin
+    inherited;
+
+    edit := Self.Form.GetChild('ab_biohash_edit');
+    if edit <> nil then
+      edit.setText(FormatFloat('0.000000000000000', BioHash));
+
+    edit := Self.Form.GetChild('ab_sleep_hour_edit');
+    if edit <> nil then edit.SetText(Antiban.GetSleepHour());
+
+    edit := Self.Form.GetChild('ab_sleep_length_edit');
+    if edit <> nil then edit.SetText(ToStr(Antiban.GetSleepLength()));
+  end;
+
+var
+  bioPanel: TPanel;
+  fullWidth, w, space, y, i: Int32;
+  bioEdit, sleepHour, sleepLength: TLabeledEdit;
+  bar: TTrackBar;
+  antibanGroup: TCheckCheckGroup;
+  breaks, sleeps, useBio: TLabeledCheckBox;
+  arr: TStringArray;
+  str: String;
+  combobox: TComboBox;
+  checked: Boolean;
+begin
+  Self.AddTab('Antiban Manager');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  combobox := Self.Form.GetChild('am_selector_combobox');
+  if combobox = nil then Antiban.SetupBiometrics();
+
+  fullWidth := Self.Size.X;
+  space := Floor(fullWidth * 0.1);
+  w := fullWidth - (space * 2);
+  y := Floor(Self.Size.Y/6);
+
+  with bioPanel do
+  begin
+    Create(Result);
+    SetName('ab_biohash_panel');
+    SetTop(10);
+    SetLeft(space);
+    SetHeight(y);
+    SetWidth(w);
+    setCaption('');
+    setBevelWidth(0);
+  end;
+
+  with bar do
+  begin
+    Create(bioPanel);
+    SetName('ab_biohash_trackbar');
+    SetMin(0);
+    SetMax(9);
+    setAlign(alBottom);
+    setPosition(Round(BioHash * bar.getMax()));
+    SetTooltip('You can adjust your biohash with this trackbar, however, the default is recommended.');
+    setOnChange(@Self._BarOnChange);
+  end;
+
+  with bioEdit do
+  begin
+    Create(bioPanel);
+    SetLeft(Round(w/3));
+    SetWidth(Round(w/4));
+    SetCaption('BioHash:');
+    SetName('ab_biohash');
+    SetMaxLength(17);
+    SetToolTip('Value that will slightly modify timings of actions in scripts to create a unique pattern. Auto-generated when account added to credentials.');
+    Edit.setOnKeyPress(@Edit.NumberField);
+    Edit.setOnChange(@Self._BioHashOnChange);
+    SetText(FormatFloat('0.000000000000000', BioHash));
+  end;
+
+  fullWidth := Floor(Self.Size.X / 2.8);
+  space := Floor(fullWidth * 0.3);
+  w := fullWidth - (space * 2);
+  y := Floor(Self.Size.Y/6);
+
+  arr := ['Camera', 'Mouse', 'Chat', 'GameTabs', 'Bank'];
+  with antibanGroup do
+  begin
+    Create(Result);
+    SetCaption('Antiban');
+    SetTooltip('Antiban settings.');
+    SetTop(TControl.AdjustToDPI(120));
+    SetLeft(space);
+    AddItemArray(arr);
+
+    SetChecked(WLSettings.GetObject('antiban').getJSONObject('tasks').getBoolean('enabled'));
+
+    for i := 0 to High(arr) do
+    begin
+      str := LowerCase(arr[i]) + '_group';
+      SetCheckedChild(WLSettings.GetObject('antiban').getJSONObject('tasks').GetBoolean(LowerCase(arr[i])), str);
+      GetChildCheckBox(str).setOnChange(@Self._ABGroupOnChange);
+      Self._ABGroupOnChange(GetChildCheckBox(str));
+    end;
+
+    CheckBox.setOnChange(@Self._ABOnChange);
+    Self._ABOnChange(CheckBox);
+  end;
+
+  with breaks do
+  begin
+    Create(Result);
+    SetCaption('Short breaks');
+    SetLeft(fullWidth + Floor(space * 0.5));
+    SetTop(antibanGroup.GetTop());
+    SetToolTip('Enables/Disables short, randomized breaks.');
+
+    SetChecked(WLSettings.GetObject('antiban').getBoolean('breaks'));
+
+    CheckBox.setOnChange(@Self._BreaksOnChange);
+    Self._BreaksOnChange(CheckBox);
+  end;
+
+  with sleeps do
+  begin
+    Create(Result);
+    SetCaption('Sleep breaks');
+    SetLeft(fullWidth * 2 + Floor(space * 0.2));
+    SetTop(antibanGroup.GetTop());
+    SetToolTip('Enables/Disables sleep breaks.');
+
+    SetChecked(WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('enabled'));
+    CheckBox.setOnChange(@Self._SleepsOnChange);
+  end;
+
+  with useBio do
+  begin
+    Create(Result);
+    SetCaption('Use BioHash for sleep');
+    SetName('ab_sleep_bio');
+    SetLeft(sleeps.GetLeft() + TControl.AdjustToDPI(5));
+    SetTop(sleeps.GetBottom() + TControl.AdjustToDPI(5));
+    SetToolTip('Enables/Disables biohash influence on sleep time and length.');
+
+    useBio.SetChecked(WLSettings.GetObject('antiban').getJSONObject('sleep').getBoolean('biohash'));
+
+    checked := useBio.IsChecked();
+    CheckBox.setOnChange(@Self._SleepOnUseBioChange);
+  end;
+
+  with sleepHour do
+  begin
+    Create(Result);
+    SetLeft(useBio.GetLeft());
+    SetWidth(w);
+    SetTop(useBio.GetBottom() + TControl.AdjustToDPI(5));
+    SetCaption('Sleep hour:');
+    SetName('ab_sleep_hour');
+    SetToolTip('Local PC time to base randomized start of sleep on in 24hr format, HH:MM:SS.');
+    SetMaxLength(8);
+    Edit.setOnKeyPress(@Edit.TimeField);
+    Edit.setOnEditingDone(@Self._SleepHourOnChange);
+
+    SetText(Antiban.GetSleepHour());
+  end;
+
+  with sleepLength do
+  begin
+    Create(Result);
+    SetLeft(sleepHour.GetLeft());
+    SetWidth(w);
+    SetTop(sleepHour.GetBottom() + TControl.AdjustToDPI(5));
+    SetCaption('Sleep length (hours):');
+    SetName('ab_sleep_length');
+    SetToolTip('Sleep length in hours.');
+    Edit.setOnKeyPress(@Edit.FloatField);
+    Edit.setOnChange(@Self._SleepLengthOnChange);
+    SetText(ToStr(Antiban.GetSleepLength()));
+  end;
+
+  Self._SleepsOnChange(sleeps.CheckBox);
+  Self._SleepHourOnChange(sleepHour.Edit);
+  Self._SleepLengthOnChange(sleepLength.Edit);
+
+  if combobox <> nil then
+    Self._SelectorOnChange(combobox);
+
+  useBio.SetChecked(checked);
+  Self._SleepOnUseBioChange(useBio.CheckBox);
+end;
+
+function TScriptForm.CreateConsumableSettings(owner: TControl; consumableType: EConsumable; addInfo: Boolean = True): TPanel;
+var
+  typeStr: String;
+  itemArray: TItemArray;
+  info: TLabel;
+  minPoints, consumableAmount: TLabeledEdit;
+  consumableSelector: TLabeledCombobox;
+  fullWidth, w, space, y: Int32;
+begin
+  fullWidth := Floor(Self.Size.X/3);
+  space := Floor(fullWidth * 0.1);
+  w := Floor(fullWidth - space * 2);
+  if addInfo then
+    y := Floor(Self.Size.Y/2.5)
+  else
+    y := TControl.AdjustToDPI(15);
+
+  case consumableType of
+    EConsumable.FOOD:
+      begin
+        typeStr := 'Food';
+        itemArray := FOOD_ARRAY;
+      end;
+
+    EConsumable.PRAYER:
+      begin
+        typeStr := 'Prayer';
+        itemArray := PRAYER_ARRAY;
+      end;
+
+    EConsumable.ENERGY:
+      begin
+        typeStr := 'Energy';
+        itemArray := ENERGY_ARRAY;
+      end;
+
+    EConsumable.BOOST:
+      begin
+        typeStr := 'Boost';
+        itemArray := BOOST_ARRAY;
+      end;
+  end;
+
+  with Result do
+  begin
+    Create(owner);
+    setName('cm_' + LowerCase(typeStr) + '_panel');
+    setCaption('');
+    setBevelWidth(0);
+    setHeight(y + TControl.AdjustToDPI(40));
+    setWidth(Self.Size.X);
+    SetTooltip('WaspLib''s ' + typeStr + ' Settings.');
+  end;
+
+  if addInfo then
+    with info do
+    begin
+      Create(Result);
+      SetTop(TControl.AdjustToDPI(20));
+      SetLeft(space);
+      setCaption('Things to keep in mind about WaspLib''s ' + typeStr +
+                 ' Handler:' + LINEENDING + LINEENDING +
+                 '- Auto mode will use anythig it recognizes available. It only recognizes items in the list.' +
+                 LINEENDING +
+                 '- Auto mode has it''s own order of preference, which might not match yours. It''s the same order as the list.' +
+                 LINEENDING +
+                 '- Auto mode preference order can be overriden by starting with an item from the list in your inventory.' +
+                 LINEENDING +
+                 '- "Drink/Eat at" and "Withdraw ' + typeStr + ' amount" are dynamic and have some variance to it.' +
+                 LINEENDING +
+                 '    - This variance is not a flat rate, it varies both depending on input and your BioHash.' +
+                 LINEENDING +
+                 '    - For "Eat/Drink" you can expect it to:' +
+                 LINEENDING +
+                 '        - Vary aproximately between 20% and 40% on lower values, e.g. 10.' +
+                 LINEENDING +
+                 '        - Vary aproximately between 5% and 20% at higher values e.g. 80.'
+      );
+    end;
+
+  with consumableSelector do
+  begin
+    Create(Result);
+    SetCaption(typeStr + ' type: (empty=auto)');
+    SetName('cm_' + typeStr  + '_selector');
+    SetLeft(space);
+    SetTop(y);
+    SetWidth(w);
+    SetStyle(csDropDownList);
+    AddItemArray(itemArray);
+  end;
+
+  with minPoints do
+  begin
+    Create(Result);
+    if consumableType = EConsumable.BOOST then
+      SetCaption('Drink/Eat every (in minutes):')
+    else
+      SetCaption('Drink/Eat at:');
+    SetName('cm_' + typeStr + '_minimum');
+    SetLeft(fullWidth + space);
+    SetTop(y);
+    SetWidth(w);
+    if consumableType = EConsumable.BOOST then
+      SetText('5')
+    else
+      SetText('50');
+    Edit.setOnKeyPress(@Edit.NumberField);
+  end;
+
+  if Self.Form.GetChild('bank_settings') <> nil then
+    with consumableAmount do
+    begin
+      Create(Result);
+      SetCaption('Withdraw ' + LowerCase(typeStr) + ' amount:');
+      SetName('cm_' + typeStr + '_amount');
+      SetLeft(fullWidth * 2 + space);
+      SetTop(y);
+      SetWidth(w);
+      SetText('8');
+      Edit.setOnKeyPress(@Edit.NumberField);
+    end;
+end;
+
+function TScriptForm.CreateConsumableSettings(consumableType: EConsumable): TTabSheet; overload;
+var
+  typeStr: String;
+begin
+  case consumableType of
+    EConsumable.FOOD:   typeStr := 'Food';
+    EConsumable.PRAYER: typeStr := 'Prayer';
+    EConsumable.ENERGY: typeStr := 'Energy';
+    EConsumable.BOOST:  typeStr := 'Boost';
+  end;
+
+  Self.AddTab(typeStr + ' Settings');
+  Result := Self.Tabs[High(Self.Tabs)];
+  Self.CreateConsumableSettings(Result, consumableType);
+end;
+
+function TScriptForm.CreateBankSettings(): TTabSheet;
+  type TScriptForm = TScriptForm;
+  procedure TScriptForm._BankOnChange(sender: TObject);
+  var
+    combobox: TComboBox;
+    imgBox: TSimbaImageBox;
+    b: TBox;
+    p: TPoint;
+  begin
+    combobox := sender;
+    imgBox := Self.Form.GetChild('map_selector');
+    WLSettings.Put('bank_map', combobox.getItemIndex());
+    WLSettings.SaveConfig();
+
+    b := RSBankRegions[WLSettings.GetInt('bank_map')].Bounds;
+    b.X1 := Round(b.X1/4);
+    b.Y1 := Round(b.Y1/4);
+    b.X2 := Round(b.X2/4);
+    b.Y2 := Round(b.Y2/4);
+
+    p := b.Center();
+    imgBox.MoveTo(p.X, p.Y);
+
+    imgBox.GetOverlay().Clear();
+    imgBox.getOverlay().DebugTPA(b.ToRectangle().ToTPA().Connect());
+    imgBox.Update();
+  end;
+
+  procedure TScriptForm.OnShow(sender: TObject); override;
+  var
+    imgbox: TSimbaImageBox;
+    combobox: TComboBox;
+  begin
+    inherited;
+
+    imgbox := TForm(sender).GetChild('map_selector');
+    combobox := form.GetChild('bank_selector_combobox');
+
+    if (imgbox <> nil) and (combobox <> nil) then
+    begin
+      imgbox.BackgroundChanged();
+      imgbox.Update();
+      Self._BankOnChange(combobox);
+    end;
+  end;
+
+  procedure TScriptForm._FormOnHide(sender: TObject);
+  var
+    imgBox: TSimbaImageBox;
+  begin
+    imgBox := TForm(sender).GetChild('map_selector');
+    imgBox.getBackground().FreeImage();
+  end;
+
+var
+  bankSelector: TLabeledCombobox;
+  path, mapPath, fileName: String;
+  bmp, tmp: TMufasaBitmap;
+  imgBox: TSimbaImageBox;
+  fullWidth, w, space, x, y: Int32;
+begin
+  Self.Form.setOnHide(@Self._FormOnHide);
+
+  Self.AddTab('Bank Settings');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  x := Floor(Self.Size.X/2);
+
+  fullWidth := Floor(Self.Size.X/3);
+  space := Floor(fullWidth * 0.1);
+  w := Floor(fullWidth - space * 2);
+  y := Floor(Self.Size.Y * 0.03);
+
+  with bankSelector do
+  begin
+    Create(Result, 'Bank: ', 'Select your bank', [space, y], [w, 0], False);
+    SetName('bank_selector');
+    AddItemArray(RSBankRegions.GetStrings());
+    SetItemIndex(WLSettings.GetInt('bank_map'));
+    ComboBox.SetOnChange(@Self._BankOnChange);
+  end;
+
+  mapPath := INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'osr' +
+              DIRECTORYSEPARATOR + 'walker' + DIRECTORYSEPARATOR + 'map.png';
+  fileName := SHA1File(mapPath) + '.bmp';
+  path := WL_DATAPATH + 'assets' + DIRECTORYSEPARATOR;
+
+  bmp.Init();
+  if FileExists(path + fileName) then
+    bmp.LoadFromFile(path + fileName)
+  else
+  begin
+    tmp := TWalkerMap.InternalLoadMap(WALKER_DIR + 'map.png');
+    tmp.Downsample(4, bmp);
+    tmp.Free();
+    if ForceDirectories(path) then bmp.SaveToFile(path + fileName);
+  end;
+
+  with imgBox do
+  begin
+    Create(Result, '', 'Right Click + Drag to move', [space, y + TControl.AdjustToDPI(40)], [fullWidth * 3 - space * 2, Round(Self.Size.Y * 0.77)], False);
+    imgBox.SetAlign(TAlign.alNone);
+    SetName('map_selector');
+    GetBackground().LoadFromMufasaBitmap(bmp);
+    GetOverlay().GetCanvas().GetPen().SetColor($00FFFF);
+  end;
+
+  bmp.Free();
+end;
+
+function TScriptForm.CreateBankSettingsV2(parent: TControl; topLeft, offset: TPoint): TLabeledComboBox;
+  type TScriptForm = TScriptForm;
+  procedure TScriptForm._BankOnChangeV2(sender: TObject);
+  var
+    combobox: TComboBox;
+  begin
+    combobox := sender;
+    WLSettings.Put('bank_map', combobox.getItemIndex());
+    WLSettings.SaveConfig();
+  end;
+
+var
+  loc: EBankChunk;
+begin
+  Result.Create(parent, 'Bank: ', 'Select your bank', topLeft, [0,0], offset, True);
+
+  for loc := Low(EBankChunk) to High(EBankChunk) do
+    Result.AddItem(loc.Name());
+
+  if WLSettings.Has('bank_map') then
+    Result.SetItemIndex(WLSettings.GetInt('bank_map'))
+  else
+    Result.SetItemIndex(8);
+  Result.ComboBox.SetOnChange(@Self._BankOnChangeV2);
+end;
+
+
+function TScriptForm.CreateLimitSettings(owner: TControl): TPanel;
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._ActionLimitOnDone(sender: TObject);
+  var
+    edit: TEdit;
+    str: String;
+  begin
+    edit := sender;
+    str := edit.getText();
+
+    if str = '' then str := '0';
+
+    WLSettings.Put('max_actions', StrToIntDef(str, 0));
+  end;
+
+  procedure TScriptForm._TimeLimitOnDone(sender: TObject);
+  var
+    edit: TEdit;
+    str: String;
+  begin
+    edit := sender;
+    str := edit.getText();
+
+    if str = '' then str := '0';
+
+    WLSettings.Put('max_time', StrToIntDef(str, 0));
+  end;
+
+var
+  actionLimit, timeLimit: TLabeledEdit;
+  fullWidth, w, space, y: Int32;
+begin
+  with Result do
+  begin
+    Create(owner);
+    setName('limit_panel');
+    setCaption('');
+    setBevelWidth(0);
+    setHeight(Round(Self.Size.Y / 7));
+    SetTooltip('WaspLib limit settings.');
+  end;
+
+  fullWidth := Floor(Self.Size.X/2);
+  space := Floor(fullWidth * 0.1);
+  w := Floor(fullWidth - space * 2);
+  y := TControl.AdjustToDPI(20);
+
+  with actionLimit do
+  begin
+    Create(Result);
+    SetCaption('Stop after (number of actions):');
+    SetName('wl_action_limit');
+    SetTooltip('Sets the script to stop after X amount of actions are performed.'
+               + LINEENDING +
+               '0 = infinite.');
+    SetLeft(space);
+    SetTop(y);
+    SetWidth(w);
+    SetText(ToStr(WLSettings.GetInt('max_actions')));
+    Edit.setOnKeyPress(@Edit.NumberField);
+    Edit.setOnEditingDone(@Self._ActionLimitOnDone);
+  end;
+
+  with timeLimit do
+  begin
+    Create(Result);
+    SetCaption('Stop after (time in minutes):');
+    SetName('wl_time_limit');
+    SetTooltip('Sets the script to stop after X amount of minutes have passed.'
+               + LINEENDING +
+               '0 = infinite.');
+    SetLeft(fullWidth + space);
+    SetTop(y);
+    SetWidth(w);
+    SetText(ToStr(WLSettings.GetInt('max_time')));
+    Edit.setOnKeyPress(@Edit.NumberField);
+    Edit.setOnEditingDone(@Self._TimeLimitOnDone);
+  end;
+end;
+
+function TScriptForm.CreateRemoteInputSettings(owner: TControl): TPanel;
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._RIOnChange(sender: TObject);
+  var
+    arr: TStringArray;
+    i: Int32;
+    child: TCheckBox;
+    panel: TPanel;
+    checked: Boolean;
+  begin
+    checked := TCheckBox(sender).IsChecked();
+    arr := ['block_real_input', 'hud_report', 'hud_debug', 'hud_transparent'];
+
+    for i := 0 to High(arr) do
+    begin
+      child := Self.Form.GetChild(arr[i] + '_group_checkbox');
+      child.setEnabled(checked);
+      panel := Self.Form.GetChild(arr[i] + '_group_panel');
+      panel.setEnabled(checked);
+    end;
+
+    WLSettings.GetObject('remote_input').Put('enabled', checked);
+
+    if checked then
+    begin
+      child := Self.Form.GetChild(arr[1] + '_group_checkbox');
+      Self._RIGroupOnChange(child);
+    end
+    else
+      WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._RIGroupOnChange(sender: TObject);
+  var
+    checkbox, sibling: TCheckBox;
+    panel: TPanel;
+    name, str: String;
+  begin
+    checkbox := sender;
+    name := checkbox.getName();
+    str := name.Before('_group_checkbox');
+    WLSettings.GetObject('remote_input').Put(str, checkbox.IsChecked());
+
+    case name of
+      'hud_report_group_checkbox':
+        begin
+          panel := checkbox.getParent().getParent();
+
+          if not checkbox.IsChecked() then
+          begin
+            panel := panel.GetChild('hud_transparent_group_panel');
+            panel.setEnabled(False);
+            sibling := panel.GetChild('hud_transparent_group_checkbox');
+            sibling.setEnabled(False);
+          end
+          else
+          begin
+            sibling := panel.GetChild('hud_debug_group_checkbox');
+            sibling.SetChecked(False);
+            WLSettings.GetObject('remote_input').Put('hud_debug', False);
+
+            panel := panel.GetChild('hud_transparent_group_panel');
+            panel.setEnabled(True);
+            sibling := panel.GetChild('hud_transparent_group_checkbox');
+            sibling.setEnabled(True);
+          end;
+        end;
+
+      'hud_debug_group_checkbox':
+        if checkbox.IsChecked() then
+        begin
+            panel := checkbox.getParent().getParent();
+            sibling := panel.GetChild('hud_report_group_checkbox');
+            sibling.SetChecked(False);
+            WLSettings.GetObject('remote_input').Put('hud_report', False);
+
+            panel := panel.GetChild('hud_transparent_group_panel');
+            panel.setEnabled(False);
+            sibling := panel.GetChild('hud_transparent_group_checkbox');
+            sibling.setEnabled(False);
+        end;
+    end;
+
+    WLSettings.SaveConfig();
+  end;
+
+var
+  info: TLabel;
+  fullWidth, space, i: Int32;
+  riGroup: TCheckCheckGroup;
+  arr: TStringArray;
+  str: String;
+  tmp: TCheckBox;
+begin
+  with Result do
+  begin
+    Create(owner);
+    SetName('ri_panel');
+    setCaption('');
+    setBevelWidth(0);
+    setHeight(Round(Self.Size.Y / 4.2));
+    SetTooltip('Remote Input settings.');
+  end;
+
+  fullWidth := Floor(Self.Size.X/4);
+  space := Floor(fullWidth * 0.1);
+
+  with info do
+  begin
+    Create(Result);
+    SetTop(TControl.AdjustToDPI(20));
+    SetLeft(fullWidth + space);
+    SetCaption('Remote input is the tool used to allow simba to do virtual input in game.' +
+    LINEENDING + 'This uses reflection to achieve input.');
+    SetName('ri_info');
+  end;
+
+  arr := ['Block Real Input', 'HUD Report', 'HUD Debug', 'HUD Transparent'];
+  with riGroup do
+  begin
+    Create(Result);
+    SetCaption('Remote Input');
+    SetTooltip('Remote Input settings.');
+    SetTop(TControl.AdjustToDPI(20));
+    SetLeft(space);
+    AddItemArray(arr);
+
+    for i := 0 to High(arr) do
+    begin
+      str := Replace(LowerCase(arr[i]), ' ', '_', [rfReplaceAll]);
+      tmp := GetChildCheckBox(str + '_group');
+      tmp.setOnChange(@Self._RIGroupOnChange);
+      tmp.SetChecked(WLSettings.GetObject('remote_input').getBoolean(str));
+    end;
+
+    CheckBox.setOnChange(@Self._RIOnChange);
+
+    SetChecked(WLSettings.GetObject('remote_input').getBoolean('enabled'));
+
+    Self._RIOnChange(CheckBox);
+  end;
+end;
+
+function TScriptForm.CreateVideoPanel(owner: TControl): TPanel;
+  type TScriptForm = TScriptForm;
+
+  procedure TScriptForm._VideoOnChange(sender: TObject);
+  var
+    checked: Boolean;
+    edit: TEdit;
+  begin
+    checked := TCheckBox(sender).IsChecked();
+    edit := Self.Form.GetChild('v_time_edit');
+    edit.setEnabled(checked);
+    WLSettings.GetObject('video').Put('enabled', checked);
+    WLSettings.SaveConfig();
+  end;
+
+  procedure TScriptForm._TimeOnChange(sender: TObject);
+  begin
+    WLSettings.GetObject('video').Put('time', StrToInt(TEdit(sender).getText()));
+    WLSettings.SaveConfig();
+  end;
+var
+  enabled: TLabeledCheckBox;
+  time: TLabeledEdit;
+begin
+  with Result do
+  begin
+    Create(owner);
+    SetName('v_panel');
+    SetCaption('');
+    setBevelWidth(0);
+    SetTooltip(
+      'Record script crashes with simba.'
+      + LineEnding +
+      'Videos are saved at: ' +
+      AppPath + 'Data' + DirectorySeparator + 'WaspLib' + DirectorySeparator + 'videos' + DirectorySeparator
+      + LineEnding +
+      'This is a resource intense feature, use it only for debugging purposes.'
+    );
+    SetTop(TControl.AdjustToDPI(250));
+    SetHeight(TControl.AdjustToDPI(68));
+  end;
+
+  with enabled do
+  begin
+    Create(Result);
+    SetCaption('Record crashes');
+    SetName('v_enabled');
+    SetLeft(TControl.AdjustToDPI(10));
+    SetTop(TControl.AdjustToDPI(10));
+    SetChecked(WLSettings.GetObject('video').getBoolean('enabled'));
+    CheckBox.setOnChange(@Self._VideoOnChange);
+  end;
+
+  with time do
+  begin
+    Create(Result);
+    SetLeft(enabled.GetLeft());
+    SetTop(enabled.GetBottom() + TControl.AdjustToDPI(10));
+    SetCaption('Video time (seconds):');
+    SetName('v_time');
+    SetTooltip('');
+    SetMaxLength(2);
+    SetEnabled(False);
+    Edit.setOnKeyPress(@Edit.NumberField);
+    Edit.SetOnChange(@Self._TimeOnChange);
+    SetText(ToStr(WLSettings.GetObject('video').getInt('time')));
+    SetWidth(TControl.AdjustToDPI(110));
+  end;
+end;
+
+function TScriptForm.CreateWaspLibSettings(limits: Boolean = True): TTabSheet;
+var
+  riPanel, limitPanel, videoPanel: TPanel;
+begin
+  Self.AddTab('WaspLib Settings');
+  Result := Self.Tabs[High(Self.Tabs)];
+
+  videoPanel := Self.CreateVideoPanel(Result);
+  videoPanel.setAlign(alTop);
+
+  riPanel := Self.CreateRemoteInputSettings(Result);
+  riPanel.setAlign(alTop);
+
+  if limits then
+  begin
+    limitPanel := Self.CreateLimitSettings(Result);
+    limitPanel.setAlign(alTop);
+  end;
+end;
+
+function TScriptForm.CreateVersionPanel(owner: TControl; colors: TIntegerArray = [$27BA70, $00D8FF, $0000FF]; align: TAlign = alBottom): TPanel;
+  function _MakeVersionLabel(owner: TControl; caption, current, latest: String; color, pad1, pad2: Int32): TPanel;
+  var
+    tmp: String;
+    captionLabel, currentLabel, latestLabel: TLabel;
+    i: Int32;
+  begin
+    with Result do
+    begin
+      Create(owner);
+      setCaption('');
+      setBevelWidth(0);
+    end;
+
+    with captionlabel do
+    begin
+      Create(Result);
+      SetTop(0);
+      SetLeft(0);
+      SetFontColor(color);
+      getFont().setStyle([fsBold]);
+      for i := 0 to pad1 do
+        tmp += '_';
+      setCaption(tmp);
+      setWidth(GetTrueWidth());
+      setCaption(caption);
+    end;
+
+    with currentLabel do
+    begin
+      Create(Result);
+      SetTop(0);
+      SetLeft(captionLabel.GetRight());
+      SetFontColor(color);
+      getFont().setStyle([fsBold]);
+      for i := 0 to pad2 do
+        tmp += '_';
+      setCaption(tmp);
+      setWidth(GetTrueWidth());
+      setCaption(current);
+    end;
+
+    with latestLabel do
+    begin
+      Create(Result);
+      setCaption(latest);
+      SetTop(0);
+      SetLeft(currentLabel.GetRight());
+      SetFontColor(color);
+      getFont().setStyle([fsBold]);
+      setWidth(GetTrueWidth());
+    end;
+
+    Result.setHeight(TControl.AdjustToDPI(15));
+    Result.setWidth(captionlabel.getWidth() + currentLabel.getWidth() + latestLabel.getWidth());
+  end;
+
+  procedure _CheckFailed(out str: String; out color: Int32);
+  begin
+    if str <> '' then
+      Exit;
+    str   := 'Check Failed';
+    color := colors[1];
+  end;
+
+  procedure _CheckMatch(current, latest: String; out color: Int32);
+  begin
+    if current <> latest then
+      color := colors[2];
+  end;
+var
+  srltPanel, wlPanel, revPanel: TPanel;
+  latestSRLT, latestWL, latestRev, currentSRLT, currentWL, currentRev: String;
+  srltColor, wlColor, revColor, pad1, pad2: Int32;
+begin
+  APIClient.GetAllVersions({$macro SCRIPT_ID}, latestRev, latestSRLT, latestWL);
+
+  srltColor := colors[0];
+  wlColor   := colors[0];
+  revColor  := colors[0];
+
+  _CheckFailed(latestSRLT, srltColor);
+  _CheckFailed(latestWL  , wlColor);
+  _CheckFailed(latestRev, revColor);
+
+  currentSRLT := GetPackageVersion('srl-t');
+  currentWL   := GetPackageVersion('wasplib');
+  currentRev  := {$macro SCRIPT_REVISION};
+
+  _CheckMatch(currentSRLT, latestSRLT, srltColor);
+  _CheckMatch(currentWL, latestWL, wlColor);
+  _CheckMatch(currentRev, latestRev, revColor);
+
+  with Result do
+  begin
+    Create(owner);
+    setName('version_panel');
+    setCaption('');
+    setBevelWidth(0);
+    SetTooltip('Version checker.');
+    setWidth(Self.Size.X);
+    setAlign(align);
+  end;
+
+  pad1 := Max(Max(Length('SRL-T'), Length('WaspLib')), Length('WaspLib')) + 8;
+  pad2 := Max(Max(Length(currentSRLT), Length(currentWL)), Length(currentRev));
+
+  srltPanel := _MakeVersionLabel(Result, 'SRL-T'  , 'Current: ' + currentSRLT, 'Latest: ' + latestSRLT, srltColor, pad1, pad2);
+  wlPanel   := _MakeVersionLabel(Result, 'WaspLib', 'Current: ' + currentWL  , 'Latest: ' + latestWL  , wlColor  , pad1, pad2);
+  revPanel  := _MakeVersionLabel(Result, 'Script' , 'Current: ' + currentRev , 'Latest: ' + latestRev , revColor , pad1, pad2);
+
+  srltPanel.SetTop(0);
+  wlPanel.SetTop(srltPanel.GetBottom());
+  revPanel.SetTop(wlPanel.GetBottom());
+
+  srltPanel.SetLeft(TControl.AdjustToDPI(5));
+  wlPanel.SetLeft(TControl.AdjustToDPI(5));
+  revPanel.SetLeft(TControl.AdjustToDPI(5));
+end;
+
+
+(*
+## TScriptForm.StartScript
+```pascal
+procedure TScriptForm.StartScript(sender: TObject);
+```
+This exists so you can close and terminate your script by closing the form window, otherwise it would just run the script.
+Overriding this will require you to use **inherited** on your override.
+
+Overriding this is also my recommended way of setting up your script variables like the following example:
+
+Example:
+```pascal
+procedure TScriptForm.StartScript(sender: TObject); override;
+begin
+  CurrentTask := ETask(Self.TaskSelector.GetItemIndex());
+  inherited;
+end;
+```
+*)
+procedure TScriptForm.StartScript({$H-}sender: TObject);{$H+}
+begin
+  Self.Form.SetOnClose(nil);
+  Self.Form.Close();
+end;
+
+
+(*
+## TScriptForm.Setup
+```pascal
+procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
+```
+Responsible for setting your TScriptForm up.
+This sets up the sekeleton of your TScriptForm ready to take in tabs.
+*)
+procedure TScriptForm.Setup(caption: String = 'Script Form'; size: TPoint = [750, 500]; allowResize: Boolean = False);
+begin
+  Self.Size := [TControl.AdjustToDPI(size.X), TControl.AdjustToDPI(size.Y)];
+
+  with Self.Form do
+  begin
+    Init(nil);
+    setName(StringReplace(caption, ' ', '_', [rfReplaceAll]));
+    setCaption(caption);
+    setWidth(Self.Size.X);
+    setHeight(Self.Size.Y);
+    if not allowResize then
+      getConstraints().SetInterfaceConstraints(Self.Size.X, Self.Size.Y, Self.Size.X, Self.Size.Y);
+    setPosition(poScreenCenter);
+    setOnShow(@Self.OnShow);
+    setOnClose(@Self.OnClose);
+    getFont().setQuality(TFontQuality.fqAntialiased);
+  end;
+
+  with Self.PageControl do
+  begin
+    Create(Self.Form);
+    setName('pagecontrol');
+    setAlign(alClient);
+  end;
+
+  with Self.Start do
+  begin
+    Create(Self.Form);
+    setAlign(alBottom);
+    SetCaption('Start!');
+    setOnClick(@Self.StartScript);
+  end;
+end;
+
+(*
+## TScriptForm.Show
+```pascal
+procedure TScriptForm.Show();
+```
+Shows your TScriptForm after it has been setup. To run this you have to use **Sync()**
+
+Example:
+```pascal
+Sync(@MyForm.Show);
+```
+*)
+procedure TScriptForm.Show();
+begin
+  try
+    Self.Form.ShowModal();
+  except
+    Writeln(GetExceptionMessage());
+  finally
+    Self.Form.Free();
+  end;
+end;
+
+(*
+## TScriptForm.Run
+```pascal
+procedure TScriptForm.Run();
+```
+Basically a wrapper for TScriptForm.Show() so users don't have to use **Sync()** directly.
+It is also a great method to override to setup your custom form things on like in the previous examples.
+If you do override it, you absolutely must use **inherited** on your override and it should be at the end of the method.
+*)
+procedure TScriptForm.Run();
+begin
+  Sync(@Self.Show);
+
+  {$IFNDEF SRL_DISABLE_REMOTEINPUT}
+  if WLSettings.GetObject('remote_input').getBoolean('enabled') then
+  begin
+    if not GameClient.RemoteInput.IsSetup() then GameClient.RemoteInput.Setup();
+  end
+  else if GameClient.RemoteInput.IsSetup() then GameClient.RemoteInput.Free();
+  {$ENDIF}
+end;

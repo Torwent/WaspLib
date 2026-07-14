@@ -1,0 +1,69 @@
+{$DEFINE SCRIPT_GUI}
+{$I SRL-T/osr.simba}
+{$I WaspLib/optional.simba}
+
+{$IFDEF SCRIPT_GUI}
+
+type
+  TMyScriptForm = record(TScriptForm)
+    Selector: TLabeledCombobox;
+  end;
+
+procedure TMyScriptForm.StartScript(sender: TObject); override;
+begin
+  inherited;
+
+  //This is your selected loot:
+  WriteLn LootHandler.Loot;
+  WriteLn LootHandler.LootItems;
+end;
+
+procedure TMyScriptForm.LootHandlerRefresh(sender: TObject);
+begin
+  LootHandler.Setup(TComboBox(sender).getText(), 5000);
+  Self.RefreshLootManager();
+end;
+
+procedure TMyScriptForm.Run(); override;
+var
+  tab: TTabSheet;
+begin
+  Self.Setup('HELLO WORLD SCRIPT');
+  Self.Start.setOnClick(@Self.StartScript);
+
+  Self.AddTab('Script Settings');
+  tab := Self.Tabs[High(Self.Tabs)];
+
+  Self.CreateAccountManager(tab);
+
+  Self.Selector.Create(tab, 'monster:', '', [40,170], [0,0], True);
+  Self.Selector.SetStyle(csDropDownList);
+  Self.Selector.AddItemArray(['Abyssal demon', 'Zulrah', 'Vorkath', 'Ankou']);
+  Self.Selector.SetItemIndex(2);
+  Self.Selector.ComboBox.setOnChange(@Self.LootHandlerRefresh);
+
+  LootHandler.Setup(Self.Selector.GetText(), 5000);
+  Self.CreateLootManager();
+
+  Self.CreateAntibanManager();
+  Self.CreateBankSettings();
+  Self.CreateWaspLibSettings();
+  Self.CreateAPISettings();
+
+  inherited;
+end;
+
+var
+  MyScriptForm: TMyScriptForm;
+{$ENDIF}
+
+begin
+  {$IFDEF SCRIPT_GUI}
+  MyScriptForm.Run();
+  {$ENDIF}
+
+  //RUN SCRIPT HERE!
+  WriteLn('TMonsterDrops: ', LootHandler.Loot);
+  WriteLn('TItemArray: ', LootHandler.LootItems);
+  //TItemArray has items striped of "noted " and is lowercase
+end.

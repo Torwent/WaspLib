@@ -1,0 +1,318 @@
+(*
+# CraftScreen
+Methods to interact with the crafting screen on a furnace.
+*)
+
+{$DEFINE AERO_CRAFTSCREEN_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  ECraftScreenButton = (AMOUNT_1, AMOUNT_5, AMOUNT_10, AMOUNT_CUSTOM, AMOUNT_ALL);
+
+  ECraftItem = (
+  { Rings }
+    GOLD_RING,
+    SAPPHIRE_RING,
+    EMERALD_RING,
+    RUBY_RING,
+    DIAMOND_RING,
+    DRAGONSTONE_RING,
+    ONYX_RING,
+    SLAYER_RING,
+    ZENYTE_RING,
+  { Necklaces }
+    GOLD_NECKLACE,
+    SAPPHIRE_NECKLACE,
+    EMERALD_NECKLACE,
+    RUBY_NECKLACE,
+    DIAMOND_NECKLACE,
+    DRAGONSTONE_NECKLACE,
+    ONYX_NECKLACE,
+    ZENYTE_NECKLACE,
+  { Amulets }
+    GOLD_AMULET,
+    SAPPHIRE_AMULET,
+    EMERALD_AMULET,
+    RUBY_AMULET,
+    DIAMOND_AMULET,
+    DRAGONSTONE_AMULET,
+    ONYX_AMULET,
+    ZENYTE_AMULET,
+  { Bracelets }
+    GOLD_BRACELET,
+    SAPPHIRE_BRACELET,
+    EMERALD_BRACELET,
+    RUBY_BRACELET,
+    DIAMOND_BRACELET,
+    DRAGONSTONE_BRACELET,
+    ONYX_BRACELET,
+    ZENYTE_BRACELET
+  );
+
+procedure ECraftItem.SetCraftItem(item: TItem);
+begin
+  for Self := ECraftItem(0) to ECraftItem(High(ECraftItem)) do
+    if SameText(ToString(Self).Replace('_', ' '), ToString(item).Replace('(u)', '').Strip()) then
+      Exit;
+  TerminateScript('That item is not available in the crafting interface!');
+end;
+
+const
+  CRAFT_ITEMS = [ECraftItem.GOLD_RING..ECraftItem.ZENYTE_AMULET];
+
+type
+  TCraftScreen = record(TTitledInterface)
+    ItemBoxes: TBoxArray;
+  end;
+
+procedure TCraftScreen.Setup(); override;
+begin
+  inherited;
+  Self.Name := 'CraftScreen';
+end;
+
+procedure TCraftScreen.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+  boxes: TBoxArray;
+begin
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 492;
+  alignment.MaxHeight := 300;
+
+  Self.SetupAlignment(alignment);
+
+  boxes := Grid(9, 1, 31, 31, [14, 30], [Self.Bounds.X1 + 36, Self.Bounds.Y1 + 66]);
+  Self.ItemBoxes := boxes.Combine(Grid(8, 3, 31, 31, [19, 30], [Self.Bounds.X1 + 36, Self.Bounds.Y1 + 127]));
+end;
+
+function TCraftScreen.GetButtons(): TGameButtonArray;
+begin
+  Result := Self.FindButtons([[37,37]]);
+end;
+
+function TCraftScreen.GetButton(Button: ECraftScreenButton): TGameButton;
+var
+  Buttons: TGameButtonArray := Self.GetButtons();
+begin
+  if (Length(Buttons) = Length(ECraftScreenButton)) then
+    Result := Buttons[Button];
+end;
+
+(*
+## CraftScreen.IsOpen
+```pascal
+function TCraftScreen.IsOpen(): Boolean;
+function TCraftScreen.IsOpen(waitTime: Int32): Boolean;
+```
+Returns true if the gold crafting screen is visible. You can optionally specify a `waitTime`.
+
+Example:
+```pascal
+if CraftScreen.IsOpen() then
+  CraftScreen.ClickItem(ECraftItem.GOLD_BRACELET, -1);
+```
+*)
+function TCraftScreen.IsOpen(): Boolean; overload;
+begin
+  try
+    Result := Self.GetButtons[0].Visible();
+  except
+  end;
+end;
+
+function TCraftScreen.IsOpen(waitTime: Int32): Boolean; overload;
+begin
+  Result := WaitUntil(Self.IsOpen(), SRL.TruncatedGauss(50, 1500), waitTime);
+end;
+
+
+(*
+## CraftScreen.Close
+```pascal
+function TCraftScreen.Close(PressEscape: Boolean = False): Boolean;
+```
+
+Closes the gold crafting screen.  Depending on `PressEscape` the function will
+either click the button or press backspace.
+
+Example:
+```pascal
+if CraftScreen.Close() then
+  Writeln('Closed the gold crafting screen');
+```
+*)
+function TCraftScreen.Close(PressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := Self.ClickCloseButton(PressEscape) and WaitUntil(not Self.IsOpen(), SRL.TruncatedGauss(50, 1500), Random(1500, 2000));
+end;
+
+(*
+## CraftScreen.SetQuantity
+```pascal
+function TCraftScreen.SetQuantity(Amount: Int32): Boolean;
+```
+
+Sets the interface quantity to the set amount.  Acceptable parameters
+include 1,5,10,X (custom amount) and -1 for 'All'.
+
+Example:
+```pascal
+CraftScreen.SetQuantity(-1);
+```
+*)
+function TCraftScreen.SetQuantity(Amount: Int32): Boolean;
+const
+  ENABLED_COLOR = $FFFFFF;
+  DISABLED_COLOR = 2070783;
+var
+  Text: String;
+  Button: TGameButton;
+  Buttons: TGameButtonArray;
+begin
+  if Amount = -1 then
+    Text := 'All'
+  else
+    Text := ToString(Amount);
+
+  Buttons := Self.GetButtons();
+
+  for Button in Buttons do
+  begin
+    // Already selected
+    if Button.FindText(Text, FONT_PLAIN_11, ENABLED_COLOR) then
+      Exit(True);
+    // Select
+    if Button.FindText(Text, FONT_PLAIN_11, DISABLED_COLOR) then
+      Exit(Button.Click());
+  end;
+
+  for Button in Buttons do
+    if Button.FindText('X', FONT_PLAIN_11, DISABLED_COLOR) then
+      Exit(Button.Click() and Chat.AnswerQuery('Enter amount', ToString(Amount), 3000));
+end;
+
+(*
+## CraftScreen.CanCraftItem
+```pascal
+function TCraftScreen.CanCraftItem(CraftItem: ECraftItem): Boolean;
+```
+
+Returns if the given ECraftItem can be crafted.
+
+Example:
+```pascal
+if CraftScreen.CanCraftItem(ECraftItem.RUBY_RING) then
+  CraftScreen.ClickItem(ECraftItem.RUBY_RING, 5);
+```
+*)
+function TCraftScreen.CanCraftItem(CraftItem: ECraftItem): Boolean;
+const
+  GOLD_COLOR = 2806763;
+var
+  Boxes: TBoxArray;
+  TPA: TPointArray;
+begin
+  if not Self.IsOpen() then Exit;
+  Result := SRL.FindColors(TPA, CTS0(GOLD_COLOR, 15), Self.ItemBoxes[CraftItem]) > 0;
+end;
+
+(*
+## CraftScreen.IsItemHighlighted
+```pascal
+function TCraftScreen.IsItemHighlighted(CraftItem: ECraftItem): Boolean;
+```
+
+Returns if the given ECraftItem is highlighted on the crafting interface.
+
+Example:
+```pascal
+if CraftScreen.IsItemHighlighted(ECraftItem.GOLD_BRACELET) then
+  Keyboard.PressKey(VK_SPACE);
+```
+*)
+function TCraftScreen.IsItemHighlighted(CraftItem: ECraftItem): Boolean;
+var
+  HighlightCol: TCTS1Color := CTS1(4807018, 2);
+  TPA: TPointArray;
+begin
+  if not Self.IsOpen() then Exit;
+  if not Self.CanCraftItem(CraftItem) then Exit;
+  Result := SRL.FindColors(TPA, HighlightCol, Self.ItemBoxes[CraftItem]) > 0;
+end;
+
+(*
+## CraftScreen.CraftItem
+```pascal
+function TCraftScreen.CraftItem(Item: TItem; Quantity: Int32; UseSpaceBar: Boolean=False): Boolean;
+```
+
+Sets the desired quantity then crafts the given ECraftItem on the gold crafting
+interface.  If the item is highlighted (previously crafted) and UseSpaceBar is set to true,
+then the spacebar is used, if not then the interface item is clicked.  Returns false if the given ECraftItem
+is not found on the interface.
+
+Example:
+```pascal
+if CraftScreen.CraftItem(ECraftItem.RUBY_AMULET, 5) then
+  Writeln('Beginning crafting...');
+```
+*)
+function TCraftScreen.CraftItem(Item: ECraftItem; Quantity: Int32; UseSpaceBar: Boolean=False): Boolean;
+begin
+  if not Self.CanCraftItem(Item) then Exit;
+
+  Result := Self.SetQuantity(Quantity);
+  if Result then
+  begin
+    if (not UseSpaceBar) then
+      Mouse.Click(Self.ItemBoxes[Item], MOUSE_LEFT)
+    else
+      if Self.IsItemHighlighted(Item) then
+        Keyboard.PressKey(VK_SPACE)
+      else
+        Mouse.Click(Self.ItemBoxes[Item], MOUSE_LEFT);
+  end;
+end;
+
+procedure TCraftScreen.Draw(Bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  inherited;
+
+  Bitmap.DrawBoxes(Self.ItemBoxes, $00FFFF);
+end;
+
+var
+  CraftScreen: TCraftScreen;
+
+procedure TGameClient.ClientModeChanged; override;
+begin
+  inherited;
+
+  CraftScreen.SetupAlignment();
+end;
+
+procedure TSRL.Setup; override;
+begin
+  inherited;
+
+  CraftScreen.Setup();
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  CraftScreen.Draw(Bitmap);
+end;

@@ -1,0 +1,127 @@
+(*
+# Bank
+Methods to extend and/or modify SRL's {ref}`Bank` interface.
+*)
+{$DEFINE WL_BANK_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+
+function TBank.FindItem(item: TItem; out box: TBox): Boolean; override;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Result := Self.Items.Find(item.GetArray(), box);
+end;
+
+function TBank.ContainsItem(item: TItem): Boolean; override;
+begin
+  Result := Self.Items.ContainsAny(item.GetArray());
+end;
+
+
+function TBank.FindItem(bankTab: Int32; item: TItem; out Bounds: TBox): Boolean; overload;
+begin
+  if Self.OpenTab(bankTab) then
+    Result := Self.FindItem(item, Bounds);
+end;
+
+function TBank.ContainsItem(bankTab: Int32; Item: TItem): Boolean; overload;
+begin
+  if Self.OpenTab(bankTab) then
+    Result := Self.ContainsItem(item);
+end;
+
+function TBank.DepositAllBut(Tab: Int32; Items: TItemArray): Boolean; deprecated 'Use Bank.DepositRandomItems() instead.';
+var
+  Item: TItem;
+  Slots: TIntegerArray;
+  DepositSlots: TIntegerArray;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  if Tab > -1 then
+    Self.OpenTab(Tab);
+
+  for Item in Items do
+    Inventory.FindItem(Item, Slots);
+
+  DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+
+  if DepositSlots <> [] then
+  repeat
+    if not Self.IsOpen then //Exit in case the bank somehow closed.
+      Exit;
+
+    if Self.DepositHelper(Inventory.GetSlotBox(DepositSlots[0]), Self.QUANTITY_ALL, True) then
+      WaitUntil(not Inventory.IsSlotUsed(DepositSlots[0]), 100, 2000);
+
+    DepositSlots := Slots.Difference(Inventory.GetUsedSlots);
+  until Result := (DepositSlots = []);
+end;
+
+function TBank.DepositRandomItems(items: TItemArray): Boolean;
+var
+  slots: TIntegerArray;
+  t: UInt64;
+begin
+  slots := Inventory.FindRandomItems(items);
+  t := GetTickCount() + 50000;
+
+  while slots <> [] do
+  begin
+    if GetTickCount() >= t then
+      Exit;
+    if not Self.IsOpen() then //Exit in case the bank somehow closed.
+      Exit;
+
+    if Self.DepositHelper(Inventory.GetSlotBox(slots[0]), Bank.QUANTITY_ALL, True) then
+      WaitUntil(not Inventory.IsSlotUsed(slots[0]), 100, 2000);
+
+    slots := Inventory.FindRandomItems(items);
+  end;
+
+  Result := True;
+end;
+
+
+function TBank.Close(pressEscape: Boolean = False): Boolean; override;
+begin
+  if not Self.IsOpen(False) then
+    Exit(True);
+
+  Result := GameInterface.Close(pressEscape);
+end;
+
+function TBank.Close(chance: Double): Boolean; overload;
+var
+  pressEscape: Boolean;
+begin
+  if chance = BioHash then
+    pressEscape := Antiban.BioDice()
+  else
+    pressEscape := SRL.Dice(chance);
+
+  Result := GameInterface.Close(pressEscape);
+end;
+
+//Temporarily here.
+function TDepositBox.Close(PressEscape: Boolean = False): Boolean; override;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := GameInterface.Close(PressEscape);
+end;
+
+//Temporarily here.
+function TGrandExchange.Close(PressEscape: Boolean = False): Boolean; override;
+begin
+  if not Self.IsOpen then
+    Exit(True);
+
+  Result := GameInterface.Close(PressEscape);
+end;

@@ -1,0 +1,762 @@
+(*
+# Tool Map Maker
+Simple tool to make TBoxes for SRL's RSWalkerRegions or WaspLib's RSRegions.
+*)
+
+{$DEFINE SRL_DISABLE_REMOTEINPUT}
+{$I SRL-T/osr.simba}
+{$I WaspLib/main.simba}
+{$H-}
+
+const
+  MAP_NAME: String := WALKER_MAP;
+
+type
+  TMapMaker = record
+    Form: TForm;
+    Panel: TPanel;
+    ButtonNewRegion, ButtonDeleteRegion, ButtonReset, ButtonGrowRegion, ButtonPrintSelected, ButtonPrintType, ButtonPrintBoxes,  ButtonPrintNamed, ButtonRewriteFile: TButton;
+    RenameLabel: TLabel;
+    RenameEdit: TEdit;
+    ListBoxRegions: TListBox;
+
+    ImageBox: TSimbaImageBox;
+    VisibleArea: TBox;
+
+    Index: Int32;
+    RegionArray: array of TNamedRegion;
+
+    SelectedPoint: TPoint;
+    Resizing, Dragging: Boolean;
+  end;
+
+var
+  MapMaker: TMapMaker;
+
+//Mouse
+procedure TMapMaker.OnMouseMove(sender: TObject; Shift: TShiftState; X, Y: Int32);
+var
+  diff: TPoint;
+  b: TBox;
+  tpa: TPointArray;
+  i: Int32;
+begin
+  if not Self.Dragging or (Self.Index < 0) then
+    Exit;
+
+  b := Self.RegionArray[Self.Index].Bounds;
+
+  if Self.Resizing then
+  begin
+    tpa := b.ToRectangle().ToTPA();
+
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+        Break;
+
+    if i > High(tpa) then
+      Exit;
+
+    Self.SelectedPoint := [X, Y];
+    tpa[i] := Self.SelectedPoint;
+    case i of
+      0: begin
+           tpa[3].X := X;
+           tpa[1].Y := Y;
+         end;
+      1: begin
+           tpa[2].X := X;
+           tpa[0].Y := Y;
+         end;
+      2: begin
+           tpa[1].X := X;
+           tpa[3].Y := Y;
+         end;
+      3: begin
+           tpa[0].X := X;
+           tpa[2].Y := Y;
+         end;
+    end;
+
+    Self.RegionArray[Self.Index].Bounds := tpa.Bounds();
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  diff := Self.SelectedPoint - [X, Y];
+  b := b.Offset([-diff.X, -diff.Y]);
+
+  Self.RegionArray[Self.Index].Bounds := b;
+  Self.SelectedPoint := [X, Y];
+  Self.ImageBox.Update();
+end;
+
+procedure TMapMaker.OnMouseDown(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+  function checkCorners(b: TBox): Boolean;
+  var
+    tpa: TPointArray;
+    i: Int32
+  begin
+    tpa := b.ToRectangle().ToTPA();
+
+    for i := 0 to High(tpa) do
+      if Self.SelectedPoint.WithinDistance(tpa[i], 4) then
+      begin
+        Self.ListBoxRegions.setItemIndex(Self.Index);
+        Self.RenameEdit.setText(Self.ListBoxRegions.GetSelectedText());
+        Self.Resizing := True;
+        Self.SelectedPoint := tpa[i];
+        Self.ImageBox.Update();
+        Self.Dragging := True;
+        Exit(True);
+      end;
+  end;
+
+var
+  tpa: TPointArray;
+  indices: TIntegerArray;
+  i: Int32;
+  dist, currentDist: Double;
+begin
+  if Button <> mbLeft then
+    Exit;
+
+  Self.SelectedPoint := Point(X, Y);
+
+  if (Self.Index > -1) and checkCorners(Self.RegionArray[Self.Index].Bounds) then
+    Exit;
+
+  if (Self.Index > -1) and Self.SelectedPoint.InBox(Self.RegionArray[Self.Index].Bounds) then
+  begin
+    Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+    Self.ImageBox.Update();
+    Self.Dragging := True;
+    Exit;
+  end;
+
+  Self.RenameEdit.Clear();
+
+  for Self.Index := 0 to High(Self.RegionArray) do
+  begin
+    if checkCorners(Self.RegionArray[Self.Index].Bounds) then
+      Exit;
+
+    if Self.SelectedPoint.InBox(Self.RegionArray[Self.Index].Bounds) then
+    begin
+      tpa += Self.RegionArray[Self.Index].Bounds.Center();
+      indices += Self.Index;
+    end;
+  end;
+
+  if tpa = [] then
+  begin
+    Self.Index := -1;
+    Self.ImageBox.Update();
+    Exit;
+  end;
+
+  for i := 0 to High(tpa) do
+  begin
+    currentDist := tpa[i].DistanceTo(Self.SelectedPoint);
+    if (dist = 0) or (dist > currentDist) then
+      dist := currentDist;
+  end;
+
+  for i := 0 to High(tpa) do
+    if tpa[i].DistanceTo(Self.SelectedPoint) = dist then
+      Break;
+
+  Self.Index := indices[i];
+
+  Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+  Self.ListBoxRegions.setItemIndex(Self.Index);
+  Self.ImageBox.Update();
+  Self.Dragging := True;
+end;
+
+procedure TMapMaker.OnMouseUp(sender: TObject; Button: TMouseButton; Shift: TShiftState; X, Y: Int32);
+begin
+  if Button = mbLeft then
+  begin
+    Self.Dragging := False;
+    Self.Resizing := False;
+  end;
+end;
+
+
+procedure TMapMaker.DrawRegion(area: TBox);
+var
+  canvas: TCanvas;
+  tpa: TPointArray;
+  p: TPoint;
+  i, j: Int32;
+begin
+  canvas := Self.ImageBox.getOverlay().GetCanvas();
+
+  canvas.GetPen().SetColor($00FF7F);
+
+  for i := 0 to High(RegionArray) do
+  begin
+    tpa := RegionArray[i].Bounds.ToRectangle().ToTPA();
+
+    if tpa.Connect().FilterBox(area) = [] then //Region not visibile right now.
+      Continue;
+
+    canvas.getPen().setWidth(2);
+    if i = Self.Index then
+    begin
+      canvas.GetPen().SetColor($00FFFF);
+      canvas.getBrush().setColor($0000FF);
+    end
+    else
+    begin
+      canvas.GetPen().SetColor($00FF7F);
+      canvas.getBrush().setColor($FFAAD4);
+    end;
+
+    for j := 0 to High(tpa) do
+    begin
+      p := tpa[j];
+      canvas.MoveTo(p.X, p.Y);
+
+      if j < High(tpa) then
+        canvas.LineTo(tpa[j+1].X, tpa[j+1].Y)
+      else
+        canvas.LineTo(tpa[0].X, tpa[0].Y);
+
+      if P.InBox(area) then
+        canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+    end;
+  end;
+
+  if Self.Resizing and Self.SelectedPoint.InBox(area) then
+  begin
+    canvas.getBrush().setColor($000000);
+    p := Self.SelectedPoint;
+    canvas.FillRect(p.X-3, p.Y-3, p.X+3, p.Y+3);
+  end;
+end;
+
+procedure TMapMaker.PaintArea(sender: TObject; canvas: TCanvas; r: TRect);
+begin
+  Self.VisibleArea := [r.Left, r.Top, r.Right, r.Bottom];
+  Self.DrawRegion(Self.VisibleArea);
+end;
+
+
+procedure TMapMaker.MoveToRegion();
+var
+  p: TPoint;
+begin
+  if Self.Index > -1 then
+  begin
+    p := Self.RegionArray[Self.Index].Bounds.Middle();
+    Self.ImageBox.MoveTo(p.X, p.Y);
+  end;
+
+  Self.ImageBox.Update();
+end;
+
+procedure TMapMaker.DeleteRegions(all: Boolean = False);
+begin
+  if all then
+  begin
+    Self.RegionArray := [];
+    Self.ListBoxRegions.Clear();
+    Self.Index := -1;
+    Self.RenameEdit.Clear();
+    Exit;
+  end;
+
+  Delete(Self.RegionArray, Self.Index, 1);
+  Self.ListBoxRegions.getItems().Delete(Self.Index);
+
+  Self.Index -= 1;
+
+  if Self.Index > -1 then
+  begin
+    Self.ListBoxRegions.setItemIndex(Self.Index);
+    Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+  end
+  else
+    Self.RenameEdit.Clear();
+end;
+
+procedure TMapMaker.ListBoxOnClick(sender: TObject);
+var
+  p: TPoint;
+begin
+  Self.Index := Self.ListBoxRegions.getItemIndex();
+  Self.RenameEdit.setText(Self.RegionArray[Self.Index].Name);
+  Self.MoveToRegion();
+end;
+
+procedure TMapMaker.OnUnSelectNode(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+
+procedure TMapMaker.OnRename(sender: TObject);
+var
+  str: String;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  str := Self.RenameEdit.getText();
+
+  Self.ListBoxRegions.getItems().setStrings(Self.Index, str);
+  Self.RegionArray[Self.Index].Name := str;
+end;
+
+
+
+procedure TMapMaker.OnDelete(sender: TObject);
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  Self.DeleteRegions();
+  Self.MoveToRegion();
+end;
+
+procedure TMapMaker.OnReset(sender: TObject);
+begin
+  Self.DeleteRegions(True);
+  Self.ImageBox.Update();
+end;
+
+procedure TMapMaker.OnNewRegion(sender: TObject);
+var
+  region: TNamedRegion;
+  rect: TRect;
+begin
+  with region do
+  begin
+    Bounds := Box(Self.VisibleArea.Center(), 30, 30);
+    Name := 'New Region';
+  end;
+
+  Self.RegionArray += region;
+  Self.ListBoxRegions.getItems().Add(region.Name);
+  Self.RenameEdit.setText(region.Name);
+  Self.Index := High(Self.RegionArray);
+
+  Self.ImageBox.Update();
+end;
+
+procedure TMapMaker.OnGrowRegion(sender: TObject);
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  Self.RegionArray[Self.Index].Bounds := Self.RegionArray[Self.Index].Bounds.Expand(80);
+  Self.ImageBox.Update();
+end;
+
+
+function TMapMaker.GetDirectivesString(): String;
+begin
+  Result := '{$DEFINE WL_REGIONS_INCLUDED}' + LINEENDING;
+  Result += '{$IFNDEF WL_UTILS}' + LINEENDING;
+  Result += '  {$I WaspLib/utils.simba}' + LINEENDING;
+  Result += '{$ENDIF}' + LINEENDING;
+end;
+
+function TMapMaker.GetTypeString(): String;
+var
+  i, padLen: Int32;
+  str: String;
+  arr: TStringArray;
+begin
+  Result += LINEENDING;
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    str := Self.RegionArray[i].Name.Replace("'", "''");
+    str := '    ' + UpperCase(str).Replace(' ', '_').Replace('''', '').Replace('-', '') + ':';
+    arr += str;
+
+    if Length(str) > padLen then
+      padLen := Length(str);
+  end;
+
+  for i := 0 to High(arr) do
+    arr[i] := PadR(arr[i], padLen, ' ') + ' TBox;';
+
+  Result += 'type'  + LINEENDING;
+  Result +=  '  TRegions = record' + LINEENDING;
+
+  for i := 0 to High(arr) do
+    Result += arr[i] + LINEENDING;
+
+  Result += '  end;' + LINEENDING + LINEENDING;
+  Result += 'var' + LINEENDING;
+  Result += '  RSRegions: TRegions;' + LINEENDING + LINEENDING;
+end;
+
+function TMapMaker.GetBoxesString(): String;
+var
+  i, padLen: Int32;
+  str: String;
+  arr: TStringArray;
+  b: TBox;
+begin
+  Result += LINEENDING;
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    str := Self.RegionArray[i].Name.Replace("'", "''");
+    str := 'RSRegions.' + UpperCase(str).Replace(' ', '_').Replace('''', '').Replace('-', '');
+    str := '  ' + str;
+    arr += str;
+
+    if Length(str) > padLen then
+      padLen := Length(str);
+  end;
+
+  for i := 0 to High(arr) do
+    arr[i] := PadR(arr[i], padLen, ' ');
+
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    b := Self.RegionArray[i].Bounds;
+    arr[i] += ' := [' +
+                    ToString(Max(b.X1, 0)) + ', ' +
+                    ToString(Max(b.Y1, 0)) + ', ' +
+                    ToString(Min(b.X2, Self.ImageBox.getBackground().getWidth()-1)) + ', ' +
+                    ToString(Min(b.Y2, Self.ImageBox.getBackground().getHeight()-2)) +
+                  '];';
+  end;
+
+  for i := 0 to High(arr) do
+    Result += arr[i] + LINEENDING;
+end;
+
+function TMapMaker.GetNamedRegionsString(): String;
+var
+  i: Int32;
+  strLower, strUpper: String;
+  arr: TStringArray;
+begin
+  for i := 0 to High(Self.RegionArray) do
+  begin
+    strLower := Self.RegionArray[i].Name.Replace("'", "''");
+    strUpper := 'RSRegions.' + UpperCase(strLower).Replace(' ', '_').Replace('''', '').Replace('-', '');
+
+    strLower := "    ['" + strLower + "', " + strUpper + ']';
+    if i < High(Self.RegionArray) then
+      strLower += ',';
+    arr += strLower;
+  end;
+
+  Result := '  RSNamedRegionsArray := [' + LINEENDING;
+
+  for i := 0 to High(arr) do
+    Result +=  arr[i] + LINEENDING;
+
+  Result += '  ];' + LINEENDING;
+end;
+
+function TMapMaker.GetSetupString(): String;
+begin
+  Result := LINEENDING + '  RSBankRegions.Setup();' + LINEENDING;
+end;
+
+
+procedure TMapMaker.OnPrintSelected(sender: TObject);
+var
+  i, padLen: Int32;
+  strLower, strUpper: String;
+  arrUpper, arrLower: TStringArray;
+  b: TBox;
+begin
+  if Self.Index < 0 then
+    Exit;
+
+  strLower := Self.RegionArray[Self.Index].Name;
+  strUpper := 'RSRegions.' + UpperCase(strLower).Replace(' ', '_').Replace('''', '');
+
+  strLower := "  RSNamedRegionsArray += ['" + strLower + "', " + strUpper + '];';
+  strUpper := '  ' + strUpper;
+
+
+  b := Self.RegionArray[Self.Index].Bounds;
+  strUpper += ' := [' + ToString(b.X1) + ', ' + ToString(b.Y1) + ', ' + ToString(b.X2) + ', ' + ToString(b.Y2) + '];';
+  WriteLn(LineEnding, LineEnding);
+  WriteLn strUpper;
+  WriteLn strLower;
+  WriteLn(LineEnding, LineEnding);
+end;
+
+procedure TMapMaker.OnPrintBoxes(sender: TObject);
+var
+  i, padLen: Int32;
+  strLower, strUpper: String;
+  arrUpper, arrLower: TStringArray;
+  b: TBox;
+begin
+  ClearDebug();
+  WriteLn Self.GetBoxesString();
+end;
+
+procedure TMapMaker.OnPrintNamedRegions(sender: TObject);
+var
+  i, padLen: Int32;
+  strLower, strUpper: String;
+  arrUpper, arrLower: TStringArray;
+  b: TBox;
+begin
+  ClearDebug();
+  WriteLn Self.GetNamedRegionsString();
+end;
+
+
+procedure TMapMaker.OnRewrite(sender: TObject);
+var
+  str, path: String;
+begin
+  if MessageDlg('RSRegions', 'Are you sure you want to overwrite the rsregions file?', mtWarning,[mbYes, mbAbort]) = 4 then
+    Exit;
+
+  str := Self.GetDirectivesString();
+  str += Self.GetTypeString();
+  str += 'begin';
+  str += Self.GetBoxesString();
+  str += LINEENDING;
+  str += Self.GetNamedRegionsString();
+  str += GetSetupString();
+  str += 'end;';
+
+  path := INCLUDEPATH + 'WaspLib' + DIRECTORYSEPARATOR + 'utils' + DIRECTORYSEPARATOR +
+          'rsregions' + DIRECTORYSEPARATOR + 'rsregions.simba';
+
+  WriteFileContents(path, str, False);
+end;
+
+procedure TMapMaker.OnPrintType(sender: TObject);
+begin
+  ClearDebug();
+  WriteLn Self.GetTypeString();
+end;
+
+
+procedure TMapMaker.OnKeyDown(sender: TObject; var Key: Word; Shift: TShiftState);
+begin
+  if (Key = VK_DELETE) then
+    Self.OnDelete(sender);
+end;
+
+
+//Form stuff.
+procedure TMapMaker.OnFormShow(sender: TObject);
+begin
+  Self.ImageBox.Update();
+end;
+
+procedure TMapMaker.OnFormClose(sender: TObject; var CloseAction: TCloseAction);
+begin
+  TerminateScript();
+end;
+
+
+procedure TMapMaker.Init();
+var
+  region: TNamedRegion;
+begin
+  Self.Index := -1;
+  Self.RenameEdit.Clear();
+  Self.RegionArray := RSNamedRegionsArray;
+
+  for region in Self.RegionArray do
+    Self.ListBoxRegions.getItems().Add(region.Name);
+end;
+
+
+procedure TMapMaker.Run();
+var
+  mapImg: TMufasaBitmap;
+begin
+  try
+    with Self.Form do
+    begin
+      Init(nil);
+      SetPosition(poScreenCenter);
+      SetCaption('Map Maker');
+      SetWidth(1400);
+      SetHeight(750);
+      GetFont.SetSize(10);
+      SetOnShow(@Self.OnFormShow);
+      SetOnClose(@Self.OnFormClose);
+    end;
+
+    with Self.Panel do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAutoSize(False);
+      SetAlign(alLeft);
+    end;
+
+
+    with Self.RenameEdit do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setAlign(alTop);
+      setOnEditingDone(@OnRename);
+    end;
+
+    with Self.RenameLabel do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('Rename Selected:');
+      setAlign(alTop);
+    end;
+
+    //Listbox
+    with Self.ListBoxRegions do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      setCaption('RSRegions:');
+      setAlign(alClient);
+      setOnClick(@Self.ListBoxOnClick);
+    end;
+
+    //print
+    with Self.ButtonPrintSelected do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Selected Region');
+      SetOnClick(@Self.OnPrintSelected);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintType do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print RSRegion Type');
+      SetOnClick(@Self.OnPrintType);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintBoxes do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Boxes');
+      SetOnClick(@Self.OnPrintBoxes);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonPrintNamed do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Print Names');
+      SetOnClick(@Self.OnPrintNamedRegions);
+      setAlign(alBottom);
+    end;
+
+    with Self.ButtonRewriteFile do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Rewrite file');
+      SetOnClick(@Self.OnRewrite);
+      setAlign(alBottom);
+    end;
+
+
+    with Self.Panel do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAutoSize(False);
+      SetAlign(alTop);
+    end;
+
+    //Top buttons
+    with Self.ButtonGrowRegion do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Grow Region by 80px');
+      SetOnClick(@Self.OnGrowRegion);
+      setAlign(alLeft);
+    end;
+
+    with Self.ButtonReset do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Reset');
+      SetOnClick(@Self.OnReset);
+      setAlign(alLeft);
+    end;
+
+    with Self.ButtonDeleteRegion do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('Delete Region');
+      SetOnClick(@Self.OnDelete);
+      setAlign(alLeft);
+    end;
+
+    with Self.ButtonNewRegion do
+    begin
+      Init(Self.Panel);
+      SetParent(Self.Panel);
+      SetAutoSize(True);
+      SetCaption('New Region');
+      SetOnClick(@Self.OnNewRegion);
+      setAlign(alLeft);
+    end;
+
+    mapImg := TWalkerMap.InternalLoadMap(MAP_NAME);
+    with Self.ImageBox do
+    begin
+      Init(Self.Form);
+      SetParent(Self.Form);
+      SetAlign(alClient);
+      SetOnPaintArea(@Self.PaintArea);
+      SetOnMouseMove(@Self.OnMouseMove);
+      SetOnMouseDown(@Self.OnMouseDown);
+      SetOnMouseUp(@Self.OnMouseUp);
+      SetOnKeyDown(@Self.OnKeyDown);
+      GetBackground().LoadFromMufasaBitmap(mapImg);
+      BackgroundChanged();
+    end;
+    mapImg.Free();
+
+    ClearDebug();
+    WriteLn('Click:                Add or select node'    + LineEnding +
+            'Click + Drag:         Move selected shape'    + LineEnding +
+            'Click + Drag Point:   Move selected point'    + LineEnding +
+            'Press Delete Key:     Remove selected shape'  + LineEnding +
+            'Right Click + Drag:   Move around'           + LineEnding +
+            'Ctrl + Mouse Wheel:   Zoom');
+
+    Self.Init();
+    Self.Form.ShowModal();
+    Self.Form.Free();
+  except
+    Writeln GetExceptionMessage();
+  end;
+end;
+
+begin
+  Sync(@MapMaker.Run);
+end.

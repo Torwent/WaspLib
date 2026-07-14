@@ -1,0 +1,103 @@
+(*
+# Monsters
+Methods to handle TMonters.
+TMonters are a type or TMMDot that can be fought.
+
+```{note}
+For more information on TMMDot visit: https://torwent.github.io/WaspLib/walkerobjects.html#type-Tmmdot
+```
+*)
+
+{$DEFINE WL_MONSTER_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  TMonster = record(TMMDot)
+    Name: String;
+    Hitpoints: Int32;
+    MaxHit: Int32;
+    AttackTypes: array of EAttackType;
+  end;
+
+  TMonsterArray = array of TMonster;
+  PRSMonster = ^TMonster;
+  PRSMonsterArray = array of PRSMonster;
+
+procedure TMonster.Setup(name: String); overload;
+var
+  size: Int32;
+  height: Double;
+begin
+  if Self.Filter.Skip or (name = '') then
+    Exit;
+
+  Self.Name := name;
+
+  Self._Setup();
+  Self.Filter.MinimapDot := True;
+
+  Self.DotType := EMinimapDot.NPC;
+  Self.UpText += name;
+
+  Self.Hitpoints := MonsterData.GetInt(name, 'hitpoints');
+  Self.MaxHit := MonsterData.GetInt(name, 'max_hit');
+
+  size := MonsterData.GetInt(name, 'size');
+  height := Self.ShapeArray[0].Tile.Z;
+
+  case Size of
+    1:   Self.ShapeArray.SetShape([size, size, height]);
+    2:   Self.ShapeArray.SetShape([1.25, 1.25, height]);
+    else Self.ShapeArray.SetShape([size/2, size/2, height]);
+  end;
+
+  Self.AttackTypes := MonsterData.GetAttackTypes(name);
+end;
+
+function TMonster.Attack(): Boolean;
+begin
+  if Self.SelectOption(['Attack']) then
+  begin
+    Minimap.WaitMoving();
+    Result := MainScreen.InCombat();
+  end;
+end;
+
+function TMonster.WalkAttack(): Boolean;
+var
+  Attacked: Boolean;
+begin
+  Attacked := (Self.Filter.Walker and Self.WalkSelectOption(['Attack'])) or
+               Self.SelectOption(['Attack']);
+
+  if Attacked then
+  begin
+    Minimap.WaitMoving();
+    Result := MainScreen.InCombat();
+  end;
+end;
+
+procedure Debug(monster: TMonster); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  monster.Draw(bitmap);
+  bitmap.Debug();
+  bitmap.Free();
+end;
+
+var
+  DebugMonsterArray: TMonsterArray;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+var
+  DebugMonster: TMonster;
+begin
+  inherited;
+
+  for DebugMonster in DebugMonsterArray do
+    DebugMonster.Draw(Bitmap);
+end;

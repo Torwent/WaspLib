@@ -1,0 +1,51 @@
+(*
+# Chat
+Extensions to SRL's {ref}`Chat` interface.
+*)
+{$DEFINE WL_CHAT_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+function TChat.HasContinue(): Boolean;
+begin
+  Result := Self.FindOption('Click here to continue', [CHAT_COLOR_BLUE, CHAT_COLOR_WHITE]) or
+            Self.FindOption('Please wait', [CHAT_COLOR_BLUE, CHAT_COLOR_WHITE]);
+end;
+
+(*
+## Chat.LeveledUp
+```pascal
+function TChat.LeveledUp(): Boolean; override;
+```
+Overriden to take a screenshot of the chatbox when we leveled up.
+*)
+function TChat.LeveledUp(): Boolean; override;
+begin
+  Result := inherited;
+
+  if Result then
+    SaveScreenshot('level_up' + DIRECTORYSEPARATOR + 'levelup', Chat.Bounds);
+end;
+
+
+function TChat.HandleLevelUp(chance: Double = BioHash): Boolean;
+var
+  useKeyboard: Boolean;
+begin
+  if chance = BioHash then
+    useKeyboard := Antiban.BioDice(EBioBehavior.KEYBOARD_CHAT_CHANCE)
+  else
+    useKeyboard := SRL.Dice(chance);
+
+  repeat
+    Self.ClickContinue(useKeyboard);
+    Wait(60, 3000, wdLeft);
+    Result := Chat.GetDisplayName() <> '';
+  until Result;
+end;
+
+function TChat.FindQuery(query: String): Boolean; overload;
+begin
+  Result := query in Self.GetQuery();
+end;

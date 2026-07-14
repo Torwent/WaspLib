@@ -1,0 +1,896 @@
+(*
+(POH)=
+# POH Handler
+The POH Handler is a handler responsible for making sense of a player's POH (Player Owned House) without
+knowing any info about it's setup in advance.
+
+:::{note}
+:class: dropdown
+The POH Handler is optional and has to be explicitly included.
+You can include it by either including all optional files which is not recommended:
+  ```pascal
+  {$I WaspLib/optional.simba}
+  ```
+Or include just the POHHandler file which is the recommended way to include it:
+  ```pascal
+  {$I WaspLib/optional/handlers/poh.simba}
+  ```
+:::
+
+Several rooms in a POH are unique on the minimap, with windows and/or doors of several sizes and different places.
+By having this rooms saved in the following format:
+```{figure} ../../../osr/walker/poh.png
+Most relevant rooms for a POH stripped of their floor colors
+```
+We can attempt to match what we have on the minimap to those rooms and slowly build a map of the POH.
+
+Some rooms share the same room layout or are very similar to others and for those we use some mainscreen information to make up what the room is,
+e.g., Nexus room, Combat Hall and Quest Hall are all identical.
+*)
+
+{$DEFINE WL_POH_HANDLER_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+{$IFNDEF WL_POHMAP_INCLUDED}
+  {$I WaspLib/optional/handlers/pohmap.simba}
+{$ENDIF}
+
+{$IFNDEF WL_HOUSEOBJECTS_INCLUDED}
+  {$I WaspLib/optional/handlers/houseobjects.simba}
+{$ENDIF}
+
+type
+(*
+## PRSWalker
+TWalker pointer.
+*)
+  PRSPOHHandler = ^TPOHHandler;
+
+(*
+(TPOHHandler)=
+## type TPOHHandler
+```pascal
+type
+  TPOHHandler = record
+    Map: TPOHMap;
+    RoomObjects: array [ERSRoomObject] of TRoomObject;
+    EnableRunAtEnergy: Int32;
+    Similarity: Double;
+  end;
+```
+The core record used to handle navigating a POH.
+*)
+  TPOHHandler = record(TSRLBaseRecord)
+    Map: TPOHMap;
+    Walker: TWalkerV2;
+
+    RoomObjects: array [ERSRoomObject] of TRoomObject;
+
+    EnableRunAtEnergy, Randomness, MouseAheadTimer: Int32;
+    AdaptiveWalk, ScreenWalk, FancyMouse, NearZoomMode, Walking, IsSetup: Boolean;
+    Similarity: Double;
+
+    AdaptiveToggleDistances: TPoint;
+    Path: TPointArray;
+    PathIndex: Int32;
+
+    Graph: TWebGraphV2;
+  end;
+
+
+function TPOHHandler.Position(): TPoint; forward;
+
+(*
+## POH.Init()
+```pascal
+procedure TPOHHandler.Init();
+```
+Internal method automatically called for your on script startup along with SRL.Setup().
+You do not have to call it yourself.
+*)
+procedure TPOHHandler.InternalSetup();
+var
+  obj: ERSRoomObject;
+begin
+  Self.Map.Init(32, 12);
+  Self.Similarity := 0.9999;
+
+  for obj := Low(ERSRoomObject) to High(ERSRoomObject) do
+    Self.RoomObjects[obj].Setup(obj);
+
+  Self.Walker.Setup(
+    @Self.Position, nil, nil,
+    @Self.Graph, Self.Map.Map
+  );
+end;
+
+(*
+## POH.GetAdjacentRooms()
+```pascal
+function TPOHHandler.GetAdjacentRooms(p: TPoint): TPointArray; static;
+```
+Helper static method that returns coordinates that belong to the north, west, south and east rooms of the point passed in.
+This assumes the compass is set to `0` (North) or that you've rotated your coordinates so the math works as if you had the compass set that way.
+Ideally, you will want to pass in a room top left corner to this to get the top left corner of each adjacent room.
+*)
+function TPOHHandler.GetAdjacentRooms(p: TPoint): TPointArray; static;
+begin
+  Result := [p.Offset(-32,0), p.Offset(32, 0), p.Offset(0, -32), p.Offset(0, 32)];
+end;
+
+
+(*
+## TPOHHandler.GetRoomCoordinate()
+```pascal
+function TPOHHandler.GetRoomCoordinate(topLeft, p: TPoint; angle: Double; rotation: Int32): TPoint; static;
+```
+Helper static method that converts a room point `p` (which is always between [0,0] and [32,32] to a point on the minimap.
+Optionally the point can be rotated on the room's center in 90º increments which is decided by `rotation`.
+For example, if `rotation` is 3, the point will be rotated 90*3=270º on the room's center.
+
+This is useful to look for mainscreen objects in a room we don't know the rotation,
+we can brute force all the possible rotations and look for what we want.
+*)
+function TPOHHandler.GetRoomCoordinate(topLeft, p: TPoint; angle: Double; rotation: Int32): TPoint; static;
+var
+  roomCenter: TPoint;
+begin
+  if not InRange(p.X, 0, 32) or not InRange(p.Y, 0, 32) then
+    TerminateScript(ToStr(p) + ' is not wthin the room you want to check.');
+
+  Result := topLeft + p + [Minimap.Bounds.X1, Minimap.Bounds.Y1] - [10, 10];
+  Result := Result.Rotate(angle, Minimap.Center);
+
+  if rotation = 0 then
+    Exit;
+
+  roomCenter := topLeft + [16, 16] + [Minimap.Bounds.X1, Minimap.Bounds.Y1] - [10, 10];
+  roomCenter := roomCenter.Rotate(angle, Minimap.Center);
+  Result := Result.Rotate(PI/2 * rotation, roomCenter);
+end;
+
+(*
+## POH.GetCuboid()
+```pascal
+function TPOHHandler.GetCuboid(topLeft, p: TPoint; tile: Vector3; angle: Double; rotation: Int32): TCuboidEx; static;
+```
+Static mehod that returns a `TCuboidEx` on the mainscreen of a point we specify `p` with a given `rotation` on the room's center.
+{ref}`TPOHHandler.GetRoomCoordinate()` is used to get the minimap point which then uses {ref}`Minimap.GetCuboidMS()` to give us a cuboid as a result.
+
+To work, this requires the room's `topLeft` TPoint and the compass `angle`.
+*)
+function TPOHHandler.GetCuboid(topLeft, p: TPoint; tile: Vector3; angle: Double; rotation: Int32): TCuboidEx; static;
+begin
+  p := TPOHHandler.GetRoomCoordinate(topLeft, p, angle, rotation);
+  Result := Minimap.GetCuboidMS(p, tile);
+end;
+
+
+(*
+## POH.ContainsObject()
+```pascal
+function TPOHHandler.ContainsObject(objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+```
+Checks if a {ref}`TRoomObject` stored in `POH.RoomObjects` exists in a room at a given `rotation`.
+*)
+function TPOHHandler.ContainsObjectEx(obj: TRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+var
+  cuboid: TCuboidEx;
+  atpa: T2DPointArray;
+begin
+  cuboid := TPOHHandler.GetCuboid(topLeft, obj.RoomOffset, obj.Shape, angle, rotation);
+  atpa := MainScreen.FindObject(obj.Finder, cuboid.Bounds());
+  Result := atpa <> [];
+end;
+
+function TPOHHandler.ContainsObject(objType: ERSRoomObject; topLeft: TPoint; angle: Double; rotation: Int32): Boolean;
+var
+  obj: TRoomObject;
+begin
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates <> [] then
+    Exit;
+
+  Result := Self.ContainsObjectEx(obj, topLeft, angle, rotation);
+end;
+
+(*
+## POH.MapRoomObjects()
+```pascal
+procedure TPOHHandler.MapRoomObjects(room: EHouseRoom; topLeft: TPoint; roomIndex: TPoint; angle: Double);
+```
+Method responsible for mapping known {ref}`TRoomObject``TRoomObject` coordinates which later can be used to interact with them.
+*)
+procedure TPOHHandler.MapRoomObjects(room: EHouseRoomSprite; topLeft: TPoint; roomIndex: TPoint; angle: Double);
+var
+  rotation: Int32;
+  p, center: TPoint;
+  obj: ERSRoomObject;
+begin
+  case room of
+    EHouseRoomSprite.SUPERIOR_GARDEN:
+    begin
+      roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
+      center := roomIndex.Offset(16,16);
+
+      for rotation := 0 to 3 do
+      begin
+        obj := ERSRoomObject.POOL;
+        if Self.ContainsObject(obj, topLeft, angle, rotation) then
+        begin
+          p := roomIndex + Self.RoomObjects[obj].RoomOffset;
+          p := p.Rotate(PI/2*rotation, center);
+          Self.RoomObjects[obj].AddCoordinates([p]);
+        end;
+      end;
+
+      obj := ERSRoomObject.FAIRY_TREE;
+      if Self.ContainsObject(obj, topLeft, angle, rotation) then
+        Self.RoomObjects[obj].AddCoordinates([center]);
+    end;
+
+    EHouseRoomSprite.ACHIEVEMENT_GALLERY:
+    begin
+      roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
+      center := roomIndex.Offset(16,16);
+
+      for rotation := 0 to 3 do
+      begin
+        obj := ERSRoomObject.JEWELLERY_BOX;
+        if Self.ContainsObject(obj, topLeft, angle, rotation) then
+        begin
+          p := roomIndex + Self.RoomObjects[obj].RoomOffset;
+          p := p.Rotate(PI/2*rotation, center);
+
+          Self.RoomObjects[obj].AddCoordinates([p]);
+        end;
+
+        obj := ERSRoomObject.MAGIC_ALTAR;
+        if Self.ContainsObject(obj, topLeft, angle, rotation) then
+        begin
+          p := roomIndex + Self.RoomObjects[obj].RoomOffset;
+          p := p.Rotate(PI/2*rotation, center);
+
+          Self.RoomObjects[obj].AddCoordinates([p]);
+        end;
+      end;
+    end;
+
+    EHouseRoomSprite.QUEST_NEXUS:
+    begin
+      roomIndex := [roomIndex.X * 32, roomIndex.Y * 32];
+      center := roomIndex.Offset(16,16);
+      obj := ERSRoomObject.NEXUS;
+      if Self.ContainsObject(obj, topLeft, angle, rotation) then
+        Self.RoomObjects[obj].AddCoordinates([center]);
+    end;
+  end;
+end;
+
+(*
+## POH.MapAdjacentRooms()
+```pascal
+procedure TPOHHandler.MapAdjacentRooms(minimapBMP: TMufasaBitmap; topLeft, currentRoom: TPoint; angle: Double);
+```
+The core of the "POH Handler".
+This method is what's responsible for mapping unknown adjacent rooms (north, west, south and east).
+If you know what you are doing you can call this directly, but this is called automatically by {ref}`POH.Position()` and {ref}`POH.Setup()`.
+*)
+procedure TPOHHandler.MapAdjacentRooms(minimapBMP: TMufasaBitmap; topLeft, currentRoom: TPoint; angle: Double);
+const
+  FLOOR_COLOR_OFFSETS: TPointArray = [[5,5], [26,5], [26,26], [5, 26]];
+var
+  minimapTPA, indices: TPointArray;
+  p: TPoint;
+  crop, sample, rotated, bestBMP: TMufasaBitmap;
+  i, j, floor, r: Int32;
+  colors: TIntegerArray;
+  bestRoom: EHouseRoomSprite;
+  matrix: TSingleMatrix;
+  match, bestMatch: Single;
+  hasCoreObject: Boolean;
+begin
+  indices := TPOHMap.GetAdjacentIndices(currentRoom);
+  minimapTPA := Self.GetAdjacentRooms(topLeft);
+
+  for i := 0 to High(minimapTPA) do
+  begin
+    p := minimapTPA[i];
+    if Self.Map.ReadRoom(indices[i]) <> EHouseRoomSprite.UNKNOWN then
+      Continue;
+
+    crop := minimapBMP.Copy(p.X, p.Y, p.X + Self.Map.SIZE-1, p.Y + Self.Map.SIZE-1);
+
+    colors := crop.GetPixels(FLOOR_COLOR_OFFSETS);
+    floor := colors.GetMostCommon();
+
+    for j := 1 to Ord(High(EHouseRoomSprite)) do
+    begin
+      case j of
+        0..3: if floor <> Self.Map.GrassColor then Continue; //Gardens or OpenMenagerie
+        else  if floor = Self.Map.GrassColor then Continue;
+      end;
+
+      sample := Self.Map.GetRoomBitmap(EHouseRoomSprite(j), floor);
+      for r := 0 to 3 do
+      begin
+        rotated := TPOHMap.RotateBitmap(sample, r);
+
+        case j of
+          2: hasCoreObject := Self.ContainsObjectEx(Self.RoomObjects[ERSRoomObject.POOL], p, angle, r);
+          7: hasCoreObject := Self.ContainsObjectEx(Self.RoomObjects[ERSRoomObject.JEWELLERY_BOX], p, angle, r);
+          8: hasCoreObject := Self.ContainsObjectEx(Self.RoomObjects[ERSRoomObject.NEXUS], p, angle, r);
+        end;
+
+        matrix := crop.MatchTemplate(rotated, TM_CCOEFF_NORMED);
+        match := matrix.Max();
+
+        if hasCoreObject then
+        begin
+          hasCoreObject := False;
+          match += 0.2;
+        end;
+
+        if match > bestMatch then
+        begin
+          if bestBMP <> nil then
+            bestBMP.Free();
+
+          bestBMP := rotated;
+          bestMatch := match;
+          bestRoom := EHouseRoomSprite(j);
+
+          Continue;
+        end;
+
+        rotated.Free();
+
+        if bestMatch >= Self.Similarity then
+          Break(2);
+      end;
+    end;
+
+    crop.Free();
+    if bestMatch > 0.3 then
+    begin
+      Self.Map.DrawMap(bestBMP, bestRoom, indices[i]);
+      Self.MapRoomObjects(bestRoom, p, indices[i], angle);
+      bestMatch := 0;
+    end;
+  end;
+  bestBMP.Free();
+end;
+
+
+(*
+## POH.Setup()
+```pascal
+procedure TPOHHandler.Setup();
+```
+The method that sets up the "POH Handler" so it can be used.
+It's your responsibility to call it and it must be called from your POH entrance.
+There is some wiggle room as from where you can use this on your garden and
+you might get away using it from anywhere but for best results you should use this from
+the tile right northwest to your exit portal.
+This is the tile that the `POH.Setup()` assumes you will be calling it from and it's
+the tile you will always be in as soon as you enter your POH no matter the method you
+choose to enter it (teleport, using the portal, building or non building mode, ...).
+
+Example:
+```pascal
+if MainScreen.WaitLoadingPOH(5000) then
+  POH.Setup();
+```
+*)
+procedure TPOHHandler.Setup();
+var
+  minimapBMP: TMufasaBitmap;
+  p, center, topLeft: TPoint;
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  minimapBMP := Minimap.GetCleanMinimap(angle);
+  center := minimapBMP.getCenter();
+  Self.Map.GrassColor := minimapBMP.GetPixel(center.X, center.Y);
+  minimapBMP.ReplaceColor(1, Self.Map.GrassColor);
+
+  Self.Map.Map.ReplaceColor(0, Self.Map.GrassColor);
+
+  p := [Self.Map.AMOUNT div 2, Self.Map.AMOUNT div 2];
+  Self.Map.DrawMap(EHouseRoomSprite.GARDEN, Self.Map.GrassColor, p);
+  topLeft := center.Offset(-14, -10);
+  Self.MapAdjacentRooms(minimapBMP, topLeft, p, angle);
+
+  minimapBMP.Free();
+  Self.IsSetup := True;
+end;
+
+(*
+## POH.LoadSuroundings()
+```pascal
+procedure TPOHHandler.LoadSuroundings(minimapBMP: TMufasaBitmap; p: TPoint; angle: double);
+```
+Wrapper method that performs some common math required by {ref}`POH.MapAdjacentRooms()`.
+You can use this directly if you know what you are doing, but this is called automatically for you with {ref}`POH.Position()`.
+*)
+procedure TPOHHandler.LoadSuroundings(minimapBMP: TMufasaBitmap; p: TPoint; angle: double);
+var
+  topLeft: TPoint;
+begin
+  topLeft := p - Self.Map.GetRoomTopLeft(p);
+  topLeft := minimapBMP.getCenter() - topLeft - [1,0];
+  Self.MapAdjacentRooms(minimapBMP, topLeft, Self.Map.GetPointIndex(p), angle);
+end;
+
+(*
+## POH.Position()
+```pascal
+function TPOHHandler.Position(): TPoint;
+```
+Returns the player position relative to the `POH.Map`.
+Whenever this method is called, if there's unknown adjacent rooms (north, west, south and east),
+they will be mapped.
+*)
+function TPOHHandler.Position(): TPoint;
+const
+  SAMPLE_SIZE: Int32 = 50;
+var
+  minimapBMP: TMufasaBitmap;
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  minimapBMP := Minimap.GetCleanMinimap(angle);
+  minimapBMP.ReplaceColor(1, Self.Map.GrassColor);
+
+  Result := Self.Map.SampleSearch(minimapBMP, SAMPLE_SIZE);
+  Self.LoadSuroundings(minimapBMP, Result, angle);
+  minimapBMP.Free();
+end;
+
+(*
+## POH.DebugPosition()
+```pascal
+procedure TPOHHandler.DebugPos();
+```
+Debugs the current player position on the `POH.Map`.
+
+Example:
+```pascal
+{$I WaspLib/optional/handlers/poh.simba}
+begin
+  POH.Setup(); //call from the northwest tile of your exit portal.
+  while True do
+    POH.DebugPos();
+end;
+```
+*)
+procedure TPOHHandler.DebugPosition();
+const
+  SAMPLE_SIZE: Int32 = 50;
+var
+  minimapBMP, display: TMufasaBitmap;
+  p: TPoint;
+  angle: Double;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  minimapBMP := Minimap.GetCleanMinimap(angle);
+  minimapBMP.ReplaceColor(1, Self.Map.GrassColor);
+
+  p := Self.Map.SampleSearch(minimapBMP, SAMPLE_SIZE);
+
+  Self.LoadSuroundings(minimapBMP, p, angle);
+
+  display.Init();
+  display.SetSize(Self.Map.Map.getWidth() + minimapBMP.getWidth() + 300, Self.Map.Map.getHeight());
+
+  display.DrawBitmap(Self.Map.Map, [0,0]);
+  display.setFontAntialiasing(True);
+  display.DrawText('MAP', [10, 10], $FFFFFF);
+  display.setFontSize(14);
+  display.DrawText('Minimap sample:', [Self.Map.Map.getWidth()+10, 0], $FFFFFF);
+  display.DrawBitmap(minimapBMP, [Self.Map.Map.getWidth()+1, 20]);
+
+  display.setFontSize(10);
+  display.DrawText('Pos:' + ToStr(p), [Self.Map.Map.getWidth()+10, minimapBMP.getHeight() + 40], $FFFFFF);
+
+  display.DrawCrosshairs(p, 1, $FFFFFF);
+  display.Debug();
+
+  minimapBMP.Free();
+  display.Free();
+end;
+
+
+(*
+## POH.GetCurrentRoom()
+```pascal
+function TPOHHandler.GetCurrentRoom(): EHouseRoom;
+```
+Returns the current {ref}`EHouseRoom` we are on.
+
+Example:
+```pascal
+POH.Setup(); //call from the northwest tile of your exit portal.
+WriteLn POH.GetCurrentRoom();
+```
+*)
+function TPOHHandler.GetCurrentRoom(): EHouseRoomSprite;
+begin
+  Result := Self.Map.GetRoom(Self.Position());
+end;
+
+
+(*
+# POH Objects
+The following methods are related to interacting with {ref}`POH` {ref}`TRoomObject`.
+*)
+
+(*
+## POH.Find
+```pascal
+function TPOHHandler.FindEx(objType: ERSRoomObject; out cuboids: TCuboidExArray; out atpa: T2DPointArray):
+function TPOHHandler.FindAny(objType: ERSRoomObject; out tpa: TPointArray): Boolean;
+function TPOHHandler.FindAll(objType: ERSRoomObject; out atpa: T2DPointArray): Boolean;
+```
+Method used to find a {ref}`TRoomObject` by specifying a {ref}`ERSRoomObject`.
+You can find any occurence of the object or all of them depending on the method you use.
+The extended version of the method is mostly for debugging.
+*)
+function TPOHHandler.FindEx(objType: ERSRoomObject; out cuboids: TCuboidExArray; out atpa: T2DPointArray): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.Position();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
+  Result := obj.FindEx(mmPoints, radians, cuboids, atpa);
+end;
+
+function TPOHHandler.FindAny(objType: ERSRoomObject; out tpa: TPointArray): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.Position();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
+  Result := obj.FindAny(mmPoints, radians, tpa);
+end;
+
+function TPOHHandler.FindAll(objType: ERSRoomObject; out atpa: T2DPointArray): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  radians: Double;
+  me: TPoint;
+begin
+  me := Self.Position();
+  obj := Self.RoomObjects[objType];
+  if obj.Coordinates = [] then
+    Exit;
+
+  radians := Minimap.GetCompassAngle(False);
+  mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, radians);
+  Result := obj.FindAll(mmPoints, radians, atpa);
+end;
+
+
+(*
+## TPOHHandler.Draw()
+```pascal
+procedure TPOHHandler.Draw(out bitmap: TMufasaBitmap; objType: ERSRoomObject);
+```
+Internal method used to draw found {ref}`TRoomObject` in a TMufasaBitmap.
+An easy way to see this in action is to use `Debug(ERSRoomObject)`.
+*)
+procedure TPOHHandler.Draw(out bitmap: TMufasaBitmap; objType: ERSRoomObject);
+var
+  cuboids: TCuboidExArray;
+  atpa: T2DPointArray;
+begin
+  Self.FindEx(objType, cuboids, atpa);
+  bitmap.DrawATPA(atpa);
+  if atpa <> [] then
+    bitmap.DrawTPA(atpa[0], SRLColors.BLACK);
+  bitmap.DrawCuboidArray(cuboids, SRLColors.YELLOW);
+end;
+
+
+(*
+## POH.Interact
+```pascal
+function TPOHHandler.Hover(objType: ERSRoomObject): Boolean;
+function TPOHHandler.Click(objType: ERSRoomObject): Boolean;
+function TPOHHandler.Select(objType: ERSRoomObject; options: TStringArray): Boolean;
+```
+Method used to interact with a {ref}`TRoomObject` by specifying a {ref}`ERSRoomObject`.
+The interactions are self explanatory.
+
+Example:
+```pascal
+POH.Setup(); //call from the northwest tile of your exit portal.
+WriteLn POH.Hover(ERSRoomObject.POOL); //pool has to be on the same room, north, west, south or east.
+```
+*)
+function TPOHHandler.Hover(objType: ERSRoomObject; angle: Single = $FFFF; attempts: Int32 = 2): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  me: TPoint;
+begin
+  {%codetools off}
+  for attempts downto 0 do
+  {%codetools on}
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    if angle = $FFFF then
+      angle := Minimap.GetCompassAngle(False);
+
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+
+    if obj.Hover(mmPoints, angle) then
+      Exit(True);
+  end;
+end;
+
+function TPOHHandler.Click(objType: ERSRoomObject; angle: Single = $FFFF; attempts: Int32 = 2): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  me: TPoint;
+begin
+  {%codetools off}
+  for attempts downto 0 do
+  {%codetools on}
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    if angle = $FFFF then
+      angle := Minimap.GetCompassAngle(False);
+
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    if obj.Click(mmPoints, angle) then
+      Exit(True);
+  end;
+end;
+
+function TPOHHandler.Select(objType: ERSRoomObject; options: TStringArray; angle: Single = $FFFF; attempts: Int32 = 2): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  me: TPoint;
+begin
+  {%codetools off}
+  for attempts downto 0 do
+  {%codetools on}
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    if angle = $FFFF then
+      angle := Minimap.GetCompassAngle(False);
+
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    if obj.Select(options, mmPoints, angle) then
+      Exit(True);
+  end;
+end;
+
+(*
+## POH.WalkInteract
+```pascal
+function TPOHHandler.WalkHover(objType: ERSRoomObject; attempts: Int32): Boolean;
+function TPOHHandler.WalkClick(objType: ERSRoomObject; attempts: Int32): Boolean;
+function TPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray; attempts: Int32): Boolean;
+```
+Method used to walk and interact with a {ref}`TRoomObject` by specifying a {ref}`ERSRoomObject`.
+The interactions are self explanatory.
+
+Example:
+```pascal
+POH.Setup(); //call from the northwest tile of your exit portal.
+WriteLn POH.Hover(ERSRoomObject.POOL); //pool has to be on the same room, north, west, south or east.
+```
+*)
+function TPOHHandler.WalkHover(objType: ERSRoomObject; attempts: Int32 = 2): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  angle: Double;
+  me: TPoint;
+begin
+  {%codetools off}
+  for attempts downto 0 do
+  {%codetools on}
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    angle := Minimap.GetCompassAngle(False);
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    mmPoints := mmPoints.Sorted(Minimap.Center);
+
+    if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
+      if not Self.Walker.WebWalk(obj.Coordinates, 12, 0.2) then
+        Continue;
+
+    if Self.Hover(objType, angle, 0) then
+      Exit(True);
+  end;
+end;
+
+function TPOHHandler.WalkClick(objType: ERSRoomObject; attempts: Int32 = 2): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  angle: Double;
+  me: TPoint;
+begin
+  {%codetools off}
+  for attempts downto 0 do
+  {%codetools on}
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    angle := Minimap.GetCompassAngle(False);
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    mmPoints := mmPoints.Sorted(Minimap.Center);
+
+    if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
+      if not Self.Walker.WebWalk(obj.Coordinates, 12, 0.2) then
+        Continue;
+
+    if Self.Click(objType, angle, 0) then
+      Exit(True);
+  end;
+end;
+
+function TPOHHandler.WalkSelect(objType: ERSRoomObject; options: TStringArray; attempts: Int32 = 2): Boolean;
+var
+  obj: TRoomObject;
+  mmPoints: TPointArray;
+  angle: Double;
+  me: TPoint;
+begin
+  {%codetools off}
+  for attempts downto 0 do
+  {%codetools on}
+  begin
+    me := Self.Position();
+    obj := Self.RoomObjects[objType];
+    if obj.Coordinates = [] then
+      Exit;
+
+    angle := Minimap.GetCompassAngle(False);
+    mmPoints := Self.Walker.PointsToMM(me, obj.Coordinates, angle);
+    mmPoints := mmPoints.Sorted(Minimap.Center);
+
+    if not Minimap.PointOnZoomRectangle(mmPoints[0]) then
+      if not Self.Walker.WebWalk(obj.Coordinates, 12, 0.2) then
+        Continue;
+
+    if Self.Select(objType, options, angle, 0) then
+      Exit(True);
+  end;
+end;
+
+
+function TPOHHandler.OpenNexus(): Boolean;
+begin
+  if GameInterface.IsOpen() then
+  begin
+    if PortalNexus.IsOpen() then
+      Exit(True);
+    GameInterface.Close();
+  end;
+
+  if Self.RoomObjects[ERSRoomObject.NEXUS].Coordinates = [] then
+    Self.Fatal('Your POH does not have a portal nexus');
+
+  if Self.WalkSelect(ERSRoomObject.NEXUS, ['Teleport Menu']) then
+  begin
+    Minimap.WaitMoving();
+    Result := PortalNexus.IsOpen(3000);
+  end;
+end;
+
+function TPOHHandler.NexusTeleport(destination: ERSNexusDestination): Boolean;
+begin
+  Result := Self.OpenNexus() and PortalNexus.ClickDestination(destination);
+end;
+
+
+function TPOHHandler.UsePool(): Boolean;
+  function _IsMaxed(): Boolean;
+  begin
+    if Minimap.GetHPLevel() < Stats.GetLevel(ESkill.HITPOINTS) then
+      Exit;
+    if Minimap.GetPrayerLevel() < Stats.GetLevel(ESkill.PRAYER) then
+      Exit;
+
+    if Minimap.GetRunEnergy() <= 65 then
+      Exit;
+
+    if Minimap.GetSpecLevel() < 100 then
+      Exit;
+
+    if Minimap.IsPoisoned() or Minimap.IsEnvenomed() then
+      Exit;
+    Result := True;
+  end;
+begin
+  if _IsMaxed() then
+    Exit(True);
+
+  if Self.RoomObjects[ERSRoomObject.POOL].Coordinates = [] then
+    Self.Fatal('Your POH does not have a pool');
+
+  if Self.WalkClick(ERSRoomObject.POOL) then
+  begin
+    Minimap.WaitMoving();
+    Result := WaitUntil(_IsMaxed(), 300, 3000);
+  end;
+end;
+
+
+var
+(*
+## var POH
+```pascal
+var POH
+```
+Global variable to use the {ref}`TPOHHandler`.
+*)
+  POH: TPOHHandler;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  POH.InternalSetup();
+end;
+
+(*
+## Debug
+```pascal
+procedure Debug(pohObject: ERSRoomObject); overload;
+```
+Method used to debug {ref}`TRoomObject`.
+*)
+procedure Debug(pohObject: ERSRoomObject); overload;
+var
+  bitmap: TMufasaBitmap;
+begin
+  bitmap.FromClient();
+  POH.Draw(bitmap, pohObject);
+  bitmap.Debug();
+  bitmap.Free();
+end;

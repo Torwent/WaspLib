@@ -1,0 +1,51 @@
+{$DEFINE WL_BASE_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+procedure TSRLBaseRecord.AddToLog(Message: String); constref;
+begin
+  if WL.LogFile = '' then
+    Exit;
+  WriteFileContents(WL.LogFile, Message + STR_NEW_LINE, True);
+end;
+
+procedure TSRLBaseRecord.DebugLn(Text: String); constref; override;
+var
+  TimeStamp: String;
+begin
+  TimeStamp := SRL.TimeStamp;
+  Text := TimeStamp + ':[' + Name + ']: ' + Text;
+
+  if not Self.DisableDebugging then
+    WriteLn(Text);
+
+  Self.AddToLog(Text);
+end;
+
+procedure TSRLBaseRecord.DebugLn(Text, ExtraInfo: String); constref; overload;
+var
+  TimeStamp: String;
+begin
+  TimeStamp := SRL.TimeStamp;
+  Text := TimeStamp + ':[' + Name + ']: ' + Text;
+
+  if not Self.DisableDebugging then
+    WriteLn(Text);
+
+  Text += STR_NEW_LINE + TimeStamp + ':[ExtraInfo]: ' + ExtraInfo;
+  Self.AddToLog(Text);
+end;
+
+procedure TSRLBaseRecord.Fatal(Text: String); constref; override;
+begin
+  if not SRL.IsSetup then
+    inherited;
+
+  Text := SRL.TimeStamp + ':[' + Name + ']:[Fatal]: ' + Text;
+  WriteLn(Text);
+  Self.AddToLog(Text);
+  SaveScreenshot('fatal/' + Name, True);
+  TerminateScript;
+end;
+

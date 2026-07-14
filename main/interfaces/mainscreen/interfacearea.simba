@@ -1,0 +1,63 @@
+{$DEFINE WL_INTERFACEAREA_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+
+function TInterfaceArea.ClickClose(pressEscape: Boolean = False): Boolean; override;
+var
+  button: TGameButton;
+  i: Int32;
+begin
+  button := Self.GetCloseButton();
+  Result := button <> [];
+
+  if not Result then
+    Exit;
+
+  if (pressEscape and Self.EscapeEnabled) then
+  begin
+    Keyboard.PressKey(VK_ESCAPE);
+
+    //Antiban stuff.
+    if Random() < Antiban.GetUniqueDouble(0.15, 0.1, 0.2) then
+      for i := 0 to Antiban.GetUniqueInt(2, 1, 3) do
+      begin
+        if not Keyboard.IsKeyDown(VK_ESCAPE) then
+        begin
+          if Antiban.BioDice() then
+            Keyboard.PressKey(VK_ESCAPE)
+          else
+            Keyboard.KeyDown(VK_ESCAPE);
+        end;
+
+        Wait(20, 150, wdLeft);
+
+        if Keyboard.IsKeyDown(VK_ESCAPE) and Antiban.BioDice(0.5) then
+        begin
+          Keyboard.KeyUp(VK_ESCAPE);
+          Wait(20, 80, wdLeft);
+        end;
+      end;
+
+    if Keyboard.IsKeyDown(VK_ESCAPE) then
+      Keyboard.KeyUp(VK_ESCAPE);
+
+    Exit;
+  end;
+
+  Result := button.Click();
+end;
+
+
+function TInterfaceArea.Close(chance: Double = BioHash): Boolean; overload;
+var
+  pressEscape: Boolean;
+begin
+  if chance = BioHash then
+    pressEscape := Antiban.BioDice(EBioBehavior.ESCAPE_CHANCE)
+  else
+    pressEscape := SRL.Dice(chance);
+
+  Result := Self.Close(pressEscape);
+end;

@@ -1,0 +1,319 @@
+(*
+# Minimap to MainScreen
+Methods to handle MM2MS (Minimap to MainScreen). Extends SRL's MM2MS.
+*)
+{$DEFINE WL_MM2MS_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+(*
+## type TMainScreenShape
+
+This record holds information about the shape of a TWalkerObject and it's rotation.
+
+TMainScreenShape.Shape has 3 values, X, Y and Z. X and Y are how wide a object is, measured in game tiles.
+Z is the object height which has to be guessed and tested for a good value.
+
+For example, a bank chest would be roughly [1, 1, 4].
+A bank booth would be roughly [1, 1, 8].
+
+Angle is used to rotate an object and should be done in radians.
+*)
+  TMainScreenShape = record
+    Tile: Vector3;
+    Angle: Single;
+  end;
+  TMainScreenShapeArray = array of TMainScreenShape;
+
+procedure TMainScreenShapeArray.SetShape(tile: Vector3; index: Int32 = -1);
+begin
+
+  if index > -1 then
+  begin
+    Self[index].Tile := tile;
+    Exit;
+  end;
+
+  for index := 0 to High(Self) do
+    Self[index].Tile := tile;
+end;
+
+procedure TMainScreenShapeArray.SetAngle(angle: Double; index: Int32 = -1);
+begin
+  if index > -1 then
+  begin
+    Self[index].Angle := angle;
+    Exit;
+  end;
+
+  for index := 0 to High(Self) do
+    Self[index].Angle := angle;
+end;
+
+function TMainScreenShapeArray.GetShape(height: Double): TMainScreenShapeArray;
+var
+  i: Int32;
+  temp: TMainScreenShape;
+begin
+  for i := 0 to High(Self) do
+  begin
+    temp := Self[i];
+    temp.Tile.Z := height;
+    Result += temp;
+  end;
+end;
+
+function TMainScreenShapeArray.ZeroHeight(): Boolean;
+var
+  i: Int32;
+begin
+  Result := True;
+  for i := 0 to High(Self) do
+    if Self[i].Tile.Z <> 0 then
+      Exit(False);
+end;
+
+
+function TMainScreen.GetPlayerBox(x1: Double; x2: Double; y1: Double; y2: Double): TBox; overload;
+var
+  angle: Double;
+  tpa: TPointArray;
+begin
+  angle := Minimap.GetCompassAngle(False);
+  tpa := [
+    Minimap.VectorToMS(Vec3(Minimap.Center.X - x1, Minimap.Center.Y, y1), angle),
+    Minimap.VectorToMS(Vec3(Minimap.Center.X + x2, Minimap.Center.Y, -y2), angle)
+  ];
+
+  Result := tpa.Bounds();
+  Result.LimitTo(MainScreen.Bounds);
+end;
+
+function TMainScreen.GetPlayerBox(size: Double; y1: Double = 10; y2: Double=3): TBox; overload;
+begin
+  Result := Self.GetPlayerBox(size, size, y1, y2);
+end;
+
+
+(*
+## Minimap.GetCuboidMS
+```pascal
+function TMinimap.GetCuboidMSEx(loc: TPoint; shape: TMainScreenShape; startHeight: Double = 0; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidEx;
+function TMinimap.GetCuboidMS(loc: TPoint; shape: TMainScreenShape; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidEx;
+function TMinimap.GetCuboidArrayMSEx(locArray: TPointArray; shapeArray: TMainScreenShapeArray; startHeights: TDoubleArray; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidExArray;
+function TMinimap.GetCuboidArrayMS(locArray: TPointArray; shapeArray: TMainScreenShapeArray; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidExArray
+function TMinimap.GetCuboidArrayMS(locArray: TPointArray; shape: TMainScreenShape; offset: Vector2 = [0, 0]; angle: Single = $FFFF): TCuboidExArray; overload;
+```
+Converts minimap coordinates to mainscreen cuboid(s) at a specific height.
+To understand what this better, you should read about `Minimap.GetTileMS` and `TPointArray.ConvexHull` and understand what they do.
+
+To put it simply, this will will first calculate a floor rectangle with **tile.Z**, or **height** if you prefer
+of 0 and then calculate the top rectangle of the **tile.Z** you specified.
+
+After this 2 rectangles are calculated, a cuboid is then made out of the two, resulting in a ConvexHull which is returned.
+
+This is perfect to to get an accurate bounding cuboid of objects and NPCs which you can use to accurately color search after.
+
+:::{note}
+:class: dropdown
+`angle` is the compass angle, by leaving it default it will gather the compass angle itself.
+:::
+
+The example below will show you how it could be used to retrieve an accurate player bounding cuboid.
+
+Example:
+```pascal
+P := Minimap.GetDots(EMinimapDot.PLAYER)[0];         //find a player dot and returns it's coodinates.
+offset := [2 , 2];                                     //Minimap dots are actually returned with a slight offset of -2, -2 when converting them to the mainscreen.
+Debug(Minimap.GetCuboidMS(P, [1, 1, 7], offset));     //This will draw a polygon around the nearest player.
+```
+*)
+function TMinimap.GetTileMS(loc: TPoint; shape: TMainScreenShape; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TRectangle; overload;
+begin
+  if not Self.IsPointOn(loc) then
+    Exit;
+
+  //The above prevents running out of memory from fetching tiles too far away.
+  //Everything at the very edge of the minimap is also roughly the same limit of the render distance.
+  //So even though we could fetch tiles further that are visible they would be pitch black because they are not rendered and kind of pointless.
+  //So this just won't go further if the point is not on the minimap and prevents users from accidentally trying to get tiles that are truly too far.
+
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  Result := Self.GetTileMS(loc, shape.Tile, offset, angle + shape.Angle)
+end;
+
+function TMinimap.GetTileArrayMS(locArray: TPointArray; shapeArray: TMainScreenShapeArray; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TRectArray; overload;
+var
+  i: Int32;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  locArray := locArray.SortFrom(Self.Center);
+
+  if Length(locArray) = Length(shapeArray) then
+  begin
+    for i := 0 to High(locArray) do
+      Result += Self.GetTileMS(locArray[i], shapeArray[i].Tile, offset, angle + shapeArray[i].Angle);
+    Exit;
+  end;
+
+  for i := 0 to High(locArray) do
+    Result += Self.GetTileMS(locArray[i], shapeArray[0].Tile, offset, angle + shapeArray[0].Angle);
+end;
+
+function TMinimap.GetCuboidMSEx(loc: TPoint; shape: TMainScreenShape; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TCuboidEx; overload;
+var
+  tile: Vector3;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  angle += shape.Angle;
+
+  tile := shape.Tile;
+  Result.Bottom := Self.GetTileMs(loc, [tile.X, tile.Y, 0], offset, angle);
+  if tile.Z <> 0 then
+    Result.Top := Self.GetTileMS(loc, tile, offset, angle)
+  else
+    Result.Top := Result.Bottom;
+end;
+
+function TMinimap.GetCuboidMS(loc: TPoint; shape: TMainScreenShape; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TCuboidEx; overload;
+begin
+  Result := Self.GetCuboidMSEx(loc, shape, offset, angle);
+end;
+
+function TMinimap.GetCuboidArrayMSEx(locArray: TPointArray; shapeArray: TMainScreenShapeArray; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TCuboidExArray; overload;
+var
+  i: Int32;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  for i := 0 to High(locArray) do
+  begin
+    if not Self.Bounds.Expand(10).Contains(locArray[i]) then
+      Continue;
+
+    if Length(locArray) = Length(shapeArray) then
+      Result += Self.GetCuboidMSEx(locArray[i], shapeArray[i], offset, angle)
+    else
+      Result += Self.GetCuboidMSEx(locArray[i], shapeArray[0], offset, angle);
+  end;
+end;
+
+function TMinimap.GetCuboidArrayMS(locArray: TPointArray; shapeArray: TMainScreenShapeArray; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TCuboidExArray; overload;
+var
+  i: Int32;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  for i := 0 to High(locArray) do
+  begin
+    if not Self.Bounds.Expand(10).Contains(locArray[i]) then
+      Continue;
+
+    if Length(locArray) = Length(shapeArray) then
+      Result += Self.GetCuboidMS(locArray[i], shapeArray[i], offset, angle)
+    else
+      Result += Self.GetCuboidMS(locArray[i], shapeArray[0], offset, angle);
+  end;
+end;
+
+function TMinimap.GetCuboidArrayMS(locArray: TPointArray; shape: TMainScreenShape; offset: Vector3 = [0, 0, 0]; angle: Single = $FFFF): TCuboidExArray; overload;
+var
+  i: Int32;
+begin
+  if (angle = $FFFF) then
+    angle := Self.GetCompassAngle(False);
+
+  for i := 0 to High(locArray) do
+  begin
+    if not Self.Bounds.Expand(10).Contains(locArray[i]) then
+      Continue;
+    Result += Self.GetCuboidMS(locArray[i], shape, offset, angle);
+  end;
+end;
+
+
+
+(*
+## MM2MS.SetupZoom
+```pascal
+procedure TMM2MS.SetupZoom;
+```
+Wrapper procedure to easily setup MM2MS.ZoomLevel.
+
+Example:
+```pascal
+MM2MS.SetupZoom;
+WriteLn MM2MS.ZoomLevel;
+```
+*)
+procedure TMM2MS.SetupZoom();
+begin
+  if Self.ZoomLevel > -1 then
+    Exit;
+
+  Self.DebugLn('Unknown zoom level, reading from options...');
+  Self.ZoomLevel := Options.GetZoomLevel();
+  Self.DebugLn('Current zoom level: ' + ToString(Self.ZoomLevel));
+end;
+
+
+(*
+## Minimap.GetFaceablePoints
+```pascal
+function TMinimap.GetFaceablePoints(): TPointArray;
+```
+Gives the center point of the 8 tiles that are directly close to the player.
+This are the tiles the player can "face".
+*)
+function TMinimap.GetFaceablePoints(): TPointArray;
+begin
+  with Self.Center do
+    Result := [
+      [X, Y - 4], [X + 4, Y - 4], [X + 4, Y], [X + 4, Y + 4],
+      [X, Y + 4], [X - 4, Y + 4], [X - 4, Y], [X - 4, Y - 4]
+    ];
+
+  Result := Result.Rotate(Self.GetCompassAngle(False), Self.Center);
+end;
+
+(*
+## Minimap.GetCardinalPoints
+```pascal
+function TMinimap.GetCardinalPoints(): TPointArray;
+```
+Gives the center point of the 4 cardinal points (North, West, South and East) that are directly close to the player.
+This are the tiles the player can "face".
+*)
+function TMinimap.GetCardinalPoints(): TPointArray;
+begin
+  with Self.Center do
+    Result := [[X, Y - 4], [X + 4, Y], [X, Y + 4], [X - 4, Y]];
+  Result := Result.Rotate(Self.GetCompassAngle(False), Self.Center);
+end;
+
+
+function TMinimap.SetZoomToPoint(p: TPoint; randomness: Int32 = 0): Boolean; override;
+var
+  level: Int32;
+begin
+  if Self.InZoomRange(p) then
+    Exit(True);
+
+  level := Self.GetZoomToPoint(p, randomness);
+
+  if (Antiban.MaxZoom = 0) then
+    Antiban.MaxZoom := 100;
+
+  if InRange(level, Antiban.MinZoom, Antiban.MaxZoom) then
+    Result := RSMouseZoom.SetZoomLevel(level);
+end;

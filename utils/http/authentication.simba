@@ -1,0 +1,178 @@
+(*
+# Authentication
+Uses tWaspClient to determine if a user is subscribed to the active script and
+displays a warning if the subscription is inactive.
+*)
+
+{$DEFINE WL_AUTH_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type TWarningForm = record(TScriptForm)
+  OkayButton, CloseButton, ScriptPage : tButton;
+  WarningText : tMemo;
+  OkayTimer : TTimer;
+  StartTime : Int64;
+  UseTimer : Boolean;
+end;
+
+procedure TWarningForm.CloseForm({$H-}sender: TObject);{$H+}
+begin
+  Self.Form.Close();
+end;
+
+(*
+The procedure which runs when the Go to Script Page button is clicked.
+*)
+procedure TWarningForm.ClickScriptPage({$H-}sender: TObject);{$H+}
+begin
+  Self.ScriptPage.setEnabled(False);
+  Self.ScriptPage.setCaption('Loading...');
+  OpenWebPage('https://waspscripts.com/scripts/' + WaspClient.GetProductLink({$MACRO SCRIPT_ID}));
+
+  Self.ScriptPage.setEnabled(False);
+  Self.ScriptPage.setCaption('Go To Script Page');
+end;
+
+(*
+This procedure updates the countdown on the Run Anyway button
+*)
+procedure TWarningForm.UpdateRunButton({$H-}sender: TObject);{$H+}
+var
+  TimeRemaining : Int32;
+begin
+  TimeRemaining := 10 - Trunc((GetSystemTime() - Self.StartTime)/1000);
+  if TimeRemaining <= 0 then
+  begin
+    Self.OkayButton.setCaption('Run Anyway');
+    Self.OkayButton.setEnabled(True);
+  end else
+    Self.OkayButton.setCaption('Run Anyway (' + toStr(TimeRemaining) + ' seconds)');
+end;
+
+procedure TWarningForm.Show(); override;
+begin
+  Self.Start.setVisible(False);
+
+  Self.WarningText.Create(Self.Form, '', '', Point(15, 15), Point(370, 180), True);
+  Self.WarningText.setText('Your subscription to this script could not be verified. This could be for several reasons: ' + LineEnding + LineEnding + '1. You are no longer subscribed to this script. ' + LineEnding + '2. You did not run the script through WaspLauncher.' + LineEnding + LineEnding + 'Please consider supporting the author of this script by renewing your subscription. You can use the button below to open the script page in your browser. An active subscription ensures you have access to the latest version of the script.');
+  Self.WarningText.SetFontSize(10);
+
+  Self.ScriptPage.Create(Self.Form, 'Go To Script Page', '', Point(125,205), Point(150,40), True);
+  Self.ScriptPage.setOnClick(@Self.ClickScriptPage);
+  Self.ScriptPage.setEnabled(True);
+
+  Self.OkayButton.Create(Self.Form, 'Run Anyway', 'Run Script Without Subscription', Point(15, 255), Point(170, 30), True);
+  Self.OkayButton.setOnClick(@Self.StartScript);
+  Self.OkayButton.setEnabled(False);
+
+  Self.CloseButton.Create(Self.Form, 'Cancel', '', Point(215, 255), Point(170, 30), True);
+  Self.CloseButton.setOnClick(@Self.CloseForm);
+  Self.CloseButton.setEnabled(True);
+
+  if Self.UseTimer then
+  begin
+    Self.OkayTimer.Init(Self.Form);
+    Self.OkayTimer.setOnTimer(@Self.UpdateRunButton);
+    Self.OkayTimer.setInterval(1000);
+    Self.OkayTimer.setEnabled(true);
+
+    Self.StartTime := GetSystemTime();
+  end else
+    Self.OkayButton.setEnabled(True); // If not using a timer, enable the button immediately
+
+  Self.Form.ShowModal();
+  Self.Form.Free();
+end;
+
+procedure TWarningForm.Run(); override;
+begin
+  Self.Setup('Subscription Expired', Point(400, 300), False);
+
+  Sync(@Self.Show);
+end;
+
+(*
+## TWaspClient.GetScriptInfo
+```pascal
+function TWaspClient.GetScriptInfo(ScriptID : String): tScriptData;
+```
+A function which looks up a given script ID and returns the script data.
+*)
+function TWaspClient.GetScriptInfo(ScriptID : String): tScriptData;
+var
+  jsonArray: TJSONArray;
+begin
+  try
+    jsonArray := Self.Select('scripts','scripts','*', ['id=eq.'+ScriptID]);
+
+    if jsonArray.length() > 0 then
+    // There should only be one match to the script UUID
+      with jsonArray.getJSONObject(0) do
+      begin
+        result.ID := getString('id');
+        result.Name := getString('title');
+        result.Content := getString('content');
+        result.Revision := getJSONObject('protected').getInt('revision');
+
+        result.Content := result.Content.Replace('{$id}', result.ID).Replace('{$title}', result.Name).Replace('{$revision}', ToStr(result.Revision));
+      end;
+  finally
+    jsonArray.Free();
+  end;
+end;
+
+(*
+## TWaspClient.HasAccess
+```pascal
+function TWaspClient.HasAccess(scriptID : String) : Boolean;
+```
+This function checks whether the current User has access to the given Script ID.
+Returns True if the User has access.
+*)
+function TWaspClient.HasAccess(scriptID: String; scriptRevision : String = '') : Boolean;
+const
+  ROUTE: String = 'storage/v1/object/authenticated/scripts/';
+var
+  revision, string1, string2, string3 : String;
+begin
+  if Length(scriptID) < 1 then
+    Exit(false);
+
+  if not Self.IsSetup then
+    Self.Setup();
+
+  if Self.CheckRoleAccess() then Exit(true);
+
+  if Length(scriptRevision) < 1 then
+    revision := toStr(Self.GetScriptInfo(scriptID).Revision)
+  else
+    revision := scriptRevision;
+
+  string2 := PadL(revision, 9, '0');
+  string1 := ROUTE + scriptID + '/' + string2 + '/script.simba';
+  string3 := GetHTTPPage(Self.Client, Self.Server + string1);
+  Result := (Self.GetHTTPCode() = 200);
+end;
+
+(*
+## TWaspClient.CheckSubscription
+```pascal
+procedure TWaspClient.CheckSubscription(UseTimer : Boolean = True);
+```
+Checks whether the user is subscribed to the current script. If not, the
+Access Warning Form is shown.
+*)
+procedure TWaspClient.CheckSubscription(UseTimer : Boolean = True);
+var
+  AccessWarning: TWarningForm;
+begin
+  AccessWarning.UseTimer := UseTimer;
+
+  if not Self.IsSetup then
+    Self.Setup();
+
+  if not Self.HasAccess({$MACRO SCRIPT_ID}, {$MACRO SCRIPT_REVISION}) then
+    AccessWarning.Run();
+end;

@@ -1,0 +1,189 @@
+(*
+# XPBarSetup
+Methods to interact with the XP Bar setup screen.
+*)
+
+{$DEFINE WL_XPBAR_SETUP_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+  ERSXPBarSetupDropDown = (
+    POSITION,
+    SIZE,
+    SPEED,
+    DURATION,
+    COUNTER,
+    PROGRESS_BAR,
+    COLOUR,
+    GROUP,
+    FAKE_DROPS
+  );
+
+  TXPBarSetup = type TInterface;
+
+function TXPBarSetup.IsOpen(): Boolean;
+var
+  Count: Int32;
+begin
+  if GameInterface.IsOpen(EInterfaceType.CLASSIC) then
+    Count := SRL.CountColor(CTS0(2070783, 0), GameInterface.Bounds);
+  Result :=  (Count >= 2800) and (Count <= 4200);
+end;
+
+function TXPBarSetup.Open(): Boolean;
+begin
+  if Self.IsOpen then
+    Exit(True);
+
+  if GameInterface.IsOpen() then
+    Exit(False);
+
+  Mouse.Move(Minimap.Orbs[EMinimapOrb.EXPERIENCE]);
+  ChooseOption.Select('Setup');
+  Result := WaitUntil(Self.IsOpen, SRL.TruncatedGauss(100, 1000), 3000);
+end;
+
+function TXPBarSetup.Close(pressEscape: Boolean = False): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit(True);
+
+  Result := GameInterface.Close(pressEscape);
+end;
+
+
+function TXPBarSetup.GetDropDowns(): TDropDownArray;
+begin
+  Result := Self.FindDropDown([[113, 18], [98, 18], [108, 18], [103, 18], [78, 18], [63, 18], [73, 18]]);
+end;
+
+function TXPBarSetup.GetDropDown(DropDown: ERSXPBarSetupDropDown): TDropDown;
+var
+  DropDowns: TDropDownArray;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  DropDowns := Self.GetDropDowns;
+
+  if DropDowns = [] then
+    Exit;
+
+  Result := DropDowns[Ord(DropDown)];
+end;
+
+
+
+function TXPBarSetup.GetSetting(DropDown: ERSXPBarSetupDropDown): String;
+begin
+  if not Self.IsOpen then
+    Exit;
+
+  Result := Self.GetDropDown(DropDown).GetText(FONT_PLAIN_12);
+end;
+
+function TXPBarSetup.ChangeDropDown(DropDown: ERSXPBarSetupDropDown; Option: String): Boolean;
+begin
+  if not Self.Open then
+    Exit;
+
+  if Self.GetSetting(DropDown) = Option then
+    Exit(True);
+
+  Result := Self.GetDropDown(DropDown).Select(Option, MOUSE_LEFT, True, True, FONT_PLAIN_12);
+end;
+
+
+function TXPBarSetup.ProperSettings(): Boolean;
+begin
+  if not Self.IsOpen() then
+    Exit;
+
+  Result := (Self.GetSetting(ERSXPBarSetupDropDown.DURATION) = 'Permanent')
+             and
+            (Self.GetSetting(ERSXPBarSetupDropDown.COUNTER) = 'Total XP');
+  XPBar.Tracker.IsSetup := Result;
+
+  if Result then
+    WL.GameSettings.XPBarIsSetup := True;
+end;
+
+procedure TXPBarSetup.Fix();
+var
+  i: Int32;
+begin
+  Self.DebugLn('Your XPBar seems to not be properly setup.');
+  Self.DebugLn('If you see scripts constantly trying to open it you should manually fix it.');
+  if not Self.Open() then
+    Exit;
+
+  repeat
+    Self.ChangeDropDown(ERSXPBarSetupDropDown.DURATION, 'Permanent');
+    Wait(50, 200);
+    Self.ChangeDropDown(ERSXPBarSetupDropDown.COUNTER, 'Total XP');
+    Wait(50, 200);
+
+    case i of
+      0..7: ;
+      8..10: WriteLn 'Stuck in TXPBarSetup.Fix()';
+      else TerminateScript('Couldn''t fix the XPBar please fix it manually.');
+    end;
+    Inc(i);
+  until not Self.IsOpen() or Self.ProperSettings();
+
+  Self.Close();
+end;
+
+
+procedure TXPBarSetup.Setup(); override;
+begin
+  inherited;
+  Self.Name := 'XPBar Setup';
+end;
+
+procedure TXPBarSetup.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+begin
+  alignment.Left := InterfaceArea.Bounds.X1;
+  alignment.Right := InterfaceArea.Bounds.X2;
+  alignment.Top := InterfaceArea.Bounds.Y1;
+  alignment.Bottom := InterfaceArea.Bounds.Y2;
+  alignment.MaxWidth := 486;
+  alignment.MaxHeight := 330;
+  Self.SetupAlignment(alignment);
+end;
+
+procedure TXPBarSetup.Draw(bitmap: TMufasaBitmap); override;
+begin
+  if not Self.IsOpen() then Exit;
+
+  inherited;
+
+  bitmap.DrawDropDowns(Self.GetDropDowns());
+end;
+
+var
+  XPBarSetup: TXPBarSetup;
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+  XPBarSetup.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+
+  XPBarSetup.Setup;
+end;
+
+procedure TSRL.Debug(Bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+
+  XPBarSetup.Draw(Bitmap);
+end;

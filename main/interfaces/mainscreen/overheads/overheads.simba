@@ -1,0 +1,153 @@
+{$DEFINE WL_OVERHEADS_INCLUDED}
+{$IFNDEF WL_MAIN}
+  {$I WaspLib/main.simba}
+{$ENDIF}
+
+type
+{$SCOPEDENUMS ON}
+  ERSOverhead = (
+    MAGIC, RANGED, MELEE, RETRIBUTION, REDEMPTION, SMITE,
+    MAGIC_AND_RANGED, MAGIC_AND_MELEE, RANGED_AND_MELEE, ALL,
+    DAMPEN_MELEE
+  );
+
+  TOverhead = record
+    Position: TPoint;
+    Prayer: ERSOverhead;
+  end;
+
+  TOverheadArray = array of TOverhead;
+
+procedure TOverhead.Draw(bitmap: TMufasaBitmap; color: Int32 = 0);
+const
+  COLORS = [$FF, $FF00, $FF0000, $1, $1, $1, $FFFF, $FF00FF, $FFFF00, $FFFFFF, $FFFFFF];
+begin
+  if color = 0 then color := COLORS[Ord(Self.Prayer)];
+  bitmap.DrawCircle(Self.Position, 12, color);
+end;
+
+procedure TOverheadArray.Draw(bitmap: TMufasaBitmap; color: Int32 = 0);
+var
+  overhead: TOverhead;
+begin
+  for overhead in Self do
+    overhead.Draw(bitmap, color);
+end;
+
+type
+  TOverheadFinder = record(TInterface)
+    Bitmaps: array [ERSOverhead] of TMufasaBitmap;
+    IMAGES_PATH: String;
+  end;
+
+procedure TOverheadFinder.Free();
+var
+  overhead: ERSOverhead;
+begin
+  for overhead := Low(ERSOverhead) to High(ERSOverhead) do
+  begin
+    Self.Bitmaps[overhead].Free();
+    Self.Bitmaps[overhead] := nil;
+  end;
+end;
+
+procedure TOverheadFinder.Setup(); override;
+var
+  overhead: ERSOverhead;
+  zip, hash: String;
+begin
+  inherited;
+
+  Self.Name := 'OverheadFinder';
+
+  zip  := ASSETS_DIR + 'finders' + DirectorySeparator + 'overheads.zip';
+  hash := SHA1File(zip).SubString(6);
+  Self.IMAGES_PATH := CACHE_DIR + 'itemfinder' + DirectorySeparator + hash + DirectorySeparator;
+
+  if not ForceDirectories(Self.IMAGES_PATH) then
+    raise 'Failed to create path: ' + Self.IMAGES_PATH;
+
+  if DirectoryIsEmpty(Self.IMAGES_PATH) then
+    UnZipFile(zip, Self.IMAGES_PATH);
+
+  if DirectoryIsEmpty(Self.IMAGES_PATH) then
+    raise 'Failed to unzip overheads.';
+
+  for overhead := Low(ERSOverhead) to High(ERSOverhead) do
+  begin
+    Self.Bitmaps[overhead].Init();
+    Self.Bitmaps[overhead].LoadFromFile(Self.IMAGES_PATH + ToStr(overhead).Lower() + '.png');
+  end;
+
+  AddOnTerminate(@Self.Free);
+end;
+
+procedure TOverheadFinder.SetupAlignment(); overload;
+var
+  alignment: TInterfaceAlignment;
+begin
+  alignment.Left   := InterfaceArea.Bounds.X1 + 14;
+  alignment.Right  := InterfaceArea.Bounds.X2 - 14;
+  alignment.Top    := InterfaceArea.Bounds.Y1 + 14;
+  alignment.Bottom := InterfaceArea.Bounds.Y2 - 14;
+
+  Self.SetupAlignment(alignment);
+end;
+
+
+function TOverheadFinder.Find(overheads: set of ERSOverhead): TOverheadArray;
+var
+  i: Int32;
+  mainScreenBmp: TMufasaBitmap;
+  matrix: TSingleMatrix;
+  overhead: ERSOverhead;
+begin
+  mainScreenBmp.FromClient(Self.Bounds);
+
+  for overhead in overheads do
+  begin
+    matrix := mainScreenBmp.MatchTemplate(Self.Bitmaps[overhead], TM_CCOEFF_NORMED);
+    for i := 0 to 5 do
+    begin
+      with matrix.ArgMax() do
+      begin
+        if matrix[Y,X] < 0.99 then Break;
+
+        Result += [Point(X+Self.Bounds.X1+6,Y+Self.Bounds.Y1+7), overhead];
+        matrix.Fill(Box(X,Y,X+14,Y+14), 0);
+      end;
+    end;
+  end;
+
+  mainScreenBmp.Free();
+end;
+
+
+procedure TOverheadFinder.Draw(bitmap: TMufasaBitmap); override;
+var
+  overheads: TOverheadArray;
+begin
+  overheads := Self.Find([ERSOverhead.MAGIC..ERSOverhead.DAMPEN_MELEE]);
+  overheads.Draw(bitmap);
+end;
+
+var
+  OverheadFinder: TOverheadFinder;
+
+procedure TGameClient.ClientModeChanged(); override;
+begin
+  inherited;
+  OverheadFinder.SetupAlignment();
+end;
+
+procedure TSRL.Setup(); override;
+begin
+  inherited;
+  OverheadFinder.Setup();
+end;
+
+procedure TSRL.Debug(bitmap: TMufasaBitmap); override;
+begin
+  inherited;
+  OverheadFinder.Draw(bitmap);
+end;

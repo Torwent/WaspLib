@@ -1,0 +1,1063 @@
+(*
+# Data
+Methods to fetch game data.
+This file has methods to fetch information about items, monsters and weapons.
+*)
+
+{$DEFINE WL_DATA_INCLUDED}
+{$IFNDEF WL_UTILS}
+  {$I WaspLib/utils.simba}
+{$ENDIF}
+
+type
+(*
+(TItemData)=
+## type TItemData
+```pascal
+TItemData = record(TSRLBaseRecord)
+  ITEMS_ZIP: String;
+  ITEMS_PATH: String;
+
+  Client: THTTPClient;
+
+  PriceData: TJSONObject;
+  Definitions: TJSONArray;
+  ReloadTimer: TCountDown;
+  IsSetup, OSRSBoxIsSetup, Disabled: Boolean;
+end;
+```
+TItemData type, responsible to handle anything that is related to item data.
+*)
+  TItemData = record(TSRLBaseRecord)
+    ITEMS_ZIP: String;
+    ITEMS_PATH: String;
+
+    Client: THTTPClient;
+
+    PriceData: TJSONObject;
+    Definitions: TJSONArray;
+    ReloadTimer: TCountDown;
+    IsSetup, OSRSBoxIsSetup, Disabled: Boolean;
+  end;
+
+procedure TItemData.Free();
+begin
+  if Assigned(Self.PriceData) then
+  begin
+    Self.PriceData.Free();
+    Self.PriceData := nil;
+  end;
+
+  if Assigned(Self.Definitions) then
+  begin
+    Self.Definitions.Free();
+    Self.Definitions := nil;
+  end;
+end;
+
+procedure TItemData.Setup();
+begin
+  Self.Name := 'ItemData';
+  Self.ITEMS_ZIP  := ASSETS_DIR + 'jsons' + DirectorySeparator + 'item-definitions.zip';
+  Self.ITEMS_PATH := CACHE_DIR + 'itemdata' + DirectorySeparator +
+                     SHA1File(Self.ITEMS_ZIP).SubString(6) + DirectorySeparator;
+
+  if not ForceDirectories(Self.ITEMS_PATH) then
+    Self.Fatal('Failed to create path: ' + Self.ITEMS_PATH);
+
+  Client.Init('WikiPricesClient', 'https://prices.runescape.wiki/api/v1/osrs/', True);
+  SetHTTPUserAgent(Self.Client.Client, 'Simba WaspScripts bot - User ID: ' + APIClient.GetUUID() + ', Contact: support@waspscripts.com');
+  Definitions.Init();
+  AddOnTerminate(@Self.Free);
+  Self.ReloadTimer.Setup(20 * ONE_MINUTE);
+  Self.IsSetup := True;
+end;
+
+(*
+## ItemData.SetupWikiPrices()
+```pascal
+procedure TItemData.SetupPrices();
+```
+Internal method called automatically when we require price data.
+Doesn't need to be called since it will be called automatically if **ItemData.WikiPriceIsSetup** is false.
+It's also recalled when we try to fetch item data and 20 minutes have passed to update prices.
+*)
+procedure TItemData.SetupPrices();
+var
+  response: String;
+begin
+  if not Self.IsSetup then
+    Self.Setup();
+
+  Self.DebugLn('Loading item prices from the wiki API.');
+  try
+    response := Self.Client.GET('latest', True, False);
+  except
+    Self.DebugLn('Couldn''t connect to https://prices.runescape.wiki');
+    Self.Disabled := True;
+    Exit;
+  end;
+
+  try
+    Self.PriceData.Init(response);
+  except
+    Self.DebugLn('https://prices.runescape.wiki gave an invalid JSON');
+    Self.Disabled := True;
+    Exit;
+  end;
+
+  Self.ReloadTimer.Restart();
+end;
+
+(*
+## ItemData.GetData
+```pascal
+function ItemData.GetData(Item: String): TJSONObject;
+```
+
+Internal method used to retrieve a TJSONObject of the Item we want information on.
+**Item** should be an item ID.
+*)
+function TItemData.GetDefinitions(item: Integer): TJSONObject;
+var
+  i: Int32;
+  path: String;
+begin
+  if (item = -1) then
+    Exit;
+
+  if not Self.IsSetup then
+    Self.Setup();
+
+  for i := 0 to Self.Definitions.High() do
+    if Self.Definitions.getJSONObject(i).getInt('id') = item then
+      Result := Self.Definitions.getJSONObject(i);
+
+  if Result = nil then
+  begin
+    path := Self.ITEMS_PATH + ToStr(item) + '.json';
+    if not FileExists(path) then
+      if not UnZipOneFile(Self.ITEMS_ZIP, ToStr(item) + '.json', Self.ITEMS_PATH) then
+      begin
+        Self.DebugLn('Couldn''t find ' + ToStr(item) + '.json');
+        Exit;
+      end;
+
+    try
+      Result.Init(ReadFileContents(path));
+    except
+      Self.DebugLn(ToStr(item) + '.json is corrupted.');
+      DeleteFile(path);
+      Exit;
+    end;
+
+    Self.Definitions.put(Result);
+  end;
+end;
+
+(*
+## ItemData.GetTradeableID
+```pascal
+function ItemData.GetTradeableID(Item: TItem): String;
+```
+
+Internal method used to retrieve only the tradeable version of an item if it exists.
+Some items have versions of themselves that are not tradeable and can't be used to fetch item prices,
+such as degraded items, ornamented items, etc.
+*)
+function TItemData.GetTradeableID(item: TItem): Int32;
+var
+  id: Int32;
+  json: TJSONObject;
+begin
+  Result := -1;
+  if ToStr(item) = '' then Exit;
+
+  for id in ItemFinder.GetItemIDs(item) do
+  begin
+    json := Self.GetDefinitions(id);
+    if (json <> nil) and json.getBoolean('tradeable') then
+      Exit(id);
+  end;
+end;
+
+(*
+## ItemData.GetPrice
+```pascal
+function ItemData.GetPrice(Item: TItem): TJSONObject;
+```
+
+Internal method used to fetch a price data TJSONObject of a certain item.
+*)
+function TItemData.GetPrice(item: TItem): TJSONObject;
+var
+  id: Integer;
+  json: TJSONObject;
+begin
+  if Self.Disabled then
+    Exit;
+
+  if (Self.ReloadTimer.Length = 0) or Self.ReloadTimer.IsPaused() or Self.ReloadTimer.IsFinished() then
+    Self.SetupPrices();
+
+  if Self.Disabled then
+    Exit;
+
+  id := Self.GetTradeableID(item);
+
+  if id > -1 then
+  begin
+    json := Self.PriceData.getJSONObject('data');
+    if json <> nil then
+      Result := json.getJSONObject(ToStr(id));
+  end;
+end;
+
+(*
+## ItemData.GetPriceInt
+```pascal
+function ItemData.GetPriceInt(Item: TItem; Key: String): Int32;
+```
+Wrapper method used to fetch ints from ItemData.GetPrice().
+To use this you should be familar with the structure of the JSONObject ItemData.GetPrice() returns.
+
+Example:
+```pascal
+WriteLn ItemData.GetPriceInt('Abyssal whip', 'low'); // will print the low price of abyssal whip.
+WriteLn ItemData.GetPriceInt('Abyssal whip', 'high'); // will print the high price of abyssal whip.
+```
+*)
+function TItemData.GetPriceInt(item: TItem; key: String): Int32;
+var
+  json: TJSONObject;
+begin
+  json := Self.GetPrice(item);
+  if json <> nil then
+    Result := json.getInt(key);
+end;
+
+(*
+## ItemData.GetAverage
+```pascal
+function ItemData.GetAverage(Item: TItem): Int32;
+```
+
+Method used to get the average price of **Item**.
+
+Example:
+```pascal
+WriteLn ItemData.GetAverage('Abyssal whip');
+```
+*)
+function TItemData.GetAverage(item: TItem): Int32;
+var
+  lo, hi: Int32;
+begin
+  item := ToStr(item).Lower();
+  case item of
+    'coins', '995', '996', '997', '998', '999',
+    '1000', '1001', '1002', '1003', '1004': Exit(1);
+  end;
+
+  lo := Self.GetPriceInt(item, 'low');
+  hi := Self.GetPriceInt(item, 'high');
+
+  if lo = hi then Exit(lo);
+  if (lo = 0) then Exit(hi);
+  if (hi = 0) then Exit(lo);
+
+  Result := Round((hi + lo) / 2);
+end;
+
+
+(*
+## ItemData.GetOSRSBoxInt()
+```pascal
+function ItemData.GetOSRSBoxInt(Item: TItem; Key: String): Int32;
+```
+
+Wrapper method used to get the integer values of the OSRSBox item json.
+To use it, knowledge about the file structure is required.
+
+Example:
+```pascal
+WriteLn ItemData.GetOSRSBoxInt('Abyssal whip', 'highalch'); //will print high alch value for the abyssal whip.
+```
+*)
+function TItemData.GetDefinitionInt(item: TItem; key: String): Int32;
+var
+  id: Integer;
+  json: TJSONObject;
+begin
+  if item = '' then
+    Exit;
+
+  for id in ItemFinder.GetItemIDs(item) do
+  begin
+    json := Self.GetDefinitions(id);
+    if (json <> nil) and json.getBoolean('tradeable') then
+      Break;
+  end;
+
+  if json = nil then
+    Exit;
+
+  if json.isNull(key) then
+    Exit;
+
+  Result := json.getInt(key);
+end;
+
+(*
+## ItemData.GetOSRSBoxBoolean()
+```pascal
+function ItemData.GetOSRSBoxBoolean(Item: TItem; Key: String): Boolean;
+```
+
+Wrapper method used to get the boolean values of the OSRSBox item json.
+To use it, knowledge about the file structure is required.
+
+Example:
+```pascal
+WriteLn ItemData.GetOSRSBoxBoolean('Abyssal whip', 'tradeable_on_ge');
+```
+*)
+function TItemData.GetDefinitionBoolean(item: TItem; key: String): Boolean;
+var
+  id: Integer;
+  json: TJSONObject;
+begin
+  if item = '' then
+    Exit;
+
+  for id in ItemFinder.GetItemIDs(item) do
+  begin
+    json := Self.GetDefinitions(id);
+    if (json <> nil) and json.getBoolean('tradeable') then
+      Break;
+  end;
+
+  if json = nil then
+    Exit;
+
+  Result := not json.isNull(key) and json.getBoolean(key);
+end;
+
+(*
+## ItemData.GetHighAlch()
+```pascal
+function ItemData.GetHighAlch(Item: TItem): Int32;
+```
+
+Method used to get the the high alchemy value of an item.
+
+Example:
+```pascal
+WriteLn ItemData.GetHighAlch('Magic longbow');
+```
+*)
+function TItemData.GetLowAlch(item: TItem): Int32;
+begin
+  Result := Floor(Self.GetDefinitionInt(item, 'cost') * 0.4);
+end;
+
+function TItemData.GetHighAlch(item: TItem): Int32;
+begin
+  Result := Floor(Self.GetDefinitionInt(item, 'cost') * 0.6);
+end;
+
+(*
+## ItemData.GetHighAlchProfit()
+```pascal
+function ItemData.GetHighAlchProfit(Item: TItem): Int32;
+```
+
+Method used to get the the high alchemy profit of an item.
+
+```{note}
+HighAlchProfit = HighAlchValue - ItemAveragePrice - NatureRuneAveragePrice
+```
+
+Example:
+```pascal
+WriteLn ItemData.GetHighAlchProfit('Magic longbow');
+```
+*)
+function TItemData.GetHighAlchProfit(item: TItem): Int32;
+var
+  alch: Int32;
+begin
+  alch := Self.GetHighAlch(item);
+  if alch > 0 then
+    Result := alch - Self.GetAverage(item) - Self.GetAverage('561');
+end;
+
+(*
+## ItemData.GetLowAlchProfit()
+```pascal
+function ItemData.GetLowAlchProfit(Item: TItem): Int32;
+```
+Method used to get the the low alchemy profit of an item.
+
+```{note}
+LowAlchProfit = LowAlchValue - ItemAveragePrice - NatureRuneAveragePrice
+```
+
+Example:
+```pascal
+WriteLn ItemData.GetLowAlchProfit('Magic longbow');
+```
+*)
+function TItemData.GetLowAlchProfit(item: TItem): Int32;
+var
+  alch: Int32;
+begin
+  alch := Self.GetLowAlch(item);
+  if alch > 0 then
+    Result := alch - Self.GetAverage(item) - Self.GetAverage('561');
+end;
+
+var
+  {$H-}ItemData: TItemData;{$H+}
+
+type
+(*
+(EAttackType)=
+## type EAttackType
+```pascal
+EAttackType = (MELEE_ATTACK_TYPE, RANGED_ATTACK_TYPE, MAGIC_ATTACK_TYPE, TYPELESS_ATTACK_TYPE);
+```
+Enum of Attack types in game.
+Can be used to know what to pray for example.
+*)
+  EAttackType = (MELEE_ATTACK_TYPE, RANGED_ATTACK_TYPE, MAGIC_ATTACK_TYPE, TYPELESS_ATTACK_TYPE);
+(*
+(TMonsterDrop)=
+## type TMonsterDrop
+```pascal
+type
+  TMonsterDrop = record
+    Item: String;
+    ID: String;
+    Stackable: Boolean;
+    Noted: Boolean;
+    Quantity: Int32;
+  end;
+  TMonsterDropArray = array of TMonsterDrop;
+```
+Helper record to handle monster drops. Has several variable that hold information about monster
+drops such as wether it's stackable and/or noted and quantity.
+*)
+  TMonsterDrop = record
+    Item: String;
+    ID: String;
+    Stackable: Boolean;
+    Noted: Boolean;
+    Quantity: Int32;
+  end;
+
+function TMonsterDrop.Create(item: TItem): TMonsterDrop; static;
+begin
+  Result.Item := item;
+  Result.ID := '0';
+  Result.Stackable := False;
+  Result.Noted := False;
+  Result.Quantity := 1;
+end;
+
+function TMonsterDrop.GetName(): String;
+begin
+  if Self.Noted then Result := 'noted ';
+  Result += Self.Item;
+  Result := Result.SentenceCase();
+  if Self.Quantity > 1 then Result += ' (x' + ToStr(Self.Quantity) + ')';
+end;
+
+type
+  TMonsterDropArray = array of TMonsterDrop;
+
+function TMonsterDropArray.Contains(drop: TMonsterDrop): Boolean;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i] = drop then
+      Exit(True);
+
+  Result := False;
+end;
+
+function TMonsterDropArray.ContainsEx(drop: TMonsterDrop): Boolean;
+var
+  i: Int32;
+begin
+  for i := 0 to High(Self) do
+    if Self[i].ID = drop.ID then
+      Exit(True);
+
+  Result := False;
+end;
+
+function TMonsterDropArray.FindItem(item: String): Int32;
+begin
+  for Result := 0 to High(Self) do
+    if Self[Result].Item = item then
+      Exit;
+
+  Result := -1;
+end;
+
+function TMonsterDropArray.ContainsItem(item: String): Boolean;
+begin
+  Result := Self.FindItem(item) > -1;
+end;
+
+
+procedure TMonsterDropArray.ClearDuplicates();
+var
+  i, j: Int32;
+  tmp: TMonsterDropArray;
+  best: TMonsterDrop;
+begin
+  for i := 0 to High(Self) do
+  begin
+    best := Self[i];
+    if tmp.ContainsEx(best) then Continue;
+
+    for j := High(Self) downto i + 1  do
+    begin
+      if best.ID <> Self[j].ID then Continue;
+
+      if best.Quantity < Self[j].Quantity then
+        best := Self[j];
+    end;
+
+    tmp += best;
+  end;
+
+  Self := tmp;
+end;
+
+
+type
+(*
+(TMonsterData)=
+## type TMonsterData
+```pascal
+TMonsterData = record(TSRLBaseRecord)
+  MONSTERS_ZIP: String;
+  CACHE_PATH: String;
+
+  Names: TStringList;
+  Data: TJSONArray;
+  IsSetup: Boolean;
+end;
+```
+Static TMonsterData type, responsible to handle anything that is related to monsters data.
+*)
+  TMonsterData = record(TSRLBaseRecord)
+    MONSTERS_ZIP: String;
+    CACHE_PATH: String;
+
+    Names: TStringList;
+    Data: TJSONArray;
+    IsSetup: Boolean;
+  end;
+
+procedure TMonsterData.Free();
+begin
+  if Assigned(Self.Names) then
+  begin
+    Self.Names.Free();
+    Self.Names := nil;
+  end;
+
+  if Assigned(Self.Data) then
+  begin
+    Self.Data.Free();
+    Self.Data := nil;
+  end;
+end;
+
+(*
+## TMonsterData.Setup()
+```pascal
+procedure TMonsterData.Setup();
+```
+Internal method to setup the TMonsterData record.
+*)
+procedure TMonsterData.Setup();
+begin
+  if Self.IsSetup then
+    Exit;
+
+  Self.Name := 'MonsterData';
+  Self.MONSTERS_ZIP := ASSETS_DIR + 'jsons' + DirectorySeparator + 'monsters.zip';
+  Self.CACHE_PATH := CACHE_DIR + 'monsters' + DirectorySeparator +
+                    SHA1File(Self.MONSTERS_ZIP).SubString(6) + DirectorySeparator;
+
+  if not ForceDirectories(Self.CACHE_PATH) then
+    Self.Fatal('Failed to create path: ' + Self.CACHE_PATH);
+
+  Self.Names.Init();
+  Self.Names.LoadFromFile(ASSETS_DIR + 'jsons' + DirectorySeparator + 'monsters');
+  Self.Names.SetSorted(True);
+  Self.Data.Init();
+
+  AddOnTerminate(@Self.Free);
+  Self.IsSetup := True;
+end;
+
+function TMonsterData.GetCachedID(id: Int32): TJSONObject;
+var
+  i: Int32;
+begin
+  for i := 0 to Self.Data.High() do
+    if Self.Data.getJSONObject(i).GetInt('id') = id then
+      Result := Self.Data.getJSONObject(i);
+end;
+
+function TMonsterData.GetIDs(monster: String): TIntegerArray;
+var
+  monsterID, intValue: Int32;
+  value, path: String;
+  json: TJSONObject;
+begin
+  if not Self.IsSetup then
+    Self.Setup();
+
+  if monster.IsDigit() then
+    Exit([StrToInt(monster)]);
+
+  monsterID := Self.Names.IndexOfName(monster);
+  while SameText(monster, Self.Names.NameFromIndex(monsterID)) do
+  begin
+    value := Self.Names.ValueFromIndex(monsterID);
+    intValue := StrToInt(value);
+
+    json := Self.GetCachedID(intValue);
+
+    if json = nil then
+    begin
+      path := Self.CACHE_PATH + value + '.json';
+      if not FileExists(path) then
+        if not UnZipOneFile(Self.MONSTERS_ZIP, value + '.json', Self.CACHE_PATH) then
+        begin
+          Self.DebugLn('Couldn''t find ' + ToStr(value) + '.json');
+          Continue;
+        end;
+
+      json.Init(ReadFileContents(path));
+      Self.Data.Put(json);
+    end;
+
+    Result += intValue;
+    Inc(monsterID);
+    json := nil;
+  end;
+end;
+
+function TMonsterData.GetID(monster: String): Int32;
+var
+  ids: TIntegerArray;
+begin
+  ids := Self.GetIDs(monster);
+  if ids <> [] then
+    Result := ids[0];
+end;
+
+
+(*
+## TMonsterData.GetInt()
+```pascal
+function TMonsterData.GetInt(Monster, Key: String): Int32;
+```
+Wrapper method to get integer data from from monsters.json.
+
+```{note}
+Using this requires you to know the structure of the monster.json file.
+```
+
+Example:
+```pascal
+WriteLn TMonsterData.GetInt('Cow', 'hitpoints'); //This will print 8.
+```
+*)
+function TMonsterData.GetInt(monster, key: String): Int32;
+var
+  json: TJSONObject;
+begin
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getInt(key);
+end;
+
+(*
+## TMonsterData.GetString()
+```pascal
+function TMonsterData.GetString(Monster, Key: String): String;
+```
+Wrapper method to get string data from monsters.json.
+
+```{note}
+Using this requires you to know the structure of the monster.json file.
+```
+
+Example:
+```pascal
+WriteLn TMonsterData.GetString('Cow', 'drops');
+```
+*)
+function TMonsterData.GetString(monster, Key: String): String;
+var
+  json: TJSONObject;
+begin
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getString(key);
+end;
+
+(*
+## TMonsterData.IsAgressive()
+```pascal
+function TMonsterData.IsAgressive(Monster): String;
+```
+Method to get information on wether a monster is aggressive or not.
+
+Example:
+```pascal
+WriteLn TMonsterData.IsAgressive('Cow'); //Will print False.
+```
+*)
+function TMonsterData.IsAgressive(monster: String): Boolean;
+var
+  json: TJSONObject;
+begin
+  json := Self.GetCachedID(Self.GetID(monster));
+  if json <> nil then
+    Result := json.getBoolean('aggressive');
+end;
+
+(*
+## TMonsterData.GetJSONArray()
+```pascal
+function TMonsterData.GetJSONArray(Monster, Key: String): TJSONArray;
+```
+Internal method to get a TJSONArray value from monsters.json.
+*)
+function TMonsterData.GetJSONArray(monster, key: String): TJSONArray;
+var
+  json: TJSONObject;
+  id: Int32;
+begin
+  Result.Init();
+  for id in Self.GetIDs(monster) do
+  begin
+    json := Self.GetCachedID(id);
+    if json <> nil then
+      Result.Merge(json.getJSONArray(key));
+  end;
+end;
+
+(*
+## TMonsterData.GetJSONObject()
+```pascal
+function TMonsterData.GetJSONObject(Monster, Key: String): TJSONObject;
+```
+Internal method to get a TJSONObject value from monsters.json.
+*)
+function TMonsterData.GetJSONObject(monster, key: String): TJSONObject;
+var
+  id, i: Int32;
+begin
+  id := Self.GetID(monster);
+  for i := 0 to Self.Data.High() do
+    if Self.Data.getJSONObject(i).GetInt('id') = id then
+      Exit(Self.Data.getJSONObject(i).getJSONObject(key));
+end;
+
+(*
+## TMonsterData.GetAttackTypes()
+```pascal
+function TMonsterData.GetAttackTypes(Monster: String): array of EAttackType;
+```
+Method used to get an array of EAttackType used by the specified monster.
+*)
+function TMonsterData.GetAttackTypes(monster: String): array of EAttackType;
+var
+  json: TJSONArray;
+  i: Int32;
+begin
+  json := Self.GetJSONArray(monster, 'attack_type');
+
+  for i := 0 to json.High() do
+    case json.getString(i) of
+      'stab', 'slash', 'crush': Result += EAttackType.MELEE_ATTACK_TYPE;
+      'ranged':   Result += EAttackType.RANGED_ATTACK_TYPE;
+      'magic':    Result += EAttackType.MAGIC_ATTACK_TYPE;
+      'typeless': Result += EAttackType.TYPELESS_ATTACK_TYPE;
+    end;
+end;
+
+(*
+## TMonsterData.GetDrop()
+```pascal
+function TMonsterData.GetDrop(DropJSON: TJSONObject): TMonsterDrop;
+```
+Method to convert a monster json object to a TMonsterDrop.
+*)
+function TMonsterData.GetDrop(dropJSON: TJSONObject): TMonsterDrop;
+var
+  str: String;
+begin
+  Result.ID := dropJSON.getString('id');
+  Result.Item := dropJSON.getString('name');
+  str := dropJSON.getString('quantity');
+  if str.Contains('-') then
+    Result.Quantity := Round(StrToInt(str.Before('-')) + StrToInt(str.After('-')) / 2)
+  else
+    Result.Quantity := StrToInt(str);
+  Result.Noted := dropJSON.getBoolean('noted');
+  Result.Stackable := Result.Noted;
+end;
+
+(*
+## TMonsterData.GetDrops()
+```pascal
+function TMonsterData.GetDrops(Monster: String): TMonsterDropArray;
+```
+Method to return all monster drops as an array of TMonsterDrop.
+
+Example:
+```pascal
+WriteLn TMonsterData.GetDrops('Abyssal demon'); //prints all monster drops.
+```
+*)
+function TMonsterData.GetDrops(monster: String): TMonsterDropArray;
+var
+  JSONArray: TJSONArray;
+  i: Int32;
+  drop: TMonsterDrop;
+begin
+  WriteLn('Loading ' + monster + ' drops, this might take up to a 1 minute.');
+
+  JSONArray := Self.GetJSONArray(monster, 'drops');
+
+  for i := 0 to JSONArray.length() - 1 do
+  begin
+    drop := [];
+    drop := Self.GetDrop(JSONArray.getJSONObject(i));
+
+    if not drop.Stackable then
+    begin
+      drop.Stackable := drop.ID.ContainsAny(['995', '996', '997', '998', '999', '1000', '1001', '1002', '1003', '1004']) or
+                        ItemData.GetDefinitionBoolean(drop.ID, 'stackable');
+    end;
+
+    Result += Drop;
+  end;
+end;
+
+var
+  {$H-}MonsterData: TMonsterData;{$H+}
+
+(*
+## type TWeaponData
+```pascal
+type
+  TWeaponData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+```
+Type responsible of handling anything that is related to weapons data.
+*)
+type
+  TWeaponData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+
+(*
+## WeaponData.Setup
+```pascal
+procedure TWeaponData.Setup();
+```
+
+Internal method to setup TWeaponData.
+*)
+procedure TWeaponData.Setup();
+begin
+  if Self.IsSetup then
+    Exit;
+
+  WriteLn('Loading weapons.json.');
+
+  Self.Data.Init(ReadFileContents(ASSETS_DIR + 'jsons' + DirectorySeparator + 'weapons.json'));
+
+  AddOnTerminate(@Self.Data.Free);
+  Self.IsSetup := True;
+end;
+
+(*
+## WeaponData.GetInt
+```pascal
+function TWeaponData.GetInt(weapon, key: String): Int32;
+```
+Method to fetch integer data from weapons.json.
+
+```{note}
+Using this requires knowledge of the structure of weapons.json
+```
+
+Example:
+```pascal
+WriteLn TWeaponData.GetInt('Abyssal whip', 'special_attack'); //This will print 50.
+```
+*)
+function TWeaponData.GetInt(weapon, key: String): Int32;
+begin
+  Self.Setup();
+  Result := Self.Data.getJSONObject(weapon).getInt(key);
+end;
+
+(*
+## WeaponData.GetAttackType
+```pascal
+function TWeaponData.GetAttackType(weapon: String): EAttackType;
+```
+Returns the EAttackType of the weapon specified.
+
+Example:
+```pascal
+WriteLn TWeaponData.GetAttackType('Abyssal whip'); //This will print MELEE_ATTACK_TYPE.
+```
+*)
+function TWeaponData.GetAttackType(weapon: String): EAttackType;
+begin
+  Self.Setup();
+  case Self.Data.getJSONObject(weapon).getString('type') of
+    'melee':  Result := EAttackType.MELEE_ATTACK_TYPE;
+    'ranged': Result := EAttackType.RANGED_ATTACK_TYPE;
+    'magic':  Result := EAttackType.MAGIC_ATTACK_TYPE;
+  end;
+end;
+
+(*
+## WeaponData.IsTwoHanded
+```pascal
+function TWeaponData.IsTwoHanded(weapon: String): Boolean;
+```
+Returns wether the weapon is two-handed or not.
+
+Example:
+```pascal
+WriteLn TWeaponData.IsTwoHanded('Abyssal whip'); //This will print false.
+```
+*)
+function TWeaponData.IsTwoHanded(weapon: String): Boolean;
+begin
+  Self.Setup();
+  Result := Self.Data.getJSONObject(weapon).getBoolean('two-handed');
+end;
+
+(*
+## WeaponData.GetRequirementsJSON
+```pascal
+function TWeaponData.GetRequirementsJSON(weapon: String): TJSONObject;
+```
+Returns a TJSONObject of the level requirements for the weapon.
+*)
+function TWeaponData.GetRequirementsJSON(weapon: String): TJSONObject;
+begin
+  Self.Setup();
+  Result := Self.Data.getJSONObject(weapon).getJSONObject('level_requirements');
+end;
+
+var
+  {$H-}WeaponData: TWeaponData;{$H+}
+
+(*
+## type TGearData
+```pascal
+type
+  TGearData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+```
+
+Type responsible of handling anything that is related to weapons data.
+*)
+type
+  TGearData = record
+    Data: TJSONObject;
+    IsSetup: Boolean;
+  end;
+
+(*
+## GearData.Setup
+```pascal
+procedure TGearData.Setup();
+```
+
+Internal method to setup TGearData.
+*)
+procedure TGearData.Setup();
+begin
+  if Self.IsSetup then Exit;
+
+  WriteLn('Loading gear.json.');
+
+  Self.Data.Init(ReadFileContents(ASSETS_DIR + 'jsons' + DirectorySeparator + 'gear.json'));
+
+  AddOnTerminate(@Self.Data.Free);
+  Self.IsSetup := True;
+end;
+
+(*
+## GearData.GetJSONArray
+```pascal
+function TGearData.GetJSONArray(key: String): TJSONArray;
+```
+Method to fetch json arrays from gear.json.
+
+```{note}
+Using this requires knowledge of the structure of gear.json
+```
+*)
+function TGearData.GetJSONArray(key: String): TJSONArray;
+begin
+  Self.Setup();
+  if key = 'secondary_ammo' then key := 'ammo';
+  Result := Self.Data.getJSONArray(key);
+end;
+
+(*
+## GearData.GetItems
+```pascal
+function TGearData.GetItems(key: String): TItemArray;
+function TGearData.GetItems(slot: EEquipmentSlot): TItemArray; overload;
+```
+Method to fetch items under a key in gear.json.
+*)
+function TGearData.GetItems(key: String): TItemArray;
+var
+  i: Int32;
+begin
+  Self.Setup();
+  if key = 'secondary_ammo' then key := 'ammo';
+  for i := 0 to Self.Data.getJSONArray(key).High() do
+    Result += Self.Data.getJSONArray(key).getString(i);
+end;
+
+function TGearData.GetItems(slot: EEquipmentSlot): TItemArray; overload;
+begin
+  Result := Self.GetItems(LowerCase(ToStr(slot)));
+  if slot = EEquipmentSlot.WEAPON then
+    Result += Self.GetItems('2h');
+end;
+
+
+var
+  {$H-}GearData: TGearData;{$H+}
